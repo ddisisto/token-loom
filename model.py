@@ -161,6 +161,16 @@ DEFAULT_MODEL_CONFIG = {
             'type': 'openrouter',
             'api_base': 'https://openrouter.ai/api/v1',
             },
+        # type 'openrouter-completion' posts the prompt to /completions, so no chat template is
+        # applied and the model continues the text rather than replying to it. No provider
+        # returns logprobs on that endpoint, so counterfactuals are unavailable there.
+        # Providers differ in whether they chat-template a completion request, hence the pin.
+        'mistralai/mistral-nemo': {
+            'model': 'mistralai/mistral-nemo',
+            'type': 'openrouter-completion',
+            'api_base': 'https://openrouter.ai/api/v1',
+            'extra_body': {'provider': {'order': ['DeepInfra'], 'allow_fallbacks': False}},
+            },
         'mistralai/Mistral-7B-v0.1':{
             'model': 'mistralai/Mistral-7B-v0.1',
             'type': 'together',

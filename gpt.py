@@ -117,6 +117,8 @@ def generate(config, **kwargs):
         echo = info['echoes_prompt']
         assert kwargs['logprobs'] > 0 or not info['requires_logprobs'], \
             f"Logprobs must be greater than 0 for model type {model_type}"
+        # arbitrary extra request fields, e.g. OpenRouter's provider routing preferences
+        kwargs['extra_body'] = config['models'][kwargs['model']].get('extra_body')
         if info['batch'] == 'sequential':
             required_calls = kwargs['num_continuations']
             kwargs['num_continuations'] = 1
@@ -220,14 +222,15 @@ def format_openAI_completion(completion, prompt_offset, prompt_end_index, is_cha
                        'finishReason': completion['finish_reason'],
                        'tokens': []}
     offset = prompt_offset
+    # some providers (e.g. most OpenRouter models) return no logprobs at all
+    completion_logprobs = completion.get('logprobs') or {}
     if is_chat:
-        # some providers (e.g. many OpenRouter models) return no logprobs at all
-        chat_logprobs = (completion.get('logprobs') or {}).get('content') or []
+        chat_logprobs = completion_logprobs.get('content') or []
         for i, token in enumerate(chat_logprobs):
             token_dict = format_openAI_chat_token_dict(token, i)
             completion_dict['tokens'].append(token_dict)
     else:
-        for i, token in enumerate(completion['logprobs']['tokens'][prompt_end_index:]):
+        for i, token in enumerate((completion_logprobs.get('tokens') or [])[prompt_end_index:]):
             j = i + prompt_end_index
             token_dict, offset = format_openAI_token_dict(completion, token, j, offset)
             completion_dict['tokens'].append(token_dict)
@@ -269,9 +272,10 @@ def format_openAI_response(response, prompt, echo, is_chat):
 
 @retry(n_tries=3, delay=1, backoff=2, on_failure=lambda *args, **kwargs: ("", None))
 def openAI_generate(model_type, prompt, length=150, num_continuations=1, logprobs=10, temperature=0.8, top_p=1, stop=None,
-                    model='davinci', logit_bias=None, **kwargs):
+                    model='davinci', logit_bias=None, extra_body=None, **kwargs):
     if not logit_bias:
         logit_bias = {}
+    request_extras = {'extra_body': extra_body} if extra_body else {}
     params = {
         'temperature': temperature,
         'max_tokens': length,
@@ -293,13 +297,13 @@ def openAI_generate(model_type, prompt, length=150, num_continuations=1, logprob
         if logprobs > 0:
             params['top_logprobs'] = logprobs
         response = client.chat.completions.create(
-            **params
+            **params, **request_extras
         ).to_dict()
     else:
         params['prompt'] = prompt
         params['echo'] = info['sends_echo']
         response = client.completions.create(
-            **params
+            **params, **request_extras
         ).to_dict()
 
     return response, None

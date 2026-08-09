@@ -266,6 +266,18 @@ MODEL_TYPES = {
         'drop_params': ('logit_bias', 'n'),
         'key': 'OPENROUTER_API_KEY',
     },
+    'openrouter-completion': {
+        # the completions endpoint, so no chat template is applied and the model
+        # continues the text rather than replying to it. No OpenRouter provider
+        # returns logprobs here, so counterfactuals are unavailable -- and
+        # sending the parameter to one that cannot honour it corrupts the
+        # forwarded request, hence dropping it rather than passing 0.
+        'sends_echo': False,
+        'echoes_prompt': False,
+        'batch': 'sequential',
+        'drop_params': ('logit_bias', 'n', 'logprobs'),
+        'key': 'OPENROUTER_API_KEY',
+    },
     'ai21': {
         'api': 'ai21',
     },
