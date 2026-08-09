@@ -426,7 +426,7 @@ def retry(func=None, exception=Exception, n_tries=5, delay=0.1,
                 ndelay *= backoff
 
         if on_failure is not None:
-            on_failure(*args, **kwargs)
+            return on_failure(*args, **kwargs)
         else:
             raise exe
 
