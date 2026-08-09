@@ -1178,6 +1178,8 @@ class ModelConfigDialog(Dialog):
         self.ai21_api_key = None
         self.gooseai_api_key = None
         self.gooseai_api_key_entry = None
+        self.openrouter_api_key = None
+        self.openrouter_api_key_entry = None
         # self.api_base = None
         Dialog.__init__(self, parent, title="Model Configuration")
 
@@ -1187,15 +1189,18 @@ class ModelConfigDialog(Dialog):
         self.openai_api_key = self.state.OPENAI_API_KEY if self.state.OPENAI_API_KEY else ""
         self.ai21_api_key = self.state.AI21_API_KEY if self.state.AI21_API_KEY else ""
         self.gooseai_api_key = self.state.GOOSEAI_API_KEY if self.state.GOOSEAI_API_KEY else ""
+        self.openrouter_api_key = self.state.OPENROUTER_API_KEY if self.state.OPENROUTER_API_KEY else ""
         # self.api_base = self.state.model_config.api_base if self.state.model_config.api_base else ""
 
     def body(self, master):
         self.set_vars()
         self.add_model_button = ttk.Button(master, text="Add Model", command=self.add_model)
-        key_length = max(max(len(self.openai_api_key), len(self.ai21_api_key), len(self.gooseai_api_key)), 20)
+        key_length = max(max(len(self.openai_api_key), len(self.ai21_api_key), len(self.gooseai_api_key),
+                             len(self.openrouter_api_key)), 20)
         self.openai_api_key_entry = Entry(master, master.grid_size()[1], "OpenAI API Key", self.openai_api_key, None, width=key_length)
         self.ai21_api_key_entry = Entry(master, master.grid_size()[1], "AI21 API Key", self.ai21_api_key, None, width=key_length)
         self.gooseai_api_key_entry = Entry(master, master.grid_size()[1], "GooseAI API Key", self.gooseai_api_key, None, width=key_length)
+        self.openrouter_api_key_entry = Entry(master, master.grid_size()[1], "OpenRouter API Key", self.openrouter_api_key, None, width=key_length)
         # self.api_base_entry = Entry(master, master.grid_size()[1], "API Base", self.api_base, None)
         models_list = self.available_models.keys()
         self.model_label = ttk.Label(master, text="Model")
@@ -1228,6 +1233,7 @@ class ModelConfigDialog(Dialog):
         self.state.OPENAI_API_KEY = self.openai_api_key_entry.tk_variables.get().strip()
         self.state.AI21_API_KEY = self.ai21_api_key_entry.tk_variables.get().strip()
         self.state.GOOSEAI_API_KEY = self.gooseai_api_key_entry.tk_variables.get().strip()
+        self.state.OPENROUTER_API_KEY = self.openrouter_api_key_entry.tk_variables.get().strip()
         # self.state.api_base = self.api_base_entry.tk_variables.get().strip()
         self.state.update_user_frame(update={'generation_settings': {'model': self.selected_model.get()}})
 

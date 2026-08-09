@@ -124,6 +124,9 @@ def generate(config, **kwargs):
             for _ in range(required_calls):
                 response, error = openAI_generate(model_type, **kwargs)
                 responses.append(response)
+            responses = [r for r in responses if r]
+            if not responses:
+                return None, 'No response from model'
             response = responses[-1]
             response['choices'] = [r['choices'][0] for r in responses]
         else:
@@ -199,11 +202,12 @@ def format_openAI_token_dict(completion, token, i, offset):
     return token_dict, calculated_offset
 
 def format_openAI_chat_token_dict(content_token, i):
+    counterfactuals = content_token.get('top_logprobs') or []
     token_dict = {
         'generatedToken': {'token': content_token['token'],
                            'logprob': content_token['logprob']},
                            'position': i,
-                           'counterfactuals' : {c['token']: c['logprob'] for c in content_token['top_logprobs']}
+                           'counterfactuals' : {c['token']: c['logprob'] for c in counterfactuals}
         }
     return token_dict
 
@@ -217,7 +221,9 @@ def format_openAI_completion(completion, prompt_offset, prompt_end_index, is_cha
                        'tokens': []}
     offset = prompt_offset
     if is_chat:
-        for i, token in enumerate(completion['logprobs']['content']):
+        # some providers (e.g. many OpenRouter models) return no logprobs at all
+        chat_logprobs = (completion.get('logprobs') or {}).get('content') or []
+        for i, token in enumerate(chat_logprobs):
             token_dict = format_openAI_chat_token_dict(token, i)
             completion_dict['tokens'].append(token_dict)
     else:
@@ -278,10 +284,14 @@ def openAI_generate(model_type, prompt, length=150, num_continuations=1, logprob
         #**kwargs
     }
     info = model_type_info(model_type)
+    # parameters the provider rejects outright rather than ignoring
+    for param in info['drop_params']:
+        params.pop(param, None)
     if info['endpoint'] == 'chat':
         params['messages'] = [{ 'role': "assistant", 'content': prompt }]
-        params['logprobs'] = True
-        params['top_logprobs'] = logprobs
+        params['logprobs'] = logprobs > 0
+        if logprobs > 0:
+            params['top_logprobs'] = logprobs
         response = client.chat.completions.create(
             **params
         ).to_dict()

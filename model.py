@@ -147,6 +147,18 @@ DEFAULT_MODEL_CONFIG = {
             'type': 'llama-cpp',
             'api_base': 'http://localhost:8009/v1',
             },
+        # any model slug from https://openrouter.ai/models works here; the ':free' ones cost nothing.
+        # note that not every provider supports logprobs or continuing an assistant message
+        'google/gemma-4-26b-a4b-it:free': {
+            'model': 'google/gemma-4-26b-a4b-it:free',
+            'type': 'openrouter',
+            'api_base': 'https://openrouter.ai/api/v1',
+            },
+        'openai/gpt-oss-20b:free': {
+            'model': 'openai/gpt-oss-20b:free',
+            'type': 'openrouter',
+            'api_base': 'https://openrouter.ai/api/v1',
+            },
         'mistralai/Mistral-7B-v0.1':{
             'model': 'mistralai/Mistral-7B-v0.1',
             'type': 'together',
@@ -315,6 +327,7 @@ class TreeModel:
         self.AI21_API_KEY = None
         self.GOOSEAI_API_KEY = None
         self.TOGETHERAI_API_KEY = None
+        self.OPENROUTER_API_KEY = None
 
     @property
     def visualization_settings(self):
@@ -1997,6 +2010,7 @@ class TreeModel:
             AI21_API_KEY=self.AI21_API_KEY,
             GOOSEAI_API_KEY=self.GOOSEAI_API_KEY,
             TOGETHERAI_API_KEY=self.TOGETHERAI_API_KEY,
+            OPENROUTER_API_KEY=self.OPENROUTER_API_KEY,
             )
         self.post_generation(error, nodes, results)
 

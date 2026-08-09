@@ -246,6 +246,37 @@ Reset zoom: `Control-0`
 
 # Instructions
 
+## Quickstart with uv
+
+[uv](https://docs.astral.sh/uv/) supplies its own Python (with tkinter bundled), so no system
+Python or `python3-tk` package is needed:
+
+1. `uv sync`
+2. Put your API keys in a `.env` file next to `main.py` (it is gitignored):
+
+        OPENROUTER_API_KEY=sk-or-v1-...
+        OPENAI_API_KEY=sk-...
+
+3. `uv run main.py`
+
+Keys can also come from the shell environment, or be typed into Settings > Model config.
+
+## OpenRouter
+
+[OpenRouter](https://openrouter.ai) exposes many models behind one OpenAI-compatible API,
+including free ones. Models of type `openrouter` read `OPENROUTER_API_KEY`.
+
+Two free models are configured by default. To use another, open Settings > Model config >
+Add model and enter the model slug from https://openrouter.ai/models as both the id and name,
+type `openrouter`, and API base `https://openrouter.ai/api/v1`.
+
+Caveats: OpenRouter providers ignore the `n` parameter, so loom issues one request per
+continuation; not every model supports logprobs (counterfactuals and the block multiverse
+view need them) or accepts a prompt as an assistant message to continue. `google/gemma-4-26b-a4b-it:free`
+supports both. To check a model without launching the GUI:
+
+    uv run smoke_test_openrouter.py [model_slug]
+
 ## Linux
 
 0. Make sure you have tkinter installed

@@ -208,6 +208,9 @@ def parse_logit_bias(logit_string):
 #                   echo parameter and ignores it.
 #   batch           'native' passes n to the API; 'sequential' issues n calls
 #   requires_logprobs  the API rejects logprobs=0
+#   drop_params     request parameters the provider rejects outright. Omitting
+#                   these is not cosmetic: sending one a provider cannot honour
+#                   can corrupt the whole forwarded request.
 #   key/organization   environment variables holding the credentials
 MODEL_TYPE_DEFAULTS = {
     'api': 'openai',
@@ -216,6 +219,7 @@ MODEL_TYPE_DEFAULTS = {
     'echoes_prompt': True,
     'batch': 'native',
     'requires_logprobs': False,
+    'drop_params': (),
     'key': None,
     'organization': None,
 }
@@ -249,6 +253,18 @@ MODEL_TYPES = {
         # llama-cpp-python doesn't support batched inference yet:
         # https://github.com/abetlen/llama-cpp-python/issues/771
         'batch': 'sequential',
+    },
+    'openrouter': {
+        # the chat endpoint, so the prompt is templated as a message and comes
+        # back as a reply rather than a continuation. It is the only way to get
+        # logprobs out of OpenRouter.
+        'endpoint': 'chat',
+        'echoes_prompt': False,
+        # OpenRouter accepts n, but most of its providers ignore it and return a
+        # single choice
+        'batch': 'sequential',
+        'drop_params': ('logit_bias', 'n'),
+        'key': 'OPENROUTER_API_KEY',
     },
     'ai21': {
         'api': 'ai21',
