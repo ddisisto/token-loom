@@ -9,7 +9,11 @@ from collections import defaultdict
 from pprint import pprint
 from tkinter import ttk, messagebox, font
 
+from dotenv import load_dotenv
 from ttkthemes import ThemedStyle
+
+# API keys can live in a .env file next to main.py instead of the shell environment
+load_dotenv()
 
 from controller import Controller
 from model import TreeModel, EMPTY_TREE
@@ -28,7 +32,8 @@ class Application:
         self.parse_arguments()
         # Create the root
         self.root = tk.Tk()
-        self.root.geometry("%dx%d+50+30" % (self.args.width, self.args.height))
+        self.root.geometry("%dx%d+%d+%d" % (self.args.width, self.args.height,
+                                            self.args.x_position, self.args.y_position))
         print(4.0 if self.args.high_resolution else self.args.scaling_factor)
         self.root.call('tk', 'scaling', 2.0 if self.args.high_resolution else self.args.scaling_factor)
         self.root.title("Read tree")
@@ -66,13 +71,16 @@ class Application:
         # Put the app into the foreground
         self.root.attributes('-topmost', True)
         self.root.update()
-        self.root.attributes('-topmost', False)
+        self.root.attributes('-topmost', self.args.topmost)
 
     def parse_arguments(self):
         parser = argparse.ArgumentParser(description='Loom Activation Script')
 
         parser.add_argument('-wd', '--width', default=1200, type=int, help='Window Width')
         parser.add_argument('-ht', '--height', default=675, type=int, help='Window Height')
+        parser.add_argument('-x', '--x-position', default=50, type=int, help='Window x position')
+        parser.add_argument('-y', '--y-position', default=30, type=int, help='Window y position')
+        parser.add_argument('--topmost', action='store_true', help='Keep the window above other windows')
         parser.add_argument('-sf', '--scaling-factor', default=1.0)
         parser.add_argument('-hr', '--high-resolution', action='store_true', help='hr as in High Resolution')
 

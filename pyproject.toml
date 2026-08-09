@@ -1,0 +1,26 @@
+[project]
+name = "loom"
+version = "0.1.0"
+description = "Tree-based writing interface for language models"
+requires-python = ">=3.10"
+dependencies = [
+    "celery",
+    "deepmerge",
+    "diff-match-patch",
+    "html2text",
+    "jsonlines",
+    "numpy",
+    "openai>=1.35.5",
+    "pandas",
+    "pillow>=9.4.0",
+    "pyperclip",
+    "python-dotenv",
+    "redis",
+    "requests",
+    "tokenizers>=0.13.2",
+    "transformers>=4.26.1",
+    "ttkthemes>=2.4.0",
+]
+
+[tool.uv]
+package = false
