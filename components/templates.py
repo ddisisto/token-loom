@@ -906,7 +906,7 @@ class Settings:
     def init_vars(self):
         for key in self.vars.keys():
             self.vars[key] = self.vars[key](value=self.orig_params[key])
-            self.vars[key].trace("w", lambda a, b, c, key=key: self.set_var(key=key))
+            self.vars[key].trace_add('write', lambda a, b, c, key=key: self.set_var(key=key))
     
     def set_var(self, key):
         if self.realtime_update:
@@ -1183,7 +1183,7 @@ def full_generation_settings_init(self):
         }
     for key in additional_vars.keys():
         self.vars[key] = additional_vars[key](value=self.orig_params[key])
-        self.vars[key].trace("w", lambda a, b, c, key=key: self.set_var(key=key))
+        self.vars[key].trace_add('write', lambda a, b, c, key=key: self.set_var(key=key))
     
     self.textboxes.update({'start': None,
                             'restart': None,})
@@ -1254,7 +1254,7 @@ def generation_settings_templates_body(self, build_pins=False):
     row = self.frame.grid_size()[1]
     self.template_label = create_side_label(self.frame, "template")
     self.template_filename_label = create_side_label(self.frame, self.vars['template'].get(), row=row, col=1)
-    self.vars['template'].trace("w", self.set_template)
+    self.vars['template'].trace_add('write', self.set_template)
     if build_pins:
         self.build_pin_button('template')
 
@@ -1271,7 +1271,7 @@ def generation_settings_templates_body(self, build_pins=False):
             self.presets_dict.update(json.load(f))
 
     # when the preset changes, apply the preset
-    self.vars['preset'].trace('w', self.apply_preset)
+    self.vars['preset'].trace_add('write', self.apply_preset)
 
     self.preset_dropdown = tk.OptionMenu(self.frame, self.vars["preset"], "Select preset...")
     self.preset_dropdown.grid(row=row, column=1)

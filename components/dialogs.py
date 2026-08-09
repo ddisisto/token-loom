@@ -383,7 +383,7 @@ class AddTagDialog(Dialog):
         self.show_only_checkbox = create_checkbutton(master, "Show only", 'show_only', self.vars)
         self.configure_checkbuttons()
         for var in self.vars.values():
-            var.trace('w', self.configure_checkbuttons)
+            var.trace_add('write', self.configure_checkbuttons)
         keybinding_options = special_keybindings.keys()
         self.vars['toggle_key'].set('None')
         create_side_label(master, "Toggle key")
@@ -491,7 +491,7 @@ class TagsDialog(Dialog):
 
         # trace all vars to configure checkbuttons
         for var in self.vars[tag].values():
-            var.trace('w', lambda *_, _tag=tag: self.configure_checkbuttons(_tag))
+            var.trace_add('write', lambda *_, _tag=tag: self.configure_checkbuttons(_tag))
 
         self.widgets[tag]['toggle_key_dropdown'] = tk.OptionMenu(self.master, self.vars[tag]['toggle_key'], *keybinding_options)
         self.widgets[tag]['toggle_key_dropdown'].grid(row=self.master.grid_size()[1]-1, column=4, pady=3)
