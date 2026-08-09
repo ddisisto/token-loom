@@ -136,7 +136,7 @@ class ModuleWindow:
         self.module_selection.set('None')
         self.module_menu = tk.OptionMenu(self.menu_frame, self.module_selection, *options)
         self.module_menu.pack(side='left', expand=True, padx=20)
-        self.module_selection.trace('w', lambda a, b, c, module_window=self: selection_callback(module_window=module_window))
+        self.module_selection.trace_add('write', lambda a, b, c, module_window=self: selection_callback(module_window=module_window))
 
         self.close_icon = icons.get_icon('x-lightgray')
         self.x_button = tk.Label(self.menu_frame, text='⨯', fg=text_color(), bg=bg_color(), cursor='hand2')

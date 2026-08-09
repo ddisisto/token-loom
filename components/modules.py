@@ -104,7 +104,7 @@ class Paint(Module):
                                             variable=self.past_recursive_veil_opacity)
         self.past_opacity_slider.grid(row=0, column=7)
         self.past_opacity_slider.set(0.2)
-        self.past_recursive_veil_opacity.trace('w', self.update_past_veil_opacity)
+        self.past_recursive_veil_opacity.trace_add('write', self.update_past_veil_opacity)
 
         self.c = tk.Canvas(self.root, bg='white', width=600, height=600)
         self.c.grid(row=1, columnspan=6)
@@ -1267,7 +1267,7 @@ class Edit(Module):
         template_presets = ['children_list']
         self.templates_dropdown = tk.OptionMenu(self.templates_frame, self.template_preset, None, *template_presets)
         self.templates_dropdown.pack(side='left')
-        self.template_preset.trace("w", self.template_preset_changed)
+        self.template_preset.trace_add('write', self.template_preset_changed)
 
         self.textboxes_frame = ttk.Frame(self.frame)
         self.textboxes_frame.pack(side='top', fill='both', expand=True)
@@ -1735,7 +1735,7 @@ class FrameEditor(Module):
         self.preset = tk.StringVar()
         self.get_presets()
         self.set_presets()
-        self.preset.trace('w', self.apply_preset)
+        self.preset.trace_add('write', self.apply_preset)
 
         self.write_to_user_frame_button = tk.Button(self.frame, text="Copy to user frame", command=self.write_to_user_frame)
         self.write_to_user_frame_button.pack(side='top', pady=10)
