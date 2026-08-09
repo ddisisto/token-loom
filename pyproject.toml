@@ -22,5 +22,12 @@ dependencies = [
     "ttkthemes>=2.4.0",
 ]
 
+# the web spike only — kept out of the main deps so the tkinter app stays unaffected
+[dependency-groups]
+spike = [
+    "fastapi",
+    "uvicorn",
+]
+
 [tool.uv]
 package = false

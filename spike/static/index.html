@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>loom spike</title>
+<style>
+  :root {
+    --bg: #14171a; --panel: #1b1f23; --line: #2b3138;
+    --fg: #d6dce2; --dim: #7d8792; --accent: #6fd3c7; --human: #e0b060;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100vh; display: grid;
+    grid-template-columns: 340px 1fr; grid-template-rows: auto 1fr;
+    background: var(--bg); color: var(--fg);
+    font: 14px/1.6 ui-sans-serif, system-ui, sans-serif;
+  }
+  #tabs {
+    grid-column: 1 / -1; display: flex; align-items: stretch; gap: 2px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 0 6px; overflow-x: auto; min-height: 34px;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 7px; padding: 4px 10px;
+    font-size: 13px; color: var(--dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .dot { color: var(--human); visibility: hidden; }
+  .tab.dirty .dot { visibility: visible; }
+  .tab .close { opacity: .4; }
+  .tab .close:hover { opacity: 1; color: #e08080; }
+  #open { align-self: center; margin-left: 4px; }
+  #tree {
+    border-right: 1px solid var(--line); overflow: auto; padding: 12px;
+    background: var(--panel);
+  }
+  #tree ul { list-style: none; margin: 0; padding-left: 14px; }
+  #tree > ul { padding-left: 0; }
+  #tree li { border-left: 1px solid var(--line); }
+  .node {
+    padding: 3px 8px; cursor: pointer; border-radius: 4px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--dim);
+  }
+  .node:hover { background: #232a31; color: var(--fg); }
+  .node.selected { background: #2c3a44; color: var(--accent); }
+  .node.human { color: var(--human); }
+  main { display: flex; flex-direction: column; overflow: hidden; }
+  #read {
+    flex: 1; overflow: auto; padding: 28px 36px; font-size: 16px; line-height: 1.75;
+    white-space: pre-wrap; word-wrap: break-word; max-width: 46em;
+  }
+  #read .ancestor { color: var(--dim); }
+  #read .current { color: var(--fg); }
+  #controls {
+    border-top: 1px solid var(--line); background: var(--panel);
+    padding: 10px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  button, input, select, textarea {
+    background: #232a31; color: var(--fg); border: 1px solid var(--line);
+    border-radius: 4px; padding: 5px 9px; font: inherit;
+  }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: #2c3a44; color: var(--accent); }
+  input[type=number] { width: 62px; }
+  label { color: var(--dim); font-size: 12px; display: flex; gap: 5px; align-items: center; }
+  #edit { width: 100%; min-height: 90px; resize: vertical; display: none; }
+  #edit.open { display: block; }
+  #scratch { display: none; border-top: 1px solid var(--line); background: var(--panel); }
+  #scratch.open { display: block; }
+  #scratch textarea {
+    width: 100%; min-height: 180px; resize: vertical; border: 0; border-radius: 0;
+    font-family: ui-monospace, monospace; font-size: 13px;
+  }
+  #scratchbar { display: flex; gap: 8px; align-items: center; padding: 8px 14px; }
+  #scratchpath { flex: 1; min-width: 120px; font-family: ui-monospace, monospace; font-size: 12px; }
+  #status { color: var(--dim); font-size: 12px; margin-left: auto; }
+  #status.error { color: #e08080; }
+  .tok { border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="tabs"></div>
+<div id="tree"></div>
+<main>
+  <div id="read"></div>
+  <div id="controls">
+    <button id="generate" class="primary">Generate</button>
+    <label>n <input id="n" type="number" min="1" max="16" value="4"></label>
+    <label>temp <input id="temp" type="number" min="0" max="2" step="0.05" value="0.9"></label>
+    <label>len <input id="len" type="number" min="1" max="2000" value="100"></label>
+    <select id="model"></select>
+    <button id="child">+ child</button>
+    <button id="editToggle">Edit</button>
+    <button id="del">Delete</button>
+    <button id="probs">Probs</button>
+    <button id="scratchToggle">Scratch</button>
+    <button id="save">Save</button>
+    <span id="status"></span>
+  </div>
+  <textarea id="edit" spellcheck="false"></textarea>
+  <div id="scratch">
+    <textarea id="scratchtext" spellcheck="false"
+              placeholder="Scratch text. Saved with the tree, never part of it.&#10;Select a passage and press Seed to make it a node."></textarea>
+    <div id="scratchbar">
+      <button id="seed">Seed →</button>
+      <input id="scratchpath" placeholder="~/machine_secrets/logosphere.md">
+      <button id="load">Load file</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let state = null;
+let index = {};          // id -> node view (labels only; full text lives in state.read)
+let showProbs = false;
+
+const status = (msg, isError) => {
+  $('status').textContent = msg || '';
+  $('status').classList.toggle('error', !!isError);
+};
+
+async function api(path, options) {
+  const res = await fetch('/api' + path, {
+    headers: {'Content-Type': 'application/json'}, ...options,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.json();
+}
+
+// -- rendering -----------------------------------------------------------
+
+function reindex(node, parent) {
+  index[node.id] = node;
+  node.parent = parent;
+  node.children.forEach(c => reindex(c, node));
+}
+
+function renderTabs() {
+  const frag = document.createDocumentFragment();
+  for (const s of state.sessions) {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (s.active ? ' active' : '') + (s.dirty ? ' dirty' : '');
+    tab.title = s.filename || 'unsaved';
+    tab.onclick = () => run(async () => {
+      apply(await api(`/sessions/${s.id}/activate`, {method: 'POST'}));
+    });
+
+    const name = document.createElement('span');
+    name.textContent = s.name;
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.textContent = '●';
+    const close = document.createElement('span');
+    close.className = 'close';
+    close.textContent = '×';
+    close.onclick = e => {
+      e.stopPropagation();
+      if (s.dirty && !confirm(`${s.name} has unsaved changes. Close anyway?`)) return;
+      run(async () => { apply(await api(`/sessions/${s.id}`, {method: 'DELETE'})); });
+    };
+    tab.append(name, dot, close);
+    frag.appendChild(tab);
+  }
+
+  const open = document.createElement('select');
+  open.id = 'open';
+  open.append(new Option('+ open…', ''));
+  open.onchange = () => {
+    const filename = open.value;
+    if (!filename) return;
+    run(async () => {
+      apply(await api('/sessions/open',
+                      {method: 'POST', body: JSON.stringify({filename})}));
+      status(`opened ${filename}`);
+    });
+  };
+  frag.appendChild(open);
+  $('tabs').replaceChildren(frag);
+  refreshFileList();
+}
+
+async function refreshFileList() {
+  try {
+    const {files} = await api('/files');
+    const open = $('open');
+    if (open) open.append(...files.map(f => new Option(f, f)));
+  } catch (e) { /* file listing is a convenience; ignore */ }
+}
+
+function renderTree() {
+  const build = node => {
+    const li = document.createElement('li');
+    const div = document.createElement('div');
+    div.className = 'node' + (node.id === state.selected_node_id ? ' selected' : '')
+                  + (node.source === 'prompt' ? ' human' : '');
+    div.textContent = node.label || '(empty)';
+    div.title = node.label;
+    div.onclick = () => select(node.id);
+    li.appendChild(div);
+    if (node.children.length) {
+      const ul = document.createElement('ul');
+      node.children.forEach(c => ul.appendChild(build(c)));
+      li.appendChild(ul);
+    }
+    return li;
+  };
+  const ul = document.createElement('ul');
+  state.tree.children.forEach(c => ul.appendChild(build(c)));
+  $('tree').replaceChildren(ul);
+  const selected = $('tree').querySelector('.selected');
+  if (selected) selected.scrollIntoView({block: 'nearest'});
+}
+
+function renderRead() {
+  const frag = document.createDocumentFragment();
+  state.read.forEach((node, i) => {
+    const span = document.createElement('span');
+    span.className = i === state.read.length - 1 ? 'current' : 'ancestor';
+    span.textContent = node.text;
+    frag.appendChild(span);
+  });
+  $('read').replaceChildren(frag);
+  $('read').scrollTop = $('read').scrollHeight;
+  if (showProbs) paintProbs();
+}
+
+// Per-token shading over the selected node — the thing OpenRouter's completions
+// endpoint cannot give us, and the reason local inference is on the roadmap.
+async function paintProbs() {
+  const current = $('read').querySelector('.current');
+  if (!current) return;
+  if (!index[state.selected_node_id].has_tokens) {
+    status('no logprobs on this node'); return;
+  }
+  const {tokens} = await api(`/node/${state.selected_node_id}/tokens`);
+  if (!tokens || !tokens.length) { status('no logprobs on this node'); return; }
+  const frag = document.createDocumentFragment();
+  for (const t of tokens) {
+    const prob = Math.exp(t.generatedToken.logprob);
+    const span = document.createElement('span');
+    span.className = 'tok';
+    span.textContent = t.generatedToken.token;
+    span.style.background = `hsl(170 55% 45% / ${(1 - prob) * 0.55})`;
+    span.title = `p=${prob.toFixed(4)}`;
+    frag.appendChild(span);
+  }
+  current.replaceChildren(frag);
+  status(`${tokens.length} tokens shaded by improbability`);
+}
+
+const currentText = () => state.read.length ? state.read[state.read.length - 1].text : '';
+
+function render() {
+  index = {};
+  reindex(state.tree, null);
+  renderTabs();
+  renderTree();
+  renderRead();
+  const edit = $('edit');
+  if (edit.classList.contains('open')) edit.value = currentText();
+  // don't clobber what's being typed; the server copy is authoritative otherwise
+  const scratch = $('scratchtext');
+  if (document.activeElement !== scratch) scratch.value = state.scratchpad || '';
+}
+
+// -- actions -------------------------------------------------------------
+
+const apply = data => { state = data; render(); };
+
+async function select(id) {
+  apply(await api('/select', {method: 'POST', body: JSON.stringify({node_id: id})}));
+  status('');
+}
+
+async function run(fn, busyMsg) {
+  const buttons = [...document.querySelectorAll('#controls button')];
+  buttons.forEach(b => b.disabled = true);
+  if (busyMsg) status(busyMsg);
+  try { await fn(); }
+  catch (e) { status(e.message, true); }
+  finally { buttons.forEach(b => b.disabled = false); }
+}
+
+$('generate').onclick = () => run(async () => {
+  const body = {
+    node_id: state.selected_node_id,
+    num_continuations: +$('n').value,
+    temperature: +$('temp').value,
+    response_length: +$('len').value,
+    model: $('model').value,
+  };
+  const data = await api('/generate', {method: 'POST', body: JSON.stringify(body)});
+  apply(data);
+  status(`${data.new_node_ids.length} continuations`);
+}, 'generating…');
+
+$('child').onclick = () => run(async () => {
+  apply(await api(`/node/${state.selected_node_id}/child`,
+                  {method: 'POST', body: JSON.stringify({text: ''})}));
+  $('edit').classList.add('open');
+  $('edit').value = '';
+  $('edit').focus();
+  status('write, then click away to save');
+});
+
+$('editToggle').onclick = () => {
+  const edit = $('edit');
+  edit.classList.toggle('open');
+  if (edit.classList.contains('open')) {
+    edit.value = currentText();
+    edit.focus();
+  }
+};
+
+$('edit').onblur = () => run(async () => {
+  apply(await api(`/node/${state.selected_node_id}`,
+                  {method: 'PATCH', body: JSON.stringify({text: $('edit').value})}));
+  status('edited');
+});
+
+$('del').onclick = () => run(async () => {
+  apply(await api(`/node/${state.selected_node_id}`, {method: 'DELETE'}));
+  status('deleted');
+});
+
+$('probs').onclick = () => {
+  showProbs = !showProbs;
+  $('probs').classList.toggle('primary', showProbs);
+  renderRead();
+  if (!showProbs) status('');
+};
+
+$('scratchToggle').onclick = () => {
+  const open = $('scratch').classList.toggle('open');
+  $('scratchToggle').classList.toggle('primary', open);
+  if (open) $('scratchtext').focus();
+};
+
+// Saved on blur rather than per-keystroke — the scratchpad is a text field, not a
+// document, and a round trip per character would be silly.
+$('scratchtext').onblur = () => run(async () => {
+  await api('/scratchpad', {method: 'PUT',
+                            body: JSON.stringify({text: $('scratchtext').value})});
+});
+
+$('seed').onclick = () => run(async () => {
+  const area = $('scratchtext');
+  const selected = area.value.slice(area.selectionStart, area.selectionEnd);
+  const text = selected || area.value;
+  apply(await api('/scratchpad/seed',
+                  {method: 'POST', body: JSON.stringify({text})}));
+  status(`seeded ${text.length} chars${selected ? ' from selection' : ''}`);
+});
+
+$('load').onclick = () => run(async () => {
+  const path = $('scratchpath').value.trim();
+  if (!path) { status('give a path first', true); return; }
+  apply(await api('/scratchpad/load',
+                  {method: 'POST', body: JSON.stringify({path})}));
+  status(`loaded ${path}`);
+}, 'loading…');
+
+$('save').onclick = () => run(async () => {
+  const data = await api('/save', {method: 'POST'});
+  apply(data);
+  status(`saved ${data.saved}`);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+    const session = state.sessions[+e.key - 1];
+    if (session) {
+      e.preventDefault();
+      run(async () => {
+        apply(await api(`/sessions/${session.id}/activate`, {method: 'POST'}));
+      });
+    }
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const node = index[state.selected_node_id];
+  if (e.key === 'ArrowUp' && node.parent) select(node.parent.id);
+  if (e.key === 'ArrowDown' && node.children.length) select(node.children[0].id);
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    const siblings = node.parent ? node.parent.children : [];
+    const i = siblings.indexOf(node);
+    const next = siblings[i + (e.key === 'ArrowRight' ? 1 : -1)];
+    if (next) select(next.id);
+  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('generate').click(); }
+});
+
+// -- boot ----------------------------------------------------------------
+
+(async () => {
+  state = await api('/state');
+  $('model').replaceChildren(...state.models.map(m => new Option(m, m)));
+  const s = state.settings || {};
+  if (s.model) $('model').value = s.model;
+  if (s.num_continuations) $('n').value = s.num_continuations;
+  if (s.temperature != null) $('temp').value = s.temperature;
+  if (s.response_length) $('len').value = s.response_length;
+  render();
+  status(`${state.node_count} nodes`);
+})();
+</script>
+</body>
+</html>
