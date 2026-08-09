@@ -1,6 +1,8 @@
 import functools
 import os
+import queue
 import threading
+import traceback
 import time
 import math
 import uuid
@@ -269,6 +271,9 @@ DEFAULT_TAGS = {
     }
  }
 
+# how often the main thread picks up work handed to it by generation threads
+MAIN_THREAD_POLL_MS = 50
+
 EMPTY_TREE = {
     "root": {
         "mutable": False,
@@ -289,7 +294,10 @@ class TreeModel:
     def __init__(self, root):
         self.app = root
         self.app.bind("<<TreeUpdated>>", lambda _: self.tree_updated())
-        self.app.bind("<<NewNodes>>", lambda _: self.edit_new_nodes())
+        # Work that generation threads need run on the main thread. Virtual events are
+        # not delivered across threads, so the main thread drains this on a timer.
+        self.main_thread_queue = queue.Queue()
+        self.app.after(MAIN_THREAD_POLL_MS, self.drain_main_thread_queue)
 
         # All variables initialized below
         self.tree_filename = None
@@ -519,6 +527,22 @@ class TreeModel:
     def tree_updated(self, rebuild_dict=True, **kwargs):
         if self.tree_raw_data and rebuild_dict:
             self.rebuild_tree()
+
+    def call_on_main_thread(self, callback):
+        """Generation runs in a worker thread, and Tk may only be touched from the main one."""
+        self.main_thread_queue.put(callback)
+
+    def drain_main_thread_queue(self):
+        while True:
+            try:
+                callback = self.main_thread_queue.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                callback()
+            except Exception:
+                traceback.print_exc()
+        self.app.after(MAIN_THREAD_POLL_MS, self.drain_main_thread_queue)
 
     # def tree_updated_silent(self):
     #     self.rebuild_tree()
@@ -1959,7 +1983,7 @@ class TreeModel:
             print("Generated continuation:\n", result['text'], "\nerror", error)
 
         # DO NOT CALL FROM THREAD: self.tree_updated()
-        self.app.event_generate("<<NewNodes>>", when="tail")
+        self.call_on_main_thread(self.edit_new_nodes)
 
     def default_post_template(self, completion):
         start_text = codecs.decode(self.generation_settings['start'], "unicode-escape")
@@ -1989,7 +2013,9 @@ class TreeModel:
         for node in nodes:
             parent = self.parent(node)
             parent["children"].remove(node)
-        self.tree_updated(delete=[node['id'] for node in nodes])
+        deleted = [node['id'] for node in nodes]
+        # DO NOT CALL FROM THREAD: self.tree_updated()
+        self.call_on_main_thread(lambda: self.tree_updated(delete=deleted))
 
     def default_generate(self, prompt, nodes):
         results, error = gen(prompt, self.generation_settings, self.model_config,
