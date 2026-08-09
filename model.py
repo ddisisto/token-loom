@@ -104,7 +104,7 @@ DEFAULT_GENERATION_SETTINGS = {
     'prompt_length': 6000,
     'logprobs': 1,
     #"adaptive": False,
-    "model": "davinci-002",
+    "model": "google/gemma-4-26b-a4b-it:free",
     "stop": '',  # separated by '|'
     "start": '',
     "restart": '',
@@ -203,7 +203,7 @@ DEFAULT_MODEL_CONFIG = {
 }
 
 DEFAULT_INLINE_GENERATION_SETTINGS = {
-    "model": "davinci-002",
+    "model": "google/gemma-4-26b-a4b-it:free",
     "num_continuations": 8,
     "temperature": 1,
     "top_p": 1,
