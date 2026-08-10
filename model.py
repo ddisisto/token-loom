@@ -149,6 +149,15 @@ DEFAULT_MODEL_CONFIG = {
             'type': 'llama-cpp',
             'api_base': 'http://localhost:8009/v1',
             },
+        # a genuine base model, served locally by llama.cpp's own server -- see
+        # scripts/llama-server.sh. 'model' must match the -a alias the server was
+        # started with. The only setup that returns raw continuation and logprobs
+        # together; every hosted provider forces a choice between them.
+        'qwen2.5-7b-base': {
+            'model': 'qwen2.5-7b-base',
+            'type': 'llama-server',
+            'api_base': 'http://localhost:8081/v1',
+            },
         # any model slug from https://openrouter.ai/models works here; the ':free' ones cost nothing.
         # note that not every provider supports logprobs or continuing an assistant message
         'google/gemma-4-26b-a4b-it:free': {

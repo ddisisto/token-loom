@@ -67,7 +67,11 @@ def gen(prompt, settings, config, **kwargs):
 
     ai21_api_key = kwargs.get('AI21_API_KEY', None)
     ai21_api_key = ai21_api_key if ai21_api_key else os.environ.get("AI21_API_KEY", None)
-    client.api_key, client.organization = get_correct_key(model_info['type'], kwargs)
+    key, client.organization = get_correct_key(model_info['type'], kwargs)
+    # a locally served model has no credential to find, but the client refuses to
+    # build a request at all without one -- so fall back to the same placeholder
+    # the module-level client is constructed with
+    client.api_key = key if key else 'placeholder'
 
     # print('openai api base: ' + openai.api_base)
 
@@ -113,7 +117,6 @@ def generate(config, **kwargs):
         else:
             return response, error
     else:
-        is_chat = info['endpoint'] == 'chat'
         echo = info['echoes_prompt']
         assert kwargs['logprobs'] > 0 or not info['requires_logprobs'], \
             f"Logprobs must be greater than 0 for model type {model_type}"
@@ -135,7 +138,8 @@ def generate(config, **kwargs):
             # TODO OpenAI errors
             response, error = openAI_generate(model_type, **kwargs)
         #save_response_json(response, 'examples/openAI_response.json')
-        formatted_response = format_openAI_response(response, kwargs['prompt'], echo=echo, is_chat=is_chat)
+        formatted_response = format_openAI_response(response, kwargs['prompt'], echo=echo,
+                                                    logprobs_format=info['logprobs_format'])
         #save_response_json(formatted_response, 'examples/openAI_formatted_response.json')
         return formatted_response, error
 
@@ -213,7 +217,7 @@ def format_openAI_chat_token_dict(content_token, i):
         }
     return token_dict
 
-def format_openAI_completion(completion, prompt_offset, prompt_end_index, is_chat):
+def format_openAI_completion(completion, prompt_offset, prompt_end_index, logprobs_format):
     if 'text' in completion:
         completion_text = completion['text']
     else:
@@ -224,7 +228,7 @@ def format_openAI_completion(completion, prompt_offset, prompt_end_index, is_cha
     offset = prompt_offset
     # some providers (e.g. most OpenRouter models) return no logprobs at all
     completion_logprobs = completion.get('logprobs') or {}
-    if is_chat:
+    if logprobs_format == 'chat':
         chat_logprobs = completion_logprobs.get('content') or []
         for i, token in enumerate(chat_logprobs):
             token_dict = format_openAI_chat_token_dict(token, i)
@@ -248,7 +252,7 @@ def format_openAI_prompt(completion, prompt, prompt_end_index):
     return prompt_dict
 
 
-def format_openAI_response(response, prompt, echo, is_chat):
+def format_openAI_response(response, prompt, echo, logprobs_format):
     if echo:
         prompt_end_index = response['usage']['prompt_tokens']
         prompt_dict = format_openAI_prompt(response['choices'][0],
@@ -261,7 +265,7 @@ def format_openAI_response(response, prompt, echo, is_chat):
 
     prompt_offset = len(prompt) if echo else 0
 
-    response_dict = {'completions': [format_openAI_completion(completion, prompt_offset, prompt_end_index, is_chat) for
+    response_dict = {'completions': [format_openAI_completion(completion, prompt_offset, prompt_end_index, logprobs_format) for
                                      completion in response['choices']],
                      'prompt': prompt_dict,
                      'id': response['id'],

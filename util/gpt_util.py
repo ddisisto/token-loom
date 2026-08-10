@@ -202,6 +202,11 @@ def parse_logit_bias(logit_string):
 #
 #   api             which generate() branch handles it
 #   endpoint        'completions' continues the prompt; 'chat' sends it as a message
+#   logprobs_format shape of the returned logprobs. 'legacy' is the parallel
+#                   tokens/token_logprobs/top_logprobs arrays the completions
+#                   endpoint has always used; 'chat' is the newer list of
+#                   per-token dicts. Not implied by the endpoint -- llama-server
+#                   answers a completions request with the chat shape.
 #   sends_echo      whether the request asks the API to include the prompt
 #   echoes_prompt   whether the response actually contains it, which is what the
 #                   formatter needs. Not the same thing: Together AI accepts the
@@ -215,6 +220,7 @@ def parse_logit_bias(logit_string):
 MODEL_TYPE_DEFAULTS = {
     'api': 'openai',
     'endpoint': 'completions',
+    'logprobs_format': 'legacy',
     'sends_echo': True,
     'echoes_prompt': True,
     'batch': 'native',
@@ -235,6 +241,7 @@ MODEL_TYPES = {
     },
     'openai-chat': {
         'endpoint': 'chat',
+        'logprobs_format': 'chat',
         'echoes_prompt': False,
         'key': 'OPENAI_API_KEY',
         'organization': 'OPENAI_ORGANIZATION',
@@ -254,11 +261,24 @@ MODEL_TYPES = {
         # https://github.com/abetlen/llama-cpp-python/issues/771
         'batch': 'sequential',
     },
+    'llama-server': {
+        # llama.cpp's own server binary, as opposed to the llama-cpp-python one
+        # the entry above was written for. It will not echo the prompt back, but
+        # it does return logprobs on /completions -- raw continuation and
+        # logprobs at once, which no hosted provider offers.
+        'sends_echo': False,
+        'echoes_prompt': False,
+        # a completions request answered with the chat-shaped logprobs payload,
+        # which is why the two are separate properties
+        'logprobs_format': 'chat',
+        'batch': 'sequential',
+    },
     'openrouter': {
         # the chat endpoint, so the prompt is templated as a message and comes
         # back as a reply rather than a continuation. It is the only way to get
         # logprobs out of OpenRouter.
         'endpoint': 'chat',
+        'logprobs_format': 'chat',
         'echoes_prompt': False,
         # OpenRouter accepts n, but most of its providers ignore it and return a
         # single choice
