@@ -12,10 +12,12 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; height: 100vh; display: grid;
-    grid-template-columns: 340px 1fr; grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr; grid-template-rows: auto 1fr;
     background: var(--bg); color: var(--fg);
     font: 14px/1.6 ui-sans-serif, system-ui, sans-serif;
   }
+  /* the whole-tree pane is an escape hatch now, not the way you navigate */
+  body.tree-open { grid-template-columns: 340px 1fr; }
   #tabs {
     grid-column: 1 / -1; display: flex; align-items: stretch; gap: 2px;
     background: var(--panel); border-bottom: 1px solid var(--line);
@@ -34,9 +36,11 @@
   .tab .close:hover { opacity: 1; color: #e08080; }
   #open { align-self: center; margin-left: 4px; }
   #tree {
+    display: none;
     border-right: 1px solid var(--line); overflow: auto; padding: 12px;
     background: var(--panel);
   }
+  body.tree-open #tree { display: block; }
   #tree ul { list-style: none; margin: 0; padding-left: 14px; }
   #tree > ul { padding-left: 0; }
   #tree li { border-left: 1px solid var(--line); }
@@ -54,6 +58,33 @@
   }
   #read .ancestor { color: var(--dim); }
   #read .current { color: var(--fg); }
+
+  /* A fork in the text, marked where it actually happens. Depth costs vertical
+     space, which scrolls, rather than horizontal space, which runs out. */
+  .forkmark {
+    display: inline-block; margin: 0 .3em; padding: 0 .5em;
+    font-size: 11px; line-height: 1.7; vertical-align: baseline;
+    color: var(--accent); background: #223038; border: 1px solid var(--line);
+    border-radius: 10px; cursor: pointer; white-space: nowrap; user-select: none;
+  }
+  .forkmark:hover { border-color: var(--accent); }
+  .siblings { display: none; margin: 8px 0 8px 1em; }
+  .siblings.open { display: block; }
+  .branch {
+    white-space: pre-wrap; font-size: 13px; line-height: 1.5; color: var(--dim);
+    border-left: 2px solid var(--line); padding: 4px 10px; margin: 3px 0;
+    cursor: pointer; border-radius: 0 4px 4px 0;
+  }
+  .branch:hover { background: #232a31; color: var(--fg); border-left-color: var(--accent); }
+  /* id-scoped so it beats #read .current, and named apart from it so paintProbs'
+     querySelector('.current') cannot match a branch preview instead of the text */
+  #read .branch.here { color: var(--accent); border-left-color: var(--accent); }
+  #read .branch.human { color: var(--human); }
+  #ahead { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+  #ahead .head {
+    font-size: 11px; color: var(--dim); letter-spacing: .08em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
   #controls {
     border-top: 1px solid var(--line); background: var(--panel);
     padding: 10px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
@@ -99,6 +130,7 @@
     <button id="del">Delete</button>
     <button id="probs">Probs</button>
     <button id="scratchToggle">Scratch</button>
+    <button id="treeToggle">Tree</button>
     <button id="save">Save</button>
     <button id="saveAs">Save as</button>
     <span id="status"></span>
@@ -232,14 +264,65 @@ function renderTree() {
   if (selected) selected.scrollIntoView({block: 'nearest'});
 }
 
+// One clickable alternative — a sibling at a fork, or a continuation ahead.
+function branch(node, isHere) {
+  const div = document.createElement('div');
+  div.className = 'branch' + (isHere ? ' here' : '')
+                + (node.source === 'prompt' ? ' human' : '');
+  div.textContent = node.label || '(empty)';
+  div.onclick = e => { e.stopPropagation(); select(node.id); };
+  return div;
+}
+
+// The chip that sits inline at a branch point, collapsed until asked.
+function forkMark(node, siblings, openIds) {
+  const wrap = document.createElement('span');
+  const chip = document.createElement('span');
+  chip.className = 'forkmark';
+  chip.textContent = `⑂${siblings.length}`;
+  chip.title = `${siblings.length} branches from here`;
+  const list = document.createElement('div');
+  list.className = 'siblings' + (openIds.has(node.id) ? ' open' : '');
+  siblings.forEach(s => list.appendChild(branch(s, s.id === node.id)));
+  chip.onclick = () => {
+    const open = list.classList.toggle('open');
+    open ? openForks.add(node.id) : openForks.delete(node.id);
+  };
+  wrap.append(chip, list);
+  return wrap;
+}
+
+// Which forks the reader has expanded, kept across re-renders so generating
+// or selecting doesn't collapse everything underneath you.
+const openForks = new Set();
+
 function renderRead() {
   const frag = document.createDocumentFragment();
-  state.read.forEach((node, i) => {
+  state.read.forEach((entry, i) => {
+    const node = index[entry.id];
+    const siblings = node && node.parent ? node.parent.children : [];
+    if (siblings.length > 1) frag.appendChild(forkMark(node, siblings, openForks));
     const span = document.createElement('span');
     span.className = i === state.read.length - 1 ? 'current' : 'ancestor';
-    span.textContent = node.text;
+    span.textContent = entry.text;
     frag.appendChild(span);
   });
+
+  // what lies ahead: the selected node's own children, always visible, since
+  // this is where you go next after generating
+  const selected = index[state.selected_node_id];
+  if (selected && selected.children.length) {
+    const ahead = document.createElement('div');
+    ahead.id = 'ahead';
+    const head = document.createElement('div');
+    head.className = 'head';
+    head.textContent = selected.children.length === 1
+      ? 'continues' : `${selected.children.length} continuations`;
+    ahead.appendChild(head);
+    selected.children.forEach(c => ahead.appendChild(branch(c, false)));
+    frag.appendChild(ahead);
+  }
+
   $('read').replaceChildren(frag);
   $('read').scrollTop = $('read').scrollHeight;
   if (showProbs) paintProbs();
@@ -275,7 +358,8 @@ function render() {
   index = {};
   reindex(state.tree, null);
   renderTabs();
-  renderTree();
+  // 764 nodes of DOM is not free; don't build it when it isn't on screen
+  if (document.body.classList.contains('tree-open')) renderTree();
   renderRead();
   const edit = $('edit');
   if (edit.classList.contains('open')) edit.value = currentText();
@@ -386,6 +470,12 @@ $('save').onclick = () => run(async () => {
   apply(data);
   status(`saved ${data.saved}`);
 });
+
+$('treeToggle').onclick = () => {
+  const open = document.body.classList.toggle('tree-open');
+  $('treeToggle').classList.toggle('primary', open);
+  if (open) renderTree();
+};
 
 $('saveAs').onclick = () => run(async () => {
   const active = state.sessions.find(s => s.active);
