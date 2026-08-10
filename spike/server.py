@@ -99,6 +99,11 @@ class PathBody(BaseModel):
     path: str
 
 
+class SaveAsBody(BaseModel):
+    name: str
+    overwrite: bool = False
+
+
 class GenerateBody(BaseModel):
     node_id: str
     num_continuations: int | None = None
@@ -176,6 +181,14 @@ def open_session(body: OpenBody):
         sessions.open(body.filename)
     except Exception as e:
         raise HTTPException(400, f"could not open: {e}") from None
+    return _state()
+
+
+@app.post("/api/sessions/new")
+def new_session():
+    """A blank tree, held in memory until it is given a name by save-as."""
+    sessions.add(Tree.empty())
+    sessions.active.data["generation_settings"] = generation.default_settings()
     return _state()
 
 
@@ -340,8 +353,31 @@ def seed_from_scratchpad(body: TextBody):
 @app.post("/api/save")
 def save():
     tree = sessions.active
+    if not tree.filename:
+        raise HTTPException(400, "this tree has never been saved -- use save as")
     with tree.lock:
         filename = tree.save()
+    return {"saved": filename, **_state()}
+
+
+@app.post("/api/save-as")
+def save_as(body: SaveAsBody):
+    """Flat files inside data/ only. Rejects anything with a path in it rather
+    than resolving it, and refuses to clobber an existing tree unless told to --
+    these files are not disposable."""
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(400, "no name given")
+    if not name.endswith(".json"):
+        name += ".json"
+    if Path(name).name != name or name.startswith("."):
+        raise HTTPException(400, "name must be a plain filename inside data/")
+    path = DATA_DIR / name
+    if path.exists() and not body.overwrite:
+        raise HTTPException(409, f"{path} already exists")
+    tree = sessions.active
+    with tree.lock:
+        filename = tree.save(str(path))
     return {"saved": filename, **_state()}
 
 

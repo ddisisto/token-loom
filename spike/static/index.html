@@ -100,6 +100,7 @@
     <button id="probs">Probs</button>
     <button id="scratchToggle">Scratch</button>
     <button id="save">Save</button>
+    <button id="saveAs">Save as</button>
     <span id="status"></span>
   </div>
   <textarea id="edit" spellcheck="false"></textarea>
@@ -131,7 +132,9 @@ async function api(path, options) {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || res.statusText);
+    const error = new Error(body.detail || res.statusText);
+    error.status = res.status;   // save-as distinguishes 409 from a real failure
+    throw error;
   }
   return res.json();
 }
@@ -174,9 +177,18 @@ function renderTabs() {
   const open = document.createElement('select');
   open.id = 'open';
   open.append(new Option('+ open…', ''));
+  open.append(new Option('+ new tree', '__new__'));
   open.onchange = () => {
     const filename = open.value;
+    open.selectedIndex = 0;
     if (!filename) return;
+    if (filename === '__new__') {
+      run(async () => {
+        apply(await api('/sessions/new', {method: 'POST'}));
+        status('new tree — save as to give it a name');
+      });
+      return;
+    }
     run(async () => {
       apply(await api('/sessions/open',
                       {method: 'POST', body: JSON.stringify({filename})}));
@@ -371,6 +383,24 @@ $('load').onclick = () => run(async () => {
 
 $('save').onclick = () => run(async () => {
   const data = await api('/save', {method: 'POST'});
+  apply(data);
+  status(`saved ${data.saved}`);
+});
+
+$('saveAs').onclick = () => run(async () => {
+  const active = state.sessions.find(s => s.active);
+  const name = prompt('Save as (a plain name, inside data/):', active ? active.name : 'untitled.json');
+  if (name === null) return;
+  const body = {name};
+  let data;
+  try {
+    data = await api('/save-as', {method: 'POST', body: JSON.stringify(body)});
+  } catch (e) {
+    // 409 is "that file is already there", the one case worth a second chance
+    if (e.status !== 409 || !confirm(`${e.message}. Overwrite it?`)) throw e;
+    data = await api('/save-as',
+                     {method: 'POST', body: JSON.stringify({...body, overwrite: true})});
+  }
   apply(data);
   status(`saved ${data.saved}`);
 });
