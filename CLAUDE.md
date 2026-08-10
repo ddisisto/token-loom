@@ -54,10 +54,13 @@ UI be the only entry point.
 - `@event` in `model.py` is a decorator over the method that immediately follows it. Inserting
   a method between the decorator and its target silently rebinds it. Check what you're
   inserting above.
-- `gpt.py` dispatches on `model_type in (...)` tuples scattered across several functions. The
-  three near-identical types differ only in booleans (chat vs completion endpoint, echo,
-  batching, which params to strip). This wants to become data on the model config entry, and
-  should be done before adding a local-inference type rather than after.
+- Model types are described by `MODEL_TYPES` in `util/gpt_util.py`, merged over
+  `MODEL_TYPE_DEFAULTS`. Adding a provider means adding one entry there, not editing
+  `model_type in (...)` tuples across `generate()`, `openAI_generate()` and
+  `get_correct_key()` as it used to. Note `sends_echo` (does the request ask for the prompt
+  back) is not `echoes_prompt` (does the response contain it) — Together AI accepts the echo
+  parameter and ignores it, which is why it needed a special case in one place but not the
+  other.
 - Model configs live in `DEFAULT_MODEL_CONFIG` in `model.py`; API keys resolve through
   `util/gpt_util.py:get_correct_key`, which reads a per-model kwarg first and the environment
   second. `.env` is loaded in `main.py` and is gitignored — it must never reach a commit.
@@ -74,10 +77,12 @@ UI be the only entry point.
 
 ## Open threads
 
-- Local inference: `llama-server` with a Qwen2.5-7B **base** GGUF. The existing `llama-cpp`
-  model type sends `echo=True`, which native `llama-server` will not honour — it needs the
-  echo-free completion path.
-- The `gpt.py` model-type refactor described above.
+- Local inference, the next piece of work. `llama-cpp` is installed on this machine. Needs a
+  Qwen2.5-7B **base** GGUF (~4.7GB at Q4_K_M; the GPU is a GTX 1070 with ~7GB usable),
+  `llama-server` on a port, and a `MODEL_TYPES` entry — `sends_echo: False`, since native
+  `llama-server` will not honour echo, unlike the llama-cpp-python server the existing
+  `llama-cpp` entry was written for. This is the only configuration that gives raw
+  continuation *and* logprobs at once, which no hosted provider does.
 - Whether to rewrite as a web app. `spike/` is the probe — see its README. It answered the
   structural half: `model.py` and `gpt.py` import no tkinter, `util/util_tree.py` is already
   a clean reusable layer, and the whole generation-thread problem is an artifact of Tk owning
