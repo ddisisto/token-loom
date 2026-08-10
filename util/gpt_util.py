@@ -201,7 +201,7 @@ def get_correct_key(model_type, kwargs={}):
         gooseai_api_key = kwargs.get('GOOSEAI_API_KEY', None)
         api_key = gooseai_api_key if gooseai_api_key else os.environ.get("GOOSEAI_API_KEY", None)
         organization = None
-    if model_type == 'together':
+    elif model_type == 'together':
         togetherai_api_key = kwargs.get('TOGETHERAI_API_KEY', None)
         api_key = togetherai_api_key if togetherai_api_key else os.environ.get("TOGETHERAI_API_KEY", None)
         organization = None
