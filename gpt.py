@@ -6,7 +6,8 @@ from pprint import pprint
 from celery import Celery
 import openai
 from util.util import retry, timestamp
-from util.gpt_util import parse_logit_bias, parse_stop, get_correct_key
+from util.gpt_util import parse_logit_bias, parse_stop, get_correct_key, \
+    MODEL_TYPES, model_type_info
 import requests
 import codecs
 import json
@@ -97,7 +98,12 @@ def gen(prompt, settings, config, **kwargs):
 def generate(config, **kwargs):
     #pprint(kwargs)
     model_type = config['models'][kwargs['model']]['type']
-    if model_type == 'ai21':
+    if model_type not in MODEL_TYPES:
+        # previously this fell off the end and returned None, which surfaced as
+        # "cannot unpack non-iterable NoneType object" in the caller
+        return None, f"unknown model type '{model_type}'"
+    info = model_type_info(model_type)
+    if info['api'] == 'ai21':
         response, error = ai21_generate(api_key=kwargs['ai21_api_key'], **kwargs)#config['AI21_API_KEY'], **kwargs)
         #save_response_json(response.json(), 'examples/AI21_response.json')
         if not error:
@@ -106,16 +112,12 @@ def generate(config, **kwargs):
             return formatted_response, error
         else:
             return response, error
-    elif model_type in ('openai', 'openai-custom', 'gooseai', 'openai-chat', 'together', 'llama-cpp'):
-        is_chat = model_type in ('openai-chat',)
-        # for some reason, Together AI ignores the echo parameter
-        echo = model_type not in ('together', 'openai-chat')
-        # TODO: Together AI and chat inference breaks if logprobs is set to 0
-        assert kwargs['logprobs'] > 0 or model_type not in ('together',), \
-            "Logprobs must be greater than 0 for model type Together AI"
-        # llama-cpp-python doesn't support batched inference yet: https://github.com/abetlen/llama-cpp-python/issues/771
-        needs_multiple_calls = model_type in ('llama-cpp',)
-        if needs_multiple_calls:
+    else:
+        is_chat = info['endpoint'] == 'chat'
+        echo = info['echoes_prompt']
+        assert kwargs['logprobs'] > 0 or not info['requires_logprobs'], \
+            f"Logprobs must be greater than 0 for model type {model_type}"
+        if info['batch'] == 'sequential':
             required_calls = kwargs['num_continuations']
             kwargs['num_continuations'] = 1
             responses = []
@@ -275,7 +277,8 @@ def openAI_generate(model_type, prompt, length=150, num_continuations=1, logprob
         'model': model,
         #**kwargs
     }
-    if model_type == 'openai-chat':
+    info = model_type_info(model_type)
+    if info['endpoint'] == 'chat':
         params['messages'] = [{ 'role': "assistant", 'content': prompt }]
         params['logprobs'] = True
         params['top_logprobs'] = logprobs
@@ -284,7 +287,7 @@ def openAI_generate(model_type, prompt, length=150, num_continuations=1, logprob
         ).to_dict()
     else:
         params['prompt'] = prompt
-        params['echo'] = True
+        params['echo'] = info['sends_echo']
         response = client.completions.create(
             **params
         ).to_dict()

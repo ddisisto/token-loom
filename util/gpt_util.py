@@ -195,23 +195,84 @@ def parse_logit_bias(logit_string):
         bias_dict[token] = bias
     return logit_mask(bias_dict)
 
+# How each model type differs. These properties used to be scattered across
+# generate(), openAI_generate() and get_correct_key() as `model_type in (...)`
+# tests, which meant adding a provider involved editing several tuples in
+# several functions and getting every one of them right.
+#
+#   api             which generate() branch handles it
+#   endpoint        'completions' continues the prompt; 'chat' sends it as a message
+#   sends_echo      whether the request asks the API to include the prompt
+#   echoes_prompt   whether the response actually contains it, which is what the
+#                   formatter needs. Not the same thing: Together AI accepts the
+#                   echo parameter and ignores it.
+#   batch           'native' passes n to the API; 'sequential' issues n calls
+#   requires_logprobs  the API rejects logprobs=0
+#   key/organization   environment variables holding the credentials
+MODEL_TYPE_DEFAULTS = {
+    'api': 'openai',
+    'endpoint': 'completions',
+    'sends_echo': True,
+    'echoes_prompt': True,
+    'batch': 'native',
+    'requires_logprobs': False,
+    'key': None,
+    'organization': None,
+}
+
+MODEL_TYPES = {
+    'openai': {
+        'key': 'OPENAI_API_KEY',
+        'organization': 'OPENAI_ORGANIZATION',
+    },
+    'openai-custom': {
+        'key': 'OPENAI_API_KEY',
+        'organization': 'OPENAI_ORGANIZATION',
+    },
+    'openai-chat': {
+        'endpoint': 'chat',
+        'echoes_prompt': False,
+        'key': 'OPENAI_API_KEY',
+        'organization': 'OPENAI_ORGANIZATION',
+    },
+    'gooseai': {
+        'key': 'GOOSEAI_API_KEY',
+    },
+    'together': {
+        # Together AI ignores the echo parameter, so the prompt never comes back
+        'echoes_prompt': False,
+        # chat inference and Together both break if logprobs is 0
+        'requires_logprobs': True,
+        'key': 'TOGETHERAI_API_KEY',
+    },
+    'llama-cpp': {
+        # llama-cpp-python doesn't support batched inference yet:
+        # https://github.com/abetlen/llama-cpp-python/issues/771
+        'batch': 'sequential',
+    },
+    'ai21': {
+        'api': 'ai21',
+    },
+}
+
+
+def model_type_info(model_type):
+    """Capabilities of a model type, with defaults filled in.
+
+    Unknown types get the defaults rather than raising, so that credential
+    lookup stays total. generate() rejects them explicitly instead.
+    """
+    return {**MODEL_TYPE_DEFAULTS, **MODEL_TYPES.get(model_type, {})}
+
+
+def _credential(name, kwargs):
+    """Explicitly passed value first, environment second, as it has always been."""
+    if not name:
+        return None
+    value = kwargs.get(name, None)
+    return value if value else os.environ.get(name, None)
+
+
 def get_correct_key(model_type, kwargs={}):
-    if model_type == 'gooseai':
-        # openai.api_base = openai.api_base if openai.api_base else "https://api.goose.ai/v1"
-        gooseai_api_key = kwargs.get('GOOSEAI_API_KEY', None)
-        api_key = gooseai_api_key if gooseai_api_key else os.environ.get("GOOSEAI_API_KEY", None)
-        organization = None
-    elif model_type == 'together':
-        togetherai_api_key = kwargs.get('TOGETHERAI_API_KEY', None)
-        api_key = togetherai_api_key if togetherai_api_key else os.environ.get("TOGETHERAI_API_KEY", None)
-        organization = None
-    elif model_type in ('openai', 'openai-custom', 'openai-chat'):
-        # openai.api_base =  openai.api_base if openai.api_base else "https://api.openai.com/v1"
-        openai_api_key = kwargs.get('OPENAI_API_KEY', None)
-        api_key = openai_api_key if openai_api_key else os.environ.get("OPENAI_API_KEY", None)
-        openai_organization = kwargs.get('OPENAI_ORGANIZATION', None)
-        organization = openai_organization if openai_organization else os.environ.get("OPENAI_ORGANIZATION", None)
-    else:
-        api_key = None
-        organization = None
-    return api_key, organization
+    info = model_type_info(model_type)
+    return _credential(info['key'], kwargs), _credential(info['organization'], kwargs)
