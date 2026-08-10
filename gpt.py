@@ -222,6 +222,10 @@ def format_openAI_completion(completion, prompt_offset, prompt_end_index, logpro
         completion_text = completion['text']
     else:
         completion_text = completion['message']['content']
+    # a reasoning model returns a null content when the whole token budget went to
+    # reasoning -- gpt-oss does this at short response lengths. Empty, not a crash.
+    if completion_text is None:
+        completion_text = ''
     completion_dict = {'text': completion_text[prompt_offset:],
                        'finishReason': completion['finish_reason'],
                        'tokens': []}
