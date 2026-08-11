@@ -166,13 +166,34 @@ Independent of everything else; both tracks reduce the surface later phases touc
 
 - **Remove tkinter.** Goes: `main.py`, the view/controller layer, `TreeModel`,
   `call_on_main_thread` and the cross-thread event workaround, the `@event` decorator
-  system. Stays: `util/util_tree.py`, `gpt.py`, `util/gpt_util.py`, `util/util.py`.
-  `model.py` gets **rewritten from required functionality** rather than carved down — what
-  is actually used from it is `DEFAULT_MODEL_CONFIG` and `DEFAULT_GENERATION_SETTINGS`,
-  imported by `web/` and `smoke_test.py`.
+  system, and `config/` — whose fewshots, presets, interfaces and transformers all feed the
+  expensive half that is not being inherited. `model.py` gets **rewritten from required
+  functionality** rather than carved down; what is actually used from it is
+  `DEFAULT_MODEL_CONFIG` and `DEFAULT_GENERATION_SETTINGS`, imported by `web/` and
+  `smoke_test.py`.
+- **Rename in the same pass.** Renames are free during a rewrite and expensive after, and
+  three of these names are actively misleading. `model.py` means *MVC* model, not language
+  model — after the rewrite it would silently flip meaning while looking unchanged. "gpt"
+  as a generic word for language model is 2021 phrasing and already literally wrong; nothing
+  in the stack is GPT. `config.py` is avoided deliberately: it names a file after the format
+  of its contents rather than its subject, which is how junk drawers start.
+
+  ```
+  models.py      registry + capability table     (model.py + util/gpt_util.py)
+  params.py      generation parameters           (DEFAULT_GENERATION_SETTINGS)
+  inference.py   the generation call             (gpt.py)
+  util/          util.py, util_tree.py
+  web/           server, tree, generation, static
+  ```
+
+  The registry and the capability table merge because they are instances and types of one
+  concept, split across two files for historical reasons only. `params.py` is named for what
+  Phase 1 makes it — a parameter set as a first-class object with hashing and interning —
+  rather than for the bag of defaults it starts as.
 - **Adopt the name**: repo rename (GitHub redirects the old URL), package identity, before
   the `model.py` rewrite rather than after.
-- **Drop the scratchpad** (`Tree.scratchpad` / `set_scratchpad`).
+- ~~Drop the scratchpad~~ — deferred. It is a button that gets ignored, and the container
+  it lives in is due a rewrite anyway; removing it now is work done twice.
 - **Cheap UI wins**, useful immediately and unaffected by the format change:
   - fork chip shows position: `⑂3/4`
   - viewport extends beyond content height, so the end of output can scroll near the top
