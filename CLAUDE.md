@@ -2,13 +2,14 @@
 
 ## What this is
 
-A fork of [socketteer/loom](https://github.com/socketteer/loom) — originally a tkinter
-interface for exploring language model completions as a branching tree of text. Upstream
-went quiet around 2023.
+**token loom** — a fork of [socketteer/loom](https://github.com/socketteer/loom),
+originally a tkinter interface for exploring language model completions as a branching
+tree of text. Upstream went quiet around 2023.
 
-It has stopped being a revival. The direction now is a different instrument: a trie over
-**tokens** rather than a tree of text blocks, driven by the web front end in `web/`, with
-the tkinter app scheduled for removal.
+It has stopped being a revival, and has diverged far enough to take its own name. Loom
+wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tokens as a
+per-span overlay, driven by the web front end in `web/`, with the tkinter app scheduled for
+removal.
 
 **`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
 deliberately out of scope live there. This file is for things that are true about the code
@@ -114,8 +115,10 @@ UI be the only entry point.
 ## Open threads
 
 Roadmap-level questions — counterfactual storage volume, experiment identity for sweeps,
-what replacing the initial prompt does to recorded slices, seed handling — live in
-`ROADMAP.md` under "Open questions".
+what replacing the initial prompt does to recorded slices, seed handling, throughput under
+broad sampling — live in `ROADMAP.md` under "Open questions".
 
-The only one that isn't scheduled: naming a divergent successor, deferred until there's
-something divergent enough to name. The token-based format may well be it.
+The naming thread is closed: **token loom**. The repo rename and package identity land in
+Phase 0, before `model.py` is rewritten. Note the name collides with crypto in search
+results (`TokenLoom.io` is a Solana service, `LOOM` is an ERC-20 ticker) — a known,
+accepted discoverability cost, not an oversight.
