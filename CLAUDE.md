@@ -74,6 +74,10 @@ UI be the only entry point.
 - A locally served model has no API key, and the OpenAI client raises rather than sending
   when it cannot resolve an auth method — so `gen()` falls back to the literal string
   `'placeholder'`. Without that, no local entry can work at all.
+- A node's token data lives in `model_responses`, keyed by response id, with the node
+  holding `generation: {id, index}`. Siblings from one call **share** a response id, so
+  anything reasoning about reachability must do it over the whole tree —
+  `util/util_tree.py:collect_orphaned_responses` does, and runs on delete and on save.
 - Model configs live in `DEFAULT_MODEL_CONFIG` in `model.py`; API keys resolve through
   `util/gpt_util.py:get_correct_key`, which reads a per-model kwarg first and the environment
   second. `.env` is loaded in `main.py` and is gitignored — it must never reach a commit.
@@ -104,7 +108,4 @@ UI be the only entry point.
   hoisting, canonical paths, memory scoping, template/preset resolution. All undocumented,
   all load-bearing, all still ahead. Both front ends run against the same file format, so
   this can be decided feature by feature rather than all at once.
-- Orphaned `model_responses`. Deleting a node leaves its token data in the tree file forever;
-  one session left 14 orphaned responses and 600KB. Needs a collection pass before this is
-  used to accumulate runs in earnest.
 - Naming a divergent successor is deferred until there's something divergent enough to name.
