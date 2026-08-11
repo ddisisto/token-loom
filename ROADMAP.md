@@ -232,10 +232,17 @@ Unlocked by Phase 1 and cheap once it lands.
   manipulation, and since slice start is a recorded parameter, the result is a comparable
   experiment rather than a transient view.
 
-  The start is selectable; **the end is not** — it is always the generation point. Letting
-  the end float free would feed the model context that does not reach where it is
-  continuing from, breaking the invariant that a prompt is a contiguous ancestry slice
-  ending at the branch point. That is a different feature, and not this one.
+  Both handles are selectable, and they mean different things:
+
+  - **moving the start** keeps the generation point and changes how much prefix the model
+    sees — a new experiment at the same tip
+  - **moving the end** moves the generation point itself — a new branch from that earlier
+    position, which is the primitive the tree already has
+  - **both** is the general case: branch at an earlier position under a restricted context
+
+  The end never floats free of the continuation point because it *is* the continuation
+  point. The invariant that a prompt is a contiguous ancestry slice ending at the branch
+  point holds by construction, not by prohibition.
 - **Bookmarks and tags**, anchored to byte offsets and node ids.
 - **Branch to a counterfactual**: at any token, the stored top-N are alternatives the model
   ranked but did not take. Selecting one splits the run and continues from there — no
