@@ -8,8 +8,7 @@ tree of text. Upstream went quiet around 2023.
 
 It has stopped being a revival, and has diverged far enough to take its own name. Loom
 wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tokens as a
-per-span overlay, driven by the web front end in `web/`, with the tkinter app scheduled for
-removal.
+per-span overlay, driven by the web front end in `web/`. The tkinter app is gone.
 
 **`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
 deliberately out of scope live there. This file is for things that are true about the code
@@ -66,7 +65,10 @@ UI be the only entry point.
 
 ## Code notes
 
-- Model types are described by `MODEL_TYPES` in `util/gpt_util.py`, merged over
+- The layout is `models.py` (registry and capability table), `params.py` (generation
+  parameters), `inference.py` (the generation call), `util/` (`util.py`, `util_tree.py`),
+  `web/` (server, tree, generation, static). Nothing else.
+- Model types are described by `MODEL_TYPES` in `models.py`, merged over
   `MODEL_TYPE_DEFAULTS`. Adding a provider means adding one entry there, not editing
   `model_type in (...)` tuples across `generate()`, `openAI_generate()` and
   `get_correct_key()` as it used to. Note `sends_echo` (does the request ask for the prompt
@@ -78,32 +80,34 @@ UI be the only entry point.
 - A locally served model has no API key, and the OpenAI client raises rather than sending
   when it cannot resolve an auth method — so `gen()` falls back to the literal string
   `'placeholder'`. Without that, no local entry can work at all.
-- Model configs live in `DEFAULT_MODEL_CONFIG` in `model.py`; API keys resolve through
-  `util/gpt_util.py:get_correct_key`, which reads a per-model kwarg first and the environment
-  second. `.env` is loaded in `main.py` and is gitignored — it must never reach a commit.
+- Model configs live in `DEFAULT_MODEL_CONFIG` in `models.py`; API keys resolve through
+  `models.py:get_correct_key`, which reads a per-model kwarg first and the environment
+  second. `.env` is loaded in `web/server.py` and is gitignored — it must never reach a
+  commit.
 - **Current format, until Phase 1 of the roadmap lands.** A node's token data lives in
   `model_responses`, keyed by response id, with the node holding `generation: {id, index}`.
   Siblings from one call **share** a response id, so anything reasoning about reachability
   must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does, and
   runs on delete and on save. The token-based format retires this entirely: token data will
   live with the tokens, so nothing can be orphaned.
-- **Until the tkinter app is removed, Tk may only be touched from the main thread.** Virtual
-  events (`event_generate`) are queued per-thread and are *silently dropped* across threads —
-  they do not raise, they just never fire. `TreeModel.call_on_main_thread()` exists for this;
-  use it from any generation worker. Calling `tree_updated()` directly from a worker crashes
-  the process with SIGILL. Relatedly, `@event` in `model.py` decorates the method that
-  immediately follows it, so inserting a method between the decorator and its target silently
-  rebinds it.
+- Generation is an ordinary blocking call in a request handler. The worker thread, the
+  hand-back queue and the virtual events that were silently dropped across threads were all
+  artifacts of Tk owning the main loop, and went with it. Phase 4 reintroduces asynchrony
+  deliberately, for streaming — not as a workaround.
+- `logit_bias` no longer exists. It was a GPT-2 token mask, meaningless for the models in
+  use and already listed in `drop_params` for every OpenRouter type. `inference.gen()` still
+  passes `logit_bias=None` so the request builders below it need no change.
 
 ## Working conventions
 
 - Run bash commands **serially and un-bundled**. No `&&` chains, no shell redirects.
 - Recurring commands go in `scripts/` (gitignored via a `[Ss]cripts` rule, so it holds
-  local-only tooling) so they can be pre-authorised once. `scripts/run.sh` launches the
-  tkinter app into the top-left quarter of monitor 2; `scripts/screenshot.sh` grabs and crops
-  that region, overwriting its output in place so an open editor tab refreshes instead of
-  closing. `scripts/web.sh` runs the web backend on 8080; `scripts/llama-server.sh` serves the
-  local base model on 8081 (env overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`).
+  local-only tooling) so they can be pre-authorised once. `scripts/web.sh` runs the web
+  backend on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
+  overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`); `scripts/screenshot.sh` grabs and crops the
+  browser window, overwriting its output in place so an open editor tab refreshes instead of
+  closing — run it bare, with no arguments. `scripts/run.sh` launched the tkinter app and is
+  now dead.
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
   when capturing the path — without `-q` it prints `path=/...` and the prefix ends up in the
