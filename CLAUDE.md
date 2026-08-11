@@ -2,21 +2,31 @@
 
 ## What this is
 
-A fork of [socketteer/loom](https://github.com/socketteer/loom) — a tkinter interface for
-exploring language model completions as a branching tree of text. Upstream went quiet around
-2023. This fork revives it.
+A fork of [socketteer/loom](https://github.com/socketteer/loom) — originally a tkinter
+interface for exploring language model completions as a branching tree of text. Upstream
+went quiet around 2023.
 
-`origin` is `ddisisto/loom`, `upstream` is `socketteer/loom`. Work happens on branches off
-`main`; the Tk 9 and threading fixes were cherry-picked clean onto `upstream/main` and sent as
-PR socketteer/loom#28, partly as a probe to see whether upstream is still monitored.
+It has stopped being a revival. The direction now is a different instrument: a trie over
+**tokens** rather than a tree of text blocks, driven by the web front end in `web/`, with
+the tkinter app scheduled for removal.
+
+**`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
+deliberately out of scope live there. This file is for things that are true about the code
+and easy to get wrong.
+
+`origin` is `ddisisto/loom`, `upstream` is `socketteer/loom`. Work happens on `main`.
+PR socketteer/loom#28 sent the Tk 9 and threading fixes upstream, partly to probe whether
+upstream is still monitored — it isn't, and the fix targets a front end being removed, so
+it is moot.
 
 ## What it's for
 
-Loom's original framing is a writing instrument — you hold the pen, the model offers branches.
-That still holds, but the direction here is closer to an instrument for studying what a model
-does when iterated against itself: attractors in the prior, how temperature gates access to
-them, how framing acts as a change of basis, whether anything survives repeated retransmission.
-Read the interactive tree as one way of looking at that, not the only one.
+Loom's original framing is a writing instrument — you hold the pen, the model offers
+branches. That still holds, but the direction here is closer to an instrument for studying
+what a model does when iterated against itself: attractors in the prior, how temperature
+gates access to them, how framing acts as a change of basis, whether anything survives
+repeated retransmission. Read the interactive tree as one way of looking at that, not the
+only one.
 
 Practically this means two things pull on the design:
 
@@ -24,8 +34,8 @@ Practically this means two things pull on the design:
   different object than a continuation of the prior. Where the two conflict, favour the raw
   continuation path.
 - **Headless and batch use are first-class, not an afterthought.** Generation with recorded
-  temperature/seed/length metadata, per-token logprobs, and structured export of the tree are
-  the things downstream analysis actually needs. Anything that only works by clicking is
+  temperature/seed/length metadata, per-token logprobs, and structured export of the tree
+  are the things downstream analysis actually needs. Anything that only works by clicking is
   half-built.
 
 Neither is an argument for gutting the interactive UI. It is an argument for not letting the
@@ -36,7 +46,7 @@ UI be the only entry point.
 - OpenRouter chat endpoint (`type: openrouter`) returns logprobs but applies a chat template.
 - OpenRouter completions endpoint (`type: openrouter-completion`) returns raw continuation but
   **no provider returns logprobs there**, even ones whose `/models/{id}/endpoints` claim to.
-- You cannot get both from OpenRouter. This is the central constraint pushing toward local
+- You cannot get both from OpenRouter. This is the central constraint that pushed toward local
   inference (llama.cpp / `llama-server`), where both are available at once.
 - Provider choice changes semantics for an identical request: DeepInfra serves
   `mistralai/mistral-nemo` as raw continuation, Io Net chat-templates it. Hence the pinned
@@ -55,13 +65,6 @@ UI be the only entry point.
 
 ## Code notes
 
-- **Tk may only be touched from the main thread.** Virtual events (`event_generate`) are queued
-  per-thread and are *silently dropped* across threads — they do not raise, they just never
-  fire. `TreeModel.call_on_main_thread()` exists for this; use it from any generation worker.
-  Calling `tree_updated()` directly from a worker crashes the process with SIGILL.
-- `@event` in `model.py` is a decorator over the method that immediately follows it. Inserting
-  a method between the decorator and its target silently rebinds it. Check what you're
-  inserting above.
 - Model types are described by `MODEL_TYPES` in `util/gpt_util.py`, merged over
   `MODEL_TYPE_DEFAULTS`. Adding a provider means adding one entry there, not editing
   `model_type in (...)` tuples across `generate()`, `openAI_generate()` and
@@ -74,38 +77,45 @@ UI be the only entry point.
 - A locally served model has no API key, and the OpenAI client raises rather than sending
   when it cannot resolve an auth method — so `gen()` falls back to the literal string
   `'placeholder'`. Without that, no local entry can work at all.
-- A node's token data lives in `model_responses`, keyed by response id, with the node
-  holding `generation: {id, index}`. Siblings from one call **share** a response id, so
-  anything reasoning about reachability must do it over the whole tree —
-  `util/util_tree.py:collect_orphaned_responses` does, and runs on delete and on save.
 - Model configs live in `DEFAULT_MODEL_CONFIG` in `model.py`; API keys resolve through
   `util/gpt_util.py:get_correct_key`, which reads a per-model kwarg first and the environment
   second. `.env` is loaded in `main.py` and is gitignored — it must never reach a commit.
+- **Current format, until Phase 1 of the roadmap lands.** A node's token data lives in
+  `model_responses`, keyed by response id, with the node holding `generation: {id, index}`.
+  Siblings from one call **share** a response id, so anything reasoning about reachability
+  must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does, and
+  runs on delete and on save. The token-based format retires this entirely: token data will
+  live with the tokens, so nothing can be orphaned.
+- **Until the tkinter app is removed, Tk may only be touched from the main thread.** Virtual
+  events (`event_generate`) are queued per-thread and are *silently dropped* across threads —
+  they do not raise, they just never fire. `TreeModel.call_on_main_thread()` exists for this;
+  use it from any generation worker. Calling `tree_updated()` directly from a worker crashes
+  the process with SIGILL. Relatedly, `@event` in `model.py` decorates the method that
+  immediately follows it, so inserting a method between the decorator and its target silently
+  rebinds it.
 
 ## Working conventions
 
 - Run bash commands **serially and un-bundled**. No `&&` chains, no shell redirects.
 - Recurring commands go in `scripts/` (gitignored via a `[Ss]cripts` rule, so it holds
-  local-only tooling) so they can be pre-authorised once. `scripts/run.sh` launches the app
-  into the top-left quarter of monitor 2; `scripts/screenshot.sh` grabs and crops that region,
-  overwriting its output in place so an open editor tab refreshes instead of closing.
-  `scripts/web.sh` runs the web backend on 8080; `scripts/llama-server.sh` serves the local
-  base model on 8081 (env overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`).
+  local-only tooling) so they can be pre-authorised once. `scripts/run.sh` launches the
+  tkinter app into the top-left quarter of monitor 2; `scripts/screenshot.sh` grabs and crops
+  that region, overwriting its output in place so an open editor tab refreshes instead of
+  closing. `scripts/web.sh` runs the web backend on 8080; `scripts/llama-server.sh` serves the
+  local base model on 8081 (env overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`).
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
   when capturing the path — without `-q` it prints `path=/...` and the prefix ends up in the
   filename.
+- `data/local.json` is not disposable. Any format migration has to carry it.
 - Use `Read` on files rather than `cat`.
 - Fix root causes. A workaround that leaves the original fault in place is not a fix.
 
 ## Open threads
 
-- Which of the tkinter app's features the web front end should inherit. `web/` began as a
-  spike and settled the structural half: `model.py` and `gpt.py` import no tkinter,
-  `util/util_tree.py` is already a clean reusable layer, and the whole generation-thread
-  problem is an artifact of Tk owning the main loop. What it still has not touched is the
-  expensive half — frame inheritance via deepmerge, tag scoping over node ancestry,
-  hoisting, canonical paths, memory scoping, template/preset resolution. All undocumented,
-  all load-bearing, all still ahead. Both front ends run against the same file format, so
-  this can be decided feature by feature rather than all at once.
-- Naming a divergent successor is deferred until there's something divergent enough to name.
+Roadmap-level questions — counterfactual storage volume, experiment identity for sweeps,
+what replacing the initial prompt does to recorded slices, seed handling — live in
+`ROADMAP.md` under "Open questions".
+
+The only one that isn't scheduled: naming a divergent successor, deferred until there's
+something divergent enough to name. The token-based format may well be it.
