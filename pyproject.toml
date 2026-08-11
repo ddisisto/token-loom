@@ -22,9 +22,9 @@ dependencies = [
     "ttkthemes>=2.4.0",
 ]
 
-# the web spike only — kept out of the main deps so the tkinter app stays unaffected
+# the web front end only — kept out of the main deps so the tkinter app stays unaffected
 [dependency-groups]
-spike = [
+web = [
     "fastapi",
     "uvicorn",
 ]

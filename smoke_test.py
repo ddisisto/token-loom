@@ -1,7 +1,11 @@
 #!/usr/bin/env python
-"""Headless check that generation works against OpenRouter, without launching the GUI.
+"""Headless check that generation works, without launching the GUI.
 
-Usage: python smoke_test_openrouter.py [model_slug]
+Any name already in DEFAULT_MODEL_CONFIG is used as configured -- including
+qwen2.5-7b-base, which is the one that returns logprobs on a raw continuation.
+An unknown name is assumed to be an OpenRouter slug and registered as one.
+
+Usage: python smoke_test.py [model]
 """
 import sys
 

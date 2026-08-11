@@ -1,10 +1,10 @@
-"""HTTP backend for the loom spike.
+"""HTTP backend for loom's web front end.
 
 Headless-first: every operation the browser performs is a plain JSON endpoint, so
 the same operations drive a batch script. That is the point of the exercise — the
 tkinter app can only be driven by clicking.
 
-    uv run --group spike python -m spike.server data/local.json
+    uv run --group web python -m web.server data/local.json
 
 Several trees can be open at once. Each is a *session*, addressed by an opaque id;
 the browser draws them as tabs. Mutating endpoints act on the active session.
@@ -25,14 +25,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from spike import generation
-from spike.tree import Tree
+from web import generation
+from web.tree import Tree
 
 STATIC = Path(__file__).parent / "static"
 DATA_DIR = Path("data")
 LABEL_CHARS = 100
 
-app = FastAPI(title="loom spike")
+app = FastAPI(title="loom web")
 
 
 class Sessions:
@@ -382,7 +382,7 @@ def save_as(body: SaveAsBody):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="loom spike server")
+    parser = argparse.ArgumentParser(description="loom web server")
     parser.add_argument("filename", nargs="*", help="loom tree JSON to open")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=8080, type=int)

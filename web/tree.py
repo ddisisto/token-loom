@@ -2,8 +2,8 @@
 
 The tkinter app's `TreeModel` mixes three concerns: the tree itself, generation, and
 Tk callback plumbing. This is the first of those, pulled out on its own. It reuses the
-primitives in `util/util_tree.py` unchanged — those were already free of Tk, which is
-the main thing the spike set out to find out.
+primitives in `util/util_tree.py` unchanged — those were already free of Tk, which was
+the main thing this set out to establish.
 
 The on-disk format is loom's, unmodified. A tree written here still opens in the
 tkinter app, and vice versa.
@@ -106,7 +106,7 @@ class Tree:
         """The text the model actually sees: root-to-node, tail-truncated.
 
         The tkinter app also folds in memory, global context and templates here.
-        Deliberately left out — the spike is testing structure, not feature parity.
+        Still left out — those are the expensive half, and not yet ported.
         """
         text = ancestry_plaintext(self.ancestry(node_id))
         return text[-char_limit:] if char_limit else text

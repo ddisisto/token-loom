@@ -85,7 +85,7 @@ UI be the only entry point.
   local-only tooling) so they can be pre-authorised once. `scripts/run.sh` launches the app
   into the top-left quarter of monitor 2; `scripts/screenshot.sh` grabs and crops that region,
   overwriting its output in place so an open editor tab refreshes instead of closing.
-  `scripts/spike.sh` runs the web backend on 8080; `scripts/llama-server.sh` serves the local
+  `scripts/web.sh` runs the web backend on 8080; `scripts/llama-server.sh` serves the local
   base model on 8081 (env overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`).
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
@@ -96,12 +96,14 @@ UI be the only entry point.
 
 ## Open threads
 
-- Whether to rewrite as a web app. `spike/` is the probe — see its README. It answered the
-  structural half: `model.py` and `gpt.py` import no tkinter, `util/util_tree.py` is already
-  a clean reusable layer, and the whole generation-thread problem is an artifact of Tk owning
-  the main loop. What it did *not* test is the expensive half — frame inheritance via
-  deepmerge, tag scoping over node ancestry, hoisting, canonical paths, memory scoping,
-  template/preset resolution. All undocumented, all load-bearing, all still ahead.
+- Which of the tkinter app's features the web front end should inherit. `web/` began as a
+  spike and settled the structural half: `model.py` and `gpt.py` import no tkinter,
+  `util/util_tree.py` is already a clean reusable layer, and the whole generation-thread
+  problem is an artifact of Tk owning the main loop. What it still has not touched is the
+  expensive half — frame inheritance via deepmerge, tag scoping over node ancestry,
+  hoisting, canonical paths, memory scoping, template/preset resolution. All undocumented,
+  all load-bearing, all still ahead. Both front ends run against the same file format, so
+  this can be decided feature by feature rather than all at once.
 - Orphaned `model_responses`. Deleting a node leaves its token data in the tree file forever;
   one session left 14 orphaned responses and 600KB. Needs a collection pass before this is
   used to accumulate runs in earnest.

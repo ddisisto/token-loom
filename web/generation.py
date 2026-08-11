@@ -1,7 +1,7 @@
 """Generation, headless.
 
 `gpt.gen` is already free of Tk and of the tree — it takes a prompt string and a
-settings dict and returns a formatted response. So the spike wraps it rather than
+settings dict and returns a formatted response. So this wraps it rather than
 reimplementing it, and inherits every provider quirk we've already paid for.
 
 The one thing worth noting: generation here is an ordinary blocking call. The
