@@ -113,6 +113,28 @@ back is self-apparent from the store, but the server can return fewer than asked
 or a truncation — so the requested value is recorded alongside temperature. Storage is
 linear in N; 3 to start, controllable later.
 
+**Slice start is a parameter too**, not a viewport setting. Two generations from the same
+position with different slice starts are different experiments — same prefix, different
+amount of it visible — which is "framing acts as a change of basis" made directly
+manipulable. It interns like any other parameter, so it costs nothing. Slice start is
+fixed for the whole of a run: every token in a span shares one slice, and the steps of a
+multi-token run all see the same start rather than a sliding window.
+
+Context size is recorded with it. "Hit the context limit" is uninterpretable without
+knowing which limit — `--ctx-size` is a serving choice and `--parallel` divides it.
+
+### Why a span ended
+
+Sampled spans record a **termination reason**: length reached, stop token hit, context
+limit reached, or aborted. Whether the model chose to stop or was cut off is exactly the
+kind of distinction the attractor question turns on, so this is worth recording
+independently of any feature that needs it.
+
+The context-limit case cannot be read off `finish_reason` — the OpenAI-compatible layer
+reports `length` both for "reached the requested length" and for "ran out of context",
+flattening a distinction llama.cpp's native endpoint makes. Derive it: prompt tokens plus
+requested length against `n_ctx` says which wall is coming before it arrives.
+
 ## MVP
 
 The intended flow, working well:
@@ -162,7 +184,8 @@ One format change, done once, on a clean break.
 
 - Bytes as the anchor; tokens as a per-span overlay with byte extents.
 - Runs, with split-at-position as the primitive operation.
-- Spans carrying provenance category, model, tokenizer, and interned parameters.
+- Spans carrying provenance category, model, tokenizer, termination reason, and interned
+  parameters.
 - Tree/bulk storage split, append-only bulk, soft delete.
 - Prompt recorded as slice bounds — `(endpoint, start_byte, end_byte)` — not as text.
 - **A representation for incomplete spans**, even though streaming is Phase 4. A span that
@@ -179,10 +202,11 @@ with the tokens, so nothing can be orphaned.
 
 - **Stop tokens explicit**: a configurable list, recorded per span, exposed in the UI.
   `<|endoftext|>` is included in the stream like any other token — no special case except
-  at render time. Generation stops at whichever comes first, length or a stop token.
-  Because stopping is a *setting* rather than a property of the token, an empty stop list
-  generates straight through EOT, which is directly one of the things this instrument is
-  for.
+  at render time. Generation stops at whichever comes first: length, a stop token, or the
+  context limit. Because stopping is a *setting* rather than a property of the token, an
+  empty stop list generates straight through EOT, which is directly one of the things this
+  instrument is for — and makes the context limit a routine terminator rather than an edge
+  case.
 - UI toggle: render stop tokens as section breaks.
 - **Settings store.** Last-used settings tracked and applied per tab/file. There is no
   settings endpoint today — `/api/generate` is the only thing that persists settings — so
@@ -197,8 +221,21 @@ with the tokens, so nothing can be orphaned.
 
 Unlocked by Phase 1 and cheap once it lands.
 
-- **Slice-restricted viewport**: when viewing a node, show exactly the slice that was sent
-  to generate it. Makes an otherwise invisible property of the run legible.
+- **Slice-selectable viewport.** Showing the slice that was sent is the first half: when
+  viewing a token, the viewport shows exactly what was in context for the span that
+  produced it, which makes an otherwise invisible property of the run legible. Slice is a
+  property of the span, not of the token, so a selection anywhere in a span resolves to
+  that span's slice.
+
+  The second half is that the range is **re-selectable**: drag the start, and generate
+  again under that context. This replaces `prompt_length` as a number with direct
+  manipulation, and since slice start is a recorded parameter, the result is a comparable
+  experiment rather than a transient view.
+
+  The start is selectable; **the end is not** — it is always the generation point. Letting
+  the end float free would feed the model context that does not reach where it is
+  continuing from, breaking the invariant that a prompt is a contiguous ancestry slice
+  ending at the branch point. That is a different feature, and not this one.
 - **Bookmarks and tags**, anchored to byte offsets and node ids.
 - **Branch to a counterfactual**: at any token, the stored top-N are alternatives the model
   ranked but did not take. Selecting one splits the run and continues from there — no
