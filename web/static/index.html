@@ -55,6 +55,9 @@
   #read {
     flex: 1; overflow: auto; padding: 28px 36px; font-size: 16px; line-height: 1.75;
     white-space: pre-wrap; word-wrap: break-word; max-width: 46em;
+    /* room to scroll the end of the text up to the top of the window, so the
+       place you are working is not pinned to the bottom edge */
+    padding-bottom: 70vh;
   }
   #read .ancestor { color: var(--dim); }
   #read .current { color: var(--fg); }
@@ -298,6 +301,22 @@ function forkMark(node, siblings, openIds) {
 // or selecting doesn't collapse everything underneath you.
 const openForks = new Set();
 
+// Scroll belongs to the reader. Nothing moves the view but the user -- not
+// generating, not navigating, not editing. Positions are remembered per session
+// for this browser session only, so switching tabs and coming back lands where
+// you left off, while a fresh page load starts at the top.
+const scrollBySession = new Map();
+let renderedSession = null;
+
+const activeSessionId = () => {
+  const active = (state.sessions || []).find(s => s.active);
+  return active ? active.id : null;
+};
+
+$('read').addEventListener('scroll', () => {
+  if (renderedSession !== null) scrollBySession.set(renderedSession, $('read').scrollTop);
+});
+
 function renderRead() {
   const frag = document.createDocumentFragment();
   state.read.forEach((entry, i) => {
@@ -325,8 +344,16 @@ function renderRead() {
     frag.appendChild(ahead);
   }
 
+  // Read the old position before the swap and put it back after: replaceChildren
+  // can clamp scrollTop while the pane is briefly empty, which would read as the
+  // view jumping to the top on every render.
+  const session = activeSessionId();
+  const keep = session === renderedSession
+    ? $('read').scrollTop
+    : scrollBySession.get(session) || 0;
   $('read').replaceChildren(frag);
-  $('read').scrollTop = $('read').scrollHeight;
+  renderedSession = session;
+  $('read').scrollTop = keep;
   if (showProbs) paintProbs();
 }
 
