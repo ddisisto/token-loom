@@ -23,7 +23,7 @@ from util.util import json_create, timestamp, json_open, clip_num, index_clip, d
 from util.util_tree import fix_miro_tree, flatten_tree, node_ancestry, in_ancestry, get_inherited_attribute, \
     subtree_list, generate_conditional_tree, filtered_children, \
     new_node, add_immutable_root, make_simple_tree, fix_tree, ancestry_in_range, ancestry_plaintext, ancestor_text_indices, \
-    node_index, ancestor_text_list, tree_subset
+    node_index, ancestor_text_list, tree_subset, collect_orphaned_responses
 from util.gpt_util import conditional_logprob, tokenize_ada, prompt_probs, logprobs_to_probs, parse_logit_bias, parse_stop
 from util.multiverse_util import greedy_word_multiverse
 from util.node_conditions import conditions, condition_lambda
@@ -1054,6 +1054,11 @@ class TreeModel:
         if reassign_children:
             siblings.extend(node["children"])
 
+        # the deleted subtree's token data goes with it, unless a surviving node
+        # from the same call still points at the response. Without this it stayed
+        # in the file forever.
+        collect_orphaned_responses(self.tree_raw_data)
+
         self.rebuild_tree()
 
 
@@ -1921,6 +1926,12 @@ class TreeModel:
         if not save_filename:
             return False
         print('saving tree')
+
+        # sweep orphans left by earlier sessions -- but only when writing the whole
+        # tree, since reachability across a subtree alone would drop responses the
+        # rest of the tree still points at
+        if subtree is self.tree_raw_data:
+            collect_orphaned_responses(subtree)
 
         # Fancy platform independent os.path
         filename = os.path.splitext(os.path.basename(save_filename))[0]

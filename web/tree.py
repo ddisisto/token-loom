@@ -14,8 +14,8 @@ import threading
 from copy import deepcopy
 
 from util.util import json_create, json_open, timestamp
-from util.util_tree import (ancestry_plaintext, flatten_tree, new_node,
-                            node_ancestry)
+from util.util_tree import (ancestry_plaintext, collect_orphaned_responses,
+                            flatten_tree, new_node, node_ancestry)
 
 EMPTY_TREE = {
     # no "id" — flatten_tree() assigns one on first index, as it does for imported trees
@@ -61,6 +61,9 @@ class Tree:
         filename = filename or self.filename
         if not filename:
             raise ValueError("no filename to save to")
+        # also sweeps orphans that predate the collection on delete, or that the
+        # tkinter app left behind
+        self.collect_orphans()
         json_create(filename, self.data)
         self.filename = filename
         self.dirty = False
@@ -166,8 +169,15 @@ class Tree:
         if self.data.get("selected_node_id") in _subtree_ids(node):
             self.data["selected_node_id"] = parent["id"]
         self.reindex()
+        # the deleted subtree's token data goes with it, unless a surviving
+        # sibling from the same call still points at the response
+        self.collect_orphans()
         self.dirty = True
         return parent["id"]
+
+    def collect_orphans(self):
+        """Drop token data nothing points at. Returns the ids dropped."""
+        return collect_orphaned_responses(self.data)
 
     def select(self, node_id):
         self.node(node_id)["visited"] = True

@@ -317,6 +317,38 @@ def flatten_tree(d, reverse=False):
     return [d, *flat_children]
 
 
+def referenced_response_ids(root):
+    """Ids in `model_responses` that some node still points at.
+
+    A node's `generation` is {'id': response_id, 'index': i}. Several siblings
+    from one call share a response id and differ only by index, so a response is
+    reachable while *any* of them survives.
+    """
+    reachable = set()
+    for node in flatten_tree(root):
+        generation = node.get('generation')
+        if isinstance(generation, dict) and generation.get('id'):
+            reachable.add(generation['id'])
+    return reachable
+
+
+def collect_orphaned_responses(tree_data):
+    """Drop token data no node points at any more, in place. Returns the ids dropped.
+
+    Deleting a node used to leave its response behind forever -- one session left
+    14 orphans and 600KB, and generating against a local model that returns
+    logprobs for every token makes that grow much faster.
+    """
+    responses = tree_data.get('model_responses')
+    if not responses:
+        return []
+    reachable = referenced_response_ids(tree_data['root'])
+    orphaned = [key for key in responses if key not in reachable]
+    for key in orphaned:
+        del responses[key]
+    return orphaned
+
+
 def flatten_tree_revisit_parents(d, parent=None):
     if "id" not in d:
         d["id"] = str(uuid.uuid1())
