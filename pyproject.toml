@@ -1,7 +1,7 @@
 [project]
-name = "loom"
+name = "token-loom"
 version = "0.1.0"
-description = "Tree-based writing interface for language models"
+description = "A branching instrument for reading language models at the token level"
 requires-python = ">=3.10"
 dependencies = [
     "celery",

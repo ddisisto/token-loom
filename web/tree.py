@@ -1,4 +1,4 @@
-"""Loom's tree, without Tk.
+"""The tree, without Tk.
 
 The tkinter app's `TreeModel` mixes three concerns: the tree itself, generation, and
 Tk callback plumbing. This is the first of those, pulled out on its own. It reuses the
@@ -28,7 +28,7 @@ EMPTY_TREE = {
 
 
 class Tree:
-    """A loom tree, plus the index and mutations the UI needs.
+    """A tree, plus the index and mutations the UI needs.
 
     Every mutation reindexes rather than trying to keep the index incrementally
     correct. Trees are small enough that this is free, and it removes a whole class

@@ -1,4 +1,4 @@
-"""HTTP backend for loom's web front end.
+"""HTTP backend for token loom's web front end.
 
 Headless-first: every operation the browser performs is a plain JSON endpoint, so
 the same operations drive a batch script. That is the point of the exercise — the
@@ -32,7 +32,7 @@ STATIC = Path(__file__).parent / "static"
 DATA_DIR = Path("data")
 LABEL_CHARS = 100
 
-app = FastAPI(title="loom web")
+app = FastAPI(title="token loom")
 
 
 class Sessions:
@@ -382,8 +382,8 @@ def save_as(body: SaveAsBody):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="loom web server")
-    parser.add_argument("filename", nargs="*", help="loom tree JSON to open")
+    parser = argparse.ArgumentParser(description="token loom web server")
+    parser.add_argument("filename", nargs="*", help="tree JSON to open")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=8080, type=int)
     args = parser.parse_args()

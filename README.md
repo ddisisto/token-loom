@@ -1,3 +1,10 @@
+# token loom
+
+> **This README is upstream loom's, and documents the tkinter app that Phase 0 removes.**
+> It is kept for reference until the rewrite. For what token loom is and where it is
+> going, read [ROADMAP.md](ROADMAP.md). Some of what follows is already wrong — the
+> smoke test is `smoke_test.py`, and local inference runs through `llama-server` rather
+> than `llama-cpp-python`.
 
 This is an experimental tree-based writing interface for GPT-3. The code is actively being developed and thus
 unstable and poorly documented.

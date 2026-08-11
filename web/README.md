@@ -1,8 +1,9 @@
 # web
 
-A web front end for loom. It began as a spike, to answer one question — **does the
-domain logic survive being pulled out of the Tk objects?** — and the answer was yes,
-so it stayed.
+The front end for token loom, and soon the only one. It began as a spike, to answer one
+question — **does the domain logic survive being pulled out of the Tk objects?** — and
+the answer was yes, so it stayed. The tkinter app is scheduled for removal in Phase 0 of
+`../ROADMAP.md`.
 
 Run it:
 
@@ -31,8 +32,9 @@ tree saved here reopens in the tkinter app.
 
 No memory, no templates, no global context, no tags, no chapters, no multiverse view,
 no hoisting, no frames. The prompt is simply the root-to-node text, tail-truncated to
-`prompt_length`. Those are the expensive half, and they remain the open question:
-which of them are load-bearing enough to port.
+`prompt_length`. Those were the tkinter app's expensive half, and the roadmap answers the
+question they posed: none of them are inherited. Anything wanted later gets designed
+against the token model rather than ported.
 
 ## Layout
 
