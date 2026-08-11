@@ -279,8 +279,10 @@ function forkMark(node, siblings, openIds) {
   const wrap = document.createElement('span');
   const chip = document.createElement('span');
   chip.className = 'forkmark';
-  chip.textContent = `⑂${siblings.length}`;
-  chip.title = `${siblings.length} branches from here`;
+  // which of the siblings you are actually reading, not just how many exist
+  const position = siblings.indexOf(node) + 1;
+  chip.textContent = `⑂${position}/${siblings.length}`;
+  chip.title = `branch ${position} of ${siblings.length} from here`;
   const list = document.createElement('div');
   list.className = 'siblings' + (openIds.has(node.id) ? ' open' : '');
   siblings.forEach(s => list.appendChild(branch(s, s.id === node.id)));
