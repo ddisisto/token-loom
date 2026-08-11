@@ -99,8 +99,19 @@ number of mutations, so destroying them on a keystroke is the wrong default.
 ### What travels with the data
 
 Tokenizer identity, model, and generation parameters per span. Reproducibility is
-**conditions-level, not bit-level** — no GPU float determinism. Record an RNG seed where
-the server supports it. Any node is representative under its conditions.
+**conditions-level, not bit-level** — no GPU float determinism. Any node is representative
+under its conditions.
+
+**Seed is per span, never per tree.** Same seed plus same prompt gives byte-identical
+output, so a tree-fixed seed would make the N continuations of one position N copies of
+each other. The tree holds a *base* seed and per-call seeds derive from it (base plus call
+index): siblings stay distinct, and the whole tree still replays. Where a server exposes
+no seed, the tree falls back to its creation timestamp as identity.
+
+**Requested top-N is a parameter, not just an observation.** How many counterfactuals came
+back is self-apparent from the store, but the server can return fewer than asked at a stop
+or a truncation — so the requested value is recorded alongside temperature. Storage is
+linear in N; 3 to start, controllable later.
 
 ## MVP
 
@@ -110,8 +121,17 @@ The intended flow, working well:
    separator.
 2. Generate forward, varying parameters, navigating the space that seed creates.
 
-That is the whole of it. The only mutations are replacing the initial prompt and branching
-mid-run.
+That is the whole of it. The only mutation is branching mid-run.
+
+**The initial prompt is not editable once it has generated anything** — you fork from the
+root instead. This makes the tree semantically append-only, not just its storage: every
+byte offset ever recorded stays valid forever, and nothing ever needs marking stale.
+Initial prompts are human-authored spans under an empty root, which is already the shape
+of `EMPTY_TREE`.
+
+The carve-out that keeps this from being painful: **a human-authored span stays editable
+until something is generated from it.** Nothing references it yet, so the invariant holds.
+Noticing a typo before you hit generate must not mean starting a new tree.
 
 **Local inference only.** `llama-server` is the target for MVP; the hosted providers in the
 capability table stay as they are, and anything they'd need is deferred rather than built.
@@ -168,8 +188,10 @@ with the tokens, so nothing can be orphaned.
   settings endpoint today — `/api/generate` is the only thing that persists settings — so
   this is new surface.
 - **Sweeps**: vary parameters across a batch. Interned per-span parameters cover most of
-  it; what remains is whether a batch carries an *experiment identity* linking its
-  siblings, or whether that is inferred.
+  it. Every batch carries an **id** automatically, so its siblings are always linkable; a
+  **name** is optional and user-supplied. A named batch is an experiment, an unnamed one is
+  just a batch — which keeps the distinction answerable, where defaulting the name to a
+  timestamp would make everything look deliberate.
 
 ## Phase 3 — reads and annotation
 
@@ -197,17 +219,20 @@ stop blocking. The format support lands in Phase 1; this is the machinery.
 
 ## Open questions
 
-1. **Counterfactual storage volume.** Top-N per token is the bulk of the store. Always on,
-   or a generation setting?
-2. **Experiment identity for sweeps** — recorded, or inferred from span timestamps?
-3. **Replacing the initial prompt** shifts every byte offset beneath it, invalidating
-   recorded slices. Clear the recorded prompts, disallow it once generations exist, or mark
-   them stale?
-4. **Seed handling** — record always where the server supports it, or only on request?
-5. **Sampling broadly is a throughput question.** `n` is ignored by providers so loom issues
-   sequential calls; under `--parallel 1` each continuation reprocesses the whole prompt.
-   Prompt-cache reuse and higher `--parallel` are what make broad sampling at depth usable.
-   Configuration, not code — but it wants measuring.
+Only one left, and it is a measurement rather than a decision.
+
+**Throughput under broad sampling.** `n` is ignored by providers, so N continuations are N
+sequential calls. This is configuration, not code — but it wants measuring early, before
+Phase 4, because the answer decides whether the progress chips show genuine concurrency or
+sequential progress.
+
+The likely finding is that nothing needs doing. N continuations from one position is the
+best case for a prompt cache — identical prefix, repeated immediately — so sequential calls
+should pay prompt processing once and generation N times. And `--parallel` is probably the
+wrong lever: llama.cpp divides `--ctx-size` across slots, so four slots at 16k leaves 4k
+each, trading exactly the context depth this design wants for concurrency it may not need.
+
+Measure before changing anything. Optimise, if at all, at the end of Phase 4.
 
 ## Out of scope for MVP
 
