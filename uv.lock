@@ -559,64 +559,6 @@ wheels = [
 ]
 
 [[package]]
-name = "loom"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "celery" },
-    { name = "deepmerge" },
-    { name = "diff-match-patch" },
-    { name = "html2text" },
-    { name = "jsonlines" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "openai" },
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pillow" },
-    { name = "pyperclip" },
-    { name = "python-dotenv" },
-    { name = "redis" },
-    { name = "requests" },
-    { name = "tokenizers" },
-    { name = "transformers" },
-    { name = "ttkthemes" },
-]
-
-[package.dev-dependencies]
-web = [
-    { name = "fastapi" },
-    { name = "uvicorn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "celery" },
-    { name = "deepmerge" },
-    { name = "diff-match-patch" },
-    { name = "html2text" },
-    { name = "jsonlines" },
-    { name = "numpy" },
-    { name = "openai", specifier = ">=1.35.5" },
-    { name = "pandas" },
-    { name = "pillow", specifier = ">=9.4.0" },
-    { name = "pyperclip" },
-    { name = "python-dotenv" },
-    { name = "redis" },
-    { name = "requests" },
-    { name = "tokenizers", specifier = ">=0.13.2" },
-    { name = "transformers", specifier = ">=4.26.1" },
-    { name = "ttkthemes", specifier = ">=2.4.0" },
-]
-
-[package.metadata.requires-dev]
-web = [
-    { name = "fastapi" },
-    { name = "uvicorn" },
-]
-
-[[package]]
 name = "markdown-it-py"
 version = "4.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1575,6 +1517,64 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b5/b4/205b0d5241d934e8add0c38aa924c4f9fb7330834ff11e5444db964ec3f9/starlette-1.6.0.tar.gz", hash = "sha256:d4e3ac5e546444960c710297a3c9fc3f7ebae1b7e963f3d36173b49da535be9b", size = 2716969, upload-time = "2026-08-08T18:27:57.512Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/cb/6a6a47d5b464bd08695d254f3da6e7986cc70c9fa5d778eda57538edfe56/starlette-1.6.0-py3-none-any.whl", hash = "sha256:a86dd39d14bb45f85a3d18525215a9ef0cfd1f192ac793220e72598c90335f0c", size = 75969, upload-time = "2026-08-08T18:27:56.196Z" },
+]
+
+[[package]]
+name = "token-loom"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "celery" },
+    { name = "deepmerge" },
+    { name = "diff-match-patch" },
+    { name = "html2text" },
+    { name = "jsonlines" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "openai" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pillow" },
+    { name = "pyperclip" },
+    { name = "python-dotenv" },
+    { name = "redis" },
+    { name = "requests" },
+    { name = "tokenizers" },
+    { name = "transformers" },
+    { name = "ttkthemes" },
+]
+
+[package.dev-dependencies]
+web = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "celery" },
+    { name = "deepmerge" },
+    { name = "diff-match-patch" },
+    { name = "html2text" },
+    { name = "jsonlines" },
+    { name = "numpy" },
+    { name = "openai", specifier = ">=1.35.5" },
+    { name = "pandas" },
+    { name = "pillow", specifier = ">=9.4.0" },
+    { name = "pyperclip" },
+    { name = "python-dotenv" },
+    { name = "redis" },
+    { name = "requests" },
+    { name = "tokenizers", specifier = ">=0.13.2" },
+    { name = "transformers", specifier = ">=4.26.1" },
+    { name = "ttkthemes", specifier = ">=2.4.0" },
+]
+
+[package.metadata.requires-dev]
+web = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
 ]
 
 [[package]]

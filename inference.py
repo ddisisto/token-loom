@@ -6,8 +6,8 @@ from pprint import pprint
 from celery import Celery
 import openai
 from util.util import retry, timestamp
-from util.gpt_util import parse_logit_bias, parse_stop, get_correct_key, \
-    MODEL_TYPES, model_type_info
+from models import MODEL_TYPES, get_correct_key, model_type_info
+from params import parse_stop
 import requests
 import codecs
 import json
@@ -56,10 +56,10 @@ def gen(prompt, settings, config, **kwargs):
         stop = parse_stop(settings["stop"])
     else:
         stop = None
-    if settings["logit_bias"]:
-        logit_bias = parse_logit_bias(settings["logit_bias"])
-    else:
-        logit_bias = None
+    # logit_bias is gone: it was a GPT-2 token mask, meaningless for any model in
+    # use, and listed in drop_params for every OpenRouter type. The parameter is
+    # still passed so the request builders below need no change.
+    logit_bias = None
     #if config['OPENAI_API_KEY']:
     model_info = config['models'][settings['model']]
     # print('model info:', model_info)

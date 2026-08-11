@@ -14,7 +14,6 @@ from functools import reduce, partial, wraps
 import operator
 from pprint import pprint
 from random import shuffle
-from util.gpt_util import tokenize_ada
 import difflib
 import re
 

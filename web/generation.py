@@ -1,19 +1,20 @@
 """Generation, headless.
 
-`gpt.gen` is already free of Tk and of the tree — it takes a prompt string and a
-settings dict and returns a formatted response. So this wraps it rather than
-reimplementing it, and inherits every provider quirk we've already paid for.
+`inference.gen` takes a prompt string and a settings dict and returns a formatted
+response. So this wraps it rather than reimplementing it, and inherits every
+provider quirk we've already paid for.
 
 The one thing worth noting: generation here is an ordinary blocking call. The
-tkinter app needs a worker thread and a hand-back queue because Tk owns the main
-loop; a request handler does not. That entire class of problem disappears.
+tkinter app needed a worker thread and a hand-back queue because Tk owned the main
+loop; a request handler does not. That entire class of problem disappeared with it.
 """
 
 import os
 from copy import deepcopy
 
-from gpt import gen
-from model import DEFAULT_GENERATION_SETTINGS, DEFAULT_MODEL_CONFIG
+from inference import gen
+from models import DEFAULT_MODEL_CONFIG
+from params import DEFAULT_GENERATION_SETTINGS
 
 
 def available_models():

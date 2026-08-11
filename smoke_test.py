@@ -13,8 +13,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from gpt import gen
-from model import DEFAULT_GENERATION_SETTINGS, DEFAULT_MODEL_CONFIG
+from inference import gen
+from models import DEFAULT_MODEL_CONFIG
+from params import DEFAULT_GENERATION_SETTINGS
 
 model = sys.argv[1] if len(sys.argv) > 1 else 'google/gemma-4-26b-a4b-it:free'
 if model not in DEFAULT_MODEL_CONFIG['models']:
