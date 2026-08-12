@@ -335,7 +335,7 @@ Measure before changing anything. Optimise, if at all, at the end of Phase 4.
 Recorded so they are not re-litigated, not because they are rejected.
 
 Wants that reach past the MVP but bear on decisions it makes — embeddings and distance, a
-generation controller, token replay under a future inference path — live in
+generation controller, sibling divergence, token replay under a future inference path — live in
 `BEYOND-MVP.md`. Nothing there is built here; the two constraints they impose on Phase 1
 are already folded in above.
 

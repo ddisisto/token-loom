@@ -95,6 +95,51 @@ an optional user-supplied name; a controller run is the same object.
 
 ---
 
+## Sibling divergence
+
+Parallel continuations from one position share some prefix with each other. The thought was
+to dedup that storage and move the run's branch point to where they actually diverge.
+
+Measured first, against the local base model — eight continuations of 32 tokens from one
+position, seeded distinctly:
+
+| temperature | common prefix, all 8 | distinct paths by depth | fully diverged | storage saved |
+| ----------- | -------------------- | ----------------------- | -------------- | ------------- |
+| 0.3         | 0 tokens             | 2, 2, 2, 5, 5, 5, 6, 7  | depth 13       | 13.4%         |
+| 0.9         | 0 tokens             | 3, 7, 8, 8, 8, 8, 8, 8  | depth 3        | 2.3%          |
+| 1.2         | 0 tokens             | 4, 7, 8, 8, 8, 8, 8, 8  | depth 3        | 2.0%          |
+
+Two things follow, and they point opposite ways.
+
+**The storage case is dead.** 2% at the working temperature is not worth a structural
+change, and the saving only becomes interesting at temperatures the instrument is not
+mainly used at.
+
+**The structure is not what the framing assumed.** There is no single branch point to move
+to: the common prefix of all eight was zero at every temperature. What exists is a *trie
+among the siblings* — at 0.3, eight continuations are two distinct paths for three tokens,
+then five, then seven. Divergence is nested and plural, so the display question is "render
+the sibling sub-trie", not "shift the fork chip down". That is most of why it needs a spike.
+
+The profile itself is the interesting artifact. "Eight samples, two paths, three tokens
+deep" is the attractor question answered as a number, and it needs no format support —
+comparing sibling token sequences is a read-layer computation over data Phase 1 already
+stores.
+
+**Single-token stepping is where this gets sharp.** At length 1, prefix-merging degenerates
+into counting: N spans over a handful of distinct tokens. The multiplicity *is* the
+measurement — an empirical frequency to set against the logprobs recorded alongside it,
+which is a real instrument feature and still needs nothing new stored.
+
+Which is the argument against merging in storage rather than merely a reason to defer it.
+**Bytes are content and spans are events.** Merging bytes is safe; merging events destroys
+multiplicity, and at short lengths multiplicity is the data. Merge-on-insert would also
+need a join-on-delete to stay canonical — a second primitive beside split, for 2%.
+
+Phase 1 therefore does nothing here beyond what it already does. If merged storage with N
+spans co-covering a shared prefix ever looks worthwhile, reaching it is a re-index of data
+already held, not a recovery of data thrown away.
+
 ## Token replay instead of re-tokenisation
 
 If inference later moves to transformers, input assembled for a model should reuse the
