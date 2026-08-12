@@ -12,9 +12,11 @@ per-span overlay, driven by the web front end in `web/`. The tkinter app is gone
 
 **`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
-replaced rather than extended; `BEYOND-MVP.md` holds the wants that reach past it and the
-constraints they impose on decisions made now. This file is for things that are true about
-the code and easy to get wrong.
+replaced rather than extended. Two companions: `PHASE-1.md` is the detailed plan for the
+format change — locked decisions, on-disk shape, build order — and is deleted rather than
+maintained once Phase 1 lands; `BEYOND-MVP.md` holds the wants that reach past the MVP and
+the constraints they impose on decisions made now. This file is for things that are true
+about the code and easy to get wrong.
 
 `origin` is `ddisisto/loom`, `upstream` is `socketteer/loom`. Work happens on `main`.
 PR socketteer/loom#28 sent the Tk 9 and threading fixes upstream, partly to probe whether

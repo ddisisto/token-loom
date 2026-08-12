@@ -48,14 +48,21 @@ no model server running.
 Over the same bytes there are two independent groupings, and conflating them is the main
 way this design can go wrong:
 
-- **runs** — storage and display. A maximal span with no branch point in it. Boundaries
-  move when the tree is split; carry no meaning of their own.
-- **spans** — provenance. One authored or generated stretch, with the conditions that
-  produced it. Never move once written.
+- **spans** — provenance *and* bytes. One authored or generated stretch, the conditions
+  that produced it, and the text it produced. Written once and never touched again.
+- **runs** — structure and display. A maximal stretch with no branch point in it, holding
+  no bytes of its own: an ordered list of *pieces*, each naming a span and a range within
+  it. Boundaries move freely when the tree is split; they carry no meaning of their own.
 
 Generation parameters attach to **spans**. Continuing from a tip without branching extends
-a run but starts a new span, so one run may contain several spans at different
+a run but starts a new span, so one run may reference several spans at different
 temperatures. That is correct and needs to stay expressible.
+
+Putting the bytes on spans rather than runs is what makes "never move once written" true by
+construction instead of by discipline. Splitting a run divides a list of integers; it cannot
+open a span, so it cannot damage a record. It also leaves exactly one copy of every byte,
+so there is no second copy to disagree with. See `PHASE-1.md` for the shape and for the
+alternatives this was chosen over.
 
 ### Span provenance
 
@@ -83,9 +90,15 @@ Parameters are not the size problem in any case — a parameter set is ~150 byte
 
 ### Storage: tree and bulk, split
 
-Token data does not live in the tree file. The tree structure stays small JSON, readable
-by a human; **the bulk token data goes in an append-only sidecar store.** Backing store is
-an implementation call at Phase 1 (jsonl or sqlite).
+Token data does not live in the tree file. The tree structure and its text stay small JSON;
+**the bulk token data goes in an append-only sidecar store**, which Phase 1 settles as
+sqlite — random access without loading, an index for the intern table, and somewhere for
+later record types to land.
+
+The tree file is still meant to be openable by hand, but it is no longer *readable* as
+prose: runs hold pieces rather than text, so following a path by eye means resolving pieces
+into spans. That is the accepted cost of one copy of every byte, and the headless driver's
+dump is the answer for reading a tree.
 
 The arithmetic that forces this: single-token stepping plus top-N counterfactuals runs
 150–400 bytes per token, so a 100k-token tree is 30–40MB — re-serialised on every save if
@@ -221,10 +234,13 @@ Local inference is now the default: `params.py` ships `qwen2.5-7b-base`.
 
 ## Phase 1 — the token core
 
-One format change, done once, on a clean break.
+One format change, done once, on a clean break. **`PHASE-1.md` is the detailed plan** —
+decisions locked, the on-disk shape with a validated worked example, and the build order.
+This section is the scope; that file is the design.
 
 - Bytes as the anchor; tokens as a per-span overlay with byte extents.
-- Runs, with split-at-position as the primitive operation.
+- Spans hold the bytes and are written once; runs are structure over them, with
+  split-at-position as the primitive operation.
 - Spans carrying provenance category, model, tokenizer, termination reason, and interned
   parameters.
 - **Keep the token `id` and the `bytes` array the server already returns**, for sampled
