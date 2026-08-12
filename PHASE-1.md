@@ -35,68 +35,93 @@ Recorded bytes are immutable. Delete cascades. There is no edit operation at any
 This retires the slice hash that was proposed as a staleness check: with bytes immutable,
 recorded bounds are faithful by construction, so there is nothing to detect.
 
-### 3. Runs own the byte→span mapping; spans own their extent
+### 3. Spans own the bytes; runs are structure over them
 
-A run holds an ordered list of span fragments covering its bytes. Splitting a run divides
-that list along with the bytes; no reverse pointers exist and nothing needs re-pointing.
-This is what lets spans keep the roadmap's promise of never moving while runs move freely
-underneath them, and it leaves room for the co-covering case — several spans over one byte
-range — without building it now.
+**Spans hold the text.** A span is a generated or authored stretch, and it holds its bytes,
+its extent and its provenance. It is written once and never touched again — not by
+splitting, not by branching, not by deletion.
 
-**Spans additionally record their own `extent`**, which the fragment lists do not make
-retrievable without a full scan. It is safe to store because a span's extent is genuinely
-immutable: splitting does not move bytes, and deletion is soft. The two are not redundant
-and neither replaces the other:
+**Runs hold no bytes at all.** A run is an ordered list of *pieces*, each naming a span and
+a range within it, plus a parent and children. Its text is the concatenation of its pieces
+resolved against their spans.
 
-- **The span's extent is the record** — what this generation call produced, self-describing
-  in the way interned parameters are meant to keep it.
-- **The fragment lists are the index** — which bytes are reachable on which path. This
-  cannot be derived from extents, because sibling branches occupy overlapping absolute
-  ranges and only the fragment list says which path a span sits on.
+Splitting is then arithmetic on integers. Divide the piece list, relink the children, done —
+no bytes move, no span is opened, and the operation cannot corrupt a record because it never
+touches one.
 
-> **Authority.** Where they disagree, the span is right and the index is broken. Validate
-> the tiling on load.
+```jsonc
+"s3": { "text": " calm and clear", "extent": [11, 26], … }   // written once, never cut
+"r3": { "pieces": [["s3", 0, 9]],  "children": ["r4", "r5"] } // " calm and"
+"r4": { "pieces": [["s3", 9, 15]], "children": [] }           // " clear"
+```
 
-**Fragment offsets are span-relative, not run-relative** — `["s3", 9, 15]` means *bytes 9
-to 15 of span s3*, not bytes 9 to 15 of the run. The run position is implied by
-accumulation, since fragments tile the run in order from its start. Two reasons it is this
-way round: the run-relative half is derivable and the span-relative half is not, and bulk
-records are keyed `(span, index)`, so mapping a byte in a run to its token needs the offset
-*within the span*. Getting this backwards is the easiest mistake in the whole format and
-it fails quietly, so the load-time validator should check both frames — fragments
-contiguous within each run, and contiguous within each span.
+Piece offsets are span-relative and can only be span-relative, since a piece names a range
+*of a span*. The run-relative position is implied by accumulation. This was ambiguous while
+runs carried their own text, and it was the easiest quiet mistake in the format; it is now
+unrepresentable.
 
-#### Deleting can bisect a span
+There is also **exactly one copy of every byte**, so there is no authority question between
+a run's text and a span's extent, and nothing to validate for agreement. The earlier design
+stored the bytes twice — once as `run.text`, once implied by span extents — and needed a
+rule about which won. The rule was covering for redundancy that should not have existed.
 
-A span written as one stretch can later cross a branch point, because splitting is what
-creates branch points. In the worked example below, `s3` covers `r3` and `r4`; deleting the
-`r4` branch while keeping `r5` removes bytes from the middle of a recorded span.
+#### Why not overlapping runs referencing an uncut original
 
-This is not a violation, but it needs stating so it is not mistaken for one. A span record
-says **what was generated**, not what the tree currently reaches. Deletion removes
-reachability; it does not unmake the historical fact, and under soft delete the bytes are
-still in the store.
+The instinct — *do not cut r3; make a new run that references its first 9 bytes* — is the
+right one, and the above is where it lands. But taken literally, with `r3` left whole as a
+sibling of the new run, it breaks two things.
 
-> **Rule.** Rendering and prompt assembly walk the fragment lists, never span extents. Read
-> a span's extent as text and you will render bytes the tree no longer reaches.
+**It stops being a trie.** `r1`'s children become several runs that all start at the same
+absolute offset and overlap by construction, and the fact that two of them share their first
+20 bytes is no longer visible in the structure — it has to be recovered by comparing
+reference ranges. Divergence being structural is what the trie is *for*.
+
+**Navigation inverts.** "What branches from here" is a child list in a trie. With overlapping
+siblings it becomes "find every run referencing this owner whose range ends at this offset" —
+a scan, on the most common read there is.
+
+And it does not actually avoid the split. Branch `r3` at 20, then at 40, and the second
+branch needs a run covering exactly `[20, 40)` — so the range gets divided anyway. The
+mutation moves from the text to the range, and the structural churn is identical. What
+survives from the instinct is the part that was genuinely wrong before: **the original is
+never cut, because the original is the span, and runs were never the right place for bytes.**
+
+#### Deleting can bisect a run, never a span
+
+A span written as one stretch can later be referenced by runs on either side of a branch
+point, because splitting is what creates branch points. In the worked example, `r3` and `r4`
+both reference `s3`; deleting the `r4` branch while keeping `r5` removes one of them.
+
+Nothing is lost. `s3` still holds all fifteen of its bytes, because runs were only ever
+pointing at them. The tree stops *reaching* part of a span; the record of what was generated
+is untouched — which is now true by construction rather than by rule.
+
+> **Rule.** Rendering and prompt assembly walk the piece lists, never span extents. A span's
+> text is what was generated; the pieces are what the tree still reaches.
 
 #### Where this grows
 
-Fragment lists are the growth surface, and they live in `tree.json`, which is rewritten on
-save. Single-token stepping is the case that presses on it: stepping does not create a run
-per token — a run only splits at a branch point, so consecutive steps extend one run — but
-each step appends a fragment. At roughly 20 bytes a fragment, a fully single-stepped 100k
-token tree is ~2MB of fragment list. Tolerable, and it is the worst case rather than the
-expected one.
+Piece lists are the growth surface, and they live in `tree.json`, which is rewritten on save.
+Single-token stepping presses on it: stepping does not create a run per token — a run only
+splits at a branch point, so consecutive steps extend one run — but each step appends a
+piece. At roughly 20 bytes a piece, a fully single-stepped 100k-token tree is ~2MB of piece
+list. Tolerable, and the worst case rather than the expected one.
 
-The escape hatch already exists if it stops being tolerable: fragment lists move to the
-bulk store as another record type, which the roadmap's generality constraint permits
-without a format change.
+The escape hatch already exists: piece lists move to the bulk store as another record type,
+which the roadmap's generality constraint permits without a format change.
+
+One cost to note against the goal of a human-readable tree file: runs no longer read as
+text, so eyeballing `tree.json` means following pieces into spans. The text is all still
+there, one level of indirection away, and the headless driver's dump is the answer for
+reading a tree by eye.
 
 #### Alternatives considered
 
-- **Spans point back at runs.** The obvious shape, and the one this replaces. Every split
-  invalidates the pointers of every span ending in the split run.
+- **Runs hold text, spans hold fragments into it.** The previous version of this decision.
+  Works, but stores every byte twice and needs an authority rule to arbitrate.
+- **Overlapping runs over an uncut original.** Above — loses the trie and inverts navigation.
+- **Spans point back at runs.** Every split invalidates the pointers of every span ending in
+  the split run.
 - **Spans store their *starting* run**, on the theory that a split preserves the prefix's
   identity so the start never moves. It fails on splits *before* a span's start: split a run
   at byte 5 and a span starting at byte 10 now begins in the new suffix run. Tempting and
@@ -104,8 +129,7 @@ without a format change.
 - **Spans store the path as a sequence of branch choices.** Child indices shift on delete,
   and child ids are run ids, which are the unstable thing being worked around.
 - **No runs at all, trie over spans directly.** Branch points would have to split spans,
-  which provenance forbids — so span fragments become the nodes, which is this design with
-  worse names.
+  which provenance forbids.
 
 ### 4. Interned versus per-span
 
@@ -174,41 +198,40 @@ then branched from a counterfactual at its third token.
   "base_seed": 90210,
   "root": "r0",
 
-  "runs": {
-    "r0": { "parent": null, "start": 0,  "text": "",             "spans": [],
-            "children": ["r1"] },
-    "r1": { "parent": "r0", "start": 0,  "text": "The sea was",  "spans": [["s1", 0, 11]],
-            "children": ["r2", "r3"] },
-
-    // batch b1, continuation 0 — never split, so one run, one span
-    "r2": { "parent": "r1", "start": 11, "text": " calm for days",
-            "spans": [["s2", 0, 14]], "children": [] },
-
-    // batch b1, continuation 1 — split at the counterfactual branch point.
-    // r3 kept its id and shrank; r4 is the new suffix and inherited the children.
-    "r3": { "parent": "r1", "start": 11, "text": " calm and",
-            "spans": [["s3", 0, 9]],  "children": ["r4", "r5"] },
-    "r4": { "parent": "r3", "start": 20, "text": " clear",
-            "spans": [["s3", 9, 15]], "children": [] },
-
-    // the counterfactual branch: one token the model ranked but did not take
-    "r5": { "parent": "r3", "start": 20, "text": " still",
-            "spans": [["s4", 0, 6]],  "children": [] }
-  },
-
+  // spans hold the bytes, and are written once
   "spans": {
-    "s1": { "kind": "human", "extent": [0, 11], "created": "2026-08-12-10.00.00" },
+    "s1": { "kind": "human", "text": "The sea was", "extent": [0, 11],
+            "created": "2026-08-12-10.00.00" },
 
-    "s2": { "kind": "sampled", "extent": [11, 25],
+    "s2": { "kind": "sampled", "text": " calm for days", "extent": [11, 25],
             "params": "p1", "seed": 90211, "batch": "b1", "index": 0,
             "slice_start": 0, "end": "length", "created": "2026-08-12-10.01.00" },
-    "s3": { "kind": "sampled", "extent": [11, 26],
+
+    // never cut by the branch below — r3 and r4 reference parts of it
+    "s3": { "kind": "sampled", "text": " calm and clear", "extent": [11, 26],
             "params": "p1", "seed": 90212, "batch": "b1", "index": 1,
             "slice_start": 0, "end": "length", "created": "2026-08-12-10.01.00" },
 
-    "s4": { "kind": "counterfactual", "extent": [20, 26],
+    "s4": { "kind": "counterfactual", "text": " still", "extent": [20, 26],
             "from": { "span": "s3", "index": 2 },
             "created": "2026-08-12-10.02.00" }
+  },
+
+  // runs hold no bytes: pieces name a span and a range within it
+  "runs": {
+    "r0": { "parent": null, "start": 0,  "pieces": [],              "children": ["r1"] },
+    "r1": { "parent": "r0", "start": 0,  "pieces": [["s1", 0, 11]], "children": ["r2", "r3"] },
+
+    // batch b1, continuation 0 — never branched, so one run, one whole span
+    "r2": { "parent": "r1", "start": 11, "pieces": [["s2", 0, 14]], "children": [] },
+
+    // batch b1, continuation 1 — branched at the counterfactual point. The split
+    // divided r3's piece list; s3 itself was not opened.
+    "r3": { "parent": "r1", "start": 11, "pieces": [["s3", 0, 9]],  "children": ["r4", "r5"] },
+    "r4": { "parent": "r3", "start": 20, "pieces": [["s3", 9, 15]], "children": [] },
+
+    // the counterfactual branch: one token the model ranked but did not take
+    "r5": { "parent": "r3", "start": 20, "pieces": [["s4", 0, 6]],  "children": [] }
   },
 
   "params": {
@@ -224,10 +247,9 @@ then branched from a counterfactual at its third token.
 
 Four things to read off it:
 
-- **`s3` appears in two runs**, and its `extent` still reads `[11, 26]`. It was written as
-  one stretch and later split; the fragment list divided with the bytes while the span
-  record did not change, which is the promise in the roadmap made concrete. The extent is
-  the record of the call; the fragments are where those bytes are now reachable.
+- **`s3` still holds all fifteen of its bytes**, and is referenced in two pieces by two
+  runs. The branch divided a piece list; the span was never opened. This is the roadmap's
+  promise that spans never move, made true by construction rather than by discipline.
 - **`r3` and `r5` both start at absolute offset 20.** Sibling branches share offsets, which
   is why an offset alone is not a position — the path is the other half.
 - **`s4` has no parameters and no seed.** A counterfactual selection is not a generation
@@ -265,7 +287,7 @@ Six operations. Everything in Phase 2 and 3 is built from these.
 | --------- | ----- |
 | `author(position, text)` | appends a human span; no tokens |
 | `generate(position, params, n)` | one batch id, n spans, n seeds derived from the base |
-| `split(position)` | the primitive; idempotent at an existing boundary |
+| `split(position)` | the primitive; divides a piece list and relinks. Idempotent at an existing boundary, and touches no span |
 | `delete(run)` | cascades; soft, and the bulk store is untouched |
 | `slice(position, length)` | resolves to `(start_abs, end_abs)` and the text to send |
 | `branch_counterfactual(span, index, rank)` | splits, then appends a counterfactual span |
@@ -281,8 +303,9 @@ Each step is verifiable on its own, which is what keeps the big-bang confined to
 
 1. **Format module** — read and write `tree.json` and `bulk.sqlite`, with the load-time
    validator. No generation. Verify by round-tripping the worked example above; the
-   validator checks run tiling, the parent/child offset chain, span extents against their
-   fragments, and contiguity in both the run and span frames.
+   validator checks piece ranges against span lengths, the parent/child offset chain, each
+   span's extent against its own text, and that every span's bytes are covered by pieces
+   exactly once and contiguously.
 2. **Core operations** — the six, over the format module. Verify with the headless driver
    on a tree built entirely by hand, no model involved.
 3. **`inference.py`** — keep the token `id` and `bytes` array, key counterfactuals by id.
