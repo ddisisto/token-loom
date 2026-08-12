@@ -37,7 +37,7 @@ against the token model rather than ported.
 
 ## Layout
 
-- `tree.py` — the tree and its mutations. Imports `util/util_tree.py` unchanged.
+- `tree.py` — the tree and its mutations, over the primitives in `util/util_tree.py`.
 - `generation.py` — wraps `inference.gen`, which was already free of Tk and of the tree.
 - `server.py` — JSON endpoints. Every UI action is one call, so a batch script can
   drive the same operations without a browser.

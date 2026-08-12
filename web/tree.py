@@ -1,12 +1,12 @@
 """The tree, without Tk.
 
-The tkinter app's `TreeModel` mixes three concerns: the tree itself, generation, and
-Tk callback plumbing. This is the first of those, pulled out on its own. It reuses the
-primitives in `util/util_tree.py` unchanged — those were already free of Tk, which was
-the main thing this set out to establish.
+The tkinter app's `TreeModel` mixed three concerns: the tree itself, generation, and
+Tk callback plumbing. This is the first of those, pulled out on its own, over the
+primitives in `util/util_tree.py` — which were already free of Tk, and which have
+since been cut back to the six functions this file reaches.
 
-The on-disk format is loom's, unmodified. A tree written here still opens in the
-tkinter app, and vice versa.
+The on-disk format is still loom's, unmodified, until Phase 1 of the roadmap
+replaces it.
 """
 
 import os
