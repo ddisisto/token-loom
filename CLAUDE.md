@@ -11,8 +11,10 @@ wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tok
 per-span overlay, driven by the web front end in `web/`. The tkinter app is gone.
 
 **`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
-deliberately out of scope live there. This file is for things that are true about the code
-and easy to get wrong.
+deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
+replaced rather than extended; `BEYOND-MVP.md` holds the wants that reach past it and the
+constraints they impose on decisions made now. This file is for things that are true about
+the code and easy to get wrong.
 
 `origin` is `ddisisto/loom`, `upstream` is `socketteer/loom`. Work happens on `main`.
 PR socketteer/loom#28 sent the Tk 9 and threading fixes upstream, partly to probe whether

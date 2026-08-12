@@ -212,6 +212,14 @@ One format change, done once, on a clean break.
 - Runs, with split-at-position as the primitive operation.
 - Spans carrying provenance category, model, tokenizer, termination reason, and interned
   parameters.
+- **Keep the token `id` and the `bytes` array the server already returns**, for sampled
+  tokens and for every counterfactual, and key counterfactuals by id rather than by their
+  surface string. `inference.py` currently discards both. `bytes` is the byte extent this
+  whole model is anchored on, handed over directly — re-deriving it by encoding the token
+  string is lossy for exactly the byte-fallback tokens that split a character, which is the
+  case byte anchoring exists to handle. Ids cost ~4 bytes against 150–400 per token, and
+  recovering one from its string collides on special tokens with a literal surface form and
+  on duplicate vocab entries. Neither can be retrofitted onto trees already generated.
 - Tree/bulk storage split, append-only bulk, soft delete.
 - Prompt recorded as slice bounds — `(endpoint, start_byte, end_byte)` — not as text.
 - **A representation for incomplete spans**, even though streaming is Phase 4. A span that
@@ -223,6 +231,24 @@ One format change, done once, on a clean break.
 
 Orphan collection disappears with the side table keyed by response id — token data lives
 with the tokens, so nothing can be orphaned.
+
+**Two things stay generic, deliberately.** Both are free to decide now and expensive to
+change later, and both come from `BEYOND-MVP.md` — nothing there is built in the MVP, but
+these two shapes are what keep it additive rather than a second format change.
+
+- **The bulk store is generic over record type**, not named or shaped for tokens. Tokens
+  are its first record type, not its definition. Anything else derived per span — an
+  embedding being the concrete case — is then a new record type in an existing store,
+  sharing its append-only discipline and its eventual vacuum, rather than a parallel
+  mechanism.
+- **The intern table is generic over parameter set**, not specifically over generation
+  settings. Any configuration that gives rise to a span interns the same way.
+
+One related shape in the model, for the same reason: **agency is orthogonal to provenance
+category, not a fourth value of it.** A span produced by something driving generation
+automatically still has *sampled* tokens; what differs is what initiated it. Provenance
+stays a statement about token origin, with room beside it for an optional initiator
+reference. Folding the two axes into one enum is what forces the schema change.
 
 ## Phase 2 — generation control
 
@@ -307,6 +333,11 @@ Measure before changing anything. Optimise, if at all, at the end of Phase 4.
 ## Out of scope for MVP
 
 Recorded so they are not re-litigated, not because they are rejected.
+
+Wants that reach past the MVP but bear on decisions it makes — embeddings and distance, a
+generation controller, token replay under a future inference path — live in
+`BEYOND-MVP.md`. Nothing there is built here; the two constraints they impose on Phase 1
+are already folded in above.
 
 - **Migration from the old format.** Historical trees stay historical.
 - **A test suite.** `smoke_test.py` plus live use is the posture; the clean-break format
