@@ -41,27 +41,33 @@ Practically this means two things pull on the design:
 Neither is an argument for gutting the interactive UI. It is an argument for not letting the
 UI be the only entry point.
 
-## API landscape (learned the hard way)
+## Inference
 
-- OpenRouter chat endpoint (`type: openrouter`) returns logprobs but applies a chat template.
-- OpenRouter completions endpoint (`type: openrouter-completion`) returns raw continuation but
-  **no provider returns logprobs there**, even ones whose `/models/{id}/endpoints` claim to.
-- You cannot get both from OpenRouter. This is the central constraint that pushed toward local
-  inference (llama.cpp / `llama-server`), where both are available at once.
-- Provider choice changes semantics for an identical request: DeepInfra serves
-  `mistralai/mistral-nemo` as raw continuation, Io Net chat-templates it. Hence the pinned
+**Local only, for MVP.** `scripts/llama-server.sh` serves Qwen2.5-7B **base** (i1-Q4_K_M)
+on port 8081 as `qwen2.5-7b-base`, which is the default in `params.py`. ~5.2GB VRAM at 16k
+context on the GTX 1070, 122 tok/s prompt and 32 tok/s generation — fast enough to work in.
+
+It is the only setup that gives **raw continuation and per-token logprobs at once**, and
+that pairing is the whole point: a continuation of the prior is a different object than a
+chat reply, and the counterfactuals are what makes the tree readable at the token level.
+Nothing hosted offers both. OpenRouter's chat endpoint returns logprobs but applies a chat
+template; its completions endpoint returns raw continuation but **no provider returns
+logprobs there**, including ones whose `/models/{id}/endpoints` claim otherwise. There are
+no true base models left in the hosted catalogue anyway.
+
+Finding a genuine base GGUF has the same scarcity problem: a search for Qwen2.5-7B returns
+almost nothing but Instruct. `mradermacher/Qwen2.5-7B-i1-GGUF` is real
+(`base_model: Qwen/Qwen2.5-7B`), and its imatrix quants beat the static ones at identical
+size.
+
+The hosted entries in `models.py` still work and are left alone, but get no new effort —
+see `ROADMAP.md`. Two things about them are worth keeping in mind if that changes:
+
+- **Provider choice changes semantics for an identical request.** DeepInfra serves
+  `mistralai/mistral-nemo` as raw continuation; Io Net chat-templates it. Hence the pinned
   `extra_body: {provider: {order: [...], allow_fallbacks: false}}` on that entry.
-- `n` is ignored by most providers (loom issues repeated calls instead); `logit_bias` is
-  rejected outright; `echo` is unsupported.
-- No true base models remain in the hosted catalogue.
-- Local inference resolves the constraint and now works: `scripts/llama-server.sh` serves
-  Qwen2.5-7B **base** (i1-Q4_K_M) on port 8081 as model `qwen2.5-7b-base`, giving raw
-  continuation *and* top-N counterfactuals per token. ~5.2GB VRAM at 16k context on the
-  GTX 1070, 122 tok/s prompt and 32 tok/s generation — fast enough to work in.
-- The GGUF catalogue has the same base-model scarcity as the hosted one: a search for
-  Qwen2.5-7B returns almost nothing but Instruct. `mradermacher/Qwen2.5-7B-i1-GGUF` is a
-  genuine base (`base_model: Qwen/Qwen2.5-7B`), and its imatrix quants are better quality
-  at identical size to the static ones.
+- `n` is ignored by most providers, so N continuations are N sequential calls; `echo` is
+  unsupported.
 
 ## Code notes
 

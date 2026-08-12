@@ -160,23 +160,21 @@ capability table stay as they are, and anything they'd need is deferred rather t
 
 ---
 
-## Phase 0 — clear the ground
+## Phase 0 — clear the ground ✅
 
-Independent of everything else; both tracks reduce the surface later phases touch.
+Done. The ground it cleared is what makes Phase 1 affordable: with tkinter gone the
+on-disk format has no second consumer, so it is free to change.
 
-- **Remove tkinter.** Goes: `main.py`, the view/controller layer, `TreeModel`,
-  `call_on_main_thread` and the cross-thread event workaround, the `@event` decorator
-  system, and `config/` — whose fewshots, presets, interfaces and transformers all feed the
-  expensive half that is not being inherited. `model.py` gets **rewritten from required
-  functionality** rather than carved down; what is actually used from it is
-  `DEFAULT_MODEL_CONFIG` and `DEFAULT_GENERATION_SETTINGS`, imported by `web/` and
-  `smoke_test.py`.
-- **Rename in the same pass.** Renames are free during a rewrite and expensive after, and
-  three of these names are actively misleading. `model.py` means *MVC* model, not language
-  model — after the rewrite it would silently flip meaning while looking unchanged. "gpt"
-  as a generic word for language model is 2021 phrasing and already literally wrong; nothing
-  in the stack is GPT. `config.py` is avoided deliberately: it names a file after the format
-  of its contents rather than its subject, which is how junk drawers start.
+- ✅ **Removed tkinter** — 169 files, 15,747 lines. `main.py`, the view/controller layer,
+  `TreeModel`, `call_on_main_thread` and the cross-thread event workaround, the `@event`
+  decorator system, and `config/`, whose fewshots, presets, interfaces and transformers all
+  fed the expensive half that is not inherited. The surviving surface was **four import
+  lines**.
+- ✅ **Renamed in the same pass**, because renames are free during a rewrite and expensive
+  after. `model.py` meant *MVC* model, not language model, and would have flipped meaning
+  silently. "gpt" as a generic word for language model was already literally wrong. `config.py`
+  was avoided deliberately: naming a file after the format of its contents rather than its
+  subject is how junk drawers start.
 
   ```
   models.py      registry + capability table     (model.py + util/gpt_util.py)
@@ -186,18 +184,25 @@ Independent of everything else; both tracks reduce the surface later phases touc
   web/           server, tree, generation, static
   ```
 
-  The registry and the capability table merge because they are instances and types of one
+  The registry and the capability table merged because they are instances and types of one
   concept, split across two files for historical reasons only. `params.py` is named for what
   Phase 1 makes it — a parameter set as a first-class object with hashing and interning —
   rather than for the bag of defaults it starts as.
-- **Adopt the name**: repo rename (GitHub redirects the old URL), package identity, before
-  the `model.py` rewrite rather than after.
-- ~~Drop the scratchpad~~ — deferred. It is a button that gets ignored, and the container
-  it lives in is due a rewrite anyway; removing it now is work done twice.
-- **Cheap UI wins**, useful immediately and unaffected by the format change:
-  - fork chip shows position: `⑂3/4`
-  - viewport extends beyond content height, so the end of output can scroll near the top
-  - scroll position stays stable when switching forks
+- ✅ **Adopted the name.** Repo renamed (GitHub redirects the old URL), package identity
+  updated ahead of the rewrite rather than after.
+- ✅ **Dropped what tkinter was holding up.** `logit_bias`, a GPT-2 token mask meaningless
+  for the models in use; the Janus Celery client, pointed at the original author's own redis
+  and called by nothing; and the settings keys nothing reads — preset, template,
+  global_context, start, restart. Dependencies went from sixteen to six.
+- ✅ **Cheap UI wins**: fork chip shows position (`⑂3/4`); the read pane extends beyond its
+  content so the end of the text can reach the top of the window; and **scroll is the
+  reader's** — nothing moves the view automatically, with position remembered per tab for
+  the browser session. Fork-switch stability fell out of that rather than needing its own
+  work, since siblings share their whole prefix.
+- ~~Drop the scratchpad~~ — deferred. It is a button that gets ignored, and the container it
+  lives in is due a rewrite anyway; removing it now is work done twice.
+
+Local inference is now the default: `params.py` ships `qwen2.5-7b-base`.
 
 ## Phase 1 — the token core
 
