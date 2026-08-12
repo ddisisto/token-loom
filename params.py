@@ -21,7 +21,7 @@ DEFAULT_GENERATION_SETTINGS = {
     'response_length': 100,
     'prompt_length': 6000,
     'logprobs': 1,
-    'model': 'google/gemma-4-26b-a4b-it:free',
+    'model': 'qwen2.5-7b-base',
     'stop': '',  # separated by '|'
 }
 

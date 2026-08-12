@@ -4,25 +4,18 @@ version = "0.1.0"
 description = "A branching instrument for reading language models at the token level"
 requires-python = ">=3.10"
 dependencies = [
-    "celery",
-    "deepmerge",
-    "diff-match-patch",
-    "html2text",
-    "jsonlines",
-    "numpy",
+    "html2text",     # util_tree, for HTML pasted into a node
+    "numpy",         # util_tree weights, util array helpers
     "openai>=1.35.5",
-    "pandas",
-    "pillow>=9.4.0",
-    "pyperclip",
+    "pandas",        # util.json_to_dataframe
     "python-dotenv",
-    "redis",
     "requests",
-    "tokenizers>=0.13.2",
-    "transformers>=4.26.1",
-    "ttkthemes>=2.4.0",
 ]
 
-# the web front end only — kept out of the main deps so the tkinter app stays unaffected
+# Everything the tkinter app needed and nothing else did is gone with it: celery and
+# redis (the Janus task queue), transformers and tokenizers (a GPT-2 logit mask),
+# ttkthemes, pillow, pyperclip, deepmerge, diff-match-patch and jsonlines.
+
 [dependency-groups]
 web = [
     "fastapi",

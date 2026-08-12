@@ -3,7 +3,6 @@ import time
 import traceback
 from pprint import pprint
 
-from celery import Celery
 import openai
 from util.util import retry, timestamp
 from models import MODEL_TYPES, get_correct_key, model_type_info
@@ -151,29 +150,6 @@ def completions_text(response):
 def save_response_json(response, filename):
     with open(filename, 'w') as f:
         json.dump(response, f)
-
-#################################
-#   Janus
-#################################
-
-redis_url = os.environ.get("JANUS_REDIS", None)
-app = Celery(
-    # 'janus',
-    broker=redis_url,
-    backend=redis_url,
-)
-
-# get_gpt_response(prompt, memory, retry=True) -> result, error
-janus_task = "janus.my_celery.tasks.get_gpt_response"
-
-
-def janus_generate(prompt, memory=""):
-    assert isinstance(prompt, str) and isinstance(memory, str)
-    celery_task = app.send_task(janus_task, args=[prompt, memory])
-    print("Sent to janus")
-    result, error = celery_task.get()
-    return result, error
-
 
 #################################
 #   OpenAI
