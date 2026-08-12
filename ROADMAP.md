@@ -145,18 +145,33 @@ The intended flow, working well:
 
 That is the whole of it. The only mutation is branching mid-run.
 
-**The initial prompt is not editable once it has generated anything** — you fork from the
-root instead. This makes the tree semantically append-only, not just its storage: every
-byte offset ever recorded stays valid forever, and nothing ever needs marking stale.
-Initial prompts are human-authored spans under an empty root, which is already the shape
-of `EMPTY_TREE`.
+**Nothing is editable in place, ever.** Recorded bytes are immutable; the only destructive
+operation is delete, which cascades. This makes the tree semantically append-only, not just
+its storage: every byte offset ever recorded stays valid forever, nothing needs marking
+stale, and a recorded slice keeps meaning what it meant when it was written. Initial
+prompts are human-authored spans under an empty root, which is already the shape of
+`EMPTY_TREE`.
 
-The carve-out that keeps this from being painful: **a human-authored span stays editable
-until something is generated from it.** Nothing references it yet, so the invariant holds.
-Noticing a typo before you hit generate must not mean starting a new tree.
+The rule is absolute rather than carved out, because the carve-out — "editable until
+something is generated from it" — is the kind of conditional invariant that reads as a
+guarantee and is not one. **`PATCH /api/node/{id}` leaves the API entirely.** Its one safe
+case is served exactly by delete-and-re-author: a span with no dependents cascades to
+nothing, so the two are the same operation with different names. Carrying the old text
+into the authoring box is a client-side convenience and no concern of the format.
+
+The consequence is worth stating plainly rather than softening: fixing a typo in a prompt
+that has already generated means losing what it generated. That is the honest price of
+records that stay true, and it is why forking is cheap.
 
 **Local inference only.** `llama-server` is the target for MVP; the hosted providers in the
 capability table stay as they are, and anything they'd need is deferred rather than built.
+
+**The MVP is Phases 0 through 3**: clear the ground, the token core, the API and front end
+rebuilt against it, then the reads that make the core legible. Generation control beyond
+what the format already records, and streaming, are work *on top* rather than steps toward
+it — both are deferred entire to `BEYOND-MVP.md`. Deferring streaming costs nothing later
+because the representation it needs lands in Phase 1 regardless, which was the reason for
+pulling it forward.
 
 ---
 
@@ -222,12 +237,22 @@ One format change, done once, on a clean break.
   on duplicate vocab entries. Neither can be retrofitted onto trees already generated.
 - Tree/bulk storage split, append-only bulk, soft delete.
 - Prompt recorded as slice bounds — `(endpoint, start_byte, end_byte)` — not as text.
-- **A representation for incomplete spans**, even though streaming is Phase 4. A span that
-  is partial, growing, or abandoned mid-flight has to be expressible now, or Phase 4 forces
-  a second format change.
+- **A batch id on every span, minted per generation call.** Pulled forward from the
+  deferred generation-control work because it is a field, not a feature: without it the
+  siblings of one call are not linkable and a batch cannot be read back as the experiment
+  it was. An optional user-supplied name still layers on later.
+- **A representation for incomplete spans**, even though streaming is deferred. A span that
+  is partial, growing, or abandoned mid-flight has to be expressible now, or streaming
+  forces a second format change. A span with no terminator record is in flight; one left in
+  flight by a dead process loads as aborted.
 - A `token-loom` format marker in the file.
 - **No migration.** Existing trees stay historical; `data/local.json` becomes archive JSON,
   readable by hand but not by the app. Equivalent data is cheap to regenerate.
+- **A headless driver, landing with the core rather than after it.** Create a tree,
+  author, generate, branch, split, dump — with no browser. This is what makes a big-bang
+  front-end replacement survivable: the system is exercisable and verifiable before any UI
+  exists. It is also the posture the project already claims, that anything which only works
+  by clicking is half-built.
 
 Orphan collection disappears with the side table keyed by response id — token data lives
 with the tokens, so nothing can be orphaned.
@@ -250,28 +275,33 @@ automatically still has *sampled* tokens; what differs is what initiated it. Pro
 stays a statement about token origin, with room beside it for an optional initiator
 reference. Folding the two axes into one enum is what forces the schema change.
 
-## Phase 2 — generation control
+## Phase 2 — API and front end, rebuilt
 
-- **Stop tokens explicit**: a configurable list, recorded per span, exposed in the UI.
-  `<|endoftext|>` is included in the stream like any other token — no special case except
-  at render time. Generation stops at whichever comes first: length, a stop token, or the
-  context limit. Because stopping is a *setting* rather than a property of the token, an
-  empty stop list generates straight through EOT, which is directly one of the things this
-  instrument is for — and makes the context limit a routine terminator rather than an edge
-  case.
-- UI toggle: render stop tokens as section breaks.
-- **Settings store.** Last-used settings tracked and applied per tab/file. There is no
-  settings endpoint today — `/api/generate` is the only thing that persists settings — so
-  this is new surface.
-- **Sweeps**: vary parameters across a batch. Interned per-span parameters cover most of
-  it. Every batch carries an **id** automatically, so its siblings are always linkable; a
-  **name** is optional and user-supplied. A named batch is an experiment, an unnamed one is
-  just a batch — which keeps the distinction answerable, where defaulting the name to a
-  timestamp would make everything look deliberate.
+A clean replacement rather than a port. The current API speaks node ids throughout, and a
+node-shaped compatibility view over runs and spans would mean carrying the old model's
+vocabulary into the thing built to replace it — cheaper in the short run and a permanent
+tax after. The old front end keeps working from a tag for as long as it is wanted.
+
+- **Positions, not nodes**, in the API surface. A position is `(path, byte offset)`;
+  generation, branching and selection all take one.
+- **No edit endpoint.** `PATCH /api/node/{id}` does not come across, per the immutability
+  rule above. Delete cascades; authoring creates.
+- **Full parameters per call**, rather than server-side settings state. This keeps
+  generation reproducible from the request alone, which is what makes the headless path and
+  the UI the same client. Last-used settings become a client convenience, not a server
+  concern.
+- **Token-level rendering** as the default read surface, with runs as the unit of layout.
+- Sessions, save/save-as and the tree pane carry over in function, rebuilt against the new
+  model.
+
+Deferred out of this phase and recorded in `BEYOND-MVP.md`: the generation-control UI —
+stop-token configuration and section-break rendering, a server-side settings store, and
+sweeps beyond the batch id that Phase 1 mints. The parts of those that are format-level
+are already in Phase 1; what defers is UI.
 
 ## Phase 3 — reads and annotation
 
-Unlocked by Phase 1 and cheap once it lands.
+The last of the MVP. Unlocked by Phase 1 and cheap once Phase 2 has somewhere to put it.
 
 - **Slice-selectable viewport.** Showing the slice that was sent is the first half: when
   viewing a token, the viewport shows exactly what was in context for the span that
@@ -301,15 +331,10 @@ Unlocked by Phase 1 and cheap once it lands.
   generation needed for the branch itself. This is the payoff that makes storing
   counterfactuals worth their size.
 - Visual distinction between explored and unexplored forks.
-
-## Phase 4 — streaming
-
-Wanted for MVP, last of the structural work, and the only item that needs generation to
-stop blocking. The format support lands in Phase 1; this is the machinery.
-
-- On generation start, add placeholder forks for the `n` requested.
-- Loading status after the fork chip: one chip per fork, each showing progress minimally.
-- Navigating into an in-progress generation shows it grow in real time.
+- **Sibling divergence**, as a read over stored token ids: siblings of one batch agree for
+  a while and then split, nested rather than at a single point. Measured at 2% of storage
+  and so explicitly not a storage feature — see `BEYOND-MVP.md`. The profile it yields is
+  the cheapest direct read of the attractor question the instrument exists for.
 
 ---
 
@@ -349,7 +374,9 @@ are already folded in above.
 - Prompt library, composition, templating.
 - Automation, playbooks, hooks, instrumentation.
 - Appending text after a generation (needs more thought first).
-- Vacuum/compaction of the append-only store.
+- Vacuum/compaction of the append-only store. When it lands it has one hard constraint:
+  bytes still referenced by a surviving span's recorded slice cannot be reclaimed, or
+  compaction quietly breaks the records immutability exists to protect.
 - **The tkinter app's expensive half is not inherited**: frame inheritance via deepmerge,
   tag scoping over node ancestry, hoisting, canonical paths, memory scoping,
   template/preset resolution. The intended flow needs none of them. Anything wanted later

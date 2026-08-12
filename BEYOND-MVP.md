@@ -1,16 +1,63 @@
 # Beyond the MVP
 
-Things wanted eventually, recorded now **only** because they bear on decisions the MVP is
-about to make. None of them is MVP scope, and nothing here should be built before the
-roadmap lands.
-
+Nothing here is MVP scope, and nothing here should be built before the roadmap lands.
 `ROADMAP.md` stays MVP-only until it does, and gets replaced by whatever comes next rather
 than extended. This file is where that next thing will start from.
 
-The test applied to each: *does it force a format change, or does it fit additively?* Two
-answers came back as constraints on Phase 1 — the bulk store generic over record type, the
-intern table generic over parameter set — and are recorded there. Everything else fits
-without the format knowing about it in advance.
+Two kinds of thing live here, and they differ in how settled they are:
+
+- **Deferred from the MVP** — scoped and agreed, just not first. Generation control and
+  streaming, which were phases until the MVP was cut back to the core, an interface on it,
+  and the reads that make it legible.
+- **Wanted eventually** — recorded now **only** because they bear on decisions the MVP is
+  about to make. Embeddings, a generation controller, sibling divergence, token replay.
+
+The test applied to the second kind: *does it force a format change, or does it fit
+additively?* Two answers came back as constraints on Phase 1 — the bulk store generic over
+record type, the intern table generic over parameter set — and are recorded there.
+Everything else fits without the format knowing about it in advance.
+
+---
+
+## Deferred from the MVP
+
+These were phases in their own right until the MVP was cut back to "the token core, an
+interface built on it, and the reads that make it legible". Both sit *on top* of that
+rather than lead to it. Neither is speculative in the way the rest of this file is — they
+are scoped, agreed, and simply not first.
+
+### Generation control
+
+- **Stop tokens configurable and exposed.** `<|endoftext|>` is in the stream like any other
+  token, with no special case except at render time. Generation stops at whichever comes
+  first: length, a stop token, or the context limit. Because stopping is a *setting* rather
+  than a property of the token, an empty stop list generates straight through EOT — which
+  is directly one of the things the instrument is for, and makes the context limit a
+  routine terminator rather than an edge case.
+- UI toggle: render stop tokens as section breaks.
+- **Settings store.** Last-used settings per tab or file, server side. Phase 2 deliberately
+  takes full parameters per call instead, so this is a convenience rather than a gap.
+- **Sweeps.** Vary parameters across a batch. Interned per-span parameters cover most of it
+  and Phase 1 mints the batch id, so what remains is the UI and an optional user-supplied
+  **name**. A named batch is an experiment, an unnamed one is just a batch — a distinction
+  worth keeping answerable, where defaulting the name to a timestamp would make everything
+  look deliberate.
+
+The format-level halves of these are already in Phase 1: the stop list interns with the
+other parameters, termination reason distinguishes a stop token from a length limit, and
+every span carries its batch id. What defers is interface.
+
+### Streaming
+
+The only item that needs generation to stop blocking, and the reason Phase 1 carries a
+representation for incomplete spans despite streaming not being built.
+
+- On generation start, add placeholder forks for the `n` requested.
+- Loading status after the fork chip: one per fork, progress shown minimally.
+- Navigating into an in-progress generation shows it grow in real time.
+
+Deferring this costs nothing later precisely because the format support was pulled forward.
+That was the trade made when it was noticed; this is it paying out.
 
 ---
 
