@@ -35,11 +35,31 @@ Recorded bytes are immutable. Delete cascades. There is no edit operation at any
 This retires the slice hash that was proposed as a staleness check: with bytes immutable,
 recorded bounds are faithful by construction, so there is nothing to detect.
 
+#### Provenance is write-once; the byte record is append-only
+
+A span cannot be written whole in one go, because generation records its intent *before* the
+call and its bytes after — see decision 8, and `generate` under "What the core must do". The
+two halves have different rules, and keeping them apart is what makes "immutable" precise
+rather than aspirational:
+
+- **Provenance** — `kind`, `params`, `seed`, `batch`, `index`, `slice_start`, `from`, and
+  `extent[0]` — is known before the model is called, written once, and never touched again.
+- **The byte record** — `text` and `extent[1]` — is empty at creation and filled in on
+  completion. Filled in, never rewritten: a value that is there is final.
+
+Nothing is ever overwritten under either rule, so the format stays semantically append-only.
+The alternative — deriving a sampled span's text from its token rows, so a span really is
+written in one shot — is cleaner and was rejected: it puts a bulk-store read in front of
+every render and every prompt assembly, and leaves human spans holding text while sampled
+ones do not.
+
 ### 3. Spans own the bytes; runs are structure over them
 
 **Spans hold the text.** A span is a generated or authored stretch, and it holds its bytes,
-its extent and its provenance. It is written once and never touched again — not by
-splitting, not by branching, not by deletion.
+its extent and its provenance. Once its bytes are written they are never touched again — not
+by splitting, not by branching, not by deletion. (The one thing that happens to a span after
+creation is its byte record being *filled in* when generation completes, per decision 2.
+Nothing is ever overwritten.)
 
 **Runs hold no bytes at all.** A run is an ordered list of *pieces*, each naming a span and
 a range within it, plus a parent and children. Its text is the concatenation of its pieces
@@ -55,10 +75,24 @@ touches one.
 "r4": { "pieces": [["s3", 9, 15]], "children": [] }           // " clear"
 ```
 
+A piece is `[span, start, end)` — **half-open, and an end rather than a length**. Read
+`["s3", 9, 15]` as a length and it claims 15 bytes from a 15-byte span starting at offset 9.
+It is the same class of quiet mistake as the one below, and it is worth stating outright
+because the two are only distinguishable by arithmetic.
+
 Piece offsets are span-relative and can only be span-relative, since a piece names a range
 *of a span*. The run-relative position is implied by accumulation. This was ambiguous while
 runs carried their own text, and it was the easiest quiet mistake in the format; it is now
 unrepresentable.
+
+**Splitting, the prefix keeps the original id.** Split a run and the prefix stays under the
+id it already had; the suffix is the new run. Ancestors' child lists therefore never change,
+so a split is O(1) upward and touches only the run itself, its new suffix, and the children
+being relinked.
+
+This is also the concrete reason nothing durable may be keyed by a run id, which decision 1
+asserts in the abstract: a stored run id keeps resolving after a split, but to *less text
+than it did*. It does not dangle, which would be caught. It silently narrows, which is not.
 
 There is also **exactly one copy of every byte**, so there is no authority question between
 a run's text and a span's extent, and nothing to validate for agreement. The earlier design
@@ -98,6 +132,31 @@ is untouched — which is now true by construction rather than by rule.
 
 > **Rule.** Rendering and prompt assembly walk the piece lists, never span extents. A span's
 > text is what was generated; the pieces are what the tree still reaches.
+
+Because delete cascades to descendants, a span can only ever lose a *suffix*. Its byte-0
+piece lives in the run that created it, and every later piece is in a descendant of that
+run — so deleting the creating run takes the whole span with it. A span is therefore either
+live with its head intact or entirely unreachable, never live-but-headless:
+
+> **Invariant.** The live pieces of a span are non-overlapping and cover a contiguous prefix
+> from byte 0 — possibly the whole span, possibly nothing.
+
+#### Soft delete is a records decision, not a structural one
+
+It is tempting to argue that deleted runs must be retained or recorded slices stop
+resolving, since a slice is `[slice_start, extent[0])` along the span's ancestry and offsets
+alone are not positions. That argument is wrong, and the reason is worth keeping:
+
+> **Delete cascades forward; slices point backward. The two never meet.**
+
+A slice runs from the span back toward the root, which is entirely ancestry, and deletion
+cannot remove an ancestor without taking the descendant with it. So a reachable span's slice
+is always resolvable — even under hard delete. The only spans whose slices would become
+unresolvable are ones nothing reaches.
+
+What soft delete actually buys is narrower and still worth having: a deleted subtree stays
+inspectable, and delete stays reversible. Generated tokens cost real GPU time; that is
+argument enough without inventing a structural one.
 
 #### Where this grows
 
@@ -142,7 +201,9 @@ one table row per token, strictly worse than not interning at all.
 
 | interned (shared)                                            | on the span (varies)                            |
 | ------------------------------------------------------------ | ----------------------------------------------- |
-| temperature, top_p, top_n, length, stop list, model, tokenizer, n_ctx, prompt length | seed, call index, batch id, resolved slice start, termination reason, timestamp |
+| temperature, top_p, top_n, length, stop list, model, tokenizer, n_ctx, prompt length | seed, call index, batch id, resolved slice start, timestamp |
+
+Termination reason is on neither: it belongs to the bulk store, per decision 8.
 
 **Prompt length interns; the resolved slice start does not.** Storing the slice start as an
 absolute offset would make every position mint its own parameter set, defeating interning
@@ -150,12 +211,30 @@ across a session. Storing the *length* interns cleanly, and the span records the
 resolved to, so the exact slice is still recorded and clamping at the root is not
 recomputed.
 
+#### Units are mixed, so they are labelled
+
+Three numeric parameters, two unit systems, and nothing in the names to tell them apart:
+
+| field           | unit   | why                                              |
+| --------------- | ------ | ------------------------------------------------ |
+| `prompt_length` | bytes  | it is a slice length, and slices are byte ranges  |
+| `length`        | tokens | it is `max_tokens` on the request                 |
+| `n_ctx`         | tokens | it is the server's `--ctx-size`                   |
+
+The mix is not an accident to be tidied away. The slice is chosen against the tree, which is
+bytes; the limits are imposed by the model, which is tokens. Deriving one from the other
+needs a tokenizer, which is exactly what the byte anchor exists to avoid depending on.
+
 ### 5. Bulk records are per token
 
 Keyed `(span, index)`. Per-span records would be fewer but cannot grow, which is exactly
 what an incomplete span needs; per-token records append naturally, make single-token
 stepping structurally identical to a long run, and make the incomplete-span representation
 nearly free.
+
+**A counterfactual span gets a token row too**, for its single token. It costs one row and
+buys uniformity: "walk the tokens of a span" then has no special case, and the branch is
+described by the same records as the path it diverged from.
 
 ### 6. sqlite for bulk, JSON for the tree
 
@@ -176,6 +255,21 @@ replay safety turns on later.
 A span with no terminator record is in flight. On load, a span left in flight by a process
 that is gone loads as `aborted`. Without the load-time rule, spans accumulate that are
 permanently "maybe still running".
+
+**The terminator record is the only place termination is written.** An `end` field on the
+span would record the same fact twice, with a crash window between them and no rule saying
+which wins. Two things settle it in favour of the bulk store:
+
+- A span in `tree.json` would otherwise have to be *updated* when generation finishes, for a
+  fact that is not part of its byte record — so decision 2's split between write-once
+  provenance and append-only bytes would need a third category for it.
+- Streaming appends tokens and then a terminator without touching the tree file at all. The
+  terminator landing in sqlite is the atomic "done" signal, which is precisely what a
+  separate `end` field would undermine.
+
+In flight is legible from either half on its own: no terminator row, and `extent[1]` still
+null. That redundancy is fine because both are *absences* — there is no pair of written
+values that can disagree.
 
 ---
 
@@ -205,16 +299,22 @@ then branched from a counterfactual at its third token.
 
     "s2": { "kind": "sampled", "text": " calm for days", "extent": [11, 25],
             "params": "p1", "seed": 90211, "batch": "b1", "index": 0,
-            "slice_start": 0, "end": "length", "created": "2026-08-12-10.01.00" },
+            "slice_start": 0, "created": "2026-08-12-10.01.00" },
 
     // never cut by the branch below — r3 and r4 reference parts of it
     "s3": { "kind": "sampled", "text": " calm and clear", "extent": [11, 26],
             "params": "p1", "seed": 90212, "batch": "b1", "index": 1,
-            "slice_start": 0, "end": "length", "created": "2026-08-12-10.01.00" },
+            "slice_start": 0, "created": "2026-08-12-10.01.00" },
 
+    // token_id, not rank: rank is only meaningful against the N that was requested
     "s4": { "kind": "counterfactual", "text": " still", "extent": [20, 26],
-            "from": { "span": "s3", "index": 2 },
-            "created": "2026-08-12-10.02.00" }
+            "from": { "span": "s3", "index": 2, "token_id": 2058 },
+            "created": "2026-08-12-10.02.00" },
+
+    // in flight: provenance written, byte record still empty
+    "s5": { "kind": "sampled", "text": null, "extent": [26, null],
+            "params": "p1", "seed": 90213, "batch": "b2", "index": 0,
+            "slice_start": 0, "created": "2026-08-12-10.03.00" }
   },
 
   // runs hold no bytes: pieces name a span and a range within it
@@ -228,16 +328,22 @@ then branched from a counterfactual at its third token.
     // batch b1, continuation 1 — branched at the counterfactual point. The split
     // divided r3's piece list; s3 itself was not opened.
     "r3": { "parent": "r1", "start": 11, "pieces": [["s3", 0, 9]],  "children": ["r4", "r5"] },
-    "r4": { "parent": "r3", "start": 20, "pieces": [["s3", 9, 15]], "children": [] },
+    "r4": { "parent": "r3", "start": 20, "pieces": [["s3", 9, 15]], "children": ["r6"] },
 
     // the counterfactual branch: one token the model ranked but did not take
-    "r5": { "parent": "r3", "start": 20, "pieces": [["s4", 0, 6]],  "children": [] }
+    "r5": { "parent": "r3", "start": 20, "pieces": [["s4", 0, 6]],  "children": [] },
+
+    // batch b2, in flight: the run exists, its piece lands on completion
+    "r6": { "parent": "r4", "start": 26, "pieces": [],              "children": [] }
   },
 
   "params": {
-    "p1": { "temperature": 0.9, "top_p": 1, "top_n": 3, "length": 4, "stop": [],
+    "p1": { "temperature": 0.9, "top_p": 1, "top_n": 3,
+            "length": 4,            // tokens
+            "stop": [],
             "model": "qwen2.5-7b-base", "tokenizer": "qwen2.5",
-            "n_ctx": 16384, "prompt_length": 6000 }
+            "n_ctx": 16384,         // tokens
+            "prompt_length": 6000 } // bytes
   },
 
   "selected": { "run": "r4", "offset": 6 },
@@ -245,7 +351,7 @@ then branched from a counterfactual at its third token.
 }
 ```
 
-Four things to read off it:
+Six things to read off it:
 
 - **`s3` still holds all fifteen of its bytes**, and is referenced in two pieces by two
   runs. The branch divided a piece list; the span was never opened. This is the roadmap's
@@ -256,6 +362,11 @@ Four things to read off it:
   call; it points at the span whose top-N it came from and carries nothing it never had.
 - **`slice_start: 0` is on the span, `prompt_length: 6000` in the interned set.** Both
   continuations of batch `b1` share `p1`; a batch at a different position shares it too.
+- **`s5` and `r6` are one generation call in flight.** The run is real and empty, the span
+  has provenance and no bytes, and neither becomes false if the process dies — it loads as
+  aborted. `r6` is also, exactly, the placeholder fork streaming will later need.
+- **`deleted` is a list of run ids**, and deleted runs stay in `runs` with their pieces
+  intact. Soft delete removes reachability, not records.
 
 ### Bulk store
 
@@ -277,6 +388,48 @@ CREATE TABLE terminators (          -- a span is complete when its row lands
 token string instead is lossy for exactly the byte-fallback tokens that split a UTF-8
 character — the case byte anchoring exists to handle.
 
+### What the validator checks
+
+Two of these have a scope that matters, and getting the scope wrong makes the check fire on
+correct trees or stay silent on broken ones.
+
+Over **all runs**, live and deleted:
+
+1. Every piece range is within its span: `0 <= start < end <= len(span.text)`.
+2. The offset chain holds: `run.start == parent.start + total length of parent's pieces`,
+   and the root starts at 0.
+3. Parent and child agree — every child names its parent, every parent lists its child.
+4. **Strong coverage.** Every byte of every complete span is covered by exactly one piece,
+   contiguously from 0. This is what the operations preserve; nothing may lose or duplicate
+   a piece.
+
+Over **live runs only**:
+
+5. **Prefix coverage.** The live pieces of a span are non-overlapping and cover a contiguous
+   prefix from byte 0 — possibly all of it, possibly none. This is the form that survives
+   delete, per decision 3.
+
+Per span:
+
+6. `extent[1] - extent[0] == len(text)` for a complete span; `extent[1] is null` exactly
+   when `text` is null.
+7. `extent[0]` is where the span actually sits — the absolute offset of its byte-0 piece,
+   computed from the run chain. Without this the one absolute number on a span can drift
+   with nothing to catch it.
+8. A complete span's `text` equals the concatenation of its token rows' `bytes`, with
+   indices contiguous from 0. Human spans have no token rows and are exempt.
+
+Check 8 earns its keep three times over: it is the only thing that would catch byte-fallback
+tokens being mishandled, it is what makes a `text` field and a `bytes` blob safe to hold the
+same information, and it is the check a future vacuum has to pass — reclaim a token row
+belonging to a live span and it fails immediately.
+
+**A vacuum would retire check 4, not satisfy it.** As scoped in `ROADMAP.md`, vacuum is a
+bulk-store operation and never touches `runs`, so check 4 is untouched by it. If it ever
+grows a second job and purges soft-deleted runs from the tree, check 4 is exactly what
+breaks — the span keeps all its bytes while the pieces covering its tail disappear, and
+truncating the span to compensate is forbidden. Keep it as the alarm on that scope creep.
+
 ---
 
 ## What the core must do
@@ -287,13 +440,31 @@ Six operations. Everything in Phase 2 and 3 is built from these.
 | --------- | ----- |
 | `author(position, text)` | appends a human span; no tokens |
 | `generate(position, params, n)` | one batch id, n spans, n seeds derived from the base |
-| `split(position)` | the primitive; divides a piece list and relinks. Idempotent at an existing boundary, and touches no span |
+| `split(position)` | the primitive; divides a piece list and relinks. The prefix keeps the run id. Idempotent at an existing boundary, and touches no span |
 | `delete(run)` | cascades; soft, and the bulk store is untouched |
 | `slice(position, length)` | resolves to `(start_abs, end_abs)` and the text to send |
-| `branch_counterfactual(span, index, rank)` | splits, then appends a counterfactual span |
+| `branch_counterfactual(span, index, rank)` | splits, then appends a counterfactual span carrying the chosen `token_id` |
 
 `split` is the one to get right first: generating from a mid-run position, branching to a
 counterfactual, and moving a slice end all reduce to it.
+
+`generate` is the one with an order that matters, because it straddles the model call and
+decision 2 splits a span across it:
+
+1. split if the position needs it, then create `n` child runs with empty piece lists
+2. write `n` in-flight spans — provenance only — and **save the tree**. This is the intent
+   record, and it is what makes a crash mid-generation legible rather than invisible
+3. token rows append to the bulk store as they arrive
+4. on completion, per span: fill `text` and `extent[1]`, append one piece to its run, write
+   the terminator row
+
+Every step after 1 is an append or a fill. Nothing is rewritten, and a crash at any point
+leaves a tree that loads — with an aborted span holding however many tokens made it.
+
+Saving the tree at step 2 rather than step 4 is also what keeps the bulk store free of
+orphans in the crash case, not just the reachability one: because the span is written before
+its first token, no bulk row can ever name a span the tree has not heard of. The ordering is
+doing two jobs, and the second is the reason to resist reversing it for a saved write.
 
 ---
 
@@ -302,10 +473,10 @@ counterfactual, and moving a slice end all reduce to it.
 Each step is verifiable on its own, which is what keeps the big-bang confined to Phase 2.
 
 1. **Format module** — read and write `tree.json` and `bulk.sqlite`, with the load-time
-   validator. No generation. Verify by round-tripping the worked example above; the
-   validator checks piece ranges against span lengths, the parent/child offset chain, each
-   span's extent against its own text, and that every span's bytes are covered by pieces
-   exactly once and contiguously.
+   validator described under "What the validator checks". No generation. Verify by
+   round-tripping the worked example above, and by confirming each check fires on a tree
+   deliberately broken in that one way — a validator that has never rejected anything is an
+   untested one.
 2. **Core operations** — the six, over the format module. Verify with the headless driver
    on a tree built entirely by hand, no model involved.
 3. **`inference.py`** — keep the token `id` and `bytes` array, key counterfactuals by id.
