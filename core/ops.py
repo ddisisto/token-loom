@@ -133,20 +133,24 @@ def delete(tree: Tree, pos: Position) -> None:
     Nothing is rewritten and no span is opened: a deleted subtree keeps every
     byte it recorded. Generated tokens cost real GPU time, so destroying them
     on a keystroke is the wrong default.
+
+    `token-loom/1` had to keep its `deleted` list to maximal roots, because
+    liveness was one walk over run ids and a nested entry would have confused
+    it. Nothing here needs that: `Tree.live` takes the least cut per span, so
+    the list may hold entries that cover each other and still answer correctly.
+
+    Pruning it anyway is worse than useless -- dropping an entry a wider cut
+    covers makes `restore` on the wider one resurrect a subtree that was
+    deleted separately and never restored. The redundant entry is what
+    remembers that. Deleting something already unreachable is still a no-op,
+    which is what keeps the list from growing on repeated calls.
     """
     if pos is None:
         raise ValueError('the root cannot be deleted')
     check(tree, pos)
     if not tree.resolves(pos):
         return                       # already under a deletion
-
     tree.deleted.append(pos)
-    # keep the list maximal, so liveness stays one walk: an entry the new one
-    # already covers has stopped saying anything
-    reach = tree.live()
-    tree.deleted = [d for d in tree.deleted
-                    if d == pos or (d.span in reach
-                                    and d.offset <= reach[d.span])]
 
 
 def restore(tree: Tree, pos: Position) -> None:

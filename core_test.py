@@ -2,9 +2,12 @@
 """Headless check that the format holds -- the worked example, round-tripped.
 
 Two halves, and the second is the one that matters. Round-tripping proves the
-format can be written and read back. Breaking it nine ways proves the validator
+format can be written and read back. Breaking it seven ways proves the validator
 would have noticed: a validator that has never rejected anything is untested,
 and this one exists to catch exactly the mistakes that are invisible by eye.
+
+Every byte length below is computed from a literal rather than written down.
+Arithmetic in a test is code too, and nothing checks it.
 
 Usage: python core_test.py
 """
@@ -13,27 +16,34 @@ import shutil
 import sys
 import tempfile
 
-from core import (BulkStore, Invalid, Position, Tree, at, author,
+from core import (BulkStore, Position, Tree, address_at, author,
                   begin_generation, branch_counterfactual, complete,
-                  create_tree, delete, locate, open_tree, restore, save,
-                  slice_at, split, validate)
+                  create_tree, delete, open_tree, restore, save, slice_at,
+                  token_offsets, validate)
 from core.store import Counterfactual, LENGTH, Token
-from core.tree import Piece, Run, Span
+from core.tree import Span
 
 TS = '2026-08-12-10.00.00'
 
-# the worked example from FORMAT.md: a root, one authored prompt, a batch of
-# two continuations, a counterfactual branch off the second, and one call left
-# in flight.
-TOKENS = {
-    's2': [(1001, b' calm', -0.51), (1002, b' for', -1.24), (1003, b' days', -0.83)],
-    's3': [(1001, b' calm', -0.51), (1004, b' and', -1.11), (1005, b' clear', -0.92)],
-    's4': [(2058, b' still', -2.31)],
-}
+# the worked example from FORMAT.md: one authored prompt, a batch of two
+# continuations, a counterfactual branch inside the second, and one call left
+# in flight. Five spans and no structure beside them.
+PROMPT = b'The sea was'
+CALM = [(1001, b' calm'), (1002, b' for'), (1003, b' days')]
+CLEAR = [(1001, b' calm'), (1004, b' and'), (1005, b' clear')]
+STILL = b' still'
+# ' calm' + ' and' is where the counterfactual branch lands
+CUT = len(CLEAR[0][1]) + len(CLEAR[1][1])
+
+TOKENS = {'s2': CALM, 's3': CLEAR, 's4': [(2058, STILL)]}
 COUNTERFACTUALS = {
-    ('s3', 2): [(1005, b' clear', -0.92), (2058, b' still', -2.31),
+    ('s3', 2): [(1005, b' clear', -0.92), (2058, STILL, -2.31),
                 (1006, b' bright', -3.10)],
 }
+
+
+def spelled(rows):
+    return b''.join(raw for _, raw in rows)
 
 
 def worked_example():
@@ -43,37 +53,30 @@ def worked_example():
                          'length': 3, 'stop': [],
                          'model': 'qwen2.5-7b-base', 'tokenizer': 'qwen2.5',
                          'n_ctx': 16384, 'prompt_length': 6000}
-
-    tree.spans = {
-        's1': Span('s1', 'human', 0, 11, b'The sea was', TS),
-        's2': Span('s2', 'sampled', 11, 25, b' calm for days', TS,
-                   params='p1', seed=90211, batch='b1', index=0, slice_start=0),
-        's3': Span('s3', 'sampled', 11, 26, b' calm and clear', TS,
-                   params='p1', seed=90212, batch='b1', index=1, slice_start=0),
-        's4': Span('s4', 'counterfactual', 20, 26, b' still', TS,
-                   origin={'span': 's3', 'index': 2, 'token_id': 2058}),
+    root = Position('s1', len(PROMPT))
+    for span in [
+        Span('s1', 'human', None, PROMPT, TS),
+        Span('s2', 'sampled', root, spelled(CALM), TS, params='p1', seed=90211,
+             batch='b1', index=0, slice_start=Position('s1', 0)),
+        Span('s3', 'sampled', root, spelled(CLEAR), TS, params='p1', seed=90212,
+             batch='b1', index=1, slice_start=Position('s1', 0)),
+        # branches inside s3, which is not cut
+        Span('s4', 'counterfactual', Position('s3', CUT), STILL, TS,
+             origin={'span': 's3', 'index': 2, 'token_id': 2058}),
         # in flight: provenance written, byte record still empty
-        's5': Span('s5', 'sampled', 26, None, None, TS,
-                   params='p1', seed=90213, batch='b2', index=0, slice_start=0),
-    }
-    tree.runs = {
-        'r0': Run('r0', None, 0, [], ['r1']),
-        'r1': Run('r1', 'r0', 0, [Piece('s1', 0, 11)], ['r2', 'r3']),
-        'r2': Run('r2', 'r1', 11, [Piece('s2', 0, 14)], []),
-        # the split divided r3's piece list; s3 itself was never opened
-        'r3': Run('r3', 'r1', 11, [Piece('s3', 0, 9)], ['r4', 'r5']),
-        'r4': Run('r4', 'r3', 20, [Piece('s3', 9, 15)], ['r6']),
-        'r5': Run('r5', 'r3', 20, [Piece('s4', 0, 6)], []),
-        # the placeholder piece is what links s5 to the run it will land in
-        'r6': Run('r6', 'r4', 26, [Piece('s5', 0, 0)], []),
-    }
-    tree.selected = {'run': 'r4', 'offset': 6}
+        Span('s5', 'sampled', Position('s3', len(spelled(CLEAR))), None, TS,
+             params='p1', seed=90213, batch='b2', index=0,
+             slice_start=Position('s1', 0)),
+    ]:
+        tree.add(span)
+    tree.selected = Position('s3', len(spelled(CLEAR)))
     return tree
 
 
 def fill_store(store):
     for span, rows in TOKENS.items():
-        store.add_tokens(span, [Token(i, *row) for i, row in enumerate(rows)])
+        store.add_tokens(span, [Token(i, tid, raw, -1.0 - i)
+                                for i, (tid, raw) in enumerate(rows)])
     for (span, idx), ranked in COUNTERFACTUALS.items():
         store.add_counterfactuals(
             span, [Counterfactual(idx, rank, *row)
@@ -97,22 +100,23 @@ def check(name, ok, detail=''):
         print(f'  FAIL  {name}{"  -- " + detail if detail else ""}')
 
 
-def expect_problem(name, mangle, matching):
+def expect_problem(name, mangle, matching, store=None):
     """Break the worked example one way, and confirm the validator says so."""
     tree = worked_example()
     mangle(tree)
-    problems = validate(tree)
-    hit = [p for p in problems if matching in p]
-    check(name, bool(hit), f'got {problems or "no problems"}')
+    problems = validate(tree, store)
+    check(name, any(matching in p for p in problems),
+          f'got {problems or "no problems"}')
 
 
 SETTINGS = {'temperature': 0.9, 'top_p': 1, 'top_n': 3, 'length': 4,
             'stop': [], 'model': 'qwen2.5-7b-base', 'tokenizer': 'qwen2.5',
             'n_ctx': 16384, 'prompt_length': 6000}
 
-PROMPT = b'The lighthouse keeper wrote:'
-CALM = [(11, b' the'), (12, b' sea'), (13, b' was'), (14, b' calm')]
-WILD = [(11, b' the'), (12, b' sea'), (13, b' was'), (15, b' wild')]
+OPENING = b'The lighthouse keeper wrote:'
+WAS_CALM = [(11, b' the'), (12, b' sea'), (13, b' was'), (14, b' calm')]
+WAS_WILD = [(11, b' the'), (12, b' sea'), (13, b' was'), (15, b' wild')]
+ROUGH = b' rough'
 
 
 def toks(parts):
@@ -120,154 +124,182 @@ def toks(parts):
 
 
 def operations(workdir):
-    """The six, on a tree built entirely by hand. No model involved."""
+    """The five, on a tree built entirely by hand. No model involved."""
     path = os.path.join(workdir, 'ops')
     tree, store = create_tree(path, base_seed=500)
 
     # ids are minted as one past the highest in use, so the first span is s0.
     # The worked example's s1..s5 are illustrative names, not a convention.
     print('\nauthor and generate')
-    prompt = author(tree, Position('r0', 0), PROMPT)
-    check('authoring under the empty root makes a child, not bytes on it',
-          tree.runs['r0'].pieces == [] and tree.runs['r1'].pieces
-          == [Piece('s0', 0, 28)])
+    prompt = author(tree, None, OPENING)
+    check('the first prompt is a root span, with no node to hang it off',
+          prompt.parent is None and tree.children_of(None) == [(0, 's0')])
     check('the human span carries no parameters and no seed',
           prompt.params is None and prompt.seed is None)
 
-    spans = begin_generation(tree, Position('r1', 28), SETTINGS, n=2)
-    check('n continuations become n child runs',
-          tree.runs['r1'].children == ['r2', 'r3'])
+    tip = tree.tip('s0')
+    spans = begin_generation(tree, tip, SETTINGS, n=2)
+    check('n continuations share one parent address, which is what n means',
+          {s.parent for s in spans} == {tip} and tip == Position('s0', len(OPENING)))
     check('one batch, distinct seeds derived from the base',
           {s.batch for s in spans} == {'b0'}
           and [s.seed for s in spans] == [500, 501])
-    check('in flight: provenance, no bytes, an empty piece as the link',
-          all(not s.complete for s in spans)
-          and tree.runs['r2'].pieces == [Piece('s1', 0, 0)])
+    check('in flight: provenance, no bytes, and its own attachment',
+          all(not s.complete and s.parent == tip for s in spans))
     check('the intent record validates before any token exists',
           not validate(tree, store), str(validate(tree, store)))
     check('both continuations share one interned parameter set',
           {s.params for s in spans} == {'p0'} and len(tree.params) == 1)
 
-    complete(tree, store, 's1', toks(CALM), LENGTH)
-    complete(tree, store, 's2', toks(WILD), LENGTH)
-    check('completion widens the placeholder piece',
-          tree.runs['r2'].pieces == [Piece('s1', 0, 17)])
-    check('the byte record is filled in, not the provenance',
-          tree.spans['s1'].text == b' the sea was calm'
-          and tree.spans['s1'].seed == 500)
+    complete(tree, store, 's1', toks(WAS_CALM), LENGTH)
+    complete(tree, store, 's2', toks(WAS_WILD), LENGTH)
+    check('completion fills the byte record and nothing else',
+          tree.spans['s1'].text == spelled(WAS_CALM)
+          and tree.spans['s1'].seed == 500
+          and tree.spans['s1'].parent == tip)
     check('generated paths read back whole',
-          tree.path_bytes('r3') == PROMPT + b' the sea was wild',
-          repr(tree.path_bytes('r3')))
+          tree.path_bytes(tree.tip('s2')) == OPENING + spelled(WAS_WILD),
+          repr(tree.path_bytes(tree.tip('s2'))))
     check('validates after generation', not validate(tree, store),
-          str(validate(tree, store)))
-
-    print('\nsplit')
-    before = {r: tree.runs[r].start for r in tree.runs}
-    # deliberately mid-token: ' was' spans bytes 8..12, and this cuts at 9.
-    # Byte offsets are the anchor, so a run boundary need not be a token one.
-    anchor = split(tree, Position('r2', 9))
-    check('the prefix keeps the run id', anchor == 'r2')
-    check('the suffix is a new run holding the rest',
-          tree.runs['r2'].pieces == [Piece('s1', 0, 9)]
-          and tree.runs['r4'].pieces == [Piece('s1', 9, 17)])
-    check('splitting changes no absolute offset',
-          all(tree.runs[r].start == start for r, start in before.items()))
-    check('the span was never opened -- it still holds all seventeen bytes',
-          tree.spans['s1'].text == b' the sea was calm')
-    check('the text either side of the split is unchanged',
-          tree.path_bytes('r4') == PROMPT + b' the sea was calm')
-    check('children relink to the suffix', tree.runs['r2'].children == ['r4'])
-
-    count = len(tree.runs)
-    check('idempotent at the boundary it just made',
-          split(tree, Position('r2', 9)) == 'r2' and len(tree.runs) == count)
-    check('offset 0 of a run answers with its parent',
-          split(tree, Position('r4', 0)) == 'r2' and len(tree.runs) == count)
-    check('validates after splitting', not validate(tree, store),
           str(validate(tree, store)))
 
     print('\nbranch to a counterfactual')
     store.add_counterfactuals('s1', [
         Counterfactual(3, 0, 14, b' calm', -0.3),
-        Counterfactual(3, 1, 16, b' rough', -1.8),
+        Counterfactual(3, 1, 16, ROUGH, -1.8),
         Counterfactual(3, 2, 17, b' still', -2.4)])
-    check('a token index resolves to the run a split moved it into',
-          locate(tree, 's1', 12) == Position('r4', 3),
-          str(locate(tree, 's1', 12)))
+    offsets = token_offsets(store, 's1')
+    check('token offsets accumulate from the rows',
+          offsets == [0, 4, 8, 12, 17], str(offsets))
 
     branched = branch_counterfactual(tree, store, 's1', 3, rank=1)
+    check('it anchors at the byte its token starts on, dividing nothing',
+          branched.parent == Position('s1', offsets[3]))
     check('the counterfactual branch reads as the road not taken',
-          tree.path_bytes('r6') == PROMPT + b' the sea was rough',
-          repr(tree.path_bytes('r6')))
+          tree.path_bytes(tree.tip('s3'))
+          == OPENING + spelled(WAS_CALM[:3]) + ROUGH,
+          repr(tree.path_bytes(tree.tip('s3'))))
     check('it carries the token id, not the rank',
           branched.origin == {'span': 's1', 'index': 3, 'token_id': 16})
     check('and no parameters, having never been a generation call',
           branched.params is None and branched.seed is None)
-    check('the sampled continuation survives beside it',
-          tree.path_bytes('r5') == PROMPT + b' the sea was calm')
+    check('the span it left keeps every byte it had',
+          tree.spans['s1'].text == spelled(WAS_CALM))
+    check('and still reads whole down its own line',
+          tree.path_bytes(tree.tip('s1')) == OPENING + spelled(WAS_CALM))
     check('validates after branching', not validate(tree, store),
           str(validate(tree, store)))
 
     print('\ncontinue at a tip, and slice')
-    more = begin_generation(tree, Position('r6', 6), SETTINGS, n=1)
-    check('one continuation at a tip extends the run rather than branching',
-          tree.runs['r6'].children == []
-          and [p.span for p in tree.runs['r6'].pieces] == ['s3', 's4'],
-          str([p.span for p in tree.runs['r6'].pieces]))
+    more = begin_generation(tree, tree.tip('s3'), SETTINGS, n=1)
     check('the seed keeps counting past the spans already generated',
           more[0].seed == 502)
     complete(tree, store, 's4', toks([(20, b' indeed')]), LENGTH)
-    check('a run may reference several spans',
-          tree.path_bytes('r6') == PROMPT + b' the sea was rough indeed')
+    check('one continuation at a tip is just another child',
+          tree.spans['s4'].parent == Position('s3', len(ROUGH)))
+    check('and the path runs through both spans',
+          tree.path_bytes(tree.tip('s4'))
+          == OPENING + spelled(WAS_CALM[:3]) + ROUGH + b' indeed')
 
-    start, end, text = slice_at(tree, Position('r6', 6), 20)
-    check('a slice is bounds and the bytes they name',
-          (start, end) == (26, 46) and text == b'e: the sea was rough',
+    whole = tree.path_bytes(tree.tip('s3'))
+    start, end, text = slice_at(tree, tree.tip('s3'), 20)
+    check('a slice is two addresses and the bytes they name',
+          (start, end, text) == (Position('s0', len(whole) - 20),
+                                 tree.tip('s3'), whole[-20:]),
           f'{(start, end)} {text!r}')
-    start, end, text = slice_at(tree, Position('r6', 6), 1000)
+    check('the start address agrees with the offset it came from',
+          tree.absolute(start) == len(whole) - 20)
+    start, _, text = slice_at(tree, tree.tip('s3'), 1000)
     check('and clamps at the root rather than running off it',
-          start == 0 and text == PROMPT + b' the sea was rough')
-    check('an absolute offset resolves back to a position',
-          at(tree, 'r6', 30) == Position('r2', 2))
+          start == Position('s0', 0) and text == whole)
+    check('an absolute offset resolves back to an address',
+          address_at(tree, tree.tip('s3'), 30) == Position('s1', 2),
+          str(address_at(tree, tree.tip('s3'), 30)))
+    check('at a span boundary it names the earlier tip, canonically',
+          address_at(tree, tree.tip('s3'), len(OPENING))
+          == Position('s0', len(OPENING)))
 
     print('\ndelete')
-    delete(tree, 'r5')
-    live = tree.live_runs()
-    check('the deleted run is out of the live set', 'r5' not in live)
-    check('its sibling is untouched', 'r6' in live)
+    delete(tree, Position('s2', 0))
+    live = tree.live()
+    check('deleting a fork whole takes it out of the live set', 's2' not in live)
+    check('its sibling is untouched', 's1' in live)
     check('the span keeps every byte it recorded',
-          tree.spans['s1'].text == b' the sea was calm')
+          tree.spans['s2'].text == spelled(WAS_WILD))
     check('its tokens are still in the bulk store',
-          len(store.tokens('s1')) == 4)
+          len(store.tokens('s2')) == len(WAS_WILD))
     check('validates after deleting', not validate(tree, store),
           str(validate(tree, store)))
 
-    print('\nselected is the one thing in the file keyed by a run id')
-    # Which makes it the standing demonstration of decision 1: after a split
-    # the old id still resolves, but to a run that no longer reaches that far.
-    # The absolute offset is what has to survive, not the pair naming it.
-    tree.selected = {'run': 'r6', 'offset': 10}
-    was = tree.runs['r6'].start + 10
-    split(tree, Position('r6', 4))
-    check('a split past the cursor moves it to the suffix',
-          tree.selected == {'run': 'r7', 'offset': 6}, str(tree.selected))
-    check('and the absolute offset it named is unchanged',
-          tree.runs[tree.selected['run']].start + tree.selected['offset'] == was)
+    delete(tree, Position('s1', offsets[3]))
+    live = tree.live()
+    check('truncating mid-span keeps its head reachable',
+          live.get('s1') == offsets[3])
+    check('and drops what was anchored at the cut', 's3' not in live)
+    check('while the span itself is untouched',
+          tree.spans['s1'].text == spelled(WAS_CALM))
+    check('a deleted address is a prefix bound, not a coverage claim',
+          tree.path_bytes(Position('s1', live['s1']))
+          == OPENING + spelled(WAS_CALM[:3]))
+    check('an independent earlier deletion is not disturbed by a later one',
+          set(tree.deleted) == {Position('s2', 0), Position('s1', offsets[3])},
+          str(tree.deleted))
 
-    delete(tree, 'r7')
-    check('deleting out from under the cursor leaves it somewhere live',
-          tree.selected['run'] in tree.live_runs(), str(tree.selected))
-    restore(tree, 'r7')
-    check('and delete is reversible, being soft', 'r7' in tree.live_runs())
+    # entries may cover each other, and must: dropping the narrower one would
+    # make restoring the wider one resurrect a subtree deleted separately
+    delete(tree, Position('s1', 2))
+    check('a wider cut is kept beside the narrower one it covers',
+          Position('s1', offsets[3]) in tree.deleted
+          and Position('s1', 2) in tree.deleted, str(tree.deleted))
+    check('and liveness takes the least of them', tree.live().get('s1') == 2)
+    delete(tree, Position('s1', 6))
+    check('while a cut already inside a dead region is a no-op',
+          Position('s1', 6) not in tree.deleted, str(tree.deleted))
+    restore(tree, Position('s1', 2))
+    check('undoing the wider one leaves the narrower one still deleting',
+          tree.live().get('s1') == offsets[3] and 's3' not in tree.live())
+
+    restore(tree, Position('s1', offsets[3]))
+    check('and delete is reversible, being soft', 's3' in tree.live())
     check('validates throughout', not validate(tree, store),
           str(validate(tree, store)))
 
+    print('\nthe cursor is an address, and no operation moves it')
+    # In token-loom/1 this section was the standing demonstration of the
+    # hazard: `selected` was keyed by a run id, and a split left it resolving
+    # to a run that no longer reached that far, so both split and delete
+    # carried fix-up code. There is nothing to reseat now, and this asserts it.
+    tree.selected = Position('s1', 6)
+    was, address = tree.absolute(tree.selected), tree.selected
+    author(tree, tree.tip('s4'), b' -- or so he said')
+    check('authoring elsewhere leaves it exactly where it was',
+          tree.selected == address)
+    flight = {s.id for s in begin_generation(tree, Position('s1', 2), SETTINGS, n=2)}
+    check('branching inside the very span it points into leaves it alone',
+          tree.selected == address)
+    branch_counterfactual(tree, store, 's1', 3, rank=2)
+    check('so does a counterfactual anchored past it', tree.selected == address)
+    check('and the absolute offset it names is unchanged',
+          tree.absolute(tree.selected) == was)
+
+    delete(tree, Position('s1', 0))
+    check('deleting out from under it does not invalidate the address',
+          tree.selected == address and tree.path_bytes(tree.selected)
+          == OPENING + spelled(WAS_CALM)[:6])
+    check('it just stops resolving to anything live -- a display concern',
+          not tree.resolves(tree.selected))
+    restore(tree, Position('s1', 0))
+    check('and resolves again once the delete is undone',
+          tree.resolves(tree.selected))
+
     print('\nslice start is recorded resolved, its length interned')
-    near = begin_generation(tree, Position('r3', 17), {**SETTINGS,
-                                                       'prompt_length': 12}, 1)
-    check('a restricted context resolves to an offset on the span',
-          near[0].slice_start == 33, str(near[0].slice_start))
-    check('the length interns; the resolved offset does not',
+    near = begin_generation(tree, tree.tip('s2'), {**SETTINGS,
+                                                  'prompt_length': 12}, 1)
+    tail = tree.path_bytes(tree.tip('s2'))
+    check('a restricted context resolves to an address on its own path',
+          tree.absolute(near[0].slice_start) == len(tail) - 12,
+          str(near[0].slice_start))
+    check('the length interns; the resolved address does not',
           tree.params[near[0].params]['prompt_length'] == 12
           and 'slice_start' not in tree.params[near[0].params])
     check('a different framing at the same position is a new parameter set',
@@ -278,21 +310,31 @@ def operations(workdir):
     save(path, tree)
     store.close()
     back, store = open_tree(path)
-    check('reloads and validates', not validate(back, store))
-    check('structure is identical', back.to_json() == tree.to_json())
-    # r6 was split since, so the full continuation now ends at its suffix --
-    # which is the point: run ids narrow, absolute offsets do not
-    check('and still reads the same',
-          back.path_bytes('r7') == PROMPT + b' the sea was rough indeed',
-          repr(back.path_bytes('r7')))
+    check('reloads and validates', not validate(back, store),
+          str(validate(back, store)))
+    # the two calls above were never completed, so this exercises recovery:
+    # the reload is legitimately not byte-identical, and saying it is would
+    # hide the one thing worth checking here
+    check('the calls left in flight come back aborted',
+          all(back.spans[s].text == b'' and store.terminator(s) == 'aborted'
+              for s in flight), str(flight))
+    check('keeping the attachment they were created with',
+          all(back.spans[s].parent == tree.spans[s].parent for s in flight))
+    check('and every other span is byte-identical',
+          {k: v for k, v in back.to_json()['spans'].items() if k not in flight}
+          == {k: v for k, v in tree.to_json()['spans'].items()
+              if k not in flight})
+    check('with the same cursor, parameters and deletions',
+          (back.selected, back.params, back.deleted)
+          == (tree.selected, tree.params, tree.deleted))
     store.close()
 
 
 def driver(workdir):
     """Everything the command line does that needs no model.
 
-    Thin glue, but glue that rots quietly: position parsing and rendering have
-    no other caller, so nothing else would notice them breaking.
+    Thin glue, but glue that rots quietly: position parsing and the derived-run
+    rendering have no other caller, so nothing else would notice them breaking.
     """
     import io
     import contextlib
@@ -309,43 +351,56 @@ def driver(workdir):
 
     code, out = run('new', '--seed', '77')
     check('new creates a tree', code == 0 and 'base seed 77' in out, out)
-    check('and it opens without a cursor being set by hand',
-          run('show')[0] == 0)
+    code, out = run('show')
+    check('an empty tree renders as empty rather than raising',
+          code == 0 and '(empty)' in out, out)
 
     code, out = run('author', 'The sea was')
-    check('author works on a fresh tree, at the root tip',
+    check('author works on a fresh tree, whose cursor is the root',
           code == 0 and "'The sea was'" in out, out)
 
     code, out = run('show')
-    check('show renders the run and its text',
-          'r1  0..11  Hs0' in out and "'The sea was'" in out, out)
+    check('show renders the derived run and its text',
+          's0+0  0..11  Hs0' in out and "'The sea was'" in out, out)
 
-    code, out = run('read', 'r1')
+    code, out = run('read', 's0')
     check('read prints the path', out.strip() == 'The sea was', out)
 
-    code, out = run('split', 'r1:4')
-    check('split reports the boundary and the new run',
-          'r1 ends at 4' in out and 'r2 holds the rest' in out, out)
-    code, out = run('split', 'r1:4')
-    check('and says so when there is nothing to do',
-          'already a boundary' in out, out)
-
-    code, out = run('cursor', 'r2@9')
-    check('an absolute offset resolves through the cursor',
-          'r2:5' in out and 'absolute 9' in out, out)
+    code, out = run('cursor', 's0+4')
+    check('a position is a span and an offset into it',
+          's0+4' in out and 'absolute 4' in out, out)
 
     code, out = run('slice', '--prompt-length', '6')
-    check('slice reports bounds and the bytes',
-          '3..9' in out and 'sea w' in out, out)
+    check('slice reports two addresses and the bytes between them',
+          's0+0..s0+4' in out and out.endswith('The \n'), repr(out))
 
-    code, out = run('delete', 'r2')
-    check('delete reports what is left', 'r2 deleted' in out, out)
-    code, out = run('restore', 'r2')
-    check('restore puts it back', 'r2 restored' in out, out)
+    # 'The sea was'[:7] is 'The sea', so the branch reads with one space
+    code, out = run('author', ' still', 's0+7')
+    check('authoring mid-span needs no boundary made first',
+          code == 0 and "' still'" in out, out)
+    code, out = run('show')
+    check('and the branch shows up where it was anchored',
+          's0+7' in out and 'Hs1' in out, out)
+    code, out = run('read', 's1')
+    check('the branch reads as the shorter path',
+          out.strip() == 'The sea still', out)
+    code, out = run('read', 's0')
+    check('while the span it branched off still reads whole',
+          out.strip() == 'The sea was', out)
+
+    code, out = run('delete', 's1+0')
+    check('delete reports what is left', 's1+0 deleted' in out, out)
+    code, out = run('show')
+    check('a deleted branch is not rendered', 'Hs1' not in out, out)
+    code, out = run('show', '-a')
+    check('unless asked for', 'Hs1' in out and '(deleted)' in out, out)
+    code, out = run('restore', 's1+0')
+    check('restore puts it back', 's1+0 restored' in out, out)
 
     check('a bad span id is refused rather than traced',
           _exits(run, 'tokens', 'nope'))
-    check('a bad run id is refused too', _exits(run, 'read', 'r99'))
+    check('a bad position is refused too', _exits(run, 'read', 's99'))
+    check('and so is a malformed offset', _exits(run, 'cursor', 's0+x'))
 
 
 def _exits(run, *argv):
@@ -372,29 +427,37 @@ def main():
 
         # in flight at rest: nothing generating, so s5 must load as aborted
         reloaded, store = open_tree(path)
-        check('validates clean', not validate(reloaded, store))
+        check('validates clean', not validate(reloaded, store),
+              str(validate(reloaded, store)))
         check('s5 recovered as aborted', store.terminator('s5') == 'aborted')
-        check('s5 completed empty', reloaded.spans['s5'].text == b''
-              and reloaded.spans['s5'].end == 26)
+        check('s5 completed empty, keeping its attachment',
+              reloaded.spans['s5'].text == b''
+              and reloaded.spans['s5'].parent == Position('s3', len(spelled(CLEAR))))
 
         print('\nstructure survives the round trip')
-        check('run bytes, r3', reloaded.run_bytes('r3') == b' calm and',
-              repr(reloaded.run_bytes('r3')))
-        check('path bytes, r2 -- the unbranched continuation',
-              reloaded.path_bytes('r2') == b'The sea was calm for days',
-              repr(reloaded.path_bytes('r2')))
-        check('path bytes, r4 -- through the split',
-              reloaded.path_bytes('r4') == b'The sea was calm and clear',
-              repr(reloaded.path_bytes('r4')))
-        check('path bytes, r5 -- the counterfactual branch',
-              reloaded.path_bytes('r5') == b'The sea was calm and still',
-              repr(reloaded.path_bytes('r5')))
-        check('s3 keeps all fifteen bytes across two runs',
-              reloaded.spans['s3'].text == b' calm and clear')
-        check('two runs reference s3',
-              len(list(reloaded.pieces_of('s3'))) == 2)
-        check('sibling branches share an offset',
-              reloaded.runs['r3'].end == reloaded.runs['r5'].start == 20)
+        check('path bytes, s2 -- the unbranched continuation',
+              reloaded.path_bytes(reloaded.tip('s2'))
+              == PROMPT + spelled(CALM), repr(reloaded.path_bytes(reloaded.tip('s2'))))
+        check('path bytes, s3 -- the branched one, still whole',
+              reloaded.path_bytes(reloaded.tip('s3')) == PROMPT + spelled(CLEAR))
+        check('path bytes, s4 -- the counterfactual branch',
+              reloaded.path_bytes(reloaded.tip('s4'))
+              == PROMPT + spelled(CLEAR)[:CUT] + STILL,
+              repr(reloaded.path_bytes(reloaded.tip('s4'))))
+        check('s3 keeps all fifteen bytes, referenced as a range by nothing',
+              reloaded.spans['s3'].text == spelled(CLEAR)
+              and len(spelled(CLEAR)) == 15)
+        check('sibling branches share an absolute offset',
+              reloaded.absolute(Position('s2', 0))
+              == reloaded.absolute(Position('s3', 0)) == len(PROMPT))
+        check('and are told apart by their span alone',
+              Position('s2', 0) != Position('s3', 0))
+        check('the branch point is where its origin token starts',
+              token_offsets(store, 's3')[2] == CUT
+              and reloaded.spans['s4'].parent == Position('s3', CUT))
+        check('what branches from s3 is two children at two offsets',
+              reloaded.children_of('s3') == [(CUT, 's4'),
+                                             (len(spelled(CLEAR)), 's5')])
         check('counterfactuals keyed by id',
               [c.token_id for c in store.counterfactuals('s3', 2)]
               == [1005, 2058, 1006])
@@ -403,28 +466,29 @@ def main():
               and len(reloaded.params) == 1)
         store.close()
 
-        print('\ndeleting bisects a run, never a span')
+        print('\ndeleting bisects a span, never opens one')
         tree = worked_example()
-        tree.deleted = ['r4']
+        tree.deleted = [Position('s3', CUT)]
         problems = validate(tree)
-        check('a deleted tail leaves the tree valid', not problems,
+        check('a truncating address leaves the tree valid', not problems,
               str(problems))
-        check('s3 still holds its bytes', tree.spans['s3'].text == b' calm and clear')
-        check('r4 is gone from the live set', 'r4' not in tree.live_runs())
-        check('r6 goes with it -- cascade', 'r6' not in tree.live_runs())
-        check('r5 survives its sibling', 'r5' in tree.live_runs())
+        check('s3 still holds its bytes', tree.spans['s3'].text == spelled(CLEAR))
+        check('the tree reaches only its head', tree.live().get('s3') == CUT)
+        check('s4 goes with it, being anchored at the cut',
+              's4' not in tree.live())
+        check('s5 goes with it too, being anchored past it',
+              's5' not in tree.live())
+        check('s2 survives its sibling', 's2' in tree.live())
 
-        # prefix coverage, asserted positively: it cannot be made to fail
-        # through delete, because delete takes whole subtrees. Kept as a guard
-        # on the operation rather than on the file -- see validate.py.
-        live = tree.live_runs()
-        reachable = [p for _, _, p in tree.pieces_of('s3', runs=live)]
-        check('s3 is reachable only as a prefix of itself',
-              [tuple(p) for p in reachable] == [('s3', 0, 9)],
-              str([tuple(p) for p in reachable]))
-        tree.deleted = ['r3']
+        # what token-loom/1 checked as "prefix coverage" and could only assert
+        # positively, since delete took whole subtrees. It is the shape of the
+        # answer now, and there is no other shape available.
+        check('a live extent is a prefix from byte 0 by construction',
+              tree.path_bytes(Position('s3', tree.live()['s3']))
+              == PROMPT + spelled(CLEAR)[:CUT])
+        tree.deleted = [Position('s3', 0)]
         check('deleting the head takes the whole span out of reach',
-              not list(tree.pieces_of('s3', runs=tree.live_runs())))
+              's3' not in tree.live() and 's4' not in tree.live())
 
         print('\noffsets are bytes, not characters')
         # The whole model is anchored on byte offsets, and every one of them
@@ -432,23 +496,18 @@ def main():
         # agree and nothing above would notice the difference. This is the
         # cheapest place to find out, and the only one that fires early.
         # 'café — ' is 7 characters and 10 bytes: é is 2, the em dash is 3
+        accented = 'café — '
         wide = Tree.empty(base_seed=1)
-        wide.spans = {
-            's1': Span('s1', 'human', 0, 10, 'café — '.encode(), TS),
-            's2': Span('s2', 'sampled', 10, 13, b'yes', TS,
-                       params='p1', seed=2, batch='b1', index=0, slice_start=0),
-        }
-        wide.params['p1'] = dict(tree.params['p1'])
-        wide.runs = {
-            'r0': Run('r0', None, 0, [], ['r1']),
-            'r1': Run('r1', 'r0', 0, [Piece('s1', 0, 10)], ['r2']),
-            'r2': Run('r2', 'r1', 10, [Piece('s2', 0, 3)], []),
-        }
+        wide.params['p1'] = dict(worked_example().params['p1'])
+        wide.add(Span('s1', 'human', None, accented.encode(), TS))
+        wide.add(Span('s2', 'sampled', Position('s1', len(accented.encode())),
+                      b'yes', TS, params='p1', seed=2, batch='b1', index=0,
+                      slice_start=Position('s1', 0)))
         check('a 7-character prompt is 10 bytes',
-              len('café — ') == 7 and wide.spans['s1'].length == 10)
-        check('the continuation starts at byte 10, not character 7',
-              not [p for p in validate(wide) if 'starts at' in p],
-              str(validate(wide)))
+              len(accented) == 7 and wide.spans['s1'].length == 10)
+        check('the continuation anchors at byte 10, not character 7',
+              wide.spans['s2'].parent == Position('s1', 10)
+              and not validate(wide), str(validate(wide)))
         wide_path = os.path.join(workdir, 'wide')
         os.makedirs(wide_path)
         wstore = BulkStore(os.path.join(wide_path, 'bulk.sqlite'))
@@ -458,8 +517,9 @@ def main():
         wstore.close()
         wide_back, wstore = open_tree(wide_path)
         check('multi-byte text survives the round trip',
-              wide_back.path_bytes('r2').decode() == 'café — yes',
-              repr(wide_back.path_bytes('r2')))
+              wide_back.path_bytes(wide_back.tip('s2')).decode()
+              == accented + 'yes',
+              repr(wide_back.path_bytes(wide_back.tip('s2'))))
         wstore.close()
 
         print('\nbytes with no string form')
@@ -468,17 +528,11 @@ def main():
         # span JSON has no string for.
         symbol = '🜁'.encode()
         cut = Tree.empty(base_seed=3)
-        cut.params['p0'] = dict(tree.params['p1'])
-        cut.spans = {
-            's0': Span('s0', 'human', 0, 6, b'sign: ', TS),
-            's1': Span('s1', 'sampled', 6, 9, symbol[:3], TS, params='p0',
-                       seed=3, batch='b0', index=0, slice_start=0),
-        }
-        cut.runs = {
-            'r0': Run('r0', None, 0, [], ['r1']),
-            'r1': Run('r1', 'r0', 0, [Piece('s0', 0, 6)], ['r2']),
-            'r2': Run('r2', 'r1', 6, [Piece('s1', 0, 3)], []),
-        }
+        cut.params['p0'] = dict(worked_example().params['p1'])
+        cut.add(Span('s0', 'human', None, b'sign: ', TS))
+        cut.add(Span('s1', 'sampled', Position('s0', 6), symbol[:3], TS,
+                     params='p0', seed=3, batch='b0', index=0,
+                     slice_start=Position('s0', 0)))
         check('a partial character is three bytes, not one',
               len(symbol) == 4 and cut.spans['s1'].length == 3)
         rendered = cut.to_json()['spans']['s1']['text']
@@ -503,73 +557,79 @@ def main():
 
         print('\na slice start that lands inside a character')
         # prompt_length is in bytes, so subtracting it lands wherever it lands
+        mixed = 'abécd'
         edge = Tree.empty(base_seed=4)
-        edge.spans = {'s0': Span('s0', 'human', 0, 6, 'abécd'.encode(), TS)}
-        edge.runs = {
-            'r0': Run('r0', None, 0, [], ['r1']),
-            'r1': Run('r1', 'r0', 0, [Piece('s0', 0, 6)], []),
-        }
+        edge.add(Span('s0', 'human', None, mixed.encode(), TS))
         check('the text is 5 characters in 6 bytes',
-              len('abécd') == 5 and edge.spans['s0'].length == 6)
-        start, end, text = slice_at(edge, Position('r1', 6), 3)
+              len(mixed) == 5 and edge.spans['s0'].length == 6)
+        start, end, text = slice_at(edge, edge.tip('s0'), 3)
         check('the start nudges forward off the continuation byte',
-              (start, end, text) == (4, 6, b'cd'), f'{(start, end)} {text!r}')
+              (start, end, text) == (Position('s0', 4), Position('s0', 6), b'cd'),
+              f'{(start, end)} {text!r}')
         check('and what it returns is decodable, which is the point',
               text.decode() == 'cd')
-        start, _, text = slice_at(edge, Position('r1', 6), 4)
+        start, _, text = slice_at(edge, edge.tip('s0'), 4)
         check('a start already on a boundary is left alone',
-              start == 2 and text == 'écd'.encode(), f'{start} {text!r}')
+              start == Position('s0', 2) and text == 'écd'.encode(),
+              f'{start} {text!r}')
 
         print('\nthe validator rejects')
+        example_store = BulkStore(os.path.join(path, 'bulk.sqlite'))
         expect_problem(
-            '1. a piece range past the end of its span',
-            lambda t: t.runs['r4'].pieces.__setitem__(0, Piece('s3', 9, 99)),
-            'outside s3')
+            '1. a parent naming a span that does not exist',
+            lambda t: setattr(t.spans['s3'], 'parent', Position('s99', 0)),
+            'does not exist')
         expect_problem(
-            '1. an empty piece on a span that has bytes',
-            lambda t: t.runs['r2'].pieces.append(Piece('s2', 14, 14)),
-            'which has bytes')
+            '1. a parent offset past the bytes its span has',
+            lambda t: setattr(t.spans['s3'], 'parent', Position('s1', 99)),
+            'anchored at 99')
         expect_problem(
-            '2. a broken offset chain',
-            lambda t: setattr(t.runs['r4'], 'start', 19),
-            'starts at 19')
+            '2. a parent chain that cycles',
+            lambda t: (setattr(t.spans['s2'], 'parent', Position('s3', 0)),
+                       setattr(t.spans['s3'], 'parent', Position('s2', 0))),
+            'cycles')
         expect_problem(
-            '3. a child whose parent disowns it',
-            lambda t: t.runs['r3'].children.remove('r5'),
-            'does not list it')
+            '3. an unknown provenance kind',
+            lambda t: setattr(t.spans['s2'], 'kind', 'invented'),
+            'unknown kind')
         expect_problem(
-            '4. strong coverage: a span byte no piece reaches',
-            lambda t: t.runs['r4'].pieces.__setitem__(0, Piece('s3', 10, 15)),
-            'strong coverage')
+            '3. a counterfactual with no origin',
+            lambda t: setattr(t.spans['s4'], 'origin', None),
+            'no origin')
         expect_problem(
-            '6. an extent that disagrees with its text',
-            lambda t: setattr(t.spans['s2'], 'end', 24),
-            'text is 14')
+            '3. a slice starting on a branch the span is not on',
+            lambda t: setattr(t.spans['s3'], 'slice_start', Position('s2', 0)),
+            'not on its path')
         expect_problem(
-            '7. a span that says it sits somewhere it does not',
-            lambda t: setattr(t.spans['s4'], 'start', 21),
-            'says it starts at 21')
-
-        # 8 and 9 need the store, so they do not fit expect_problem
-        for name, mangle, matching in [
-            ('8. text its tokens do not spell',
-             lambda t: setattr(t.spans['s3'], 'text', b' calm and CLEAR'), 'spell'),
-            ('9. a sampled span with no terminator',
-             lambda t: None, 'no terminator'),
-        ]:
-            broken = worked_example()
-            mangle(broken)
-            side = os.path.join(workdir, 'broken', name[:2])
-            os.makedirs(side)
-            store = BulkStore(os.path.join(side, 'bulk.sqlite'))
-            fill_store(store)
-            if matching == 'no terminator':
-                store.db.execute("DELETE FROM terminators WHERE span = 's3'")
-                store.db.commit()
-            problems = validate(broken, store)
-            check(name, any(matching in p for p in problems),
-                  f'got {problems or "no problems"}')
-            store.close()
+            '4. a deletion address naming a missing span',
+            lambda t: t.deleted.append(Position('s99', 0)),
+            'deleted names missing span')
+        expect_problem(
+            '4. a deletion address past the bytes its span has',
+            lambda t: t.deleted.append(Position('s3', 99)),
+            'deleted at 99')
+        expect_problem(
+            '5. a counterfactual anchored where its origin does not say',
+            lambda t: setattr(t.spans['s4'], 'parent', Position('s3', 5)),
+            f'but token 2 starts at {CUT}', example_store)
+        expect_problem(
+            '5. a counterfactual branching off a span its origin does not name',
+            lambda t: setattr(t.spans['s4'], 'parent', Position('s2', 5)),
+            'its origin names', example_store)
+        expect_problem(
+            '6. text its tokens do not spell',
+            lambda t: setattr(t.spans['s3'], 'text', b' calm and CLEAR'),
+            'spell', example_store)
+        expect_problem(
+            '6. a human span carrying token rows',
+            lambda t: setattr(t.spans['s2'], 'kind', 'human'),
+            'human span has', example_store)
+        example_store.db.execute("DELETE FROM terminators WHERE span = 's3'")
+        example_store.db.commit()
+        expect_problem(
+            '7. a sampled span with no terminator',
+            lambda t: None, 'no terminator', example_store)
+        example_store.close()
 
         operations(workdir)
         driver(workdir)

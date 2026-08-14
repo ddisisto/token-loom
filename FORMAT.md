@@ -150,8 +150,13 @@ of it. And the invariant `token-loom/1` had to check —
 — stops being a property to verify and becomes the literal representation. A deletion
 address *is* a prefix bound.
 
-Entries are kept maximal: an address dominated by another already in the list is dropped,
-so liveness stays one walk.
+Entries are **not** deduplicated against each other, and the list may hold one address that
+another already covers. `token-loom/1` had to keep its list to maximal roots because
+liveness was a walk over run ids that a nested entry would confuse; liveness here takes the
+least cut per span, so it is total over any set. Pruning would actively break undo — drop
+the narrower entry and restoring the wider one resurrects a subtree that was deleted
+separately and never restored. Deleting something already unreachable stays a no-op, which
+is what keeps the list from growing on repeated calls.
 
 #### Soft delete is a records decision, not a structural one
 
