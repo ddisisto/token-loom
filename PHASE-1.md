@@ -94,6 +94,22 @@ This is also the concrete reason nothing durable may be keyed by a run id, which
 asserts in the abstract: a stored run id keeps resolving after a split, but to *less text
 than it did*. It does not dangle, which would be caught. It silently narrows, which is not.
 
+#### Text is bytes in the core, and a string only at the edges
+
+The roadmap says every offset is a byte offset. That is a claim about the *type* a span's
+text is held in, not only about the arithmetic: `len` on a Python string counts characters,
+so holding text as a string would make every extent, piece range and run start silently
+wrong the first time a non-ASCII character appeared — and correct on every ASCII test.
+
+So a span's text is `bytes`, and `run_bytes`, `path_bytes` and `piece_bytes` return bytes.
+Decoding happens at exactly two edges: writing the tree file, and displaying a run.
+
+The second edge is not merely a convention. A piece boundary is a token boundary, and
+byte-level BPE can put a token boundary inside a character — so a *run's* bytes are not
+guaranteed to decode on their own even when the whole path does. Anything that decodes a
+fragment has to be prepared for that; anything inside the core avoids the question by not
+decoding at all.
+
 There is also **exactly one copy of every byte**, so there is no authority question between
 a run's text and a span's extent, and nothing to validate for agreement. The earlier design
 stored the bytes twice — once as `run.text`, once implied by span extents — and needed a
@@ -308,7 +324,7 @@ then branched from a counterfactual at its third token.
 
     // token_id, not rank: rank is only meaningful against the N that was requested
     "s4": { "kind": "counterfactual", "text": " still", "extent": [20, 26],
-            "from": { "span": "s3", "index": 2, "token_id": 2058 },
+            "origin": { "span": "s3", "index": 2, "token_id": 2058 },
             "created": "2026-08-12-10.02.00" },
 
     // in flight: provenance written, byte record still empty
@@ -333,13 +349,13 @@ then branched from a counterfactual at its third token.
     // the counterfactual branch: one token the model ranked but did not take
     "r5": { "parent": "r3", "start": 20, "pieces": [["s4", 0, 6]],  "children": [] },
 
-    // batch b2, in flight: the run exists, its piece lands on completion
-    "r6": { "parent": "r4", "start": 26, "pieces": [],              "children": [] }
+    // batch b2, in flight: an empty piece, widened when the bytes land
+    "r6": { "parent": "r4", "start": 26, "pieces": [["s5", 0, 0]],  "children": [] }
   },
 
   "params": {
     "p1": { "temperature": 0.9, "top_p": 1, "top_n": 3,
-            "length": 4,            // tokens
+            "length": 3,            // tokens
             "stop": [],
             "model": "qwen2.5-7b-base", "tokenizer": "qwen2.5",
             "n_ctx": 16384,         // tokens
@@ -360,11 +376,21 @@ Six things to read off it:
   is why an offset alone is not a position — the path is the other half.
 - **`s4` has no parameters and no seed.** A counterfactual selection is not a generation
   call; it points at the span whose top-N it came from and carries nothing it never had.
+  The field is `origin` rather than the more natural `from`, which is a Python keyword —
+  a small ugliness in the format beats `from_` at every use site in the code.
 - **`slice_start: 0` is on the span, `prompt_length: 6000` in the interned set.** Both
   continuations of batch `b1` share `p1`; a batch at a different position shares it too.
-- **`s5` and `r6` are one generation call in flight.** The run is real and empty, the span
-  has provenance and no bytes, and neither becomes false if the process dies — it loads as
-  aborted. `r6` is also, exactly, the placeholder fork streaming will later need.
+- **`s5` and `r6` are one generation call in flight**, joined by a **zero-length piece**.
+  The span has provenance and no bytes; neither record becomes false if the process dies,
+  and it loads as aborted. `r6` is also, exactly, the placeholder fork streaming will need.
+
+  The empty piece is what links the two. An in-flight span has no bytes, so without it
+  nothing connects `s5` to `r6` — and with two calls in flight at once, a crash would leave
+  no way to tell which span belonged to which run. The alternative was a `run` field on the
+  span, which would have introduced the one thing decision 1 forbids: a durable reference
+  keyed by run id. Instead the link rides the existing mechanism, and completion *widens*
+  the piece from `[0, 0]` to `[0, len]` rather than adding a second one. It also makes
+  check 7 total, since even an in-flight span now has a piece to be positioned against.
 - **`deleted` is a list of run ids**, and deleted runs stay in `runs` with their pieces
   intact. Soft delete removes reachability, not records.
 
@@ -395,7 +421,10 @@ correct trees or stay silent on broken ones.
 
 Over **all runs**, live and deleted:
 
-1. Every piece range is within its span: `0 <= start < end <= len(span.text)`.
+1. Every piece range is within its span: `0 <= start <= end <= len(span.text)`. An empty
+   piece is legal only for a span with no bytes — one in flight, or one aborted before its
+   first token arrived — and must be the last piece in its run, since the run cannot have
+   grown past a span that never produced anything.
 2. The offset chain holds: `run.start == parent.start + total length of parent's pieces`,
    and the root starts at 0.
 3. Parent and child agree — every child names its parent, every parent lists its child.
@@ -417,7 +446,11 @@ Per span:
    computed from the run chain. Without this the one absolute number on a span can drift
    with nothing to catch it.
 8. A complete span's `text` equals the concatenation of its token rows' `bytes`, with
-   indices contiguous from 0. Human spans have no token rows and are exempt.
+   indices contiguous from 0. Human spans have no token rows at all; a counterfactual span
+   has exactly one.
+9. A complete **sampled** span has a terminator row. Only a sampled span was ever in flight —
+   human and counterfactual spans are complete the moment they are created — so only they
+   have anything to terminate.
 
 Check 8 earns its keep three times over: it is the only thing that would catch byte-fallback
 tokens being mishandled, it is what makes a `text` field and a `bytes` blob safe to hold the
@@ -490,6 +523,23 @@ Phase 1 is done when a tree can be built, branched, split, saved, reloaded and d
 the command line, with per-token logprobs and counterfactuals intact across the round trip.
 
 ---
+
+## Open question
+
+**A span whose bytes are not valid UTF-8.** A span is a whole number of tokens, and a
+byte-level BPE token can be half a character — so a generation cut off at a length limit can
+in principle end mid-character, leaving bytes with no string form. `tree.json` is JSON, and
+JSON strings are Unicode, so such a span cannot currently be written.
+
+Everything inside the core already handles it: text is bytes, and the check that a span's
+text equals its tokens is a bytes comparison. The gap is only at serialisation, which raises
+rather than guessing.
+
+Whether it is reachable in practice against Qwen2.5 is unmeasured. The three candidate
+answers — an escape for non-decodable spans, dropping a trailing partial token, or refusing
+to end a span mid-character at the generation layer — differ in what they cost, and picking
+between them before seeing a real case would be choosing in the dark. Measure it during
+step 4, when there is a model to measure against.
 
 ## Not in Phase 1
 
