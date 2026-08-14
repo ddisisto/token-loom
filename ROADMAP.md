@@ -266,13 +266,11 @@ Built and landed as `token-loom/1`. **`FORMAT.md` is the format document** — d
 locked, the on-disk shape with a worked example, and the alternatives each choice was made
 over.
 
-**One amendment is outstanding**, and should land before Phase 2 planning gets far. Using
-the finished core surfaced that runs and pieces are a larger mechanism than the problem: let
-a span carry a parent *address* rather than sit inside a run, and branching mid-span needs no
-division, `split` stops existing, and five of nine validator checks stop having anything to
-check. `token-loom/2` in `FORMAT.md` is that change. It is roughly a day, it deletes more
-than it adds, and it settles the one Phase 2 decision flagged as needing to be made early —
-what a position looks like on the wire.
+**Amended once, as `token-loom/2`.** Using the finished core surfaced that runs and pieces
+were a larger mechanism than the problem: a span carries a parent *address* instead of
+sitting inside a run, so branching mid-span divides nothing and `split` stopped existing.
+Nine validator checks became seven. It also settled the one Phase 2 decision flagged as
+needing to be made early — what a position looks like on the wire.
 
 The shape as built: `core/tree.py` (structure, spans, interned parameters), `core/store.py`
 (the bulk store), `core/validate.py` (the load-time checks), `core/ops.py` (the operations),

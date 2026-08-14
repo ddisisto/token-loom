@@ -19,12 +19,13 @@ reasoning behind it, and is meant to outlive the phases; `BEYOND-MVP.md` holds t
 that reach past the MVP and the constraints they impose on decisions made now. This file is
 for things that are true about the code and easy to get wrong.
 
-**Phase 1 has landed, with one amendment outstanding.** The token core is built, tested and
-usable from the command line as `token-loom/1`. Using it surfaced that runs and pieces are a
-larger mechanism than the problem — `token-loom/2` in `FORMAT.md` replaces them with a parent
-address on each span, deleting `split` and five of nine validator checks. **That amendment
-lands before Phase 2 gets far**, because it settles what a position looks like on the wire.
-The code still speaks `token-loom/1`; `FORMAT.md` describes where it is going.
+**Phase 1 has landed, and been amended once.** The token core is built, tested and usable
+from the command line. Using the `token-loom/1` build surfaced that runs and pieces were a
+larger mechanism than the problem: `token-loom/2` replaced them with a parent address on each
+span, which deleted `split` outright along with two of nine validator checks and a third that
+went tautological. It also settled what a position looks like on the wire, which was the one
+Phase 2 decision flagged as needing to be made early. `FORMAT.md` has the shape and the
+alternatives. Phase 2 — the API and front end rebuilt against it — is the current work.
 
 `origin` is `ddisisto/token-loom` (GitHub redirects the old `ddisisto/loom`), `upstream` is
 `socketteer/loom`. Work happens on `main`. The tag `pre-token-core` preserves the last commit
@@ -148,10 +149,10 @@ Two things worth keeping in mind if that ever happens:
     and never cut, so the pair survives every operation. Absolute root-relative offsets are
     derived, and do not survive export of a subtree. Run ids are display-only under
     `token-loom/2` and must never reach storage or the wire.
-- **Two more that are true of `token-loom/1` only**, and disappear with the amendment: a
-  piece is `[span, start, end)` — span-relative, and an end rather than a length, both
-  readings arithmetically plausible; and a zero-length piece is the only link between an
-  in-flight span and its run, widened in place on completion.
+- **One thing about the derived runs**, which is display-only and still bites: a branch
+  anchored at byte 0 of a span that also continues makes a run of zero width. That is a fork
+  point rather than a run, and `loom.py:outline` needs its `resuming` flag to say so — without
+  it the case either loses the branch or forks into itself forever.
 - Generation is an ordinary blocking call. The worker thread, the hand-back queue and the
   virtual events silently dropped across threads were artifacts of Tk owning the main loop,
   and went with it. Streaming would reintroduce asynchrony deliberately — it is deferred to

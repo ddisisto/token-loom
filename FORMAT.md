@@ -4,11 +4,10 @@ What the on-disk shape is, and why it is that shape. `ROADMAP.md` holds directio
 phases; this holds the format and the reasoning that is expensive to reconstruct. It is
 meant to outlive the phases — Phase 2 replaces the interface, not this.
 
-**Status.** `token-loom/1` is what Phase 1 built and what `core/` currently implements.
-`token-loom/2` is the amendment described here: it deletes runs and pieces from the format
-and replaces them with a **parent address on each span**. Everything else — spans,
-provenance, the intern table, the bulk store, the save ordering — is untouched. Until the
-amendment lands, read this as the plan and `core/tree.py` as the current truth.
+**Status.** `token-loom/2` is what `core/` implements. It replaced `token-loom/1` — which
+Phase 1 built, and which put runs and pieces between the spans and the structure — with a
+**parent address on each span**. Everything else survived unchanged: spans, provenance, the
+intern table, the bulk store, the save ordering.
 
 The amendment came out of using the thing rather than out of planning it, which is worth
 noting: ten faults fell out of stress-testing the `token-loom/1` plan in prose, and this
@@ -646,32 +645,46 @@ adapter rather than one dict entry.
 
 ---
 
-## Landing the amendment
+## What the amendment cost
 
-No migration: `data/tree/` is disposable scratch and no-migration is already policy. The
-format marker goes to `token-loom/2` and `token-loom/1` trees are refused on load rather
-than converted.
+No migration was needed: `data/tree/` is disposable scratch and no-migration is already
+policy. `token-loom/1` trees are refused on load rather than converted.
 
-1. **`core/tree.py`** — `Span` gains `parent`, loses `start`/`end`. `Run` and `Piece` go,
-   with `pieces_of`, `run_bytes`, `piece_bytes` and the run half of `ancestry`. A child index
-   built at load answers "what branches from here".
-2. **`core/validate.py`** — the seven checks above, replacing nine.
-3. **`core/ops.py`** — `split`, `at`, `absolute`, `locate`, `widen` and `_attach` are
-   deleted. `author`, `generate` and `branch_counterfactual` each collapse to constructing
-   one span. `delete` takes a position.
-4. **`core/session.py`** — the save ordering is unchanged; only the call it wraps changes.
-5. **`loom.py`** — the `split` command goes. Positions are `s3+9`; `show` prints span
-   addresses, and derived run ids are display-only and must not be accepted as input, since
-   a derived grouping renumbers.
-6. **`core_test.py`** — the section asserting that a split reseats the cursor becomes the
-   demonstration that there is nothing to reseat. Fixtures shrink to spans.
+Measured, in lines of code with comments and docstrings counted separately:
 
-It should delete substantially more than it adds. If it does not, something has been
-misunderstood.
+| | code |
+| --- | --- |
+| `core/ops.py` | 196 → 102 |
+| `core/validate.py` | 155 → 112 |
+| `core/tree.py` | 223 → 214 |
+| `loom.py` | 240 → **281** |
+| total | 956 → 851 |
 
-**Arithmetic in a test is code too, and nothing checks it.** The `token-loom/1` build's
-sloppiness went almost entirely into test assertions — miscounted byte lengths twice, and a
-tautology that could never fail. Compute the expected values; do not eyeball them.
+The prediction written here beforehand was "it should delete substantially more than it
+adds; if it does not, something has been misunderstood". That held for the core — `ops.py`
+nearly halved when `split`, `at`, `absolute`, `locate`, `widen` and `_attach` went — but
+**`loom.py` grew by 41 lines**, and the growth is the honest price rather than a mistake:
+not storing runs means computing them, and `outline()` is where that lands. Storage
+complexity became display complexity, at about a third of the size and in a place where
+getting it wrong makes a picture look odd rather than making a record wrong.
+
+Two things fell out of the build that the prose had not anticipated:
+
+- **A branch anchored at byte 0 of a span that also continues** — what `branch <span> 0
+  <rank>` produces — makes a derived run of zero width. That is not a run but a fork point,
+  and its branches belong in its parent's list, so the counterfactual renders as a sibling
+  of the span whose first token it replaces. Getting it wrong loops forever or loses the
+  branch.
+- **`deleted` must not be pruned.** The first implementation dropped entries another already
+  covered, on the `token-loom/1` habit of keeping maximal roots. Two faults: an entry is
+  always unreachable under its own cut, so testing it against the full list drops everything;
+  and pruning at all breaks undo, since restoring a wide cut then resurrects a subtree that
+  was deleted separately. `Tree.live` takes the least cut per span and is total over any
+  set, so there was nothing to buy.
+
+**Arithmetic in a test is code too, and nothing checks it.** Of the three failures the new
+test suite found, two were miscounted byte lengths in the assertions and one was the pruning
+bug above. That ratio is the usual one. Compute the expected values; do not eyeball them.
 
 ## Open
 
