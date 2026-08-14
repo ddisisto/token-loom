@@ -265,7 +265,10 @@ class Tree:
             base_seed = uuid.uuid4().int % 1_000_000
         root = Run(id='r0', parent=None, start=0)
         return cls(tree_id=uuid.uuid4().hex, base_seed=base_seed, root='r0',
-                   runs={'r0': root})
+                   runs={'r0': root},
+                   # a tree always has a position, even before it has bytes:
+                   # the root's tip is where the first prompt goes
+                   selected={'run': 'r0', 'offset': 0})
 
     def new_run_id(self) -> str:
         return next_id(self.runs, 'r')

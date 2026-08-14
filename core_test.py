@@ -288,6 +288,76 @@ def operations(workdir):
     store.close()
 
 
+def driver(workdir):
+    """Everything the command line does that needs no model.
+
+    Thin glue, but glue that rots quietly: position parsing and rendering have
+    no other caller, so nothing else would notice them breaking.
+    """
+    import io
+    import contextlib
+    import loom
+
+    print('\nthe command line')
+    path = os.path.join(workdir, 'cli')
+
+    def run(*argv):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = loom.main(['-d', path, *argv])
+        return code, out.getvalue()
+
+    code, out = run('new', '--seed', '77')
+    check('new creates a tree', code == 0 and 'base seed 77' in out, out)
+    check('and it opens without a cursor being set by hand',
+          run('show')[0] == 0)
+
+    code, out = run('author', 'The sea was')
+    check('author works on a fresh tree, at the root tip',
+          code == 0 and "'The sea was'" in out, out)
+
+    code, out = run('show')
+    check('show renders the run and its text',
+          'r1  0..11  Hs0' in out and "'The sea was'" in out, out)
+
+    code, out = run('read', 'r1')
+    check('read prints the path', out.strip() == 'The sea was', out)
+
+    code, out = run('split', 'r1:4')
+    check('split reports the boundary and the new run',
+          'r1 ends at 4' in out and 'r2 holds the rest' in out, out)
+    code, out = run('split', 'r1:4')
+    check('and says so when there is nothing to do',
+          'already a boundary' in out, out)
+
+    code, out = run('cursor', 'r2@9')
+    check('an absolute offset resolves through the cursor',
+          'r2:5' in out and 'absolute 9' in out, out)
+
+    code, out = run('slice', '--prompt-length', '6')
+    check('slice reports bounds and the bytes',
+          '3..9' in out and 'sea w' in out, out)
+
+    code, out = run('delete', 'r2')
+    check('delete reports what is left', 'r2 deleted' in out, out)
+    code, out = run('restore', 'r2')
+    check('restore puts it back', 'r2 restored' in out, out)
+
+    check('a bad span id is refused rather than traced',
+          _exits(run, 'tokens', 'nope'))
+    check('a bad run id is refused too', _exits(run, 'read', 'r99'))
+
+
+def _exits(run, *argv):
+    try:
+        run(*argv)
+    except SystemExit:
+        return True
+    except KeyError:
+        return False
+    return False
+
+
 def main():
     workdir = tempfile.mkdtemp(prefix='token-loom-')
     path = os.path.join(workdir, 'example')
@@ -502,6 +572,7 @@ def main():
             store.close()
 
         operations(workdir)
+        driver(workdir)
 
         print(f'\n{PASS} passed, {FAIL} failed')
         return 1 if FAIL else 0

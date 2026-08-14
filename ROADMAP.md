@@ -238,11 +238,18 @@ on-disk format has no second consumer, so it is free to change.
 
 Local inference is now the default: `params.py` ships `qwen2.5-7b-base`.
 
-## Phase 1 — the token core
+## Phase 1 — the token core ✅
 
-One format change, done once, on a clean break. **`PHASE-1.md` is the detailed plan** —
-decisions locked, the on-disk shape with a validated worked example, and the build order.
-This section is the scope; that file is the design.
+Done. One format change, done once, on a clean break. **`PHASE-1.md` is the detailed plan** —
+decisions locked, the on-disk shape with a validated worked example, and the build order —
+and is superseded by the code now that it has landed.
+
+The shape as built: `core/tree.py` (runs, spans, interned parameters), `core/store.py` (the
+bulk store), `core/validate.py` (nine load-time checks), `core/ops.py` (the six operations),
+`core/llama.py` (generation, native), `core/session.py` (the three held together, with the
+save ordering), and `loom.py` for the command line.
+
+What the section below described as scope, and what it looks like having been built:
 
 - Bytes as the anchor; tokens as a per-span overlay with byte extents.
 - Spans hold the bytes and are written once; runs are structure over them, with

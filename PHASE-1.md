@@ -522,6 +522,15 @@ Each step is verifiable on its own, which is what keeps the big-bang confined to
 Phase 1 is done when a tree can be built, branched, split, saved, reloaded and dumped from
 the command line, with per-token logprobs and counterfactuals intact across the round trip.
 
+**All five have landed.** `loom.py` is the driver, `scripts/loom.sh` the pre-authorised
+wrapper; `core_test.py` covers the format, the operations and the command line with no model
+running, and `llama_test.py` covers what it structurally cannot — that ids, bytes, logprobs,
+counterfactuals and stop reasons survive a real round trip.
+
+One thing the driver found that the design had missed: **a new tree had no cursor**, so the
+first `author` had nowhere to go. `Tree.empty` now selects the root's tip. A tree always has
+a position, even before it has bytes, which is the honest reading of `selected` anyway.
+
 ### Why the adapter is new code, not a patched `inference.py`
 
 The original plan was to keep two fields `inference.py` discards. Reading it against what the
