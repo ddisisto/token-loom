@@ -533,13 +533,24 @@ JSON strings are Unicode, so such a span cannot currently be written.
 
 Everything inside the core already handles it: text is bytes, and the check that a span's
 text equals its tokens is a bytes comparison. The gap is only at serialisation, which raises
-rather than guessing.
+rather than guessing. **Failing loudly and unhandled is the accepted interim behaviour** —
+the tree file is left untouched, so the cost is the current generation, not the session.
 
-Whether it is reachable in practice against Qwen2.5 is unmeasured. The three candidate
-answers — an escape for non-decodable spans, dropping a trailing partial token, or refusing
-to end a span mid-character at the generation layer — differ in what they cost, and picking
-between them before seeing a real case would be choosing in the dark. Measure it during
-step 4, when there is a model to measure against.
+**The test is the vocabulary, not observation.** Waiting to see one in practice cannot
+settle it: absence means the case has not come up yet, never that it cannot. Whether a token
+can be a fragment of a character is a property of the vocab, answerable directly by
+inspecting it for tokens that are not valid UTF-8 on their own.
+
+The expected answer is yes. Qwen2.5 uses byte-level BPE with the GPT-2 byte-to-unicode
+mapping, which puts all 256 single-byte tokens in the vocab by construction — so a
+continuation byte is a token the model can emit alone, and it routinely does for rare
+characters that never merged. Confirm against the vocab rather than trusting the reasoning,
+but do not plan on the answer being no.
+
+That leaves the choice between the three candidate answers — an escape for non-decodable
+spans, dropping a trailing partial token, or refusing to end a span mid-character at the
+generation layer — which differ in cost and are worth deciding once, deliberately, rather
+than at the moment one first fails.
 
 ## Not in Phase 1
 

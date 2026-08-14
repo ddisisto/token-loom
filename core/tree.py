@@ -56,6 +56,18 @@ class Piece(NamedTuple):
         return self.end - self.start
 
 
+class Position(NamedTuple):
+    """A point in the tree: a run, and a byte offset within it.
+
+    An offset alone is not a position. Sibling branches start at the same
+    absolute offset, so the path is the other half of the address -- which is
+    also why durable references store the offset and look the run up, rather
+    than the reverse.
+    """
+    run: str
+    offset: int
+
+
 @dataclass
 class Span:
     """An authored or generated stretch, and the conditions that produced it.
@@ -158,7 +170,7 @@ class Run:
                    children=list(d['children']))
 
 
-def _next_id(existing, prefix: str) -> str:
+def next_id(existing, prefix: str) -> str:
     """One past the highest numeric suffix in use. See the module docstring."""
     highest = -1
     for key in existing:
@@ -225,10 +237,10 @@ class Tree:
                    runs={'r0': root})
 
     def new_run_id(self) -> str:
-        return _next_id(self.runs, 'r')
+        return next_id(self.runs, 'r')
 
     def new_span_id(self) -> str:
-        return _next_id(self.spans, 's')
+        return next_id(self.spans, 's')
 
     def intern(self, settings: dict) -> str:
         """Return the key for a parameter set, minting one if it is new.
@@ -241,7 +253,7 @@ class Tree:
         for key, existing in self.params.items():
             if json.dumps(existing, sort_keys=True) == fingerprint:
                 return key
-        key = _next_id(self.params, 'p')
+        key = next_id(self.params, 'p')
         self.params[key] = dict(settings)
         return key
 
@@ -335,11 +347,16 @@ class Tree:
 
         The tree file is rewritten whole on every save and is the only record
         of structure; a half-written one would lose the tree, not a save.
+
+        Serialised before anything is opened, so that a span the format cannot
+        represent -- see the open question in PHASE-1.md -- fails without
+        leaving a stray temporary file behind.
         """
+        body = pretty(self.to_json()) + '\n'
         os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
         tmp = f'{path}.tmp'
         with open(tmp, 'w') as f:
-            f.write(pretty(self.to_json()) + '\n')
+            f.write(body)
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)

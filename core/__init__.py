@@ -11,17 +11,31 @@ from __future__ import annotations
 
 import os
 
-from core.store import ABORTED, BulkStore, spelled
-from core.tree import (COUNTERFACTUAL, FORMAT, HUMAN, SAMPLED, Piece, Run,
-                       Span, Tree)
+from core.ops import (absolute, at, author, begin_generation,
+                      branch_counterfactual, complete, delete, descendants,
+                      locate, prefix_bytes, recover, restore, slice_at, split,
+                      token_offsets, widen)
+from core.store import (ABORTED, CONTEXT, LENGTH, STOP, BulkStore,
+                        Counterfactual, Token, spelled)
+from core.tree import (COUNTERFACTUAL, FORMAT, HUMAN, SAMPLED, Piece, Position,
+                       Run, Span, Tree)
 from core.validate import Invalid, validate
 
 TREE_FILE = 'tree.json'
 BULK_FILE = 'bulk.sqlite'
 
-__all__ = ['Tree', 'Run', 'Span', 'Piece', 'BulkStore', 'Invalid', 'validate',
-           'open_tree', 'create_tree', 'save', 'recover', 'FORMAT',
-           'HUMAN', 'SAMPLED', 'COUNTERFACTUAL']
+__all__ = [
+    # format
+    'Tree', 'Run', 'Span', 'Piece', 'Position', 'BulkStore', 'Token',
+    'Counterfactual', 'FORMAT', 'HUMAN', 'SAMPLED', 'COUNTERFACTUAL',
+    'LENGTH', 'STOP', 'CONTEXT', 'ABORTED', 'spelled',
+    # the six operations, and what they are built from
+    'author', 'begin_generation', 'complete', 'split', 'delete', 'slice_at',
+    'branch_counterfactual', 'restore', 'recover', 'widen',
+    'absolute', 'at', 'locate', 'prefix_bytes', 'token_offsets', 'descendants',
+    # files
+    'open_tree', 'create_tree', 'save', 'validate', 'Invalid',
+]
 
 
 def create_tree(path: str, base_seed: int | None = None
@@ -58,40 +72,3 @@ def open_tree(path: str, strict: bool = True, repair: bool = True
 
 def save(path: str, tree: Tree) -> None:
     tree.save(os.path.join(path, TREE_FILE))
-
-
-def recover(tree: Tree, store: BulkStore) -> list[str]:
-    """Close out spans left in flight by a process that is gone.
-
-    Reaching this point means nothing is generating -- generation is blocking,
-    so an in-flight span found at load time belongs to a run that ended. Each
-    is completed from whatever token rows made it and marked `aborted`, which
-    is the whole of decision 8: in flight is a state, and it has an exit.
-
-    Returns the span ids it closed, so the caller knows whether to save.
-    """
-    closed = []
-    terminated = store.terminated()
-    for span in tree.spans.values():
-        if span.complete or span.id in terminated:
-            continue
-        text = spelled(store.tokens(span.id))
-        span.text = text
-        span.end = span.start + len(text)
-        _widen(tree, span.id, len(text))
-        store.set_terminator(span.id, ABORTED)
-        closed.append(span.id)
-    return closed
-
-
-def _widen(tree: Tree, span_id: str, length: int) -> None:
-    """Grow a span's placeholder piece to the bytes that actually landed.
-
-    Widened in place rather than replaced: the piece is the link between an
-    in-flight span and its run, and it exists from the moment the span does.
-    """
-    for run in tree.runs.values():
-        for i, piece in enumerate(run.pieces):
-            if piece.span == span_id:
-                run.pieces[i] = Piece(span_id, piece.start, piece.start + length)
-                return
