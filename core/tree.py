@@ -1,24 +1,30 @@
-"""Runs, spans and interned parameters -- the structural half of the format.
+"""Spans and interned parameters -- the whole of the structural half.
 
-Spans own the bytes. Runs own no bytes at all: a run is an ordered list of
-*pieces*, each naming a half-open range of a span. Splitting a run is therefore
-arithmetic on integers and can never open a record. `FORMAT.md` has the why,
-the alternatives it was chosen over, and the invariants `validate.py` checks.
+A span is an authored or generated stretch. It holds its bytes, its provenance,
+and one address naming where it continues from. That address is the only
+structure there is: there are no runs, no pieces, and nothing to divide when a
+branch lands in the middle of a span. `FORMAT.md` has the why, the alternatives
+it was chosen over, and the invariants `validate.py` checks.
 
 Four things here are easy to get wrong and worth stating at the top:
 
 - **Text is `bytes`, everywhere in the core.** Every offset in the format is a
   byte offset, and `len` on a `str` counts characters -- so holding text as a
-  `str` would silently make every extent, piece range and run start wrong the
+  `str` would silently make every offset and every parent address wrong the
   moment a non-ASCII character appeared. Decoding happens at the edges: on
-  serialisation, and in whatever displays a run.
-- **Piece offsets are span-relative**, always. A piece names a range *of a
-  span*; its position within the run is implied by accumulation.
-- **A piece is a half-open `[start, end)`**, an end rather than a length.
+  serialisation, and in whatever displays text.
+- **A position is `(span, offset)`, and `None` is the root.** Not an absolute
+  offset: sibling branches share those, so an offset alone cannot say which
+  path it is on. A span is written once and never cut, so the pair survives
+  every operation there is.
+- **Absolute offsets are derived and stored nowhere.** An absolute offset is
+  the sum of the offsets along a position's ancestry, which is what `absolute`
+  computes. Anything that wrote one down would have to maintain it, and it
+  would not survive export of a subtree.
 - **Ids are derived, not stored.** The next id is one past the highest in use,
-  which is safe only because nothing is ever removed from `runs` or `spans` --
-  delete is soft. A vacuum that purged them would have to carry a high-water
-  mark, which is one more reason for it to stay a bulk-store operation.
+  which is safe only because nothing is ever removed from `spans` -- delete is
+  soft. A vacuum that purged them would have to carry a high-water mark, which
+  is one more reason for it to stay a bulk-store operation.
 """
 from __future__ import annotations
 
@@ -27,11 +33,11 @@ import json
 import os
 import uuid
 from dataclasses import dataclass, field
-from typing import Iterator, NamedTuple
+from typing import NamedTuple
 
 from util.util import timestamp
 
-FORMAT = 'token-loom/1'
+FORMAT = 'token-loom/2'
 
 # provenance categories. Agency -- what initiated a span -- is deliberately a
 # separate axis, not a fourth value here.
@@ -39,22 +45,6 @@ HUMAN = 'human'
 SAMPLED = 'sampled'
 COUNTERFACTUAL = 'counterfactual'
 KINDS = (HUMAN, SAMPLED, COUNTERFACTUAL)
-
-
-class Piece(NamedTuple):
-    """A half-open range of a span. Offsets are span-relative, and bytes.
-
-    A zero-length piece is legal and means exactly one thing: a span with no
-    bytes -- one in flight, or one aborted before its first token arrived --
-    joined to the run it landed in. Completion widens it in place.
-    """
-    span: str
-    start: int
-    end: int
-
-    @property
-    def length(self) -> int:
-        return self.end - self.start
 
 
 def encode_text(raw: bytes | None):
@@ -102,103 +92,77 @@ def char_boundary(data: bytes, index: int) -> int:
 
 
 class Position(NamedTuple):
-    """A point in the tree: a run, and a byte offset within it.
+    """A point in the tree: a span, and a byte offset within it.
 
-    An offset alone is not a position. Sibling branches start at the same
-    absolute offset, so the path is the other half of the address -- which is
-    also why durable references store the offset and look the run up, rather
-    than the reverse.
+    `None` in place of a Position is the root -- the point before any span,
+    where an initial prompt goes. Several spans may sit there, which is how
+    several initial prompts coexist without an empty node to hang them off.
     """
-    run: str
+    span: str
     offset: int
+
+
+def pos_json(pos: Position | None):
+    return None if pos is None else [pos.span, pos.offset]
+
+
+def pos_from_json(value) -> Position | None:
+    return None if value is None else Position(value[0], value[1])
 
 
 @dataclass
 class Span:
     """An authored or generated stretch, and the conditions that produced it.
 
-    Provenance is written once. The byte record -- `text` and `end` -- is empty
-    at creation and filled in when generation completes; filled in, never
-    overwritten. A span with no `end` is in flight.
+    Provenance -- including `parent`, which is where the structure lives -- is
+    written once. The byte record is empty at creation and filled in when
+    generation completes; filled in, never overwritten. A span with no `text`
+    is in flight.
 
     Termination reason is deliberately absent: it lives in the bulk store, so
     that finishing a generation never has to reopen this record.
     """
     id: str
     kind: str
-    start: int                      # absolute byte offset from the root
-    end: int | None = None          # absolute; None while in flight
+    parent: Position | None = None   # None is the root
     text: bytes | None = None
     created: str = ''
     # sampled
-    params: str | None = None       # key into the intern table
+    params: str | None = None        # key into the intern table
     seed: int | None = None
     batch: str | None = None
-    index: int | None = None        # position within the batch
-    slice_start: int | None = None  # absolute, resolved -- see decision 4
+    index: int | None = None         # position within the batch
+    slice_start: Position | None = None
     # counterfactual
-    origin: dict | None = None      # {span, index, token_id}
+    origin: dict | None = None       # {span, index, token_id}
 
     @property
     def complete(self) -> bool:
-        return self.end is not None
+        return self.text is not None
 
     @property
     def length(self) -> int:
         return len(self.text) if self.text is not None else 0
 
     def to_json(self) -> dict:
-        out = {'kind': self.kind, 'text': encode_text(self.text),
-               'extent': [self.start, self.end], 'created': self.created}
-        for name in ('params', 'seed', 'batch', 'index', 'slice_start', 'origin'):
+        out = {'kind': self.kind, 'parent': pos_json(self.parent),
+               'text': encode_text(self.text), 'created': self.created}
+        for name in ('params', 'seed', 'batch', 'index', 'origin'):
             value = getattr(self, name)
             if value is not None:
                 out[name] = value
+        if self.slice_start is not None:
+            out['slice_start'] = pos_json(self.slice_start)
         return out
 
     @classmethod
     def from_json(cls, id: str, d: dict) -> Span:
-        start, end = d['extent']
-        return cls(id=id, kind=d['kind'], start=start, end=end,
-                   text=decode_text(d.get('text')),
-                   created=d.get('created', ''),
+        return cls(id=id, kind=d['kind'], parent=pos_from_json(d.get('parent')),
+                   text=decode_text(d.get('text')), created=d.get('created', ''),
                    params=d.get('params'), seed=d.get('seed'),
                    batch=d.get('batch'), index=d.get('index'),
-                   slice_start=d.get('slice_start'), origin=d.get('origin'))
-
-
-@dataclass
-class Run:
-    """A maximal stretch with no branch point in it. Structure, not record.
-
-    Boundaries move freely: a split divides the piece list and relinks, and the
-    prefix keeps this id. Nothing durable may be keyed by one -- after a split
-    a stored id still resolves, but to less text than it did.
-    """
-    id: str
-    parent: str | None
-    start: int                                     # absolute byte offset
-    pieces: list[Piece] = field(default_factory=list)
-    children: list[str] = field(default_factory=list)
-
-    @property
-    def length(self) -> int:
-        return sum(p.length for p in self.pieces)
-
-    @property
-    def end(self) -> int:
-        return self.start + self.length
-
-    def to_json(self) -> dict:
-        return {'parent': self.parent, 'start': self.start,
-                'pieces': [list(p) for p in self.pieces],
-                'children': list(self.children)}
-
-    @classmethod
-    def from_json(cls, id: str, d: dict) -> Run:
-        return cls(id=id, parent=d['parent'], start=d['start'],
-                   pieces=[Piece(*p) for p in d['pieces']],
-                   children=list(d['children']))
+                   slice_start=pos_from_json(d.get('slice_start')),
+                   origin=d.get('origin'))
 
 
 def next_id(existing, prefix: str) -> str:
@@ -213,15 +177,23 @@ def next_id(existing, prefix: str) -> str:
     return f'{prefix}{highest + 1}'
 
 
+def _rank(span_id: str) -> tuple:
+    """Sort key putting s2 before s10, and anything odd last but stable."""
+    try:
+        return (0, int(span_id[1:]))
+    except ValueError:
+        return (1, span_id)
+
+
 def pretty(obj, indent: int = 0, width: int = 84) -> str:
     """JSON that stays openable by hand: nested where it must be, inline where
     it fits.
 
-    `json.dump(indent=2)` puts every extent bound and every piece bound on its
-    own line, which turns a seven-run tree into three hundred. The tree file
-    being readable is a stated goal of the format, and it already gave up
-    reading as prose when runs stopped holding text -- it should not also give
-    up reading as structure.
+    `json.dump(indent=2)` puts every parent address on its own pair of lines,
+    which turns a five-span tree into a hundred. The tree file being readable
+    is a stated goal of the format, and with spans holding their own text and
+    their own attachment it reads as prose again -- that is worth not throwing
+    away at the serialiser.
     """
     compact = json.dumps(obj, ensure_ascii=False)
     if indent + len(compact) <= width:
@@ -241,40 +213,46 @@ def pretty(obj, indent: int = 0, width: int = 84) -> str:
 
 @dataclass
 class Tree:
-    """The tree file: structure, spans, and the interned parameter table."""
+    """The tree file: spans, and the interned parameter table.
+
+    That is the whole of it. There is no separate structure to keep in step
+    with the spans, which is why more than half of what the `token-loom/1`
+    validator checked is not a question that can be asked here.
+    """
     tree_id: str
     base_seed: int
-    root: str
-    runs: dict[str, Run] = field(default_factory=dict)
     spans: dict[str, Span] = field(default_factory=dict)
     params: dict[str, dict] = field(default_factory=dict)
-    selected: dict | None = None
-    deleted: list[str] = field(default_factory=list)
+    selected: Position | None = None
+    deleted: list[Position] = field(default_factory=list)
     format: str = FORMAT
+    # derived, rebuilt on demand; never serialised
+    _children: dict | None = field(default=None, init=False, repr=False,
+                                   compare=False)
 
     # -- construction ----------------------------------------------------
 
     @classmethod
     def empty(cls, base_seed: int | None = None) -> Tree:
-        """A tree with nothing but its root, which holds no bytes by design.
+        """A tree with nothing in it at all.
 
-        Initial prompts are human spans hanging under it, which is the shape
-        that lets several coexist as siblings.
+        `selected` is None, which is the root -- a tree always has a position,
+        even before it has a span, and that position is where the first prompt
+        goes. It is the only special case in the addressing.
         """
         if base_seed is None:
             base_seed = uuid.uuid4().int % 1_000_000
-        root = Run(id='r0', parent=None, start=0)
-        return cls(tree_id=uuid.uuid4().hex, base_seed=base_seed, root='r0',
-                   runs={'r0': root},
-                   # a tree always has a position, even before it has bytes:
-                   # the root's tip is where the first prompt goes
-                   selected={'run': 'r0', 'offset': 0})
-
-    def new_run_id(self) -> str:
-        return next_id(self.runs, 'r')
+        return cls(tree_id=uuid.uuid4().hex, base_seed=base_seed)
 
     def new_span_id(self) -> str:
         return next_id(self.spans, 's')
+
+    def add(self, span: Span) -> Span:
+        """The one way a span enters the tree, so the child index cannot be
+        left stale by a caller that forgot."""
+        self.spans[span.id] = span
+        self._children = None
+        return span
 
     def intern(self, settings: dict) -> str:
         """Return the key for a parameter set, minting one if it is new.
@@ -291,63 +269,111 @@ class Tree:
         self.params[key] = dict(settings)
         return key
 
-    # -- reading ---------------------------------------------------------
-    #
-    # These return bytes, not str. A piece boundary is a token boundary, and
-    # byte-level BPE can put one in the middle of a character -- so a run's
-    # bytes are not guaranteed to decode on their own even when the whole path
-    # does. Decode at the point of display, not here.
+    # -- structure -------------------------------------------------------
 
-    def piece_bytes(self, piece: Piece) -> bytes:
-        span = self.spans[piece.span]
-        if span.text is None:
-            return b''
-        return span.text[piece.start:piece.end]
+    def children_of(self, span_id: str | None) -> list[tuple[int, str]]:
+        """What branches from a span, as `(offset, child)` pairs.
 
-    def run_bytes(self, run_id: str) -> bytes:
-        return b''.join(self.piece_bytes(p) for p in self.runs[run_id].pieces)
-
-    def ancestry(self, run_id: str) -> list[str]:
-        """Root first, `run_id` last."""
-        path = []
-        current = run_id
-        while current is not None:
-            path.append(current)
-            current = self.runs[current].parent
-        path.reverse()
-        return path
-
-    def path_bytes(self, run_id: str) -> bytes:
-        return b''.join(self.run_bytes(r) for r in self.ancestry(run_id))
-
-    def live_runs(self) -> set[str]:
-        """Reachable from the root without crossing a deleted subtree root."""
-        dead = set(self.deleted)
-        live: set[str] = set()
-        stack = [self.root]
-        while stack:
-            current = stack.pop()
-            if current in dead or current in live:
-                continue
-            live.add(current)
-            stack.extend(self.runs[current].children)
-        return live
-
-    def pieces_of(self, span_id: str, runs: set[str] | None = None
-                  ) -> Iterator[tuple[str, int, Piece]]:
-        """Every piece referencing a span, as (run id, absolute offset, piece).
-
-        Optionally restricted to a set of runs -- which is how the validator
-        tells its two coverage checks apart.
+        `None` asks for the roots. This is the read the whole structure turns
+        on, so it goes through an index built once and dropped whenever a span
+        is added -- exact match on a point, where an overlapping-range design
+        would have needed a scan. Order is by offset, then by creation, which
+        is what a fork chip counts through.
         """
-        for run in self.runs.values():
-            if runs is not None and run.id not in runs:
-                continue
-            offset = run.start
-            for piece in run.pieces:
-                if piece.span == span_id:
-                    yield run.id, offset, piece
-                offset += piece.length
+        if self._children is None:
+            index: dict[str | None, list[tuple[int, str]]] = {}
+            for span in self.spans.values():
+                key = span.parent.span if span.parent else None
+                offset = span.parent.offset if span.parent else 0
+                index.setdefault(key, []).append((offset, span.id))
+            for entries in index.values():
+                entries.sort(key=lambda entry: (entry[0], _rank(entry[1])))
+            self._children = index
+        return self._children.get(span_id, [])
+
+    def tip(self, span_id: str) -> Position:
+        return Position(span_id, self.spans[span_id].length)
+
+    def ancestry(self, pos: Position | None) -> list[Position]:
+        """The chain of positions from the root down to `pos`, root first.
+
+        Each entry names a span and how much of it lies on the path -- so the
+        chain is both the route and the recipe for the text along it.
+        """
+        chain: list[Position] = []
+        while pos is not None:
+            chain.append(pos)
+            pos = self.spans[pos.span].parent
+        chain.reverse()
+        return chain
+
+    def path_bytes(self, pos: Position | None) -> bytes:
+        """Every byte from the root to this position, along its path.
+
+        Returns bytes, not str. A parent offset is a token boundary, and
+        byte-level BPE can put one inside a character -- so a fragment of a
+        path is not guaranteed to decode even when the whole of it does.
+        Decode at the point of display, not here.
+        """
+        return b''.join((self.spans[p.span].text or b'')[:p.offset]
+                        for p in self.ancestry(pos))
+
+    def absolute(self, pos: Position | None) -> int:
+        """The root-relative byte offset of a position.
+
+        Derived, never stored: it is the sum of the offsets along the ancestry,
+        which is the whole of the arithmetic. Useful for display and for slice
+        bounds; meaningless in an exported subtree, which is why the format
+        addresses by span instead.
+        """
+        return sum(p.offset for p in self.ancestry(pos))
+
+    # -- deletion --------------------------------------------------------
+
+    def live(self) -> dict[str, int]:
+        """Reachable spans, each mapped to how many of its bytes are reached.
+
+        A span missing from the result is unreachable entirely. One present
+        with a value below its length was cut by a deletion address: its bytes
+        are all still recorded, the tree simply stops reaching them, and
+        nothing continues past the cut.
+
+        That the live extent of a span is a prefix from byte 0 was an invariant
+        the `token-loom/1` validator had to check. Here it is the shape of the
+        answer, and there is no other shape available.
+        """
+        cut: dict[str, int] = {}
+        for pos in self.deleted:
+            if pos.span in self.spans:
+                cut[pos.span] = min(cut.get(pos.span, pos.offset), pos.offset)
+
+        reach: dict[str, int] = {}
+        stack: list[str | None] = [None]
+        while stack:
+            parent = stack.pop()
+            limit = None if parent is None else reach[parent]
+            for offset, child in self.children_of(parent):
+                if limit is not None:
+                    # a child anchored at or past a cut hangs off dead bytes
+                    if offset > limit or (offset == limit and parent in cut):
+                        continue
+                if cut.get(child) == 0:
+                    continue          # the span itself was deleted whole
+                reach[child] = cut.get(child, self.spans[child].length)
+                stack.append(child)
+        return reach
+
+    def resolves(self, pos: Position | None) -> bool:
+        """Is this position still on a reachable path?
+
+        An address always resolves in the sense that it names bytes that were
+        written; this asks the narrower question the UI needs, which is whether
+        the tree still reaches them.
+        """
+        if pos is None:
+            return True
+        reach = self.live()
+        return pos.span in reach and pos.offset <= reach[pos.span]
 
     # -- serialisation ---------------------------------------------------
 
@@ -356,12 +382,10 @@ class Tree:
             'format': self.format,
             'tree_id': self.tree_id,
             'base_seed': self.base_seed,
-            'root': self.root,
             'spans': {k: v.to_json() for k, v in self.spans.items()},
-            'runs': {k: v.to_json() for k, v in self.runs.items()},
             'params': self.params,
-            'selected': self.selected,
-            'deleted': self.deleted,
+            'selected': pos_json(self.selected),
+            'deleted': [pos_json(p) for p in self.deleted],
         }
 
     @classmethod
@@ -369,11 +393,12 @@ class Tree:
         if d.get('format') != FORMAT:
             raise ValueError(f"not {FORMAT}: {d.get('format')!r}")
         return cls(
-            tree_id=d['tree_id'], base_seed=d['base_seed'], root=d['root'],
-            runs={k: Run.from_json(k, v) for k, v in d['runs'].items()},
+            tree_id=d['tree_id'], base_seed=d['base_seed'],
             spans={k: Span.from_json(k, v) for k, v in d['spans'].items()},
-            params=d.get('params', {}), selected=d.get('selected'),
-            deleted=list(d.get('deleted', [])), format=d['format'],
+            params=d.get('params', {}),
+            selected=pos_from_json(d.get('selected')),
+            deleted=[pos_from_json(p) for p in d.get('deleted', [])],
+            format=d['format'],
         )
 
     def save(self, path: str) -> None:
