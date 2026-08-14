@@ -17,8 +17,9 @@ whole subtrees, so the live subset is always a prefix of that chain. It is kept
 anyway, as a standing guard on `delete`: an implementation that stopped
 cascading would show up here and nowhere else.
 
-`PHASE-1.md` has the reasoning, including why a vacuum would retire the strong
-form rather than satisfy it.
+`FORMAT.md` has the reasoning. Note it now describes `token-loom/2`, in which
+both coverage checks are gone: a parent address on each span leaves nothing to
+tile, so the prefix form below becomes the representation rather than a check.
 """
 from __future__ import annotations
 

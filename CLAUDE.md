@@ -14,14 +14,17 @@ replaces.
 
 **`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
-replaced rather than extended. Two companions: `PHASE-1.md` was the detailed plan for the
-format change and is now **superseded by the code** — kept only until Phase 2 opens, then
-deleted rather than maintained; `BEYOND-MVP.md` holds the wants that reach past the MVP and
-the constraints they impose on decisions made now. This file is for things that are true
-about the code and easy to get wrong.
+replaced rather than extended. Two companions: `FORMAT.md` is the on-disk format and the
+reasoning behind it, and is meant to outlive the phases; `BEYOND-MVP.md` holds the wants
+that reach past the MVP and the constraints they impose on decisions made now. This file is
+for things that are true about the code and easy to get wrong.
 
-**Phase 1 has landed.** The token core is built, tested and usable from the command line.
-Phase 2 — the API and front end rebuilt against it — is the current work.
+**Phase 1 has landed, with one amendment outstanding.** The token core is built, tested and
+usable from the command line as `token-loom/1`. Using it surfaced that runs and pieces are a
+larger mechanism than the problem — `token-loom/2` in `FORMAT.md` replaces them with a parent
+address on each span, deleting `split` and five of nine validator checks. **That amendment
+lands before Phase 2 gets far**, because it settles what a position looks like on the wire.
+The code still speaks `token-loom/1`; `FORMAT.md` describes where it is going.
 
 `origin` is `ddisisto/token-loom` (GitHub redirects the old `ddisisto/loom`), `upstream` is
 `socketteer/loom`. Work happens on `main`. The tag `pre-token-core` preserves the last commit
@@ -132,20 +135,23 @@ Two things worth keeping in mind if that ever happens:
   Siblings from one call **share** a response id, so anything reasoning about reachability
   must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does.
   `token-loom/1` retires this: token data lives with the tokens, keyed by span.
-- **Four things about the new format that are easy to get wrong**, all of them load-bearing
-  and all of them checked by `core/validate.py`:
+- **Three things about the format that are easy to get wrong**, all load-bearing:
   - **Text is `bytes` everywhere in the core.** Every offset is a byte offset, and `len` on
     a `str` counts characters — holding text as a string is wrong on the first non-ASCII
     character and right on every ASCII test. Decoding happens at two edges only: writing the
     file, and display.
-  - **A piece is `[span, start, end)` — span-relative, and an end rather than a length.**
-    Both readings are arithmetically plausible, which is what makes it a quiet mistake.
   - **A token boundary is not always a character boundary.** Measured, not assumed: Qwen2.5
     tokenises `🜁` into three tokens, none valid UTF-8 alone. So a span can end mid-character
     (serialised as `{"b64": …}`), and a slice start can land inside one (`slice_at` nudges it
     forward before the span records it).
-  - **A zero-length piece is the link between an in-flight span and its run**, since a span
-    with no bytes is named by nothing else. Completion widens it in place.
+  - **A position is `(span, offset)`, and nothing else is durable.** A span is written once
+    and never cut, so the pair survives every operation. Absolute root-relative offsets are
+    derived, and do not survive export of a subtree. Run ids are display-only under
+    `token-loom/2` and must never reach storage or the wire.
+- **Two more that are true of `token-loom/1` only**, and disappear with the amendment: a
+  piece is `[span, start, end)` — span-relative, and an end rather than a length, both
+  readings arithmetically plausible; and a zero-length piece is the only link between an
+  in-flight span and its run, widened in place on completion.
 - Generation is an ordinary blocking call. The worker thread, the hand-back queue and the
   virtual events silently dropped across threads were artifacts of Tk owning the main loop,
   and went with it. Streaming would reintroduce asynchrony deliberately — it is deferred to
@@ -158,9 +164,43 @@ Two things worth keeping in mind if that ever happens:
   use and already listed in `drop_params` for every OpenRouter type. `inference.gen()` still
   passes `logit_bias=None` so the request builders below it need no change.
 
+## Method
+
+What has paid off here, and what it cost to skip.
+
+- **Plan in prose, then build.** Phase 1 went: lock the decisions in a document, stress-test
+  it, *then* write code. Ten real faults fell out in prose that would have been expensive in
+  code — including a validator invariant that contradicted soft delete and would have fired
+  on every tree after the first delete. Prose is not sufficient, though: the eleventh fault,
+  the one that cost a format version, only fell out of *using* the finished thing. Both
+  stages are load-bearing and neither finds the other's bugs.
+- **A one-line rejection of a structural option is a warning sign.** `token-loom/1` dismissed
+  the shape that turned out to be right in a single sentence, aimed at a variant nobody had
+  written down. Options that would change the shape of the format deserve a worked
+  counterexample before they are struck out. See "Alternatives considered" in `FORMAT.md`.
+- **Probe rather than reason, when the question is decidable.** Confident assumptions that a
+  throwaway script overturned in minutes: the native and OpenAI endpoints return an
+  *identical* token payload; the sampled token is absent from its own top-3 about a third of
+  the time at temperature 0.9; `n_probs: 0` drops per-token **bytes**, not merely
+  counterfactuals; `🜁` is three tokens, none valid UTF-8 alone. The general form —
+  **absence of observation cannot settle a question about what is possible.** Ask the
+  vocabulary, not the samples.
+- **Test the invariant, not the value.** The test that earned its keep most asserted that an
+  operation left a recorded *address* unchanged, not that some field equalled a particular
+  pair. Value-equality tests pass on wrong implementations.
+- **Arithmetic in a test is code, and nothing checks it.** Phase 1's mistakes were almost all
+  in test assertions — miscounted byte lengths, one tautology that could never fail. Compute
+  expected values; do not eyeball them.
+- When a check fails, ask "is the test wrong or is the code wrong?" before fixing either.
+  Twice the honest answer was "the test asks for something the design makes unreachable" —
+  which is a finding, and belongs in the docstring.
+
 ## Working conventions
 
 - Run bash commands **serially and un-bundled**. No `&&` chains, no shell redirects.
+- Multi-line `python -c` gets blocked by the command classifier — write a script into the
+  scratchpad and run it. The shell is zsh, so quote globs (`--include='*.py'`) or they are
+  eaten before the command sees them.
 - Recurring commands go in `scripts/` (gitignored via a `[Ss]cripts` rule, so it holds
   local-only tooling) so they can be pre-authorised once. `scripts/web.sh` runs the web
   backend on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
@@ -181,10 +221,12 @@ Two things worth keeping in mind if that ever happens:
 
 ## Open threads
 
-Phase 1 closed all of the format-level ones. What remains is **throughput under broad
-sampling** — `ROADMAP.md` under "Open questions" — which is a measurement, not a decision,
-and is now cheap to take: `core/session.py:generate` issues N sequential calls with
-`cache_prompt` on, which is the best case for the prompt cache.
+**The `token-loom/2` amendment** is the live one — `FORMAT.md` under "Landing the
+amendment". It is decided, not open; what is outstanding is the code.
+
+Then **throughput under broad sampling** — `ROADMAP.md` under "Open questions" — which is a
+measurement rather than a decision, and is cheap to take: `core/session.py:generate` issues
+N sequential calls with `cache_prompt` on, which is the best case for the prompt cache.
 
 One limitation left deliberately unhandled: a generation point placed *inside* a character
 has no string form, and `core/llama.py` raises rather than guessing. Fixing it properly means

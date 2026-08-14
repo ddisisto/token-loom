@@ -137,8 +137,9 @@ but the threshold that fired is not. So controller settings intern like any othe
 set and nothing derived gets written down. This is what keeps the storage cost of a
 controller close to zero.
 
-Run identity needs nothing new. Phase 2 already gives every batch an id automatically with
-an optional user-supplied name; a controller run is the same object.
+Identity needs nothing new. Phase 2 already gives every batch an id automatically with an
+optional user-supplied name; a controller *run* — in the sense of one execution, not the
+structural sense the format uses — is the same object.
 
 ---
 
@@ -180,12 +181,19 @@ which is a real instrument feature and still needs nothing new stored.
 
 Which is the argument against merging in storage rather than merely a reason to defer it.
 **Bytes are content and spans are events.** Merging bytes is safe; merging events destroys
-multiplicity, and at short lengths multiplicity is the data. Merge-on-insert would also
-need a join-on-delete to stay canonical — a second primitive beside split, for 2%.
+multiplicity, and at short lengths multiplicity is the data. Merge-on-insert would also need
+a join-on-delete to stay canonical — a structural mutation, in a format that has none at
+all, for 2%.
 
-Phase 1 therefore does nothing here beyond what it already does. If merged storage with N
-spans co-covering a shared prefix ever looks worthwhile, reaching it is a re-index of data
-already held, not a recovery of data thrown away.
+That last point got sharper with `token-loom/2`. Spans are now the structure as well as the
+record, so a merge would have to open one — which is the single thing the format forbids.
+Prefix merging is not a deferred feature here; it is off the table for as long as
+immutability is.
+
+Phase 1 therefore does nothing here beyond what it already does. If a merged *view* of N
+siblings over a shared prefix ever looks worthwhile, reaching it is a computation over data
+already held, not a recovery of data thrown away — and it stays a read, because the spans
+underneath it are the events and cannot be collapsed without losing them.
 
 ## Token replay instead of re-tokenisation
 

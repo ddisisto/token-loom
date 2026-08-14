@@ -22,7 +22,7 @@ from core.tree import Piece, Run, Span
 
 TS = '2026-08-12-10.00.00'
 
-# the worked example from PHASE-1.md: a root, one authored prompt, a batch of
+# the worked example from FORMAT.md: a root, one authored prompt, a batch of
 # two continuations, a counterfactual branch off the second, and one call left
 # in flight.
 TOKENS = {

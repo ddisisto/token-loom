@@ -15,7 +15,7 @@ its completions endpoint. Preserving hosted reach would preserve nothing usable.
 Both endpoints return an identical token payload -- `{id, token, bytes,
 logprob, top_logprobs}` -- so the native one is chosen for what it adds around
 that: `stop_type` separating end-of-text from a stop string from a limit, and
-`tokens_evaluated` for free. See `PHASE-1.md` step 3.
+`tokens_evaluated` for free. See `FORMAT.md`.
 """
 from __future__ import annotations
 

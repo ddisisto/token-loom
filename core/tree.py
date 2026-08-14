@@ -2,7 +2,7 @@
 
 Spans own the bytes. Runs own no bytes at all: a run is an ordered list of
 *pieces*, each naming a half-open range of a span. Splitting a run is therefore
-arithmetic on integers and can never open a record. `PHASE-1.md` has the why,
+arithmetic on integers and can never open a record. `FORMAT.md` has the why,
 the alternatives it was chosen over, and the invariants `validate.py` checks.
 
 Four things here are easy to get wrong and worth stating at the top:
@@ -383,7 +383,7 @@ class Tree:
         of structure; a half-written one would lose the tree, not a save.
 
         Serialised before anything is opened, so that a span the format cannot
-        represent -- see the open question in PHASE-1.md -- fails without
+        represent -- see the open question in FORMAT.md -- fails without
         leaving a stray temporary file behind.
         """
         body = pretty(self.to_json()) + '\n'

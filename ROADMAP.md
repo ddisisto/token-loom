@@ -7,25 +7,40 @@ need its own name. Loom wove text blocks; this weaves tokens.
 
 The tree is a **trie over bytes**, with tokens as an overlay.
 
-What used to be a node is a *slice* — a run between branch points. Branching is an
-operation on a **position**, not on a node: generate from anywhere, and if that position
-falls mid-run, the run splits. Splitting is cheap and automatic.
+Read "trie" in its general sense — the key is an arbitrary object, and here the key is
+`(bytes, the conditions that produced them)`. That is why two generations that emit the same
+text are two nodes and not one: they are the same bytes under different conditions, so they
+are different keys. It is also why they *would* merge if the conditions were identical too,
+which same-seed-same-prompt makes a reachable case rather than a theoretical one.
+
+Branching is an operation on a **position**, not on a node: generate from anywhere, and the
+new stretch simply records where it continues from. There is no node to manufacture and
+nothing to divide, so branching mid-span costs exactly what branching at a tip costs.
 
 Several things that were separate features collapse into that:
 
 - "truncate mid-output to create a fork point" is not an edit — it is what branching
-  mid-run already does
+  mid-span already does
 - single-token generation is just a length of 1; stepping token by token is a normal way
   to use the instrument, not a special mode
 - the prompt sent to the model is a slice, recordable as bounds rather than as text
+
+A *run* — a stretch between branch points — is still the unit of reading and layout, but it
+is **derived** rather than stored. See `FORMAT.md`.
 
 The user chooses when to sample broadly (many continuations at a position) and when to
 sample deeply (one continuation, far). Nothing in the structure privileges either.
 
 ### Bytes anchor, tokens overlay
 
-**All positions are byte offsets from the root, along a path.** Tokens are a per-span
+**A position is a byte offset into a span** — `(span, offset)`. Tokens are a per-span
 overlay carrying their own byte extents.
+
+Offsets are the anchor; the span is what says *which path*, since sibling branches share
+their absolute offsets and an offset alone cannot tell them apart. A span is written once
+and never cut, so the pair is invariant under every operation there is. Absolute
+root-relative offsets are derived from it and stored nowhere — they are also meaningless in
+an exported subtree, where a span address still travels.
 
 Token indices cannot be the anchor. They are only well-defined relative to a tokenizer, so
 branching from a position with a different model — which comparing models on a shared
@@ -35,34 +50,38 @@ within a single model: a token can split a UTF-8 character in half, so character
 cannot address token boundaries either.
 
 Byte offsets are tokenizer-independent, and every token boundary is a byte boundary even
-under byte-level BPE. Nothing is lost: splitting a run at a token boundary is splitting at
-a byte offset, per-token logprobs live inside their span keyed by span-local index, and
-token position becomes a derived quantity computed under a stated tokenizer — which is
-what it always actually was.
+under byte-level BPE. Nothing is lost: branching at a token boundary is branching at a byte
+offset, per-token logprobs live inside their span keyed by span-local index, and token
+position becomes a derived quantity computed under a stated tokenizer — which is what it
+always actually was.
 
 Bytes also exist before any tokenizer does, which is what lets a prompt be composed with
 no model server running.
 
-### Two segmentations, kept apart
+### One stored thing, one derived thing
 
-Over the same bytes there are two independent groupings, and conflating them is the main
-way this design can go wrong:
+Over the same bytes there are two groupings, and only one of them is written down:
 
-- **spans** — provenance *and* bytes. One authored or generated stretch, the conditions
-  that produced it, and the text it produced. Written once and never touched again.
-- **runs** — structure and display. A maximal stretch with no branch point in it, holding
-  no bytes of its own: an ordered list of *pieces*, each naming a span and a range within
-  it. Boundaries move freely when the tree is split; they carry no meaning of their own.
+- **spans** — provenance, bytes, *and* structure. One authored or generated stretch, the
+  conditions that produced it, the text it produced, and one address naming where it
+  continues from. Written once and never touched again.
+- **runs** — reading and layout. A maximal chain of spans with no branch point in it.
+  **Derived**, computed from the span tree, stored nowhere. Boundaries carry no meaning of
+  their own, which is exactly why they should not be persisted.
 
-Generation parameters attach to **spans**. Continuing from a tip without branching extends
-a run but starts a new span, so one run may reference several spans at different
-temperatures. That is correct and needs to stay expressible.
+Generation parameters attach to spans. Continuing from a tip without branching starts a new
+span, so one run may cover several spans at different temperatures. That is correct and
+needs to stay expressible — and it stays expressible for free once a run is a computed
+grouping rather than a record.
 
-Putting the bytes on spans rather than runs is what makes "never move once written" true by
-construction instead of by discipline. Splitting a run divides a list of integers; it cannot
-open a span, so it cannot damage a record. It also leaves exactly one copy of every byte,
-so there is no second copy to disagree with. See `PHASE-1.md` for the shape and for the
-alternatives this was chosen over.
+An edge in the tree is `(span, byte offset)`, not a node id. That is the whole of why
+nothing has to be divided when a branch lands mid-span: a child simply records the offset it
+continues from, and the parent is untouched. "Never move once written" becomes true by
+construction rather than by discipline, there is exactly one copy of every byte, and exactly
+one representation of where each byte sits.
+
+`FORMAT.md` has the shape, the alternatives it was chosen over, and — worth reading before
+proposing a change to it — the one-line rejection that nearly kept the wrong answer.
 
 ### Span provenance
 
@@ -95,14 +114,17 @@ Token data does not live in the tree file. The tree structure and its text stay 
 sqlite — random access without loading, an index for the intern table, and somewhere for
 later record types to land.
 
-The tree file is still meant to be openable by hand, but it is no longer *readable* as
-prose: runs hold pieces rather than text, so following a path by eye means resolving pieces
-into spans. That is the accepted cost of one copy of every byte, and the headless driver's
-dump is the answer for reading a tree.
+The tree file stays openable by hand *and* readable: a span holds its own text and one
+address naming its parent, so following a path by eye is following links between strings.
+The `token-loom/1` shape gave that up — runs held ranges of spans rather than text — and
+booked it as the accepted cost of one copy of every byte. It was not: it was the cost of the
+pieces, and `token-loom/2` refunds it. The headless driver's dump is still the better way to
+read a large tree.
 
-The arithmetic that forces this: single-token stepping plus top-N counterfactuals runs
-150–400 bytes per token, so a 100k-token tree is 30–40MB — re-serialised on every save if
-it were one file. That is reachable in ordinary use, not an extreme case.
+The arithmetic that forces the tree/bulk split: single-token stepping plus top-N
+counterfactuals runs 150–400 bytes per token, so a 100k-token tree is 30–40MB —
+re-serialised on every save if it were one file. That is reachable in ordinary use, not an
+extreme case.
 
 **Deletion is soft**, which the append-only store makes nearly free: nothing is rewritten,
 the tree marks a subtree dead. A vacuum pass to compact the store is a later option, not
@@ -130,8 +152,8 @@ linear in N; 3 to start, controllable later.
 position with different slice starts are different experiments — same prefix, different
 amount of it visible — which is "framing acts as a change of basis" made directly
 manipulable. It interns like any other parameter, so it costs nothing. Slice start is
-fixed for the whole of a run: every token in a span shares one slice, and the steps of a
-multi-token run all see the same start rather than a sliding window.
+fixed for the whole of a span: every token in one shares a slice, and the steps of a
+multi-token generation all see the same start rather than a sliding window.
 
 Context size is recorded with it. "Hit the context limit" is uninterpretable without
 knowing which limit — `--ctx-size` is a serving choice and `--parallel` divides it.
@@ -162,14 +184,14 @@ The intended flow, working well:
    separator.
 2. Generate forward, varying parameters, navigating the space that seed creates.
 
-That is the whole of it. The only mutation is branching mid-run.
+That is the whole of it. The only mutation is branching mid-span.
 
 **Nothing is editable in place, ever.** Recorded bytes are immutable; the only destructive
 operation is delete, which cascades. This makes the tree semantically append-only, not just
-its storage: every byte offset ever recorded stays valid forever, nothing needs marking
-stale, and a recorded slice keeps meaning what it meant when it was written. Initial
-prompts are human-authored spans under an empty root, which is already the shape of
-`EMPTY_TREE`.
+its storage: every address ever recorded stays valid forever, nothing needs marking stale,
+and a recorded slice keeps meaning what it meant when it was written. Initial prompts are
+human-authored spans with no parent — several may coexist, which is what makes `EMPTY_TREE`
+literally empty.
 
 The rule is absolute rather than carved out, because the carve-out — "editable until
 something is generated from it" — is the kind of conditional invariant that reads as a
@@ -238,22 +260,30 @@ on-disk format has no second consumer, so it is free to change.
 
 Local inference is now the default: `params.py` ships `qwen2.5-7b-base`.
 
-## Phase 1 — the token core ✅
+## Phase 1 — the token core ✅, amended
 
-Done. One format change, done once, on a clean break. **`PHASE-1.md` is the detailed plan** —
-decisions locked, the on-disk shape with a validated worked example, and the build order —
-and is superseded by the code now that it has landed.
+Built and landed as `token-loom/1`. **`FORMAT.md` is the format document** — decisions
+locked, the on-disk shape with a worked example, and the alternatives each choice was made
+over.
 
-The shape as built: `core/tree.py` (runs, spans, interned parameters), `core/store.py` (the
-bulk store), `core/validate.py` (nine load-time checks), `core/ops.py` (the six operations),
+**One amendment is outstanding**, and should land before Phase 2 planning gets far. Using
+the finished core surfaced that runs and pieces are a larger mechanism than the problem: let
+a span carry a parent *address* rather than sit inside a run, and branching mid-span needs no
+division, `split` stops existing, and five of nine validator checks stop having anything to
+check. `token-loom/2` in `FORMAT.md` is that change. It is roughly a day, it deletes more
+than it adds, and it settles the one Phase 2 decision flagged as needing to be made early —
+what a position looks like on the wire.
+
+The shape as built: `core/tree.py` (structure, spans, interned parameters), `core/store.py`
+(the bulk store), `core/validate.py` (the load-time checks), `core/ops.py` (the operations),
 `core/llama.py` (generation, native), `core/session.py` (the three held together, with the
 save ordering), and `loom.py` for the command line.
 
 What the section below described as scope, and what it looks like having been built:
 
 - Bytes as the anchor; tokens as a per-span overlay with byte extents.
-- Spans hold the bytes and are written once; runs are structure over them, with
-  split-at-position as the primitive operation.
+- Spans hold the bytes and are written once. Under the amendment they hold the structure
+  too, as one parent address each, and there is no split operation at all.
 - Spans carrying provenance category, model, tokenizer, termination reason, and interned
   parameters.
 - **Keep the token `id` and the `bytes` array the server already returns**, for sampled
@@ -288,7 +318,7 @@ What the section below described as scope, and what it looks like having been bu
 - **No migration.** Existing trees stay historical; `data/local.json` becomes archive JSON,
   readable by hand but not by the app. Equivalent data is cheap to regenerate.
 - **A headless driver, landing with the core rather than after it.** Create a tree,
-  author, generate, branch, split, dump — with no browser. This is what makes a big-bang
+  author, generate, branch, delete, dump — with no browser. This is what makes a big-bang
   front-end replacement survivable: the system is exercisable and verifiable before any UI
   exists. It is also the posture the project already claims, that anything which only works
   by clicking is half-built.
@@ -317,12 +347,13 @@ reference. Folding the two axes into one enum is what forces the schema change.
 ## Phase 2 — API and front end, rebuilt
 
 A clean replacement rather than a port. The current API speaks node ids throughout, and a
-node-shaped compatibility view over runs and spans would mean carrying the old model's
-vocabulary into the thing built to replace it — cheaper in the short run and a permanent
-tax after. The old front end keeps working from a tag for as long as it is wanted.
+node-shaped compatibility view over the new model would mean carrying the old vocabulary
+into the thing built to replace it — cheaper in the short run and a permanent tax after.
+The old front end keeps working from a tag for as long as it is wanted.
 
-- **Positions, not nodes**, in the API surface. A position is `(path, byte offset)`;
-  generation, branching and selection all take one.
+- **Positions, not nodes**, in the API surface. A position is `(span, byte offset)`;
+  generation, branching and selection all take one. Nothing else appears on the wire — in
+  particular, derived run ids never do, because a derived grouping renumbers.
 - **No edit endpoint.** `PATCH /api/node/{id}` does not come across, per the immutability
   rule above. Delete cascades; authoring creates.
 - **Full parameters per call**, rather than server-side settings state. This keeps
@@ -364,10 +395,11 @@ The last of the MVP. Unlocked by Phase 1 and cheap once Phase 2 has somewhere to
   The end never floats free of the continuation point because it *is* the continuation
   point. The invariant that a prompt is a contiguous ancestry slice ending at the branch
   point holds by construction, not by prohibition.
-- **Bookmarks and tags**, anchored to byte offsets and node ids.
+- **Bookmarks and tags**, anchored to `(span, offset)` — one address, not an offset plus a
+  node id. A range bookmark is two of them, valid when both lie on one path.
 - **Branch to a counterfactual**: at any token, the stored top-N are alternatives the model
-  ranked but did not take. Selecting one splits the run and continues from there — no
-  generation needed for the branch itself. This is the payoff that makes storing
+  ranked but did not take. Selecting one anchors a new span at that token's offset — no
+  generation needed for the branch itself, and nothing divided to make room for it. This is the payoff that makes storing
   counterfactuals worth their size.
 - Visual distinction between explored and unexplored forks.
 - **Sibling divergence**, as a read over stored token ids: siblings of one batch agree for
