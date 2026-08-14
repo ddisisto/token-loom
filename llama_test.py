@@ -49,8 +49,8 @@ def main():
         settings = session.settings(length=8, top_n=3, temperature=0.9)
 
         print('\ngenerate two continuations from one prompt')
-        prompt = session.author(Position('r0', 0), b'The lighthouse keeper wrote:')
-        spans = session.generate(session.tip('r1'), settings, n=2)
+        prompt = session.author(None, b'The lighthouse keeper wrote:')
+        spans = session.generate(session.tip(prompt.id), settings, n=2)
         check('both completed', all(s.complete for s in spans))
         check('distinct seeds', spans[0].seed != spans[1].seed)
         check('one batch', spans[0].batch == spans[1].batch)
@@ -65,8 +65,8 @@ def main():
                   spelled(tokens) == span.text)
             check(f'{span.id}: every token carries an id and bytes',
                   all(t.token_id is not None and t.bytes for t in tokens))
-            check(f'{span.id}: extent matches the bytes',
-                  span.end - span.start == len(span.text))
+            check(f'{span.id}: it hangs off the prompt it was given',
+                  span.parent == session.tip(prompt.id))
             check(f'{span.id}: terminated as length',
                   session.store.terminator(span.id) in (LENGTH, EOS),
                   session.store.terminator(span.id))
@@ -89,42 +89,45 @@ def main():
         cfs = session.store.counterfactuals(span.id, 1)
         taken = session.store.tokens(span.id)[1].token_id
         alternative = next((c for c in cfs if c.token_id != taken), None)
-        branch_run = None
+        branch_tip = None
         if alternative is None:
             print('  (no distinct alternative at index 1; skipped)')
         else:
-            sampled_path = session.text(_tip_run(session, span.id))
+            sampled_path = session.text(session.tip(span.id))
             branched = session.branch(span.id, 1, alternative.rank)
-            branch_run = _tip_run(session, branched.id)
+            branch_tip = session.tip(branched.id)
             check('the branch carries the token id it chose',
                   branched.origin['token_id'] == alternative.token_id)
-            check('it diverges where the token did',
-                  branched.start == span.start + offsets[1])
+            check('it anchors at the byte the token starts on',
+                  branched.parent == Position(span.id, offsets[1]))
             check('the sampled path is untouched beside it',
-                  session.text(_tip_run(session, span.id)) == sampled_path)
+                  session.text(session.tip(span.id)) == sampled_path)
             check('the two agree up to the divergence and not past it',
-                  _shared(sampled_path, session.text(branch_run))
-                  == branched.start)
+                  _shared(sampled_path, session.text(branch_tip))
+                  == session.tree.absolute(branched.parent))
             check('and still validates',
                   not validate(session.tree, session.store),
                   str(validate(session.tree, session.store)))
             print(f'  took     {sampled_path!r}')
-            print(f'  not took {session.text(branch_run)!r}')
+            print(f'  not took {session.text(branch_tip)!r}')
 
         print('\ncontinue from the branch, then reload from disk')
-        run = branch_run or _tip_run(session, spans[0].id)
-        session.generate(session.tip(run), settings, n=1)
-        before = {r: session.tree.path_bytes(r) for r in session.leaves()}
+        session.generate(branch_tip or session.tip(spans[0].id), settings, n=1)
+        before = {s: session.tree.path_bytes(session.tree.tip(s))
+                  for s in session.leaves()}
         session.close()
 
         back = Session.open(f'{workdir}/tree', server=server)
-        check('reloads and validates', not validate(back.tree, back.store))
+        check('reloads and validates', not validate(back.tree, back.store),
+              str(validate(back.tree, back.store)))
         check('nothing is left in flight',
               all(s.complete for s in back.tree.spans.values()))
         check('every path survives byte for byte',
-              {r: back.tree.path_bytes(r) for r in back.leaves()} == before)
+              {s: back.tree.path_bytes(back.tree.tip(s))
+               for s in back.leaves()} == before)
         for leaf in back.leaves():
-            print(f'  {leaf}: {back.tree.path_bytes(leaf).decode()!r}')
+            print(f'  {leaf}: '
+                  f'{back.tree.path_bytes(back.tree.tip(leaf)).decode()!r}')
         back.close()
 
         print(f'\n{PASS} passed, {FAIL} failed')
@@ -135,12 +138,6 @@ def main():
 
 def _descending(values):
     return all(a >= b for a, b in zip(values, values[1:]))
-
-
-def _tip_run(session, span_id):
-    """The last run a span reaches -- which a split may have moved it into."""
-    return max(session.tree.pieces_of(span_id),
-               key=lambda item: item[2].start)[0]
 
 
 def _shared(a: bytes, b: bytes) -> int:
