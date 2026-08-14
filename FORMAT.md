@@ -465,8 +465,11 @@ Structural:
 2. **The parent chain terminates.** No cycles. Reachability needs no separate check: a span
    whose chain reaches null is reachable by construction, which is a class of orphan
    `token-loom/1` had to look for.
-3. **A span's own record is consistent.** `kind` is one of the three, and `text` is null
-   exactly when the span is in flight.
+3. **A span's own record is consistent.** `kind` is one of the three, a counterfactual
+   carries an `origin`, and a `slice_start` lies on the span's own ancestry — naming a span
+   on some other branch, or an offset past what that span contributes to this path, is a
+   bug. `token-loom/1` could not express that check, let alone catch it: an absolute offset
+   can only be held to arithmetic, where an address can be held to a path.
 4. **Every `deleted` entry resolves** to an existing span with an offset in range.
 
 With the store:
@@ -483,6 +486,12 @@ Check 6 earns its keep three times over: it is the only thing that would catch b
 tokens being mishandled, it is what makes a `text` field and a `bytes` blob safe to hold the
 same information, and it is the check a future vacuum has to pass — reclaim a token row
 belonging to a live span and it fails immediately.
+
+One `token-loom/1` check went **tautological** rather than redundant, which is worth naming
+because it looks like a gap in the list above: it verified that `text` and `extent[1]` agreed
+about whether a span was in flight. There is one field now, and `complete` reads it, so
+nothing is left that could disagree. That is the same finding as "the test asks for something
+the design makes unreachable" — a result, not a hole.
 
 A validator that has never rejected anything is an untested one. Each check gets a tree
 deliberately broken in that one way.

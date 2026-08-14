@@ -1,6 +1,6 @@
 """The token core: a tree is a directory, and its two halves cannot be separated.
 
-    data/<name>/tree.json      structure, spans, interned parameters
+    data/<name>/tree.json      spans, interned parameters
     data/<name>/bulk.sqlite    per-token records
 
 Opening one runs the validator and applies the load-time rule for in-flight
@@ -11,15 +11,14 @@ from __future__ import annotations
 
 import os
 
-from core.ops import (absolute, at, author, begin_generation,
-                      branch_counterfactual, complete, delete, descendants,
-                      locate, prefix_bytes, recover, restore, slice_at, split,
-                      token_offsets, widen)
+from core.ops import (address_at, author, begin_generation,
+                      branch_counterfactual, check, complete, delete, recover,
+                      restore, slice_at, token_offsets)
 from core.llama import DEFAULT_BASE, Result, Server, Truncated
 from core.store import (ABORTED, CONTEXT, EOS, LENGTH, STOP, BulkStore,
                         Counterfactual, Token, spelled)
-from core.tree import (COUNTERFACTUAL, FORMAT, HUMAN, SAMPLED, Piece, Position,
-                       Run, Span, Tree, char_boundary)
+from core.tree import (COUNTERFACTUAL, FORMAT, HUMAN, SAMPLED, Position, Span,
+                       Tree, char_boundary)
 from core.validate import Invalid, validate
 
 TREE_FILE = 'tree.json'
@@ -27,15 +26,15 @@ BULK_FILE = 'bulk.sqlite'
 
 __all__ = [
     # format
-    'Tree', 'Run', 'Span', 'Piece', 'Position', 'BulkStore', 'Token',
-    'Counterfactual', 'FORMAT', 'HUMAN', 'SAMPLED', 'COUNTERFACTUAL',
+    'Tree', 'Span', 'Position', 'BulkStore', 'Token', 'Counterfactual',
+    'FORMAT', 'HUMAN', 'SAMPLED', 'COUNTERFACTUAL',
     'LENGTH', 'STOP', 'EOS', 'CONTEXT', 'ABORTED', 'spelled', 'char_boundary',
     # inference
     'Server', 'Result', 'Truncated', 'DEFAULT_BASE',
-    # the six operations, and what they are built from
-    'author', 'begin_generation', 'complete', 'split', 'delete', 'slice_at',
-    'branch_counterfactual', 'restore', 'recover', 'widen',
-    'absolute', 'at', 'locate', 'prefix_bytes', 'token_offsets', 'descendants',
+    # the five operations, and what they are built from
+    'author', 'begin_generation', 'complete', 'delete', 'slice_at',
+    'branch_counterfactual', 'restore', 'recover',
+    'check', 'address_at', 'token_offsets',
     # files
     'open_tree', 'create_tree', 'save', 'validate', 'Invalid',
 ]
