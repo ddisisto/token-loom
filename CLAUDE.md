@@ -8,17 +8,24 @@ tree of text. Upstream went quiet around 2023.
 
 It has stopped being a revival, and has diverged far enough to take its own name. Loom
 wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tokens as a
-per-span overlay, driven by the web front end in `web/`. The tkinter app is gone.
+per-span overlay, in `core/`, driven from the command line by `loom.py`. The tkinter app is
+gone; the web front end in `web/` still runs the *old* node format and is what Phase 2
+replaces.
 
 **`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
-replaced rather than extended. Two companions: `PHASE-1.md` is the detailed plan for the
-format change — locked decisions, on-disk shape, build order — and is deleted rather than
-maintained once Phase 1 lands; `BEYOND-MVP.md` holds the wants that reach past the MVP and
+replaced rather than extended. Two companions: `PHASE-1.md` was the detailed plan for the
+format change and is now **superseded by the code** — kept only until Phase 2 opens, then
+deleted rather than maintained; `BEYOND-MVP.md` holds the wants that reach past the MVP and
 the constraints they impose on decisions made now. This file is for things that are true
 about the code and easy to get wrong.
 
-`origin` is `ddisisto/loom`, `upstream` is `socketteer/loom`. Work happens on `main`.
+**Phase 1 has landed.** The token core is built, tested and usable from the command line.
+Phase 2 — the API and front end rebuilt against it — is the current work.
+
+`origin` is `ddisisto/token-loom` (GitHub redirects the old `ddisisto/loom`), `upstream` is
+`socketteer/loom`. Work happens on `main`. The tag `pre-token-core` preserves the last commit
+where the browser UI was the whole instrument.
 PR socketteer/loom#28 sent the Tk 9 and threading fixes upstream, partly to probe whether
 upstream is still monitored — it isn't, and the fix targets a front end being removed, so
 it is moot.
@@ -48,8 +55,21 @@ UI be the only entry point.
 ## Inference
 
 **Local only, for MVP.** `scripts/llama-server.sh` serves Qwen2.5-7B **base** (i1-Q4_K_M)
-on port 8081 as `qwen2.5-7b-base`, which is the default in `params.py`. ~5.2GB VRAM at 16k
-context on the GTX 1070, 122 tok/s prompt and 32 tok/s generation — fast enough to work in.
+on port 8081 as `qwen2.5-7b-base`. ~5.2GB VRAM at 16k context on the GTX 1070, 122 tok/s
+prompt and 32 tok/s generation — fast enough to work in.
+
+The new stack talks to it on the **native `/completion` endpoint**, not the
+OpenAI-compatible one — `core/llama.py`, which does not go through `inference.py`. Both
+return an identical token payload (`{id, token, bytes, logprob, top_logprobs}`), so the
+native one is chosen for what it adds: `stop_type` separating `eos` from `word` from
+`limit`, where the compatible layer flattens the first two into `finish_reason: stop`. Two
+things measured there that are not obvious:
+
+- **`n_probs` below 1 returns no per-token `bytes`**, not merely no counterfactuals — so
+  there is no token overlay at all without it. `top_n >= 1` is a hard requirement.
+- **Rank 0 is not always the sampled token.** At temperature 0.9 the sampled token is absent
+  from its own top-3 roughly a third of the time, so `tokens` and `counterfactuals` are
+  independent records rather than one list with a marked entry.
 
 It is the only setup that gives **raw continuation and per-token logprobs at once**, and
 that pairing is the whole point: a continuation of the prior is a different object than a
@@ -64,8 +84,12 @@ almost nothing but Instruct. `mradermacher/Qwen2.5-7B-i1-GGUF` is real
 (`base_model: Qwen/Qwen2.5-7B`), and its imatrix quants beat the static ones at identical
 size.
 
-The hosted entries in `models.py` still work and are left alone, but get no new effort —
-see `ROADMAP.md`. Two things about them are worth keeping in mind if that changes:
+The hosted entries in `models.py` still work for the old stack and are left alone, but the
+new one cannot reach them at all — a deliberate, accepted cost. The reason is upstream of the
+endpoint choice: the token core needs per-token ids, bytes and logprobs on a *raw
+continuation*, and no OpenRouter provider returns logprobs there. Adding a hosted provider
+later means a second adapter beside `core/llama.py`, not an entry in the capability table.
+Two things worth keeping in mind if that ever happens:
 
 - **Provider choice changes semantics for an identical request.** DeepInfra serves
   `mistralai/mistral-nemo` as raw continuation; Io Net chat-templates it. Hence the pinned
@@ -75,9 +99,18 @@ see `ROADMAP.md`. Two things about them are worth keeping in mind if that change
 
 ## Code notes
 
-- The layout is `models.py` (registry and capability table), `params.py` (generation
-  parameters), `inference.py` (the generation call), `util/` (`util.py`, `util_tree.py`),
-  `web/` (server, tree, generation, static). Nothing else.
+- **Two stacks coexist, deliberately, until Phase 2 retires the old one.**
+
+  The **new** one is everything Phase 1 built: `core/` (`tree.py` runs/spans/interned
+  parameters, `store.py` the bulk sqlite, `validate.py` nine load-time checks, `ops.py` the
+  six operations, `llama.py` generation, `session.py` the three held together with the save
+  ordering) plus `loom.py` for the command line. `core_test.py` runs with no model;
+  `llama_test.py` needs the server.
+
+  The **old** one is `inference.py`, `models.py`, `params.py`, `util/` and `web/`. It still
+  runs the browser UI, it is the thing tagged `pre-token-core`, and **the new stack does not
+  import any of it** except `util.util.timestamp`. It retires whole in Phase 2 — do not
+  migrate it piecemeal, and do not extend it.
 - Model types are described by `MODEL_TYPES` in `models.py`, merged over
   `MODEL_TYPE_DEFAULTS`. Adding a provider means adding one entry there, not editing
   `model_type in (...)` tuples across `generate()`, `openAI_generate()` and
@@ -94,16 +127,33 @@ see `ROADMAP.md`. Two things about them are worth keeping in mind if that change
   `models.py:get_correct_key`, which reads a per-model kwarg first and the environment
   second. `.env` is loaded in `web/server.py` and is gitignored — it must never reach a
   commit.
-- **Current format, until Phase 1 of the roadmap lands.** A node's token data lives in
+- **The old node format**, still what `web/` reads. A node's token data lives in
   `model_responses`, keyed by response id, with the node holding `generation: {id, index}`.
   Siblings from one call **share** a response id, so anything reasoning about reachability
-  must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does, and
-  runs on delete and on save. The token-based format retires this entirely: token data will
-  live with the tokens, so nothing can be orphaned.
-- Generation is an ordinary blocking call in a request handler. The worker thread, the
-  hand-back queue and the virtual events that were silently dropped across threads were all
-  artifacts of Tk owning the main loop, and went with it. Phase 4 reintroduces asynchrony
-  deliberately, for streaming — not as a workaround.
+  must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does.
+  `token-loom/1` retires this: token data lives with the tokens, keyed by span.
+- **Four things about the new format that are easy to get wrong**, all of them load-bearing
+  and all of them checked by `core/validate.py`:
+  - **Text is `bytes` everywhere in the core.** Every offset is a byte offset, and `len` on
+    a `str` counts characters — holding text as a string is wrong on the first non-ASCII
+    character and right on every ASCII test. Decoding happens at two edges only: writing the
+    file, and display.
+  - **A piece is `[span, start, end)` — span-relative, and an end rather than a length.**
+    Both readings are arithmetically plausible, which is what makes it a quiet mistake.
+  - **A token boundary is not always a character boundary.** Measured, not assumed: Qwen2.5
+    tokenises `🜁` into three tokens, none valid UTF-8 alone. So a span can end mid-character
+    (serialised as `{"b64": …}`), and a slice start can land inside one (`slice_at` nudges it
+    forward before the span records it).
+  - **A zero-length piece is the link between an in-flight span and its run**, since a span
+    with no bytes is named by nothing else. Completion widens it in place.
+- Generation is an ordinary blocking call. The worker thread, the hand-back queue and the
+  virtual events silently dropped across threads were artifacts of Tk owning the main loop,
+  and went with it. Streaming would reintroduce asynchrony deliberately — it is deferred to
+  `BEYOND-MVP.md`, but the format support it needs (in-flight spans) is already in.
+- **Generation is two calls, not one**: `begin_generation` writes provenance, the tree is
+  saved, then the model is called and `complete` fills in the byte record. That ordering is
+  not bookkeeping — it makes a crash mid-generation legible, and guarantees no bulk row can
+  name a span the tree has not heard of.
 - `logit_bias` no longer exists. It was a GPT-2 token mask, meaningless for the models in
   use and already listed in `drop_params` for every OpenRouter type. `inference.gen()` still
   passes `logit_bias=None` so the request builders below it need no change.
@@ -114,23 +164,32 @@ see `ROADMAP.md`. Two things about them are worth keeping in mind if that change
 - Recurring commands go in `scripts/` (gitignored via a `[Ss]cripts` rule, so it holds
   local-only tooling) so they can be pre-authorised once. `scripts/web.sh` runs the web
   backend on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
-  overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`); `scripts/screenshot.sh` grabs and crops the
-  browser window, overwriting its output in place so an open editor tab refreshes instead of
-  closing — run it bare, with no arguments. `scripts/run.sh` launched the tkinter app and is
-  now dead.
+  overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`); `scripts/loom.sh` is the command-line
+  instrument (`LOOM_TREE` picks the tree directory, default `data/tree`);
+  `scripts/screenshot.sh` grabs and crops the browser window, overwriting its output in place
+  so an open editor tab refreshes instead of closing — run it bare, with no arguments.
+  `scripts/run.sh` launched the tkinter app and is now dead.
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
   when capturing the path — without `-q` it prints `path=/...` and the prefix ends up in the
   filename.
-- `data/local.json` is not disposable. Any format migration has to carry it.
+- `data/local.json` is not disposable, and belongs to the **old** format — Phase 1 makes no
+  attempt to migrate it, by decision. `data/tree/` is the new stack's default and is
+  disposable scratch.
 - Use `Read` on files rather than `cat`.
 - Fix root causes. A workaround that leaves the original fault in place is not a fix.
 
 ## Open threads
 
-Roadmap-level questions — counterfactual storage volume, experiment identity for sweeps,
-what replacing the initial prompt does to recorded slices, seed handling, throughput under
-broad sampling — live in `ROADMAP.md` under "Open questions".
+Phase 1 closed all of the format-level ones. What remains is **throughput under broad
+sampling** — `ROADMAP.md` under "Open questions" — which is a measurement, not a decision,
+and is now cheap to take: `core/session.py:generate` issues N sequential calls with
+`cache_prompt` on, which is the best case for the prompt cache.
+
+One limitation left deliberately unhandled: a generation point placed *inside* a character
+has no string form, and `core/llama.py` raises rather than guessing. Fixing it properly means
+sending token ids, which is the token-replay path in `BEYOND-MVP.md` and needs mixed-mode
+assembly, since human spans have no tokens.
 
 The naming thread is closed: **token loom**. The repo rename and package identity land in
 Phase 0, before `model.py` is rewritten. Note the name collides with crypto in search
