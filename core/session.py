@@ -12,9 +12,9 @@ import os
 
 from core.llama import Server
 from core.ops import (author, begin_generation, branch_counterfactual, complete,
-                      delete, prefix_bytes, recover, restore, slice_at, split)
+                      delete, recover, restore, slice_at)
 from core.store import BulkStore
-from core.tree import Position, Span, Tree
+from core.tree import Position, Span, Tree, id_order
 from core.validate import Invalid, validate
 
 TREE_FILE = 'tree.json'
@@ -70,7 +70,7 @@ class Session:
 
     # -- editing -----------------------------------------------------------
 
-    def author(self, pos: Position, text: bytes) -> Span:
+    def author(self, pos: Position | None, text: bytes) -> Span:
         span = author(self.tree, pos, text)
         self.save()
         return span
@@ -80,12 +80,12 @@ class Session:
         self.save()
         return span
 
-    def delete(self, run_id: str) -> None:
-        delete(self.tree, run_id)
+    def delete(self, pos: Position) -> None:
+        delete(self.tree, pos)
         self.save()
 
-    def restore(self, run_id: str) -> None:
-        restore(self.tree, run_id)
+    def restore(self, pos: Position) -> None:
+        restore(self.tree, pos)
         self.save()
 
     # -- generation --------------------------------------------------------
@@ -107,7 +107,8 @@ class Session:
         base.update(over)
         return base
 
-    def generate(self, pos: Position, settings: dict, n: int = 1) -> list[Span]:
+    def generate(self, pos: Position | None, settings: dict, n: int = 1
+                 ) -> list[Span]:
         """Record the intent, save, then call the model once per continuation.
 
         `n` is sequential by construction: llama-server takes one prompt per
@@ -118,11 +119,11 @@ class Session:
         if self.server is None:
             raise RuntimeError('no server attached to this session')
 
-        anchor = split(self.tree, pos)
-        tip = Position(anchor, self.tree.runs[anchor].length)
-        start, _, prompt = slice_at(self.tree, tip, settings['prompt_length'])
+        # no anchoring step: the position is the position. token-loom/1 had to
+        # split here to manufacture a run to hang the batch off
+        start, _, prompt = slice_at(self.tree, pos, settings['prompt_length'])
 
-        spans = begin_generation(self.tree, tip, settings, n)
+        spans = begin_generation(self.tree, pos, settings, n)
         assert spans[0].slice_start == start, 'the prompt is not the recorded slice'
         self.save()
 
@@ -136,16 +137,24 @@ class Session:
 
     # -- reading -----------------------------------------------------------
 
-    def slice(self, pos: Position, length: int) -> tuple[int, int, bytes]:
+    def slice(self, pos: Position | None, length: int
+              ) -> tuple[Position | None, Position | None, bytes]:
         return slice_at(self.tree, pos, length)
 
-    def text(self, run_id: str) -> bytes:
-        return self.tree.path_bytes(run_id)
+    def text(self, pos: Position | None) -> bytes:
+        return self.tree.path_bytes(pos)
 
-    def tip(self, run_id: str) -> Position:
-        return Position(run_id, self.tree.runs[run_id].length)
+    def tip(self, span_id: str) -> Position:
+        return self.tree.tip(span_id)
 
     def leaves(self) -> list[str]:
-        live = self.tree.live_runs()
-        return [r for r in sorted(live)
-                if not (set(self.tree.runs[r].children) & live)]
+        """Live spans that nothing live continues from.
+
+        A span cut by a deletion address can still be a leaf while holding
+        bytes past the cut -- the tree stops reaching them, which is exactly
+        the distinction soft delete exists to keep.
+        """
+        reach = self.tree.live()
+        return [span_id for span_id in sorted(reach, key=id_order)
+                if not any(child in reach
+                           for _, child in self.tree.children_of(span_id))]

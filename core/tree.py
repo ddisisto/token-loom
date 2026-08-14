@@ -177,8 +177,12 @@ def next_id(existing, prefix: str) -> str:
     return f'{prefix}{highest + 1}'
 
 
-def _rank(span_id: str) -> tuple:
-    """Sort key putting s2 before s10, and anything odd last but stable."""
+def id_order(span_id: str) -> tuple:
+    """Sort key putting s2 before s10, and anything odd last but stable.
+
+    Creation order, since ids are minted one past the highest in use -- which
+    is what a fork chip counts through, and the only order siblings have.
+    """
     try:
         return (0, int(span_id[1:]))
     except ValueError:
@@ -287,7 +291,7 @@ class Tree:
                 offset = span.parent.offset if span.parent else 0
                 index.setdefault(key, []).append((offset, span.id))
             for entries in index.values():
-                entries.sort(key=lambda entry: (entry[0], _rank(entry[1])))
+                entries.sort(key=lambda entry: (entry[0], id_order(entry[1])))
             self._children = index
         return self._children.get(span_id, [])
 
