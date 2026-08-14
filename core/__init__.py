@@ -15,10 +15,11 @@ from core.ops import (absolute, at, author, begin_generation,
                       branch_counterfactual, complete, delete, descendants,
                       locate, prefix_bytes, recover, restore, slice_at, split,
                       token_offsets, widen)
-from core.store import (ABORTED, CONTEXT, LENGTH, STOP, BulkStore,
+from core.llama import DEFAULT_BASE, Result, Server, Truncated
+from core.store import (ABORTED, CONTEXT, EOS, LENGTH, STOP, BulkStore,
                         Counterfactual, Token, spelled)
 from core.tree import (COUNTERFACTUAL, FORMAT, HUMAN, SAMPLED, Piece, Position,
-                       Run, Span, Tree)
+                       Run, Span, Tree, char_boundary)
 from core.validate import Invalid, validate
 
 TREE_FILE = 'tree.json'
@@ -28,7 +29,9 @@ __all__ = [
     # format
     'Tree', 'Run', 'Span', 'Piece', 'Position', 'BulkStore', 'Token',
     'Counterfactual', 'FORMAT', 'HUMAN', 'SAMPLED', 'COUNTERFACTUAL',
-    'LENGTH', 'STOP', 'CONTEXT', 'ABORTED', 'spelled',
+    'LENGTH', 'STOP', 'EOS', 'CONTEXT', 'ABORTED', 'spelled', 'char_boundary',
+    # inference
+    'Server', 'Result', 'Truncated', 'DEFAULT_BASE',
     # the six operations, and what they are built from
     'author', 'begin_generation', 'complete', 'split', 'delete', 'slice_at',
     'branch_counterfactual', 'restore', 'recover', 'widen',

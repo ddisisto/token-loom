@@ -392,6 +392,64 @@ def main():
               repr(wide_back.path_bytes('r2')))
         wstore.close()
 
+        print('\nbytes with no string form')
+        # Measured, not hypothetical: Qwen2.5 tokenises this symbol into three
+        # tokens, none valid UTF-8 alone. A length limit inside one leaves a
+        # span JSON has no string for.
+        symbol = '🜁'.encode()
+        cut = Tree.empty(base_seed=3)
+        cut.params['p0'] = dict(tree.params['p1'])
+        cut.spans = {
+            's0': Span('s0', 'human', 0, 6, b'sign: ', TS),
+            's1': Span('s1', 'sampled', 6, 9, symbol[:3], TS, params='p0',
+                       seed=3, batch='b0', index=0, slice_start=0),
+        }
+        cut.runs = {
+            'r0': Run('r0', None, 0, [], ['r1']),
+            'r1': Run('r1', 'r0', 0, [Piece('s0', 0, 6)], ['r2']),
+            'r2': Run('r2', 'r1', 6, [Piece('s1', 0, 3)], []),
+        }
+        check('a partial character is three bytes, not one',
+              len(symbol) == 4 and cut.spans['s1'].length == 3)
+        rendered = cut.to_json()['spans']['s1']['text']
+        check('it serialises as an object rather than a string',
+              isinstance(rendered, dict) and 'b64' in rendered, str(rendered))
+        check('and the readable spans are unaffected',
+              cut.to_json()['spans']['s0']['text'] == 'sign: ')
+
+        cut_path = os.path.join(workdir, 'cut')
+        os.makedirs(cut_path)
+        cstore = BulkStore(os.path.join(cut_path, 'bulk.sqlite'))
+        cstore.add_tokens('s1', [Token(0, 99, symbol[:3], -5.0)])
+        cstore.set_terminator('s1', LENGTH)
+        save(cut_path, cut)
+        cstore.close()
+        cut_back, cstore = open_tree(cut_path)
+        check('the bytes survive the round trip exactly',
+              cut_back.spans['s1'].text == symbol[:3])
+        check('and the tree still validates against its tokens',
+              not validate(cut_back, cstore), str(validate(cut_back, cstore)))
+        cstore.close()
+
+        print('\na slice start that lands inside a character')
+        # prompt_length is in bytes, so subtracting it lands wherever it lands
+        edge = Tree.empty(base_seed=4)
+        edge.spans = {'s0': Span('s0', 'human', 0, 6, 'abécd'.encode(), TS)}
+        edge.runs = {
+            'r0': Run('r0', None, 0, [], ['r1']),
+            'r1': Run('r1', 'r0', 0, [Piece('s0', 0, 6)], []),
+        }
+        check('the text is 5 characters in 6 bytes',
+              len('abécd') == 5 and edge.spans['s0'].length == 6)
+        start, end, text = slice_at(edge, Position('r1', 6), 3)
+        check('the start nudges forward off the continuation byte',
+              (start, end, text) == (4, 6, b'cd'), f'{(start, end)} {text!r}')
+        check('and what it returns is decodable, which is the point',
+              text.decode() == 'cd')
+        start, _, text = slice_at(edge, Position('r1', 6), 4)
+        check('a start already on a boundary is left alone',
+              start == 2 and text == 'écd'.encode(), f'{start} {text!r}')
+
         print('\nthe validator rejects')
         expect_problem(
             '1. a piece range past the end of its span',

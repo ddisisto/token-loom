@@ -22,6 +22,7 @@ Four things here are easy to get wrong and worth stating at the top:
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import uuid
@@ -54,6 +55,50 @@ class Piece(NamedTuple):
     @property
     def length(self) -> int:
         return self.end - self.start
+
+
+def encode_text(raw: bytes | None):
+    """A span's bytes, as JSON can hold them.
+
+    Almost always a plain string, which is what keeps the file readable. But a
+    token can be a fragment of a character -- measured, not assumed: Qwen2.5
+    tokenises a single alchemical symbol into three tokens, none of them valid
+    UTF-8 alone -- so a span cut at a length limit can end mid-character and
+    have no string form at all.
+
+    That case falls back to `{"b64": ...}`. The alternative was dropping the
+    trailing partial token, which would have made the tree quietly disagree
+    with what the model emitted -- the one thing every other decision here is
+    arranged to prevent. Being unreadable by eye costs nothing in exchange,
+    since the bytes in question are half a character.
+    """
+    if raw is None:
+        return None
+    try:
+        return raw.decode('utf-8')
+    except UnicodeDecodeError:
+        return {'b64': base64.b64encode(raw).decode('ascii')}
+
+
+def decode_text(value) -> bytes | None:
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return base64.b64decode(value['b64'])
+    return value.encode('utf-8')
+
+
+def char_boundary(data: bytes, index: int) -> int:
+    """The first character boundary at or after `index`.
+
+    Byte offsets address token boundaries, and token boundaries are not always
+    character boundaries -- so a slice start computed by subtracting a byte
+    length can land inside a character. Sending that to a model means decoding
+    it, which is where the slice would otherwise fail.
+    """
+    while index < len(data) and 0x80 <= data[index] < 0xC0:
+        index += 1
+    return index
 
 
 class Position(NamedTuple):
@@ -103,20 +148,7 @@ class Span:
         return len(self.text) if self.text is not None else 0
 
     def to_json(self) -> dict:
-        if self.text is None:
-            text = None
-        else:
-            # A span is a whole number of tokens, and byte-level BPE can end
-            # one mid-character -- so this is not guaranteed, only near-always
-            # true. See the open question in PHASE-1.md; guessing at a repair
-            # before seeing a real case would bury it.
-            try:
-                text = self.text.decode('utf-8')
-            except UnicodeDecodeError as e:
-                raise ValueError(
-                    f'{self.id}: bytes do not decode as UTF-8 and the format '
-                    f'has no escape for that yet -- {e}') from e
-        out = {'kind': self.kind, 'text': text,
+        out = {'kind': self.kind, 'text': encode_text(self.text),
                'extent': [self.start, self.end], 'created': self.created}
         for name in ('params', 'seed', 'batch', 'index', 'slice_start', 'origin'):
             value = getattr(self, name)
@@ -127,9 +159,8 @@ class Span:
     @classmethod
     def from_json(cls, id: str, d: dict) -> Span:
         start, end = d['extent']
-        text = d.get('text')
         return cls(id=id, kind=d['kind'], start=start, end=end,
-                   text=None if text is None else text.encode('utf-8'),
+                   text=decode_text(d.get('text')),
                    created=d.get('created', ''),
                    params=d.get('params'), seed=d.get('seed'),
                    batch=d.get('batch'), index=d.get('index'),

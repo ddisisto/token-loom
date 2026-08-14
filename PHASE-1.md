@@ -408,6 +408,7 @@ CREATE TABLE counterfactuals (
 CREATE TABLE terminators (          -- a span is complete when its row lands
   span TEXT PRIMARY KEY, reason TEXT, written TEXT
 );
+-- reason: length | stop | eos | context | aborted
 ```
 
 `bytes` is stored rather than derived. It is what the server returns, and encoding the
@@ -512,45 +513,101 @@ Each step is verifiable on its own, which is what keeps the big-bang confined to
    untested one.
 2. **Core operations** — the six, over the format module. Verify with the headless driver
    on a tree built entirely by hand, no model involved.
-3. **`inference.py`** — keep the token `id` and `bytes` array, key counterfactuals by id.
-   Additive; the current front end is unaffected.
-4. **Generation into the core** — wire `generate` to `inference.gen`, writing spans and
-   bulk records. First point at which a real model is needed.
+3. **A native `llama-server` adapter**, not a patch to `inference.py` — see below.
+4. **Generation into the core** — a session owning the tree, the store and the server, and
+   with them the save ordering. First point at which a real model is needed.
 5. **Headless driver** — author, generate, branch, split, dump. This is the deliverable
    that makes Phase 1 *usable*, not merely complete.
 
 Phase 1 is done when a tree can be built, branched, split, saved, reloaded and dumped from
 the command line, with per-token logprobs and counterfactuals intact across the round trip.
 
+### Why the adapter is new code, not a patched `inference.py`
+
+The original plan was to keep two fields `inference.py` discards. Reading it against what the
+core actually needs, that was bolting onto the wrong thing.
+
+**Most of it is unreachable.** `search` calls `client.Engine`, removed in the OpenAI SDK v1,
+so it would raise rather than work. The AI21 chain — six functions — serves `j1-large` and
+`j1-jumbo`, and Jurassic-1 is discontinued. `completions_text`, `save_response_json` and
+`fix_openAI_token` are never called, the last carrying its own `TODO this doesn't work`.
+`format_openAI_prompt` only runs when `echo=True`, which `llama-server` never is. About 120
+of 373 lines are live, and most of that is provider-quirk plumbing — `drop_params`, echo,
+the placeholder API key, OpenRouter's `extra_body` — that one local server needs none of.
+
+**And `seed` is not in the request path at all.** Neither `openAI_generate` nor
+`DEFAULT_GENERATION_SETTINGS` carries it. Per-span seeds derived from a base are how N
+continuations differ and how a tree replays; so the work was never "keep two fields", it was
+"add the parameter the design rests on, to a request builder shaped for a different data
+model, whose output shape the core then has to unpick".
+
+**The endpoint choice follows from something upstream of it.** No hosted provider can feed
+the token core: it needs per-token ids, bytes and logprobs on a *raw continuation*, and no
+OpenRouter provider returns logprobs on its completions endpoint. Keeping an
+OpenAI-compatible shape to preserve hosted reach would preserve nothing usable. Measured
+against the running server, both endpoints return an identical token payload — `{id, token,
+bytes, logprob, top_logprobs}` — so the native one is chosen for what it adds around that:
+
+- **`stop_type`** separates `eos` from `word` from `limit`. The compatible layer flattens the
+  first two into `finish_reason: stop`, losing exactly the distinction worth recording —
+  whether the model chose to stop or an operator's stop string matched.
+- **`tokens_evaluated`** comes back without asking, which is what the context-limit
+  derivation needs.
+
+`inference.py`, `models.py` and `params.py` are left untouched and die together in Phase 2,
+rather than leaving a half-migrated registry behind. The cost, accepted deliberately: the
+capability table stops being the extension point, so a hosted provider later means a second
+adapter rather than one dict entry.
+
+### Two things the server settled that the plan had guessed at
+
+**`n_probs` is not optional.** Requesting zero counterfactuals returns no
+`completion_probabilities` at all — and with it go the per-token *bytes*, not just the
+alternatives. There is no token overlay to store without them, so `top_n >= 1` is a hard
+requirement rather than a default worth quietly applying.
+
+**Rank 0 is not always the token that was sampled.** At temperature 1.0, three of twelve
+sampled tokens were absent from their own top-3. The worked example above happens to show
+the sampled token at rank 0 and should not be read as a rule: the `tokens` and
+`counterfactuals` tables are independent records, which is why they are separate tables.
+
 ---
 
-## Open question
+## Settled: a token can be a fragment of a character
 
-**A span whose bytes are not valid UTF-8.** A span is a whole number of tokens, and a
-byte-level BPE token can be half a character — so a generation cut off at a length limit can
-in principle end mid-character, leaving bytes with no string form. `tree.json` is JSON, and
-JSON strings are Unicode, so such a span cannot currently be written.
+This was carried as an open question, on the grounds that waiting to observe one could never
+close it — absence only ever means the case has not come up yet. The decidable form is the
+vocabulary, and it turned out cheap to ask: tokenise text the merges will not have covered,
+and look at whether any single token's bytes are valid UTF-8 alone.
 
-Everything inside the core already handles it: text is bytes, and the check that a span's
-text equals its tokens is a bytes comparison. The gap is only at serialisation, which raises
-rather than guessing. **Failing loudly and unhandled is the accepted interim behaviour** —
-the tree file is left untouched, so the cost is the current generation, not the session.
+Against Qwen2.5 they are not. A single alchemical symbol `🜁` — four UTF-8 bytes — comes back
+as **three tokens, none of them valid alone**. Rare scripts, historic scripts and emoji all
+behave the same way; ordinary English does not. So this is reachable in ordinary use rather
+than a corner case, and two things follow.
 
-**The test is the vocabulary, not observation.** Waiting to see one in practice cannot
-settle it: absence means the case has not come up yet, never that it cannot. Whether a token
-can be a fragment of a character is a property of the vocab, answerable directly by
-inspecting it for tokens that are not valid UTF-8 on their own.
+**A span can end mid-character**, when a length limit falls inside one. Its bytes then have
+no string form, and `tree.json` is JSON. Of the three candidates — an escape, dropping the
+trailing partial token, or refusing to stop mid-character at the generation layer — **the
+escape wins**, as `{"b64": …}` in place of the usual string:
 
-The expected answer is yes. Qwen2.5 uses byte-level BPE with the GPT-2 byte-to-unicode
-mapping, which puts all 256 single-byte tokens in the vocab by construction — so a
-continuation byte is a token the model can emit alone, and it routinely does for rare
-characters that never merged. Confirm against the vocab rather than trusting the reasoning,
-but do not plan on the answer being no.
+> Dropping the token would make the tree disagree with what the model emitted, which is the
+> one thing every other decision here is arranged to prevent. Being unreadable by eye costs
+> nothing in exchange, given the bytes in question are half a character.
 
-That leaves the choice between the three candidate answers — an escape for non-decodable
-spans, dropping a trailing partial token, or refusing to end a span mid-character at the
-generation layer — which differ in cost and are worth deciding once, deliberately, rather
-than at the moment one first fails.
+`null` keeps meaning *in flight* and nothing else; a string and an object are the two
+complete forms.
+
+**A slice start can land mid-character**, which is the more disruptive half and was not on
+the list at all. `prompt_length` is in bytes, so subtracting it lands wherever it lands — and
+the prompt has to be decoded to be sent. `slice_at` therefore nudges the start forward to the
+next character boundary *before* the span records it, so `slice_start` describes the slice
+that was used rather than the one that was asked for.
+
+What remains, deliberately unhandled: a generation point placed inside a character. The
+prompt then genuinely has no string form, and the adapter raises rather than guessing.
+Fixing it properly means sending token ids instead of text — the token-replay path in
+`BEYOND-MVP.md` — which needs mixed-mode assembly, since human spans have no tokens. Not
+worth pulling forward for a case that requires branching inside an emoji on purpose.
 
 ## Not in Phase 1
 

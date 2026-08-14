@@ -138,15 +138,21 @@ knowing which limit — `--ctx-size` is a serving choice and `--parallel` divide
 
 ### Why a span ended
 
-Sampled spans record a **termination reason**: length reached, stop token hit, context
-limit reached, or aborted. Whether the model chose to stop or was cut off is exactly the
-kind of distinction the attractor question turns on, so this is worth recording
-independently of any feature that needs it.
+Sampled spans record a **termination reason**: length reached, a stop string matched, the
+model emitting end-of-text, the context limit, or aborted. Whether the model chose to stop
+or was cut off is exactly the kind of distinction the attractor question turns on, so this
+is worth recording independently of any feature that needs it — and end-of-text is the
+model's own choice where a stop string is the operator's, so they are kept apart.
 
-The context-limit case cannot be read off `finish_reason` — the OpenAI-compatible layer
-reports `length` both for "reached the requested length" and for "ran out of context",
-flattening a distinction llama.cpp's native endpoint makes. Derive it: prompt tokens plus
-requested length against `n_ctx` says which wall is coming before it arrives.
+Both halves of this argue for llama.cpp's native endpoint over the OpenAI-compatible one,
+which flattens `eos` and `stop` into a single `finish_reason: stop`. Phase 1 measured the
+rest: the two return an identical token payload, so nothing is given up by preferring the
+one that answers the question.
+
+The context-limit case still has to be derived, because `stop_type: limit` covers both
+walls. The cheap derivation is not arithmetic against `n_ctx`: if nothing stopped the
+generation and it produced fewer tokens than were asked for, running out of context is the
+only thing left that could have.
 
 ## MVP
 
@@ -245,12 +251,22 @@ This section is the scope; that file is the design.
   parameters.
 - **Keep the token `id` and the `bytes` array the server already returns**, for sampled
   tokens and for every counterfactual, and key counterfactuals by id rather than by their
-  surface string. `inference.py` currently discards both. `bytes` is the byte extent this
-  whole model is anchored on, handed over directly — re-deriving it by encoding the token
-  string is lossy for exactly the byte-fallback tokens that split a character, which is the
-  case byte anchoring exists to handle. Ids cost ~4 bytes against 150–400 per token, and
-  recovering one from its string collides on special tokens with a literal surface form and
-  on duplicate vocab entries. Neither can be retrofitted onto trees already generated.
+  surface string. `bytes` is the byte extent this whole model is anchored on, handed over
+  directly — re-deriving it by encoding the token string is lossy for exactly the
+  byte-fallback tokens that split a character, which is the case byte anchoring exists to
+  handle, and which Qwen2.5 has been measured to produce for rare scripts and emoji. Ids
+  cost ~4 bytes against 150–400 per token, and recovering one from its string collides on
+  special tokens with a literal surface form and on duplicate vocab entries. Neither can be
+  retrofitted onto trees already generated.
+- **A native `llama-server` adapter rather than a patched `inference.py`.** The existing
+  path is built around the OpenAI-compatible surface and a capability table describing how
+  providers differ, and neither survives contact with one local server — two thirds of it
+  is unreachable, and `seed`, which the whole design rests on, was never in the request at
+  all. The decisive point is upstream of the endpoint: no hosted provider returns logprobs
+  on a raw continuation, so none of them can feed the token core whatever shape it speaks.
+  `inference.py`, `models.py` and `params.py` are left untouched and retire together in
+  Phase 2. Accepted cost: adding a hosted provider later is a second adapter rather than
+  one entry in the capability table.
 - Tree/bulk storage split, append-only bulk, soft delete.
 - Prompt recorded as slice bounds — `(endpoint, start_byte, end_byte)` — not as text.
 - **A batch id on every span, minted per generation call.** Pulled forward from the

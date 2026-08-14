@@ -20,13 +20,21 @@ from typing import Iterable, NamedTuple
 
 from util.util import timestamp
 
-# why a span stopped. `aborted` is what a process that died leaves behind, and
+# Why a span stopped. `aborted` is what a process that died leaves behind, and
 # is applied at load rather than written by the generation that failed.
+#
+# `eos` and `stop` are kept apart because they answer different questions. The
+# model emitting end-of-text is a choice it made; a configured stop string
+# matching is a choice the operator made. "Whether the model chose to stop or
+# was cut off" is exactly the distinction the attractor question turns on, and
+# the native endpoint hands it over -- the OpenAI-compatible layer flattens
+# both into `finish_reason: stop`.
 LENGTH = 'length'
 STOP = 'stop'
+EOS = 'eos'
 CONTEXT = 'context'
 ABORTED = 'aborted'
-REASONS = (LENGTH, STOP, CONTEXT, ABORTED)
+REASONS = (LENGTH, STOP, EOS, CONTEXT, ABORTED)
 
 SCHEMA = [
     """CREATE TABLE IF NOT EXISTS tokens (

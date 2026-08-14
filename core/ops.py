@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from core.store import ABORTED, BulkStore, Token, spelled
 from core.tree import (COUNTERFACTUAL, HUMAN, SAMPLED, Piece, Position, Run,
-                       Span, Tree, next_id, now)
+                       Span, Tree, char_boundary, next_id, now)
 
 
 def absolute(tree: Tree, pos: Position) -> int:
@@ -146,7 +146,10 @@ def begin_generation(tree: Tree, pos: Position, settings: dict, n: int = 1
     batch = next_id({s.batch for s in tree.spans.values() if s.batch}, 'b')
     # base seed plus call index, so siblings differ and the tree still replays
     call = sum(1 for s in tree.spans.values() if s.seed is not None)
-    slice_start = max(0, start - settings['prompt_length'])
+    # resolved through slice_at, so the span records the same start the prompt
+    # was actually built from -- including the nudge to a character boundary
+    slice_start, _, _ = slice_at(tree, Position(anchor, tree.runs[anchor].length),
+                                 settings['prompt_length'])
 
     spans = []
     for i, run_id in enumerate(_attach(tree, anchor, n)):
@@ -274,10 +277,18 @@ def slice_at(tree: Tree, pos: Position, length: int) -> tuple[int, int, bytes]:
 
     Recorded as bounds rather than as text, which is only sound because bytes
     are immutable -- the bounds keep meaning what they meant when written.
+
+    The start is nudged forward to a character boundary when subtracting a byte
+    length lands inside one. That is a real case rather than a precaution: a
+    token can be a fragment of a character, so byte offsets genuinely address
+    positions no string starts at. Snapping *here* rather than at the point of
+    sending is what keeps `slice_start` on the span honest -- it records the
+    slice that was actually used, not the one that was asked for.
     """
     end = absolute(tree, pos)
-    start = max(0, end - length)
-    return start, end, prefix_bytes(tree, pos)[start:]
+    prefix = prefix_bytes(tree, pos)
+    start = char_boundary(prefix, max(0, end - length))
+    return start, end, prefix[start:]
 
 
 def locate(tree: Tree, span_id: str, offset: int) -> Position:
