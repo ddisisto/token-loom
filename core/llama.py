@@ -30,11 +30,20 @@ DEFAULT_BASE = 'http://127.0.0.1:8081'
 
 
 class Truncated(Exception):
-    """The server silently cut the prompt to fit its context.
+    """The prompt does not fit the server's context, so nothing was generated.
 
-    Fatal rather than a warning. The span's `slice_start` would claim bytes the
-    model never saw, which makes the record a lie in exactly the way immutable
-    bytes exist to prevent -- and the recorded conditions are the whole product.
+    Fatal rather than a warning, for the reason it always was: a span whose
+    `slice_start` claimed bytes the model never saw would be a lie in exactly
+    the way immutable bytes exist to prevent, and the recorded conditions are
+    the whole product.
+
+    What changed is where it comes from. This was written watching the
+    `truncated` flag in the response, on the assumption that the server cuts an
+    over-long prompt down and generates from what is left. Measured against
+    llama.cpp b10221, it does not: an over-long prompt is refused outright with
+    HTTP 400 and `exceed_context_size_error`, and no generation happens at all.
+    So this is raised from the refusal, and the flag means something else --
+    see `_reason`.
     """
 
 
@@ -118,17 +127,20 @@ class Server:
         }
         r = requests.post(f'{self.base}/completion', json=body,
                           timeout=self.timeout)
+        if r.status_code == 400:
+            # the one refusal worth a typed error rather than an HTTPError:
+            # the prompt is longer than the context and nothing was generated
+            error = (r.json().get('error') or {}) if _is_json(r) else {}
+            if error.get('type') == 'exceed_context_size_error':
+                raise Truncated(
+                    f"{error.get('n_prompt_tokens')} prompt tokens do not fit "
+                    f"a context of {error.get('n_ctx')}; shorten the slice with "
+                    f"--prompt-length, or serve with a larger --ctx-size")
         r.raise_for_status()
         return self._read(r.json(), settings)
 
     @staticmethod
     def _read(payload: dict, settings: dict) -> Result:
-        if payload.get('truncated'):
-            raise Truncated(
-                f"the server truncated a prompt of "
-                f"{payload.get('tokens_evaluated')} tokens; the recorded slice "
-                f"would not be what the model saw")
-
         entries = payload.get('completion_probabilities') or []
         tokens = [Token(i, e['id'], bytes(e['bytes']), e['logprob'])
                   for i, e in enumerate(entries)]
@@ -141,6 +153,10 @@ class Server:
                       _reason(payload, settings), payload.get('tokens_evaluated', 0))
 
 
+def _is_json(response) -> bool:
+    return response.headers.get('content-type', '').startswith('application/json')
+
+
 def _reason(payload: dict, settings: dict) -> str:
     """Which wall the generation hit.
 
@@ -149,6 +165,19 @@ def _reason(payload: dict, settings: dict) -> str:
     derivation is not the arithmetic it suggests: if nothing stopped it and it
     produced fewer tokens than requested, context exhaustion is the only thing
     left that could have.
+
+    The derivation was unreachable until it was tested. `truncated` in the
+    response does not mean the prompt was cut -- it means *generation* hit the
+    context wall, which is this exact case, and it was being raised on. So
+    every context exhaustion became a fatal error and `CONTEXT` was never once
+    recorded. Measured against llama.cpp b10221 at `--ctx-size 512`, with a
+    385-token prompt: asking for 512 tokens yields 127 and `truncated: true`,
+    asking for 120 yields 120 and `truncated: false`, and the boundary sits
+    exactly where prompt + predicted reaches `n_ctx`.
+
+    The flag and the derivation agreed in every case measured. The derivation
+    is what is used, because it needs nothing from the server beyond the counts
+    that any completions endpoint reports.
     """
     stop_type = payload.get('stop_type')
     if stop_type == 'eos':

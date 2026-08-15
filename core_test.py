@@ -402,6 +402,63 @@ def driver(workdir):
     check('a bad position is refused too', _exits(run, 'read', 's99'))
     check('and so is a malformed offset', _exits(run, 'cursor', 's0+x'))
 
+    several_roots(workdir)
+
+
+def several_roots(workdir):
+    """More than one span with `parent: null`, which the format permits.
+
+    `EMPTY_TREE` is literally empty and an initial prompt is an ordinary human
+    span with no parent, so nothing stops there being several -- and `show`
+    has to splice the zero-width root rather than render it as a run of its
+    own. That was a claim from reading `outline`, not from running it.
+
+    Not a flow to build on: the MVP composes one prompt with separators rather
+    than authoring siblings. It is checked because the format allows it, and an
+    allowed shape that crashes the only renderer is a fault either way.
+    """
+    import io
+    import contextlib
+    import loom
+
+    print('\nseveral root prompts')
+    path = os.path.join(workdir, 'roots')
+
+    def at_root(*argv):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = loom.main(['-d', path, *argv])
+        return code, out.getvalue()
+
+    at_root('new', '--seed', '5')
+    for text in ('First.', 'Second!', 'Third?'):
+        at_root('author', text, '.')
+
+    code, out = at_root('show')
+    check('all three roots render', code == 0
+          and all(m in out for m in ('Hs0', 'Hs1', 'Hs2')), out)
+    check('none of them is nested under another',
+          out.count('├─ ') + out.count('└─ ') == 3, out)
+    check('the zero-width root is spliced, not drawn as a run',
+          '·' not in out and '3 spans' in out, out)
+
+    # each root is its own origin: absolute offsets restart rather than running
+    # on from the sibling before it, which is what "no parent" has to mean
+    code, out = at_root('read', 's1')
+    check('a root reads as itself alone', out.strip() == 'Second!', out)
+    code, out = at_root('cursor', 's2+0')
+    check('and starts at absolute 0 like every other root',
+          'absolute 0' in out, out)
+
+    # deleting one root leaves the others, which the cut-per-span rule gives
+    at_root('delete', 's1+0')
+    code, out = at_root('show')
+    check('deleting one root leaves its siblings',
+          'Hs0' in out and 'Hs2' in out and 'Hs1' not in out, out)
+    # soft delete, so the span is still there and merely unreachable
+    check('and the count says unreachable rather than gone',
+          '3 spans, 1 unreachable' in out, out)
+
 
 def _exits(run, *argv):
     try:
