@@ -16,6 +16,7 @@ what makes replacing that front end survivable.
     loom.py tokens s2                    the overlay: logprobs, alternatives
     loom.py branch s2 3 1                take the road not taken
     loom.py batches --params p1          generation calls, one condition
+    loom.py diverge                      how far the siblings of a call agree
     loom.py params                       the interned parameter sets
     loom.py delete s5+9                  soft, and it cascades
 
@@ -47,7 +48,7 @@ import os
 import sys
 
 from core import Invalid, Position, Server, Truncated, validate
-from core.ops import token_offsets
+from core.ops import divergence, token_offsets
 from core.session import Session
 from core.tree import id_order
 
@@ -379,6 +380,82 @@ def show_batches(session: Session, batch_id: str | None = None,
         print()
 
 
+def show_divergence(session: Session, batch_id: str | None = None,
+                    params_key: str | None = None, profile: bool = False
+                    ) -> None:
+    """Sibling agreement as a number, per batch.
+
+    The first quantitative read in the project, and the reason it is worth
+    having is in RESEARCH.md: everything else there was read by eye off `show`.
+    A batch is the natural unit because its spans are the siblings of one call
+    -- same position, same conditions, different seed -- which is exactly the
+    set the measure is defined over.
+
+    `lock(k)` is the largest fraction sharing their first k tokens. The ratio
+    lock(10)/lock(3) is the one to watch: it separates siblings that agree and
+    keep agreeing from siblings that agree on an opening and then scatter, and
+    those are different phenomena that a single lock number reports alike.
+    """
+    tree, store = session.tree, session.store
+    batches: dict[str, list] = {}
+    for span in sorted(tree.spans.values(), key=lambda s: id_order(s.id)):
+        if span.batch:
+            batches.setdefault(span.batch, []).append(span)
+
+    if batch_id is not None:
+        if batch_id not in batches:
+            raise SystemExit(f'no batch {batch_id!r}; see `batches`')
+        batches = {batch_id: batches[batch_id]}
+    if params_key is not None:
+        if params_key not in tree.params:
+            raise SystemExit(f'no parameter set {params_key!r}; see `params`')
+        batches = {name: spans for name, spans in batches.items()
+                   if spans[0].params == params_key}
+    if not batches:
+        print('(no batches to compare)')
+        return
+
+    if not profile:
+        print(f'{"batch":<6} {"n":>3} {"temp":>5} {"from":>8}  '
+              f'{"lock1":>5} {"lock3":>5} {"lock10":>6} {"10/3":>5}  '
+              f'{"common":>6} {"distinct@":>9}')
+    for name, spans in sorted(batches.items(), key=lambda kv: id_order(kv[0])):
+        spans.sort(key=lambda s: (s.index if s.index is not None else 0))
+        head = spans[0]
+        d = divergence(store, [s.id for s in spans])
+        temp = (tree.params[head.params].get('temperature')
+                if head.params else None)
+        # undefined rather than zero when the frame itself never formed: a
+        # ratio against a lock of nothing is not a small number, it is no number
+        ratio = (d['lock'][10] / d['lock'][3]) if d['lock'][3] else None
+
+        if profile:
+            print(f'{name}  n={d["n"]}  temp {temp}  from {fmt(head.parent)}'
+                  + (f'  {head.params}' if head.params else ''))
+            print(f'  lock(1) {d["lock"][1]:.2f}  lock(3) {d["lock"][3]:.2f}  '
+                  f'lock(10) {d["lock"][10]:.2f}  '
+                  + ('10/3 —' if ratio is None else f'10/3 {ratio:.2f}'))
+            print(f'  common prefix {d["common"]} token(s), '
+                  + ('fully distinct at depth '
+                     f'{d["fully_distinct_at"]}' if d['fully_distinct_at']
+                     else 'never fully distinct'))
+            print('  distinct paths by depth: '
+                  + ' '.join(str(c) for c in d['distinct']))
+            if any(d['short'].values()):
+                print('  too short to reach a depth: '
+                      + ', '.join(f'{k}:{v}' for k, v in d['short'].items()
+                                  if v))
+            print()
+        else:
+            print(f'{name:<6} {d["n"]:>3} {str(temp):>5} '
+                  f'{fmt(head.parent):>8}  '
+                  f'{d["lock"][1]:>5.2f} {d["lock"][3]:>5.2f} '
+                  f'{d["lock"][10]:>6.2f} '
+                  + ('    —' if ratio is None else f'{ratio:>5.2f}')
+                  + f'  {d["common"]:>6} '
+                  + f'{str(d["fully_distinct_at"] or "—"):>9}')
+
+
 def show_params(session: Session) -> None:
     """The intern table, which was visible one span at a time and no other way.
 
@@ -466,6 +543,13 @@ def main(argv=None) -> int:
     p.add_argument('batch', nargs='?', help='one batch, or all of them')
     p.add_argument('--params', default=None,
                    help='only batches run under this parameter set; see `params`')
+
+    p = sub.add_parser('diverge', help='how far the siblings of a call agree')
+    p.add_argument('batch', nargs='?', help='one batch, or all of them')
+    p.add_argument('--params', default=None,
+                   help='only batches run under this parameter set')
+    p.add_argument('--profile', action='store_true',
+                   help='the full depth profile rather than one row each')
 
     sub.add_parser('params', help='the interned parameter sets')
 
@@ -555,6 +639,9 @@ def dispatch(session: Session, args) -> int:
 
     elif args.command == 'batches':
         show_batches(session, args.batch, args.params)
+
+    elif args.command == 'diverge':
+        show_divergence(session, args.batch, args.params, args.profile)
 
     elif args.command == 'params':
         show_params(session)

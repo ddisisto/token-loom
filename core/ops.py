@@ -212,6 +212,55 @@ def token_offsets(store: BulkStore, span_id: str) -> list[int]:
     return offsets
 
 
+def divergence(store: BulkStore, span_ids: list[str],
+               depths=(1, 3, 10)) -> dict | None:
+    """How far a set of siblings agree, as a profile over token depth.
+
+    A read, not an operation: it stores nothing and changes nothing, and every
+    number it returns is recomputed from token rows already held. It lives here
+    rather than in the CLI because it is missing from the API too -- comparing
+    sibling token sequences is the only quantitative handle the instrument has
+    on where a prompt tends to go, and a client that cannot do it is short of
+    the floor rather than short of a convenience.
+
+    `lock(k)` is the largest fraction of siblings sharing their first `k`
+    tokens. The denominator is always the full sibling count, so a span with
+    fewer than `k` tokens joins no group and lowers every lock it cannot
+    reach -- which is the conservative reading, and the one that cannot make
+    agreement look higher than it was.
+
+    `distinct` does *not* filter by length, because a short sequence is a
+    distinct path rather than a missing one. The asymmetry is deliberate: a
+    span too short to share a prefix has still gone somewhere of its own.
+    """
+    seqs = [tuple(t.token_id for t in store.tokens(s)) for s in span_ids]
+    n = len(seqs)
+    if not n:
+        return None
+    longest = max(len(s) for s in seqs)
+
+    lock = {}
+    for k in depths:
+        reaching = [s[:k] for s in seqs if len(s) >= k]
+        counts = {}
+        for prefix in reaching:
+            counts[prefix] = counts.get(prefix, 0) + 1
+        lock[k] = (max(counts.values()) / n) if counts else 0.0
+
+    common = 0
+    for i in range(min(len(s) for s in seqs)):
+        if len({s[i] for s in seqs}) != 1:
+            break
+        common += 1
+
+    distinct = [len({s[:d] for s in seqs}) for d in range(1, longest + 1)]
+    fully = next((d for d, c in enumerate(distinct, 1) if c == n), None)
+
+    return {'n': n, 'lock': lock, 'common': common, 'distinct': distinct,
+            'fully_distinct_at': fully,
+            'short': {k: sum(1 for s in seqs if len(s) < k) for k in depths}}
+
+
 def branch_counterfactual(tree: Tree, store: BulkStore, span_id: str,
                           index: int, rank: int) -> Span:
     """Take a token the model ranked but did not sample, and branch there.

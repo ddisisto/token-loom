@@ -12,8 +12,8 @@ from __future__ import annotations
 import os
 
 from core.ops import (address_at, author, begin_generation,
-                      branch_counterfactual, check, complete, delete, recover,
-                      restore, slice_at, token_offsets)
+                      branch_counterfactual, check, complete, delete,
+                      divergence, recover, restore, slice_at, token_offsets)
 from core.llama import DEFAULT_BASE, Result, Server, Truncated
 from core.store import (ABORTED, CONTEXT, EOS, LENGTH, STOP, BulkStore,
                         Counterfactual, Token, spelled)
@@ -34,7 +34,7 @@ __all__ = [
     # the five operations, and what they are built from
     'author', 'begin_generation', 'complete', 'delete', 'slice_at',
     'branch_counterfactual', 'restore', 'recover',
-    'check', 'address_at', 'token_offsets',
+    'check', 'address_at', 'token_offsets', 'divergence',
     # files
     'open_tree', 'create_tree', 'save', 'validate', 'Invalid',
 ]

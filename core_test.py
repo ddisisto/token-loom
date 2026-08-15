@@ -19,8 +19,8 @@ import tempfile
 
 from core import (BulkStore, Position, Tree, address_at, author,
                   begin_generation, branch_counterfactual, complete,
-                  create_tree, delete, open_tree, restore, save, slice_at,
-                  token_offsets, validate)
+                  create_tree, delete, divergence, open_tree, restore, save,
+                  slice_at, token_offsets, validate)
 from core.store import Counterfactual, LENGTH, Token
 from core.tree import Span
 
@@ -423,6 +423,7 @@ def driver(workdir):
 
     several_roots(workdir)
     capping_the_render(workdir)
+    sibling_divergence(workdir)
 
 
 def cli_reads(path):
@@ -541,6 +542,81 @@ def several_roots(workdir):
     # soft delete, so the span is still there and merely unreachable
     check('and the count says unreachable rather than gone',
           '3 spans, 1 unreachable' in out, out)
+
+
+def sibling_divergence(workdir):
+    """`divergence`, against sequences whose answers are fixed by construction.
+
+    This is the project's first derived *measurement* rather than derived
+    display, which puts it in the category the method notes warn about: nothing
+    disagrees with a number, so a wrong one is indistinguishable from a right
+    one until something reaches it on purpose.
+
+    So the fixture is four sequences chosen to pin every branch at once -- two
+    that agree for nine tokens and part on the tenth, one that leaves after
+    three, and one too short to reach most depths at all. The short one is the
+    case the asymmetry is about: it must lower `lock` (it shares no prefix it
+    cannot reach) while still counting as a distinct path (it went somewhere).
+    """
+    print('\nsibling divergence, as a number')
+    store = BulkStore(os.path.join(workdir, 'divergence.sqlite'))
+
+    seqs = {
+        'a': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        'b': [1, 2, 3, 4, 5, 6, 7, 8, 9, 11],   # parts from a at index 9
+        'c': [1, 2, 3, 20, 21, 22, 23, 24, 25, 26],   # parts at index 3
+        'd': [1, 2],                            # too short for depth 3 and 10
+    }
+    for span, ids in seqs.items():
+        store.add_tokens(span, [Token(i, tid, bytes([65 + i]), -1.0)
+                                for i, tid in enumerate(ids)])
+
+    d = divergence(store, list(seqs))
+    n = len(seqs)
+
+    # every expectation below is computed from `seqs`, not written down
+    def sharing(k):
+        reaching = [tuple(s[:k]) for s in seqs.values() if len(s) >= k]
+        return max(reaching.count(p) for p in reaching) / n if reaching else 0.0
+
+    check('lock counts the largest agreeing subset over every sibling',
+          all(abs(d['lock'][k] - sharing(k)) < 1e-9 for k in (1, 3, 10)),
+          f'{d["lock"]} vs {[sharing(k) for k in (1, 3, 10)]}')
+    check('a sibling too short to reach a depth lowers the lock there',
+          d['lock'][3] == 3 / 4 and d['short'][3] == 1, str(d))
+    check('and is still counted as a path of its own',
+          d['distinct'][2] == 2, str(d['distinct']))
+
+    # the invariants, which hold for any input and catch what values cannot
+    check('lock never rises with depth',
+          d['lock'][1] >= d['lock'][3] >= d['lock'][10], str(d['lock']))
+    check('distinct paths never fall with depth',
+          all(x <= y for x, y in zip(d['distinct'], d['distinct'][1:])),
+          str(d['distinct']))
+    check('the common prefix is exactly the depth before paths appear',
+          all(c == 1 for c in d['distinct'][:d['common']])
+          and d['distinct'][d['common']] > 1, str(d))
+    check('fully distinct is the first depth where every sibling is alone',
+          d['fully_distinct_at'] == 10
+          and d['distinct'][d['fully_distinct_at'] - 1] == n, str(d))
+    check('the common prefix stops at the shortest sibling',
+          d['common'] == 2 and min(len(s) for s in seqs.values()) == 2, str(d))
+
+    # siblings that never part have no depth at which they are all distinct,
+    # which is a missing answer rather than a large one
+    for span in ('e', 'f'):
+        store.add_tokens(span, [Token(i, t, b'x', -1.0)
+                                for i, t in enumerate([7, 7, 7])])
+    same = divergence(store, ['e', 'f'])
+    check('identical siblings report no full-distinction depth, not a number',
+          same['fully_distinct_at'] is None and same['lock'][1] == 1.0,
+          str(same))
+    check('and asking past their length is answered, not raised',
+          same['lock'][10] == 0.0 and same['short'][10] == 2, str(same))
+
+    check('an empty sibling set is None rather than a division by zero',
+          divergence(store, []) is None)
+    store.close()
 
 
 def capping_the_render(workdir):
