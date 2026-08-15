@@ -42,7 +42,9 @@ Three things follow:
   the API must do; if something is missing, it is usually missing from both.
 - **A branch each.** The threads share `core/` and `loom.py` and will otherwise collide —
   the research thread wants small CLI additions, the build thread retires `inference.py`,
-  `models.py` and `params.py` around it.
+  `models.py` and `params.py` around it. The research thread lives on `research`; `main` stays
+  the trunk and the build thread's home. Merge `main` into `research` freely, and `research`
+  back into `main` when something lands that both threads want — a CLI addition, a doc change.
 - **Findings go in `RESEARCH.md`, facts about the code go here.** A measurement of what a
   model does is not a note about the codebase, and the two rot at completely different rates.
 
@@ -236,23 +238,28 @@ What has paid off here, and what it cost to skip.
 - Multi-line `python -c` gets blocked by the command classifier — write a script into the
   scratchpad and run it. The shell is zsh, so quote globs (`--include='*.py'`) or they are
   eaten before the command sees them.
-- Recurring commands go in `scripts/` (gitignored via a `[Ss]cripts` rule, so it holds
-  local-only tooling) so they can be pre-authorised once. `scripts/web.sh` runs the web
+- Recurring commands go in `scripts/`, so they can be pre-authorised once. It is **committed**
+  — it used to be swallowed by a `[Ss]cripts` rule inherited from a virtualenv gitignore
+  template, which was an accident rather than a decision. `scripts/web.sh` runs the web
   backend on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
   overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`); `scripts/loom.sh` is the command-line
-  instrument (`LOOM_TREE` picks the tree directory, default `data/tree`);
-  `scripts/screenshot.sh` grabs and crops the browser window, overwriting its output in place
-  so an open editor tab refreshes instead of closing — run it bare, with no arguments.
-  `scripts/run.sh` launched the tkinter app and is now dead.
+  instrument (`LOOM_TREE` picks the tree directory, default `data/tree`). `run.sh` (the
+  tkinter app) and `screenshot.sh` (the browser window) are gone with the front ends they
+  drove — both are in the archive below.
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
   when capturing the path — without `-q` it prints `path=/...` and the prefix ends up in the
   filename.
-- `data/local.json` is not disposable, and belongs to the **old** format — Phase 1 makes no
-  attempt to migrate it, by decision. `data/tree/` is the new stack's default and is
-  disposable scratch. **`data/demo/` is neither** — it is committed, `PLAYBOOKS.md` quotes it
-  line by line, and `demo.py --force` is the only thing that should rewrite it. `data/*` is
-  gitignored with an explicit exception for it.
+- **`data/` holds exactly one committed thing: `data/demo/`** — `PLAYBOOKS.md` quotes it line
+  by line, and `demo.py --force` is the only thing that should rewrite it. `data/*` is
+  gitignored with an explicit exception for it. Everything else there is disposable scratch;
+  `data/tree/` is `loom.py`'s default.
+- **The archive is `../archive/`, a sibling of the repo and outside it.** It holds the
+  old-format trees (`local.json`, `loom_demo.json` and the rest), `data/backups/`, the dead
+  `run.sh`/`screenshot.sh`, and upstream's README screenshots. Nothing there is needed to run
+  anything; it is kept because `local.json` in particular is not reproducible. It is
+  deliberately not a path inside the repo, so no ignore rule has to defend it. Git history
+  still has every file that was once tracked — untracking is not deletion.
 - Use `Read` on files rather than `cat`.
 - Fix root causes. A workaround that leaves the original fault in place is not a fix.
 
