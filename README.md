@@ -19,9 +19,14 @@ use are first-class, and anything that only works by clicking is half-built.
 | | |
 | --- | --- |
 | [PLAYBOOKS.md](PLAYBOOKS.md) | **start here** — five ways of using it, worked end to end against a real model |
-| [ROADMAP.md](ROADMAP.md) | what it is, where it is going, and what is deliberately out of scope |
+| [RESEARCH.md](RESEARCH.md) | the questions, what has been run, what came back, and what to run next |
+| [ROADMAP.md](ROADMAP.md) | the build path — where the interface is going, and what is out of scope |
 | [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
 | [BEYOND-MVP.md](BEYOND-MVP.md) | wants that reach past the MVP, and the constraints they impose now |
+
+There are **two threads**: building the interface, and using the instrument. They share a
+core, a format and a set of conventions, and diverge only in direction — `ROADMAP.md` leads
+one, `RESEARCH.md` the other.
 
 ## Running it
 

@@ -12,12 +12,39 @@ per-span overlay, in `core/`, driven from the command line by `loom.py`. The tki
 gone; the web front end in `web/` still runs the *old* node format and is what Phase 2
 replaces.
 
-**`ROADMAP.md` is the living document.** Direction, phases, open questions and what is
+**`ROADMAP.md` is the living document** for the build. Direction, phases and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
-replaced rather than extended. Two companions: `FORMAT.md` is the on-disk format and the
-reasoning behind it, and is meant to outlive the phases; `BEYOND-MVP.md` holds the wants
-that reach past the MVP and the constraints they impose on decisions made now. This file is
-for things that are true about the code and easy to get wrong.
+replaced rather than extended. Its companions: `FORMAT.md` is the on-disk format and the
+reasoning behind it, meant to outlive the phases; `BEYOND-MVP.md` holds the wants that reach
+past the MVP and the constraints they impose now; `RESEARCH.md` and `PLAYBOOKS.md` belong to
+the other thread, below. This file is for things that are true about the code and easy to get
+wrong, and it is shared by both.
+
+## Two threads, one substrate
+
+The work has split in two, and the split is worth understanding before picking either up.
+
+- **The build.** An API and a front end, rebuilt against the core. `ROADMAP.md`, Phases 2
+  and 3, with `BEYOND-MVP.md` behind it. This is the MVP path and it has an end state.
+- **The research.** Using the instrument that Phase 1 finished — attractors, temperature,
+  framing, retransmission. `RESEARCH.md` is its agenda and notebook; `PLAYBOOKS.md` is how
+  the moves are made. It has no end state, and its instrument already works.
+
+**Both are consumers of one substrate.** `core/` is the instrument; `loom.py` is one client
+and the API is the next. That is why this file is not split: every fact in it — bytes as the
+anchor, the save ordering, `n_probs >= 1`, the conventions, the method — is equally true on
+both sides. Only *direction* forks, and direction lives in the two documents above.
+
+Three things follow:
+
+- **If the build thread finds itself changing `core/`, stop and ask why.** The API should sit
+  on the substrate, not reach into it. The CLI is the reference client and the floor for what
+  the API must do; if something is missing, it is usually missing from both.
+- **A branch each.** The threads share `core/` and `loom.py` and will otherwise collide —
+  the research thread wants small CLI additions, the build thread retires `inference.py`,
+  `models.py` and `params.py` around it.
+- **Findings go in `RESEARCH.md`, facts about the code go here.** A measurement of what a
+  model does is not a note about the codebase, and the two rot at completely different rates.
 
 **Phase 1 has landed.** The token core is built, tested and usable from the command line,
 and the on-disk format is `token-loom/1`. It settled what a position looks like on the wire,
@@ -223,14 +250,17 @@ What has paid off here, and what it cost to skip.
   filename.
 - `data/local.json` is not disposable, and belongs to the **old** format — Phase 1 makes no
   attempt to migrate it, by decision. `data/tree/` is the new stack's default and is
-  disposable scratch.
+  disposable scratch. **`data/demo/` is neither** — it is committed, `PLAYBOOKS.md` quotes it
+  line by line, and `demo.py --force` is the only thing that should rewrite it. `data/*` is
+  gitignored with an explicit exception for it.
 - Use `Read` on files rather than `cat`.
 - Fix root causes. A workaround that leaves the original fault in place is not a fix.
 
 ## Open threads
 
-Nothing is open at the format level. Phase 1 is closed and Phase 2 — the API and front end,
-rebuilt against the core — is the work.
+Nothing is open at the format level, which is what allows the two threads to run beside each
+other: Phase 2 is the build thread's work, `RESEARCH.md`'s "what to run next" is the other's,
+and neither needs the format to change.
 
 Two limitations left deliberately unhandled, both recorded in `FORMAT.md` under "Settled by
 measurement" and both with the same root:

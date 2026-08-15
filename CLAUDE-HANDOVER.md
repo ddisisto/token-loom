@@ -18,9 +18,12 @@ Every thread the previous handover carried is closed, and `main` is pushed and i
 moves worked end to end against `data/demo/`, which is **committed** and reads with no model.
 `demo.py --force` rebuilds it. `README.md` is no longer upstream's tkinter documentation.
 
-Phase 1 is done and there is nothing open at the format level. **Phase 2 — the API and front
-end rebuilt against the core — is the whole of what is next**, and `ROADMAP.md` has its
-scope. Nothing in this file blocks starting it.
+Phase 1 is done and there is nothing open at the format level.
+
+**The work has since split in two**, which most of this file predates — see `CLAUDE.md`,
+"Two threads, one substrate". Phase 2 is the build thread and `ROADMAP.md` has its scope;
+`RESEARCH.md` leads the other. The notes below are shared unless they say otherwise, and
+each thread gets its own briefing rather than inheriting this one.
 
 ## What is worth knowing before Phase 2 starts
 

@@ -143,36 +143,22 @@ structural sense the format uses — is the same object.
 
 ---
 
-## Sibling divergence
+## Sibling divergence, and why it is not a storage feature
 
 Parallel continuations from one position share some prefix with each other. The thought was
 to dedup that storage and move the run's branch point to where they actually diverge.
 
-Measured first, against the local base model — eight continuations of 32 tokens from one
-position, seeded distinctly:
+**Measured, and the storage case is dead.** The numbers are in `RESEARCH.md`, where the
+measurement belongs — it is a read about what the model does, not a fact about files. What
+matters here is the two things they settled.
 
-| temperature | common prefix, all 8 | distinct paths by depth | fully diverged | storage saved |
-| ----------- | -------------------- | ----------------------- | -------------- | ------------- |
-| 0.3         | 0 tokens             | 2, 2, 2, 5, 5, 5, 6, 7  | depth 13       | 13.4%         |
-| 0.9         | 0 tokens             | 3, 7, 8, 8, 8, 8, 8, 8  | depth 3        | 2.3%          |
-| 1.2         | 0 tokens             | 4, 7, 8, 8, 8, 8, 8, 8  | depth 3        | 2.0%          |
+**Sharing is 2% at the working temperature**, rising to 13% only at temperatures the
+instrument is not mainly used at. That is not worth a structural change.
 
-Two things follow, and they point opposite ways.
-
-**The storage case is dead.** 2% at the working temperature is not worth a structural
-change, and the saving only becomes interesting at temperatures the instrument is not
-mainly used at.
-
-**The structure is not what the framing assumed.** There is no single branch point to move
-to: the common prefix of all eight was zero at every temperature. What exists is a *trie
-among the siblings* — at 0.3, eight continuations are two distinct paths for three tokens,
-then five, then seven. Divergence is nested and plural, so the display question is "render
-the sibling sub-trie", not "shift the fork chip down". That is most of why it needs a spike.
-
-The profile itself is the interesting artifact. "Eight samples, two paths, three tokens
-deep" is the attractor question answered as a number, and it needs no format support —
-comparing sibling token sequences is a read-layer computation over data Phase 1 already
-stores.
+**And there is no single branch point to move to.** The common prefix of all eight siblings
+was zero at every temperature. What exists is a *trie among the siblings*, nested and plural,
+so even the display question is "render the sibling sub-trie" rather than "shift the fork
+chip down". The framing that motivated merging was wrong about the shape.
 
 **Single-token stepping is where this gets sharp.** At length 1, prefix-merging degenerates
 into counting: N spans over a handful of distinct tokens. The multiplicity *is* the
@@ -194,6 +180,9 @@ Phase 1 therefore does nothing here beyond what it already does. If a merged *vi
 siblings over a shared prefix ever looks worthwhile, reaching it is a computation over data
 already held, not a recovery of data thrown away — and it stays a read, because the spans
 underneath it are the events and cannot be collapsed without losing them.
+
+That read is wanted, and `RESEARCH.md` argues it is the most valuable unbuilt thing in the
+project. It is listed here only to record that it needs nothing from this file.
 
 ## Token replay instead of re-tokenisation
 
