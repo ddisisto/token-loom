@@ -1,345 +1,53 @@
 # token loom
 
-> **This README is upstream loom's, and documents a tkinter app that no longer exists
-> here.** It is kept only until the rewrite. For what token loom is and where it is
-> going, read [ROADMAP.md](ROADMAP.md); to run it, see [web/README.md](web/README.md).
-> Everything below about hotkeys, the block multiverse, Docker and `main.py` describes
-> code that has been removed.
+A fork of [socketteer/loom](https://github.com/socketteer/loom), diverged far enough to need
+its own name. Loom wove text blocks; this weaves tokens.
 
-This is an experimental tree-based writing interface for GPT-3. The code is actively being developed and thus
-unstable and poorly documented.
+The tree is a **trie over bytes**, with tokens as a per-span overlay. Branching is an
+operation on a *position* — `(span, byte offset)` — rather than on a node, so continuing from
+the middle of a generation costs exactly what continuing from its end costs, and nothing is
+ever cut, copied or edited in place.
 
-# Features
+It is an instrument for studying what a model does when iterated against itself: which
+continuations recur, how temperature gates access to them, how much of the prior has to be
+visible before they appear, and whether anything survives being passed forward repeatedly.
+The interactive tree is one way of looking at that, not the only one — headless and batch
+use are first-class, and anything that only works by clicking is half-built.
 
-* Read mode
-   * Linear story view
-   * Tree nav bar
-   * Edit mode
+## Where to start
 
+| | |
+| --- | --- |
+| [PLAYBOOKS.md](PLAYBOOKS.md) | **start here** — five ways of using it, worked end to end against a real model |
+| [ROADMAP.md](ROADMAP.md) | what it is, where it is going, and what is deliberately out of scope |
+| [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
+| [BEYOND-MVP.md](BEYOND-MVP.md) | wants that reach past the MVP, and the constraints they impose now |
 
-* Tree view
-   * Explore tree visually with mouse
-   * Expand and collapse nodes
-   * Change tree topology
-   * Edit nodes in place
+## Running it
 
+Local inference only, for now. `scripts/llama-server.sh` serves Qwen2.5-7B **base** on port
+8081 — base rather than Instruct because a chat-templated reply is a different object than a
+continuation of the prior, and this is built for the second.
 
-* Navigation
-   * Hotkeys
-   * Bookmarks
-   * Chapters
-   * 'Visited' state
+    scripts/llama-server.sh          # in one terminal
+    python loom.py new
+    python loom.py author 'The sea was'
+    python loom.py gen -n 4 --length 40
+    python loom.py show
 
+`loom.py --help` documents the rest. There is a committed demo tree that needs no model at
+all:
 
-* Generation
-   * Generate N children with GPT-3
-   * Modify generation settings
-   * Change hidden memory on a node-by-node basis
+    python loom.py -d data/demo show
 
+`python core_test.py` runs with no model; `python llama_test.py` needs the server.
 
-* File I/O
-   * Open/save trees as JSON files
-   * Work with trees in multiple tabs
-   * Combine trees
+## State
 
+Phase 1 has landed: the token core is built, tested and driven from the command line, which
+is the **reference client** rather than a scratch tool. Phase 2 — an API and front end
+rebuilt against it — is the current work.
 
-# Demo
-
-![](static/readme/read-view.png)
-![](static/readme/read-view-light.png)
-![](static/readme/tree-view.png)
-![](static/readme/tree-view-light.png)
-![](static/readme/metadata-light.png)
-
-ooo what features! wow so cool
-
-# Block multiverse mode
-
-[Read this](https://generative.ink/meta/block-multiverse/) for a conceptual explanation of block multiverse interface and demo video
-
-### How to use in loom
-
-1. Click `Wavefunction` button on bottom bar. This will open the block multiverse interface in the right sidebar (drag to resize).
-2. Write initial prompt in the main textbox.
-3. [Optional] Write ground truth continuation in the gray entry box at the bottom of the block multiverse interface. Blocks in ground truth trajectory will be colored black.
-4. Set model and [params](https://generative.ink/meta/block-multiverse/#generation-parameters) in top bar.
-5. Click `Propagate` to propagate plot the block multiverse
-6. Click on any of the blocks to zoom ("[renormalize](https://generative.ink/meta/block-multiverse/#renormalization)") to that block
-7. Click `Propagate` again to plot future block multiverse starting from a renormalized frame
-8. Click `Reset zoom` to reset zoom level to initial position
-9. Click `Clear` to clear the block multiverse plot. Do this before generating a new block multiverse.
-
-![](static/readme/block-multiverse.png)
-
-# Hotkeys
-
-*Alt hotkeys correspond to Command on Mac*
-
-### File
-
-Open: `o`, `Control-o`
-
-Import JSON as subtree: `Control-Shift-O`
-
-Save: `s`, `Control-s`
-
-
-### Dialogs
-
-Change chapter: `Control-y`
-
-Preferences: `Control-p`
-
-Generation Settings: `Control-Shift-P`
-
-Visualization Settings: `Control-u`
-
-Multimedia dialog: `u`
-
-Tree Info: `Control-i`
-
-Node Metadata: `Control+Shift+N`
-
-Run Code: `Control+Shift+B`
-
-
-### Mode / display
-
-Toggle edit / save edits: `e`, `Control-e`
-
-Toggle story textbox editable: `Control-Shift-e`
-
-Toggle visualize: `j`, `Control-j`
-
-Toggle bottom pane: `Tab`
-
-Toggle side pane: `Alt-p`
-
-Toggle show children: `Alt-c`
-
-Hoist: `Alt-h`
-
-Unhoist: `Alt-Shift-h`
-
-
-### Navigate
-
-Click to go to node: `Control-shift-click`
-
-Next: `period`, `Return`, `Control-period`
-
-Prev: `comma`, `Control-comma`
-
-Go to child: `Right`, `Control-Right`
-
-Go to next sibling: `Down`, `Control-Down`
-
-Go to parent: `Left`, `Control-Left`
-
-Go to previous Sibling: `Up`, `Control-Up`
-
-Return to root: `r`, `Control-r`
-
-Walk: `w`, `Control-w`
-
-Go to checkpoint: `t`
-
-Save checkpoint: `Control-t`
-
-Go to next bookmark: `d`, `Control-d`
-
-Go to prev bookmark: `a`, `Control-a`
-
-Search ancestry: `Control-f`
-
-Search tree: `Control-shift-f`
-
-Click to split node: `Control-alt-click`
-
-Goto node by id: `Control-shift-g`
-
-
-### Organization
-
-Toggle bookmark: `b`, `Control-b`
-
-Toggle archive node: `!`
-
-
-
-### Generation and memory
-
-Generate: `g`, `Control-g`
-
-Inline generate: `Alt-i`
-
-Add memory: `Control-m`
-
-View current AI memory: `Control-Shift-m`
-
-View node memory: `Alt-m`
-
-
-### Edit topology
-
-Delete: `BackSpace`, `Control-BackSpace`
-
-Merge with Parent: `Shift-Left`
-
-Merge with children: `Shift-Right`
-
-Move node up: `Shift-Up`
-
-Move node down: `Shift-Down`
-
-Change parent: `Shift-P`
-
-New root child: `Control-Shift-h`
-
-New Child: `h`, `Control-h`, `Alt-Right`
-
-New Parent: `Alt-Left`
-
-New Sibling: `Alt-Down`
-
-
-
-### Edit text
-
-Toggle edit / save edits: `Control-e`
-
-Save edits as new sibling: `Alt-e`
-
-Click to edit history: `Control-click`
-
-Click to select token: `Alt-click`
-
-Next counterfactual token: `Alt-period`
-
-Previous counterfactual token: `Alt-comma`
-
-Apply counterfactual changes: `Alt-return`
-
-Enter text: `Control-bar`
-
-Escape textbox: `Escape`
-
-Prepend newline: `n`, `Control-n`
-
-Prepend space: `Control-Space`
-
-
-
-### Collapse / expand
-
-Collapse all except subtree: `Control-colon`
-
-Collapse node: `Control-question`
-
-Collapse subtree: `Control-minus`
-
-Expand children: `Control-quotedbl`
-
-Expand subtree: `Control-plus`
-
-
-### View
-
-Center view: `l`, `Control-l`
-
-Reset zoom: `Control-0`
-
-
-
-# Instructions
-
-## Quickstart with uv
-
-[uv](https://docs.astral.sh/uv/) supplies its own Python (with tkinter bundled), so no system
-Python or `python3-tk` package is needed:
-
-1. `uv sync`
-2. Put your API keys in a `.env` file next to `main.py` (it is gitignored):
-
-        OPENROUTER_API_KEY=sk-or-v1-...
-        OPENAI_API_KEY=sk-...
-
-3. `uv run main.py`
-
-Keys can also come from the shell environment, or be typed into Settings > Model config.
-
-## OpenRouter
-
-[OpenRouter](https://openrouter.ai) exposes many models behind one OpenAI-compatible API,
-including free ones. Models of type `openrouter` read `OPENROUTER_API_KEY`.
-
-Two free models are configured by default. To use another, open Settings > Model config >
-Add model and enter the model slug from https://openrouter.ai/models as both the id and name,
-type `openrouter`, and API base `https://openrouter.ai/api/v1`.
-
-Caveats: OpenRouter providers ignore the `n` parameter, so loom issues one request per
-continuation; not every model supports logprobs (counterfactuals and the block multiverse
-view need them) or accepts a prompt as an assistant message to continue. `google/gemma-4-26b-a4b-it:free`
-supports both. To check a model without launching the GUI:
-
-    uv run smoke_test_openrouter.py [model_slug]
-
-## Linux
-
-0. Make sure you have tkinter installed
-
-    ```sudo apt-get install python3-tk```
-1. Setup your python env (should be >= 3.9.13)
-
-        ```python3 -m venv env```
-        ```source env/bin/activate```
-1. Install requirements
-
-    ```pip install -r requirements.txt```
-2. [Optional] Set environmental variables for `OPENAI_API_KEY`, `GOOSEAI_API_KEY`, `AI21_API_KEY` (you can also use the settings options)
-
-    ```export OPENAI_API_KEY={your api key}```
-3. Run main.py
-4. Load a json tree
-5. Read  :)
-
-## Mac
-1. `conda create -n pyloom python=3.10`
-2. `conda activate pyloom`
-3. `pip install -r requirements-mac.txt`
-4. set the OPENAI_API_KEY env variable
-5. `python main.py`
-
-## Docker
-
-(Only tested on Linux.)
-
-0. [Optional] Edit the Makefile with your API keys (you can also use the settings options)
-1. Run the make targets
-
-        ```make build```
-        ```make run```
-2. Load a json tree
-3. Read  :)
-
-# Local Inference with llama-cpp-python
-[llama.cpp](https://github.com/ggerganov/llama.cpp) lets you run models locally, and is especially useful for running models on Mac. [https://github.com/abetlen/llama-cpp-python] provides nice installation and a convenient API.
-
-## Setup
-1. `conda create -n llama-cpp-local python=3.10; conda activate llama-cpp-local`
-2. Set your preferred backend before installing `llama-cpp-python`, as per [these instructions](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#supported-backends). For instance, to infer on MPS: `CMAKE_ARGS="-DLLAMA_METAL=on"`
-3. `pip install 'llama-cpp-python[server]'`
-4. `pip install huggingface-hub`
-5. Now you can run the server with whatever .gguf model you desire from Huggingface, i.e: `python3 -m llama_cpp.server --hf_model_repo_id NousResearch/Meta-Llama-3-8B-GGUF --model 'Meta-Llama-3-8B-Q4_5_M.gguf' --port 8009`
-
-## Inference
-1. `conda activate llama-cpp-local` and start your llama-cpp-python server.
-2. In a new terminal window, activate your `pyloom` environment and run `main.py`
-2. Enter configurations for your local model in Settings > Model config > Add model. By default, the llama-cpp-port-8009 model uses the following settings:
-```
-{
-            'model': 'Meta-Llama-3-8B-Q4_5_M',
-            'type': 'llama-cpp',
-            'api_base': 'http://localhost:8009/v1',
-},
-```
+The browser front end in `web/` still runs the *old* node format and is what Phase 2
+replaces. The tkinter app is gone; the tag `pre-token-core` preserves the last commit where
+it was the whole instrument, and `git show pre-token-core:README.md` has its documentation.

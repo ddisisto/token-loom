@@ -433,7 +433,15 @@ def main(argv=None) -> int:
     server = Server(args.server) if args.server else Server()
 
     if args.command == 'new':
-        session = Session.create(args.dir, base_seed=args.seed, server=server)
+        try:
+            session = Session.create(args.dir, base_seed=args.seed,
+                                     server=server)
+        except FileExistsError:
+            # refusing is right -- a tree is not overwritable and the bulk
+            # store beside it would survive the tree file being replaced. Only
+            # the traceback was wrong
+            raise SystemExit(f'{args.dir} already holds a tree; move it aside, '
+                             f'or `-d` somewhere else')
         print(f'{args.dir}: tree {session.tree.tree_id}, '
               f'base seed {session.tree.base_seed}')
         session.close()

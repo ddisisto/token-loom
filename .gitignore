@@ -1,6 +1,9 @@
 data/backups/
 data/*
 !data/loom_demo.json
+# the tree PLAYBOOKS.md walks through, committed so it reads with no model.
+# The directory has to be un-ignored before git will look inside it at all.
+!data/demo/
 static/media/*
 !static/media/black.png
 !static/media/blank.png

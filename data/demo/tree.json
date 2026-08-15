@@ -1,0 +1,477 @@
+{
+  "format": "token-loom/1",
+  "tree_id": "8c7bc27097924305966e0ff7630e0fc0",
+  "base_seed": 31415,
+  "spans": {
+    "s0": {
+      "kind": "human",
+      "parent": null,
+      "text": "The lighthouse keeper wrote in his log:",
+      "created": "2026-08-15-18.54.35"
+    },
+    "s1": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " “At 5:00 a.m. I turned on the light. At 7:00 p.m. I turned it off.” How many",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31415,
+      "batch": "b0",
+      "index": 0,
+      "slice_start": ["s0", 0]
+    },
+    "s2": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"At 6:00 am, we saw the light of the lighthouse of island A for the first time; at 8:40 am",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31416,
+      "batch": "b0",
+      "index": 1,
+      "slice_start": ["s0", 0]
+    },
+    "s3": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"At 4:45, the first ship left the port, and every 60 minutes another ship leaves. At 16:45",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31417,
+      "batch": "b0",
+      "index": 2,
+      "slice_start": ["s0", 0]
+    },
+    "s4": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"At 6 am, I lit the lamp. At 11 am, I extinguished it. At 6 pm, I relit it.\"",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31418,
+      "batch": "b0",
+      "index": 3,
+      "slice_start": ["s0", 0]
+    },
+    "s5": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"At 6:00 AM, I observed a ship and a buoy 50 kilometers away from the lighthouse at the same time. At ",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31419,
+      "batch": "b0",
+      "index": 4,
+      "slice_start": ["s0", 0]
+    },
+    "s6": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"At 6:00 PM, I noticed that the angle between the hour and minute hands was the same as the angle at 4:00",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31420,
+      "batch": "b0",
+      "index": 5,
+      "slice_start": ["s0", 0]
+    },
+    "s7": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"At 6:00 am, we saw the lighthouse of island A for the first time; at 12:00 noon, we",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31421,
+      "batch": "b0",
+      "index": 6,
+      "slice_start": ["s0", 0]
+    },
+    "s8": {
+      "kind": "sampled",
+      "parent": ["s0", 39],
+      "text": " \"On May 1st at 3:30 AM, the light went out, I quickly replaced the fuse, and the light returned to normal.\"",
+      "created": "2026-08-15-18.54.35",
+      "params": "p0",
+      "seed": 31422,
+      "batch": "b0",
+      "index": 7,
+      "slice_start": ["s0", 0]
+    },
+    "s9": {
+      "kind": "human",
+      "parent": null,
+      "text": "There are three kinds of silence. The first is",
+      "created": "2026-08-15-18.54.43"
+    },
+    "s10": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of the grave. The second is the silence of the heart. The third is the silence of the mind.\nThe silence of the",
+      "created": "2026-08-15-18.54.43",
+      "params": "p1",
+      "seed": 31423,
+      "batch": "b1",
+      "index": 0,
+      "slice_start": ["s9", 0]
+    },
+    "s11": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who is too weak to say it. The",
+      "created": "2026-08-15-18.54.43",
+      "params": "p1",
+      "seed": 31424,
+      "batch": "b1",
+      "index": 1,
+      "slice_start": ["s9", 0]
+    },
+    "s12": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of the fool. He is afraid to speak, and so he keeps silent. The second is the silence of the wise man.",
+      "created": "2026-08-15-18.54.43",
+      "params": "p1",
+      "seed": 31425,
+      "batch": "b1",
+      "index": 2,
+      "slice_start": ["s9", 0]
+    },
+    "s13": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " when you are alone. You are there with yourself. And there is nothing to say. The second is when you are with someone who is",
+      "created": "2026-08-15-18.54.46",
+      "params": "p2",
+      "seed": 31426,
+      "batch": "b2",
+      "index": 0,
+      "slice_start": ["s9", 0]
+    },
+    "s14": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " when you have nothing to say. This silence is comfortable and good. The second is when you have something important to say, but you are",
+      "created": "2026-08-15-18.54.46",
+      "params": "p2",
+      "seed": 31427,
+      "batch": "b2",
+      "index": 1,
+      "slice_start": ["s9", 0]
+    },
+    "s15": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of the person who has nothing to say. It is generally a temporary condition. The second is the silence of the person who has",
+      "created": "2026-08-15-18.54.46",
+      "params": "p2",
+      "seed": 31428,
+      "batch": "b2",
+      "index": 2,
+      "slice_start": ["s9", 0]
+    },
+    "s16": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of a person who is listening. His mouth is close, but his mind is far. He hears and understands, he remembers and",
+      "created": "2026-08-15-18.54.49",
+      "params": "p3",
+      "seed": 31429,
+      "batch": "b3",
+      "index": 0,
+      "slice_start": ["s9", 0]
+    },
+    "s17": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of a man who is in possession of all the truth and who knows that to give more than he gives would be to give falsehood",
+      "created": "2026-08-15-18.54.49",
+      "params": "p3",
+      "seed": 31430,
+      "batch": "b3",
+      "index": 1,
+      "slice_start": ["s9", 0]
+    },
+    "s18": {
+      "kind": "sampled",
+      "parent": ["s9", 46],
+      "text": " the silence of the dead. It is a heavy and oppressive silence. It is a silence which can never be broken. It is the silence",
+      "created": "2026-08-15-18.54.49",
+      "params": "p3",
+      "seed": 31431,
+      "batch": "b3",
+      "index": 2,
+      "slice_start": ["s9", 0]
+    },
+    "s19": {
+      "kind": "human",
+      "parent": null,
+      "text": "A note on method. The instrument records what a model does when it is iterated against itself: which continuations recur, how much of the prior has to be visible before they do, and whether anything survives being passed forward repeatedly. Nothing here is a claim about meaning. It is a record of what came back, under conditions written down beside it. The first thing worth saying about the results is",
+      "created": "2026-08-15-18.54.51"
+    },
+    "s20": {
+      "kind": "sampled",
+      "parent": ["s19", 404],
+      "text": " that they are all statistically significant. The result for the test of the whole model is not, but that is the case in many applications where",
+      "created": "2026-08-15-18.54.51",
+      "params": "p4",
+      "seed": 31432,
+      "batch": "b4",
+      "index": 0,
+      "slice_start": ["s19", 364]
+    },
+    "s21": {
+      "kind": "sampled",
+      "parent": ["s19", 404],
+      "text": " that they do not contradict the notion that the universe is isotropic and homogeneous in large scales. But it also means that the matter distribution in",
+      "created": "2026-08-15-18.54.51",
+      "params": "p4",
+      "seed": 31433,
+      "batch": "b4",
+      "index": 1,
+      "slice_start": ["s19", 364]
+    },
+    "s22": {
+      "kind": "sampled",
+      "parent": ["s19", 404],
+      "text": " that they are all of them true. The second thing worth saying is that they all come back to the same thing. The third thing worth",
+      "created": "2026-08-15-18.54.53",
+      "params": "p5",
+      "seed": 31434,
+      "batch": "b5",
+      "index": 0,
+      "slice_start": ["s19", 0]
+    },
+    "s23": {
+      "kind": "sampled",
+      "parent": ["s19", 404],
+      "text": " how stable the results are. For all the models, and all the variations of each, the first thing to say is that it is almost",
+      "created": "2026-08-15-18.54.53",
+      "params": "p5",
+      "seed": 31435,
+      "batch": "b5",
+      "index": 1,
+      "slice_start": ["s19", 0]
+    },
+    "s24": {
+      "kind": "human",
+      "parent": null,
+      "text": "She opened the door and found",
+      "created": "2026-08-15-18.54.55"
+    },
+    "s25": {
+      "kind": "sampled",
+      "parent": ["s24", 29],
+      "text": " her mother lying on the floor， unconscious （意识不到的）．\n答案：unconscious．考查翻译填空，根据be动词可知填写形容词，unconscious",
+      "created": "2026-08-15-18.54.55",
+      "params": "p6",
+      "seed": 31436,
+      "batch": "b6",
+      "index": 0,
+      "slice_start": ["s24", 0]
+    },
+    "s26": {
+      "kind": "counterfactual",
+      "parent": ["s25", 11],
+      "text": " sitting",
+      "created": "2026-08-15-18.54.58",
+      "origin": {"span": "s25", "index": 2, "token_id": 11699}
+    },
+    "s27": {
+      "kind": "sampled",
+      "parent": ["s26", 8],
+      "text": " on the sofa，____（read）a newspaper．\n\nreading\n\nIt's time to go to____．____（床）!\n\nbed,bed\n\n____（I） name",
+      "created": "2026-08-15-18.54.58",
+      "params": "p6",
+      "seed": 31437,
+      "batch": "b7",
+      "index": 0,
+      "slice_start": ["s24", 0]
+    },
+    "s28": {
+      "kind": "human",
+      "parent": null,
+      "text": "Begin with a plain sentence about the weather.",
+      "created": "2026-08-15-18.54.59"
+    },
+    "s29": {
+      "kind": "sampled",
+      "parent": ["s28", 46],
+      "text": " For example, \"It's cold and rainy outside.\" Now, make a new sentence by adding one descriptive adjective to your",
+      "created": "2026-08-15-18.54.59",
+      "params": "p7",
+      "seed": 31438,
+      "batch": "b8",
+      "index": 0,
+      "slice_start": ["s28", 0]
+    },
+    "s30": {
+      "kind": "sampled",
+      "parent": ["s29", 113],
+      "text": " sentence. \n\nYour sentence should include a descriptive adjective, such as \"It's cold and wet outside,\" or \"It",
+      "created": "2026-08-15-18.55.00",
+      "params": "p7",
+      "seed": 31439,
+      "batch": "b9",
+      "index": 0,
+      "slice_start": ["s28", 39]
+    },
+    "s31": {
+      "kind": "sampled",
+      "parent": ["s30", 110],
+      "text": "'s warm and dry inside,\" to better describe the current weather condition. The use of descriptive words will make your sentence more",
+      "created": "2026-08-15-18.55.01",
+      "params": "p7",
+      "seed": 31440,
+      "batch": "b10",
+      "index": 0,
+      "slice_start": ["s29", 103]
+    },
+    "s32": {
+      "kind": "sampled",
+      "parent": ["s31", 132],
+      "text": " vivid and interesting.",
+      "created": "2026-08-15-18.55.02",
+      "params": "p7",
+      "seed": 31441,
+      "batch": "b11",
+      "index": 0,
+      "slice_start": ["s31", 12]
+    },
+    "s33": {
+      "kind": "sampled",
+      "parent": ["s32", 23],
+      "text": " For instance, instead of saying \"It is raining,\" say \"The rain is pouring down in torrents.\"\nIt's pouring",
+      "created": "2026-08-15-18.55.02",
+      "params": "p7",
+      "seed": 31442,
+      "batch": "b12",
+      "index": 0,
+      "slice_start": ["s31", 35]
+    },
+    "s34": {
+      "kind": "sampled",
+      "parent": ["s33", 106],
+      "text": " down in torrents.",
+      "created": "2026-08-15-18.55.03",
+      "params": "p7",
+      "seed": 31443,
+      "batch": "b13",
+      "index": 0,
+      "slice_start": ["s32", 9]
+    },
+    "s35": {
+      "kind": "sampled",
+      "parent": ["s34", 18],
+      "text": "",
+      "created": "2026-08-15-18.55.03",
+      "params": "p7",
+      "seed": 31444,
+      "batch": "b14",
+      "index": 0,
+      "slice_start": ["s33", 4]
+    },
+    "s36": {
+      "kind": "sampled",
+      "parent": ["s35", 0],
+      "text": " The rain is falling heavily.\n3. Use sensory language: Use language that appeals to the senses. For instance, instead",
+      "created": "2026-08-15-18.55.04",
+      "params": "p7",
+      "seed": 31445,
+      "batch": "b15",
+      "index": 0,
+      "slice_start": ["s33", 4]
+    }
+  },
+  "params": {
+    "p0": {
+      "temperature": 0.9,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 32,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p1": {
+      "temperature": 0.2,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p2": {
+      "temperature": 0.8,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p3": {
+      "temperature": 1.3,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p4": {
+      "temperature": 0.8,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 40,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p5": {
+      "temperature": 0.8,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 468,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p6": {
+      "temperature": 0.9,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 36,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p7": {
+      "temperature": 0.9,
+      "top_p": 1,
+      "top_n": 3,
+      "length": 24,
+      "stop": [],
+      "prompt_length": 120,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    }
+  },
+  "selected": null,
+  "deleted": []
+}

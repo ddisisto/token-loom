@@ -406,6 +406,9 @@ def driver(workdir):
     check('a bad position is refused too', _exits(run, 'read', 's99'))
     check('and so is a malformed offset', _exits(run, 'cursor', 's0+x'))
 
+    check('creating a tree over an existing one is refused, not traced',
+          _exits(run, 'new'))
+
     # a file from another format reaches the CLI as a ValueError out of the
     # loader, which is a traceback unless something catches it
     stale = os.path.join(path, 'tree.json')
