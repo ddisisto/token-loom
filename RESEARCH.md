@@ -78,6 +78,10 @@ not, and that conclusion lives in `BEYOND-MVP.md` where the storage question bel
 **The common prefix of all eight was zero at every temperature.** Not small — zero. Siblings
 differ on their first token essentially always.
 
+> **Corrected by sweep 1.** True at 0.3 and above, on this prompt. At 0.1 a constrained prompt
+> holds an eighteen-token common prefix across twenty siblings. See "A recorded finding,
+> corrected" below.
+
 And divergence is **nested and plural** rather than a single branch point: at 0.3, eight
 continuations occupy two distinct paths for three tokens, then five, then seven. There is a
 trie among the siblings. "Eight samples, two paths, three tokens deep" is the attractor
@@ -162,6 +166,16 @@ listed here because they constrain what is measurable:
   as `eos`. Nothing swallows it.
 - **A stop string off a token boundary silently loses bytes**, so stop strings should be kept
   to plausible token sequences until the token-replay path exists.
+- **`tokens_predicted` can overstate what comes back.** In sweep 1, nine spans of 360 (2.5%)
+  reported `stop_type: limit` with `tokens_predicted` at the requested 28 while
+  `completion_probabilities` carried 20–27 entries, so the span is short by the difference.
+  It replays deterministically — the same slice, seed and parameters reproduce the same short
+  sequence — so the record is faithful to what the server returned, and the shortfall is
+  upstream. Two things measured while establishing that: the server's own `content` agrees
+  with the shorter array rather than with the count, and the `tokens` id array (requested via
+  `return_tokens` and never read by the core) disagrees with `completion_probabilities` from
+  around index 6. The core reads only `completion_probabilities`, which is the array `content`
+  corroborates.
 
 ---
 
@@ -268,14 +282,118 @@ precisely how the three-sample impression got made in the first place.
 
 ---
 
+## Sweep 1: results
+
+360 continuations, 60 per band, all validating. The measure was built, tested and pinned
+against `data/demo/` at `06d573c` before anything here was opened.
+
+### lock(3), the pre-registered measure
+
+|  | 0.1 | 0.3 | 0.6 | 0.9 | 1.2 | 1.5 |
+| --- | --- | --- | --- | --- | --- | --- |
+| A *lighthouse* | 1.00 | 1.00 | 1.00 | 0.75 | 0.75 | 0.75 |
+| B *silence* | 1.00 | 0.95 | 0.80 | 0.35 | 0.30 | 0.40 |
+| C *door* | 0.50 | 0.35 | 0.10 | 0.10 | 0.10 | 0.05 |
+
+### The verdicts
+
+**P1 fails. There is no U.** `lock(3)` is monotone non-increasing on all three prompts. B's
+0.30 → 0.40 between 1.2 and 1.5 is six spans against eight, comfortably inside the noise the
+design admitted to up front. Nothing at 1.5 approaches its own low-temperature value on any
+prompt.
+
+**So the playbook 2 observation was three-sample noise**, which is exactly what the sweep was
+for. The frame-lock at 1.3 was real in that batch and did not survive twenty samples. Worth
+noting that the *demo data still shows it* — `diverge` on `data/demo/` gives `lock(3)` 1.00 at
+0.2, 0.33 at 0.8 and 1.00 at 1.3 — so the original reading was not a misreading. It was three
+samples doing what three samples do.
+
+**P0 holds.** Monotone decline is what happens, and the naive model of temperature was right.
+
+**P2 holds where it can be measured, and its framing is moot.** The ratio `lock(10)/lock(3)`
+on prompt A runs 1.00, 0.95, 0.55, 0.27, 0.13, 0.07 — the predicted decay, cleanly. But P2
+was posed as telling apart *two ends of a U*, and there is no U, so what survives is the
+weaker claim it rests on: agreement gets shallower as temperature rises, rather than merely
+rarer. On C the ratio is a floor artifact and means nothing — `lock(10)` sits at 0.05, which
+is one span in twenty, so 0.05/0.10 reads as 0.50 while describing a single continuation.
+
+### What the sweep found instead
+
+**Depth carries the signal; presence does not.** `lock(3)` on prompt A is pinned at 1.00
+across half the range and never falls below 0.75. `lock(10)` over the same range runs 1.00,
+0.95, 0.55, 0.20, 0.10, 0.05. The pre-registered primary measure turned out to be the blunter
+of the two — three tokens is short enough that agreement there survives almost anything, and
+the interesting variation is in how far the agreement extends.
+
+**The prompt effect is larger than the temperature effect**, which nothing predicted:
+
+| | | 0.1 | 0.3 | 0.6 | 0.9 | 1.2 | 1.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| common prefix, all 20 | A | **18** | 4 | 3 | 0 | 0 | 0 |
+| | B | 4 | 0 | 0 | 0 | 0 | 0 |
+| | C | 0 | 0 | 0 | 0 | 0 | 0 |
+| distinct paths of 20 | A | **5** | 10 | 19 | 20 | 20 | 20 |
+| | B | 8 | 19 | 20 | 20 | 20 | 20 |
+| | C | 18 | 20 | 20 | 20 | 20 | 20 |
+
+Prompt C at **0.1** is less converged than prompt A at **1.5** — `lock(3)` 0.50 against 0.75,
+20 distinct paths against 20, no common prefix in either. A whole temperature range is worth
+less than the difference between two short, unremarkable English prompts. Whatever
+temperature is doing, it is doing it *within* a envelope the prompt sets, and the envelope
+varies more than the thing inside it.
+
+That is question 3 arriving as a number, from an experiment aimed at question 2.
+
+**At 0.1, most of the samples are the same sample.** Exact byte-identical duplicates, of 20:
+A has 15, B has 12, C has 2. Twenty generations at 0.1 on prompt A buy five distinct
+continuations. Not a subtle effect and not one the lock numbers show directly — `lock(3)` and
+`lock(10)` are both 1.00 there, which is the measure saying "they agree" where the honest
+statement is "they are the same string".
+
+### A recorded finding, corrected
+
+> **The common prefix of all eight was zero at every temperature.** Not small — zero. Siblings
+> differ on their first token essentially always.
+
+That is under "Sibling divergence, measured" above, and as a general claim it is **false**. At
+0.1 prompt A has an eighteen-token common prefix across twenty siblings; at 0.3 it has four.
+The original measurement was taken at 0.3, 0.9 and 1.2 on a single prompt, and it is correct
+at those conditions — its lowest band is where the effect starts and the prompt it used
+behaves like B or C rather than A. Read it as *"zero at 0.3 and above, on that prompt"*, which
+is what it measured.
+
+This bears on the prefix-merging conclusion in `BEYOND-MVP.md`, which was drawn from shared
+storage of 2–13% over the same three bands. At 0.1 with 15 duplicates in 20 the arithmetic is
+completely different. The conclusion is probably still right, because 0.1 is not a regime this
+project works in — but it was decided on evidence that does not cover the case that would
+overturn it, and that is worth knowing.
+
+### Caveats that survive
+
+Everything the pre-registration said it could not do, it still cannot. One model, one
+quantisation, three prompts, `n=20`. Additionally: nine spans of 360 hold fewer than the 28
+tokens requested while reporting `length` — a llama-server discrepancy between
+`tokens_predicted` and `completion_probabilities`, recorded under "About the apparatus". All
+are 18 tokens or longer, so `lock(3)` and `lock(10)` are untouched; the *distinct paths* row
+counts a short sequence as its own path, which can inflate it by at most a few in the 0.6 and
+1.5 bands.
+
+---
+
 ## What to run next
 
 Roughly in order of what would sharpen the most per unit of GPU time.
 
-1. **The temperature non-monotonicity, properly.** Playbook 2 at n=20 per band, across 5–6
-   bands from 0.1 to 1.5, on three different prompts. If the frame-lock at both extremes is
-   real it is the most interesting thing here; if it is three-sample noise, that is worth
-   knowing in an hour rather than believing for a month.
+1. ~~**The temperature non-monotonicity, properly.**~~ Run. It was three-sample noise, and the
+   hour it took to find out is the whole argument for the exercise. What it turned up instead
+   is the new item 0.
+
+0. **The prompt effect, which is bigger than the one that was being measured.** Three prompts
+   spread `lock(3)` at fixed temperature as widely as six temperature bands spread it at fixed
+   prompt. That wants many prompts at two or three bands, not many bands — the axis worth
+   sampling densely is the one that turned out to move things. Pick prompts along something
+   articulable (how constrained the continuation is, how much of a genre the opening names) so
+   the result is a statement rather than a scatter.
 2. **Attractor strength as a number.** Playbook 1 across many prompts at fixed conditions.
    What fraction escape? Does the escape rate move with temperature, and does it move the
    same way the frame-lock does?
