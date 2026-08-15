@@ -116,10 +116,10 @@ later record types to land.
 
 The tree file stays openable by hand *and* readable: a span holds its own text and one
 address naming its parent, so following a path by eye is following links between strings.
-The `token-loom/1` shape gave that up — runs held ranges of spans rather than text — and
-booked it as the accepted cost of one copy of every byte. It was not: it was the cost of the
-pieces, and `token-loom/2` refunds it. The headless driver's dump is still the better way to
-read a large tree.
+An earlier draft of this document booked "no longer readable as prose" as the accepted cost
+of keeping one copy of every byte. That was wrong — the two are unrelated, and the
+unreadability came from putting a second structure between the spans and the text. The
+headless driver's dump is still the better way to read a large tree.
 
 The arithmetic that forces the tree/bulk split: single-token stepping plus top-N
 counterfactuals runs 150–400 bytes per token, so a 100k-token tree is 30–40MB —
@@ -260,17 +260,12 @@ on-disk format has no second consumer, so it is free to change.
 
 Local inference is now the default: `params.py` ships `qwen2.5-7b-base`.
 
-## Phase 1 — the token core ✅, amended
+## Phase 1 — the token core ✅
 
 Built and landed as `token-loom/1`. **`FORMAT.md` is the format document** — decisions
 locked, the on-disk shape with a worked example, and the alternatives each choice was made
-over.
-
-**Amended once, as `token-loom/2`.** Using the finished core surfaced that runs and pieces
-were a larger mechanism than the problem: a span carries a parent *address* instead of
-sitting inside a run, so branching mid-span divides nothing and `split` stopped existing.
-Nine validator checks became seven. It also settled the one Phase 2 decision flagged as
-needing to be made early — what a position looks like on the wire.
+over. It also settled the one Phase 2 decision flagged as needing to be made early: what a
+position looks like on the wire.
 
 The shape as built: `core/tree.py` (structure, spans, interned parameters), `core/store.py`
 (the bulk store), `core/validate.py` (the load-time checks), `core/ops.py` (the operations),
@@ -280,8 +275,9 @@ save ordering), and `loom.py` for the command line.
 What the section below described as scope, and what it looks like having been built:
 
 - Bytes as the anchor; tokens as a per-span overlay with byte extents.
-- Spans hold the bytes and are written once. Under the amendment they hold the structure
-  too, as one parent address each, and there is no split operation at all.
+- Spans hold the bytes, the structure and their own provenance, and are written once. One
+  parent address each, so branching mid-span divides nothing and there is no split
+  operation at all.
 - Spans carrying provenance category, model, tokenizer, termination reason, and interned
   parameters.
 - **Keep the token `id` and the `bytes` array the server already returns**, for sampled
@@ -407,23 +403,6 @@ The last of the MVP. Unlocked by Phase 1 and cheap once Phase 2 has somewhere to
 
 ---
 
-## Open questions
-
-Only one left, and it is a measurement rather than a decision.
-
-**Throughput under broad sampling.** `n` is ignored by providers, so N continuations are N
-sequential calls. This is configuration, not code — but it wants measuring early, before
-Phase 4, because the answer decides whether the progress chips show genuine concurrency or
-sequential progress.
-
-The likely finding is that nothing needs doing. N continuations from one position is the
-best case for a prompt cache — identical prefix, repeated immediately — so sequential calls
-should pay prompt processing once and generation N times. And `--parallel` is probably the
-wrong lever: llama.cpp divides `--ctx-size` across slots, so four slots at 16k leaves 4k
-each, trading exactly the context depth this design wants for concurrency it may not need.
-
-Measure before changing anything. Optimise, if at all, at the end of Phase 4.
-
 ## Out of scope for MVP
 
 Recorded so they are not re-litigated, not because they are rejected.
@@ -433,6 +412,11 @@ generation controller, sibling divergence, token replay under a future inference
 `BEYOND-MVP.md`. Nothing there is built here; the two constraints they impose on Phase 1
 are already folded in above.
 
+- **Throughput and any other optimisation.** `n` continuations are `n` sequential calls,
+  which is the best case for a prompt cache — identical prefix, repeated immediately — and
+  `--parallel` is the wrong lever anyway, since llama.cpp divides `--ctx-size` across slots
+  and trades the context depth this design wants for concurrency it may not need. None of
+  that needs settling before there is something to be slow.
 - **Migration from the old format.** Historical trees stay historical.
 - **A test suite.** `smoke_test.py` plus live use is the posture; the clean-break format
   with no migration is what makes that affordable. The smoke test should cover the token

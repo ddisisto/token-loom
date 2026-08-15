@@ -119,8 +119,7 @@ class Session:
         if self.server is None:
             raise RuntimeError('no server attached to this session')
 
-        # no anchoring step: the position is the position. token-loom/1 had to
-        # split here to manufacture a run to hang the batch off
+        # no anchoring step, and nothing made first: the position is the position
         start, _, prompt = slice_at(self.tree, pos, settings['prompt_length'])
 
         spans = begin_generation(self.tree, pos, settings, n)

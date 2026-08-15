@@ -4,28 +4,26 @@ What the on-disk shape is, and why it is that shape. `ROADMAP.md` holds directio
 phases; this holds the format and the reasoning that is expensive to reconstruct. It is
 meant to outlive the phases — Phase 2 replaces the interface, not this.
 
-**Status.** `token-loom/2` is what `core/` implements. It replaced `token-loom/1` — which
-Phase 1 built, and which put runs and pieces between the spans and the structure — with a
-**parent address on each span**. Everything else survived unchanged: spans, provenance, the
-intern table, the bulk store, the save ordering.
-
-The amendment came out of using the thing rather than out of planning it, which is worth
-noting: ten faults fell out of stress-testing the `token-loom/1` plan in prose, and this
-eleventh fell out of the first honest use. Both stages were load-bearing, and neither would
-have found the other's bugs.
+**Status.** `token-loom/1` is what `core/` implements, and the marker in every tree file.
+Spans, provenance, the intern table, the bulk store and the save ordering are as Phase 1
+planned them; what a span's *parent* is went through one revision before anything shipped,
+and the shape below is the one that survived.
 
 ---
 
-## The change, in one paragraph
+## The idea, in one paragraph
 
-In `token-loom/1` a branch could only hang off a *node*, because a run's parent was a run
-id. Manufacturing a node boundary at a mid-run position is what `split` existed to do, and
-`split` is upstream of nearly everything awkward in the format: the piece list, the cursor
-fixup, five of nine validator checks, the maintained absolute-offset chain. Let a span's
-parent be an **address** — `[span, byte offset]` — and branching mid-span is just *a child
-anchored at offset 9*. Nothing divides, nothing relinks, and `split` does not get simpler;
-it stops existing. Runs survive as a **derived** grouping for display, computed at load,
+A span's parent is an **address** — `[span, byte offset]` — so branching mid-span is just
+*a child anchored at offset 9*. Nothing divides, nothing relinks, and there is no operation
+that manufactures a boundary to hang a branch from, because a branch does not need one.
+That single choice is why there is no `split`, no piece list, no cursor fix-up, and no
+maintained absolute-offset chain: each of those exists only to serve a structure in which a
+branch can attach to a *node* rather than to a point. Runs — a maximal stretch with no
+branch point in it — survive as a **derived** grouping for display, computed on render and
 stored nowhere.
+
+The alternative was tried, and the note under "Alternatives considered" on how nearly it
+was kept is the most expensive thing in this document.
 
 ---
 
@@ -40,11 +38,11 @@ and on the Phase 2 wire.
 
 > **Invariant.** No operation opens a span, so no operation invalidates an address.
 
-It is strictly stronger than an absolute byte offset, which is what `token-loom/1` used.
-An absolute offset does not identify a path — sibling branches share offsets, so resolving
-one needed a run id alongside it, which smuggled the unstable thing back in through the
-argument list. A span's bytes lie along exactly one root-to-leaf chain, so naming the span
-names the path.
+It is strictly stronger than an absolute byte offset. An absolute offset does not identify a
+path — sibling branches share offsets, so resolving one needs a second thing alongside it
+naming which branch, and whatever that second thing is, it is the unstable part smuggled
+back in through the argument list. A span's bytes lie along exactly one root-to-leaf chain,
+so naming the span names the path.
 
 Absolute offsets remain useful and are **derived**: sum the lengths along the parent chain.
 Nothing stores one. That also makes an exported subtree self-contained, which a
@@ -94,16 +92,16 @@ descend to whatever continues after `s3` and you read all of it. That was exactl
 piece encoded, and it is now derived rather than stored.
 
 A span with `parent: null` is a root. Several may coexist, which is how several initial
-prompts sit side by side — the empty root run `token-loom/1` needed for that is gone with
-everything else.
+prompts sit side by side, and it needs nothing to hold them: `EMPTY_TREE` is literally
+empty, and the root is a point rather than an object.
 
 #### Runs are derived, and still worth the word
 
 A **run** is a maximal chain of spans with no branch point in it. Phase 2 lays out by runs
-and `ROADMAP.md` reads by them; the word is accurate and stays. What changes is that it is
-computed from the span tree at load, not stored — so there is exactly one representation of
-any given tree, where `token-loom/1` could reach the same tree by two different paths and
-had nothing to merge them back.
+and `ROADMAP.md` reads by them; the word is accurate and stays. What it is *not* is stored:
+it is computed from the span tree on render. That is what gives a tree exactly one
+representation. Store run boundaries and the same tree becomes reachable by more than one
+arrangement of them, with nothing to merge the arrangements back together.
 
 Do not call it a *view*: Phase 3 already has a viewport (the slice window), and it is a
 different thing.
@@ -124,11 +122,12 @@ branch point are not guaranteed to decode on their own even when the whole path 
 Anything that decodes a fragment has to be prepared for that; anything inside the core
 avoids the question by not decoding at all.
 
-There is also **exactly one copy of every byte**, and now exactly one representation of
-where it sits. An earlier design stored the bytes twice — once as `run.text`, once implied
-by span extents — and needed a rule about which won. The rule was covering for redundancy
-that should not have existed. `token-loom/1` removed the second copy of the bytes;
-`token-loom/2` removes the second copy of the structure.
+There is also **exactly one copy of every byte, and exactly one representation of where it
+sits.** Both had to be argued for separately. An early design stored the bytes twice — once
+as run text, once implied by span extents — and needed a rule about which won; the rule was
+covering for redundancy that should not have existed. The structure went the same way one
+step later. Any rule arbitrating between two copies of the same fact is a sign that one of
+them should not be there.
 
 #### Deletion is an address, and can bisect a span
 
@@ -138,24 +137,22 @@ is unreachable with them.
 
 A whole span is the offset-0 case. `[s4, 0]` deletes `s4` and everything under it and
 touches nothing else — which is how one fork is deleted while its sibling survives. One
-address type covers both, where `token-loom/1` needed a run id for the fork case and a
-split-then-delete for the truncation case.
+address type covers both cases, and there is no truncate operation distinct from a delete.
 
 Nothing is lost. `s3` still holds all fifteen of its bytes; the tree stops *reaching* part
-of it. And the invariant `token-loom/1` had to check —
+of it. And what would otherwise be an invariant to verify —
 
-> The live pieces of a span cover a contiguous prefix from byte 0, possibly none of it.
+> The live part of a span is a contiguous prefix from byte 0, possibly none of it.
 
-— stops being a property to verify and becomes the literal representation. A deletion
-address *is* a prefix bound.
+— is the literal representation instead. A deletion address *is* a prefix bound.
 
 Entries are **not** deduplicated against each other, and the list may hold one address that
-another already covers. `token-loom/1` had to keep its list to maximal roots because
-liveness was a walk over run ids that a nested entry would confuse; liveness here takes the
-least cut per span, so it is total over any set. Pruning would actively break undo — drop
-the narrower entry and restoring the wider one resurrects a subtree that was deleted
-separately and never restored. Deleting something already unreachable stays a no-op, which
-is what keeps the list from growing on repeated calls.
+another already covers. Liveness takes the least cut per span, so it is total over any set
+of addresses including nested ones, and there is nothing to buy by keeping the list
+maximal. Pruning would actively break undo — drop the narrower entry and restoring the wider
+one resurrects a subtree that was deleted separately and never restored. Deleting something
+already unreachable stays a no-op, which is what keeps the list from growing on repeated
+calls.
 
 #### Soft delete is a records decision, not a structural one
 
@@ -175,10 +172,10 @@ argument enough without inventing a structural one.
 
 #### Where this grows
 
-One parent address per span, in `tree.json`, which is rewritten on save. `token-loom/1`
-appended one piece per span to a run's piece list and sized it at ~20 bytes; a parent
-address is about the same. **This is not a size win and should not be sold as one** — a
-fully single-stepped 100k-token tree is a couple of megabytes of `tree.json` either way, and
+One parent address per span, in `tree.json`, which is rewritten on save — about 20 bytes,
+which is what any of the rejected shapes would have cost per span too. **This is not a size
+win and should not be sold as one** — a fully single-stepped 100k-token tree is a couple of
+megabytes of `tree.json` under any of them, and
 the escape hatch is the same one: the growth surface moves to the bulk store as another
 record type, which the roadmap's generality constraint permits without a format change.
 
@@ -189,8 +186,8 @@ path by eye is following `parent` links between strings.
 
 #### Why not overlapping runs referencing an uncut original
 
-The `token-loom/1` plan rejected this at length, and the reasoning was sound — it is worth
-keeping precisely because it looks like it should defeat parent addresses too, and does not.
+The strongest of the rejected shapes, and worth its own section precisely because the
+arguments against it look like they should defeat parent addresses too, and do not.
 Three arguments, each against overlapping sibling runs holding *ranges* of a shared span:
 
 **It stops being a trie.** Siblings all start at the same absolute offset and overlap by
@@ -203,8 +200,7 @@ Divergence stays structural, which is what the trie is for.
 owner whose range ends at this offset" — a scan, on the most common read there is. —
 *Does not transfer.* That is a range query over overlapping ranges. A parent address is a
 point, so it is exact match, answered by an index built at load: `span → [(offset, child)]`,
-O(n) to build and O(1) to query. For comparison, `token-loom/1` scans **every run** in both
-`pieces_of` and `widen`.
+O(n) to build and O(1) to query.
 
 **It does not actually avoid the split.** Branch at 20, then at 40, and the second branch
 needs a run covering exactly `[20, 40)` — the range gets divided anyway, so the churn is
@@ -214,7 +210,9 @@ all, which is the point at which the two designs genuinely part company.
 
 #### Alternatives considered
 
-Carried forward, with the one that won added and the one that nearly stopped it corrected.
+Every shape weighed for where structure lives, with what killed each one. All but the last
+keep **runs as stored objects** and hang branch structure off them, which is the assumption
+they have in common and the one that turns out to be the mistake.
 
 - **Runs hold text, spans hold fragments into it.** Stores every byte twice and needs an
   authority rule to arbitrate.
@@ -227,35 +225,32 @@ Carried forward, with the one that won added and the one that nearly stopped it 
   wrong.
 - **Spans store the path as a sequence of branch choices.** Child indices shift on delete,
   and child ids are run ids, which are the unstable thing being worked around.
-- **Runs hold ordered pieces of spans.** What `token-loom/1` built. Correct, and larger than
-  the problem.
-- **No runs at all, trie over spans directly** — **chosen.** The `token-loom/1` plan
-  rejected this in a single line: *"Branch points would have to split spans, which
-  provenance forbids."* That holds only if a trie edge must point at a whole node. Let the
-  edge carry a byte offset into its parent and a mid-span branch point needs no cut.
+- **Runs hold ordered pieces of spans.** Correct, and larger than the problem. This one was
+  built before the cost of it was visible — see the lesson below.
+- **No runs at all, trie over spans directly** — **chosen.** Rejected early, in a single
+  line: *"Branch points would have to split spans, which provenance forbids."* That holds
+  only if a trie edge must point at a whole node. Let the edge carry a byte offset into its
+  parent and a mid-span branch point needs no cut at all.
 
-> **The lesson, which is the expensive part to re-learn.** Three of those six rejections
-> turn on run ids being unstable. The design worked around the instability rather than
-> removing its cause, and the one option that removed the cause was dismissed in a sentence
-> aimed at a variant nobody had written down. A rejection that short, against an option that
-> structural, deserved a worked counterexample. It cost a format version — cheaply, because
-> the code was a day old and there was no data to migrate, but it would not always be cheap.
+> **The lesson, and it is the expensive part.** Three of those six rejections turn on run
+> ids being unstable. The design worked around the instability instead of removing its
+> cause, and the one option that removed the cause was struck out in a sentence — aimed,
+> on inspection, at a variant nobody had written down. A rejection that short, against an
+> option that structural, deserved a worked counterexample before it was struck.
+>
+> It got built that way, and the cost showed up only in use: `split`, the piece list, the
+> maintained absolute-offset chain, cursor fix-ups in two operations, and five validator
+> checks whose entire job was holding a redundant representation to agreeing with itself.
+> All of it existed to serve the assumption that a branch attaches to a node. None of it
+> survives the assumption being dropped. It cost a format version, cheaply — the code was a
+> day old and there was nothing to migrate — but that was luck about timing, not a property
+> of the mistake.
+>
+> **A one-line rejection of a structural option is a warning sign.**
 
-#### What this deletes
-
-| gone | what it was for |
-| --- | --- |
-| `runs`, `pieces` | somewhere to put branch structure, when an edge could only name a node |
-| `split` | manufacturing a node boundary at a mid-run position |
-| the zero-length piece | the only link between an in-flight span and its run |
-| `run.start`, `span.extent` | absolute offsets, maintained as stored state |
-| `at`, `absolute`, `locate`, `widen`, `_attach` | conversions between two coordinate systems |
-| the `selected` fixups in `split` and `delete` | reseating a cursor whose address had narrowed |
-| validator checks 1, 2, 4, 5, 7 | a redundant representation agreeing with itself |
-| the extend-vs-branch rule in `_attach` | a storage shape with no semantic content |
-
-Nothing in the bulk store changes. It is keyed by span id throughout and never mentions a
-run, which is the clearest signal that this change is in the right layer.
+Nothing in the bulk store is affected either way. It is keyed by span id throughout and
+never mentions a run, which is the clearest signal that this question lives entirely in the
+tree layer.
 
 ### 4. Interned versus per-span
 
@@ -277,9 +272,10 @@ parameter would make every position mint its own parameter set, defeating intern
 session. Storing the *length* interns cleanly, and the span records the address it resolved
 to — so the exact slice is still recorded, and clamping at the root is not recomputed.
 
-`slice_start` is an address like everything else, which is a change from `token-loom/1`
-where it was an absolute offset. It was the last root-relative number in the record, and the
-only one that could not be mechanically rebased on export.
+`slice_start` is an address like everything else, and not a root-relative offset. An offset
+here would have been the one number in the whole record that could not be mechanically
+rebased on export, which is reason enough on its own — and it is also the only field the
+validator can hold to lying on the span's own ancestry. See check 5.
 
 #### Units are mixed, so they are labelled
 
@@ -357,12 +353,12 @@ A tree is a directory, so its two halves cannot be separated:
 ### Worked example
 
 The root, one authored prompt, and a batch of two continuations — the second of which was
-then branched from a counterfactual at its third token. The same tree `token-loom/1`
-represented in five spans and seven runs.
+then branched from a counterfactual at its third token. Five spans, and no other objects:
+the branch structure is entirely in the `parent` fields.
 
 ```jsonc
 {
-  "format": "token-loom/2",
+  "format": "token-loom/1",
   "tree_id": "…",
   "base_seed": 90210,
 
@@ -434,7 +430,7 @@ with no spans yet, and is the only special case.
 
 ### Bulk store
 
-Unchanged from `token-loom/1`.
+Keyed by span id throughout, and it never mentions a run.
 
 ```sql
 CREATE TABLE tokens (
@@ -457,23 +453,23 @@ the case byte anchoring exists to handle.
 
 ### What the validator checks
 
-Seven, of which four are structural and three need the bulk store. `token-loom/1` had nine,
-six of them structural; the three that went were checking that runs and pieces agreed with
-spans, which is not a question that can be asked any more.
+Seven, of which four are structural and three need the bulk store. That is fewer than a
+validator over this data would usually need, for the reason given throughout: most of what a
+validator does is hold two representations to agreeing, and there is only one here.
 
 Structural:
 
 1. **Every parent resolves and is in range.** `parent` is null, or `[p, k]` where `p` is a
    span and `0 <= k <= len(p.text)`. A span still in flight has no bytes, so only `k == 0`
    is legal against it — see the note under "Open" below.
-2. **The parent chain terminates.** No cycles. Reachability needs no separate check: a span
-   whose chain reaches null is reachable by construction, which is a class of orphan
-   `token-loom/1` had to look for.
+2. **The parent chain terminates.** No cycles. Reachability needs no separate check at all:
+   a span whose chain reaches null is reachable by construction, so there is no such thing
+   as an orphan to look for.
 3. **A span's own record is consistent.** `kind` is one of the three, a counterfactual
    carries an `origin`, and a `slice_start` lies on the span's own ancestry — naming a span
    on some other branch, or an offset past what that span contributes to this path, is a
-   bug. `token-loom/1` could not express that check, let alone catch it: an absolute offset
-   can only be held to arithmetic, where an address can be held to a path.
+   bug. This is the check that addresses make possible: an offset can only be held to
+   arithmetic, where an address can be held to a path.
 4. **Every `deleted` entry resolves** to an existing span with an offset in range.
 
 With the store:
@@ -491,11 +487,12 @@ tokens being mishandled, it is what makes a `text` field and a `bytes` blob safe
 same information, and it is the check a future vacuum has to pass — reclaim a token row
 belonging to a live span and it fails immediately.
 
-One `token-loom/1` check went **tautological** rather than redundant, which is worth naming
-because it looks like a gap in the list above: it verified that `text` and `extent[1]` agreed
-about whether a span was in flight. There is one field now, and `complete` reads it, so
-nothing is left that could disagree. That is the same finding as "the test asks for something
-the design makes unreachable" — a result, not a hole.
+**Nothing checks that a span agrees with itself about being in flight**, and that looks like
+a gap in the list above. It is not: `text` is the only field that says so and `complete`
+reads it, so there is no second value to disagree. A check written for it would be
+tautological rather than merely redundant — which is the same finding as "the test asks for
+something the design makes unreachable", and belongs written down rather than quietly
+omitted.
 
 A validator that has never rejected anything is an untested one. Each check gets a tree
 deliberately broken in that one way.
@@ -504,8 +501,7 @@ deliberately broken in that one way.
 
 ## What the core must do
 
-**Five operations**, where `token-loom/1` had six. Everything in Phase 2 and 3 is built from
-these.
+**Five operations.** Everything in Phase 2 and 3 is built from these.
 
 | operation | notes |
 | --- | --- |
@@ -515,9 +511,9 @@ these.
 | `slice(position, length)` | resolves to `(start address, end address)` and the text to send |
 | `branch_counterfactual(span, index, rank)` | one counterfactual span with `parent = [span, byte offset of token index]` |
 
-`split` is not among them. It had exactly one job — produce a node to hang something off —
-and every caller now uses the position it already had. `restore` is the inverse of `delete`
-and is a list operation, which is what soft delete buys.
+There is no `split` and no truncate. Both would have exactly one job — produce a boundary to
+hang something off — and every caller already has the position instead. `restore` is the
+inverse of `delete` and is a list operation, which is what soft delete buys.
 
 `generate` is the one with an order that matters, because it straddles the model call and
 decision 2 splits a span across it:
@@ -536,14 +532,15 @@ orphans in the crash case, not just the reachability one: because the span is wr
 its first token, no bulk row can ever name a span the tree has not heard of. The ordering is
 doing two jobs, and the second is the reason to resist reversing it for a saved write.
 
-The step `token-loom/1` had before all of these — *split if the position needs it, then
-create n child runs with empty piece lists* — is gone entirely.
+Note what is *not* a step: there is no anchoring, boundary-making or reseating before any of
+the five. Each is the construction of one span, and the position handed in is the position
+recorded.
 
 ---
 
 ## Settled by measurement
 
-Three assumptions that a throwaway script overturned in minutes. The general rule is worth
+Assumptions that a throwaway script overturned in minutes. The general rule is worth
 more than any of them: **absence of observation cannot settle a question about what is
 possible.** Ask the vocabulary, not the samples.
 
@@ -603,6 +600,61 @@ Fixing it properly means sending token ids instead of text — the token-replay 
 `BEYOND-MVP.md` — which needs mixed-mode assembly, since human spans have no tokens. Not
 worth pulling forward for a case that requires branching inside an emoji on purpose.
 
+### `truncated` means the *generation* hit the wall, not the prompt
+
+The one measurement here that found a live bug rather than settling a design question, and
+it found it by being run rather than by being reasoned about.
+
+`CONTEXT` is the only derived terminator: `stop_type: limit` covers both "produced
+everything asked for" and "ran out of context", so the difference is derived as *nothing
+stopped it and it produced fewer tokens than were asked for*. Being derived makes it the
+easiest of the five to get silently wrong, and it was — it had never once been recorded.
+The adapter read the response's `truncated` flag as *the server cut the prompt down to fit*
+and raised on it as fatal, and that flag is set on exactly the case `CONTEXT` is for.
+
+Measured against llama.cpp b10221 at `--ctx-size 512`, with a 385-token prompt:
+
+| asked | produced | `truncated` | derived |
+| --- | --- | --- | --- |
+| 512 | 127 | true | `context` |
+| 128 | 127 | true | `context` |
+| 120 | 120 | false | `length` |
+| 64 | 64 | false | `length` |
+
+The wall is where prompt + produced reaches `n_ctx`, and the flag and the derivation agreed
+in every case. The derivation is what is used, since it needs nothing from the server beyond
+counts any completions endpoint reports.
+
+The hazard the guard was written for **does not exist**. An over-long prompt is not silently
+truncated: llama-server refuses it with HTTP 400 and `exceed_context_size_error`, having
+generated nothing. So `Truncated` keeps its name and its reason — a span must never claim
+bytes the model did not see — and is raised from the refusal instead.
+
+### A stop string can eat generated bytes
+
+llama-server drops as many trailing entries from `completion_probabilities` as the stop
+string has **tokens**, whatever actually matched. A span's text is what its token rows
+spell, so those entries are the span.
+
+When the stop string is a token sequence sitting on a token boundary — the ordinary case —
+those dropped entries are exactly the tokens that spelled it, `content` and the overlay
+agree, and the span ends cleanly before the match. When it is not, they disagree and the
+overlay is the shorter. Stopping a Qwen2.5 continuation on `'ecember'` returns `content` of
+`' in D'` and **no entries at all**, because `'ecember'` is two tokens and only two were
+produced.
+
+The span is then well-formed and empty. Nothing is false — it says it generated no bytes and
+stopped on a stop string — but the bytes the model emitted before the match have no token
+records, and so nowhere in this format to live. It is a silent loss, and not detectable from
+a completed span: only by comparing against `content`, which nothing does.
+
+**Left as it is, deliberately.** Refusing would turn a legitimate stop string into an
+intermittent failure that depends on where the model lands, after the generation is paid
+for. Recording the loss would mean a field for an edge case that could hold only the fact
+that something went missing, not the ids or logprobs that went with it. The real fix is
+matching stop conditions on tokens rather than on strings, which needs the token-replay path
+in `BEYOND-MVP.md`.
+
 ---
 
 ## Why the adapter is new code, not a patched `inference.py`
@@ -645,46 +697,36 @@ adapter rather than one dict entry.
 
 ---
 
-## What the amendment cost
+## What the build found that the prose did not
 
-No migration was needed: `data/tree/` is disposable scratch and no-migration is already
-policy. `token-loom/1` trees are refused on load rather than converted.
+Three things, all of which survived into the code and none of which fell out of planning it.
 
-Measured, in lines of code with comments and docstrings counted separately:
+**Not storing runs means computing them, and that is not free.** The saving is real and it
+is in the core — `ops.py` roughly halved once there was no `split`, no coordinate
+conversion and no cursor fix-up. But `loom.py` *grew*, because `outline()` now derives on
+every render what used to be read off disk. That is the honest price rather than a mistake:
+storage complexity became display complexity, at roughly a third of the size, and in a place
+where getting it wrong makes a picture look odd instead of making a record wrong.
 
-| | code |
-| --- | --- |
-| `core/ops.py` | 196 → 102 |
-| `core/validate.py` | 155 → 112 |
-| `core/tree.py` | 223 → 214 |
-| `loom.py` | 240 → **281** |
-| total | 956 → 851 |
+**A branch anchored at byte 0 of a span that also continues** — what `branch <span> 0
+<rank>` produces — makes a derived run of zero width. That is not a run but a fork point,
+and its branches belong in its parent's list, so the counterfactual renders as a sibling of
+the span whose first token it replaces. `outline()`'s `resuming` flag is what says the
+children at that offset were already emitted by the fork that arrived there. Without it the
+case either loses the branch or forks into itself forever.
 
-The prediction written here beforehand was "it should delete substantially more than it
-adds; if it does not, something has been misunderstood". That held for the core — `ops.py`
-nearly halved when `split`, `at`, `absolute`, `locate`, `widen` and `_attach` went — but
-**`loom.py` grew by 41 lines**, and the growth is the honest price rather than a mistake:
-not storing runs means computing them, and `outline()` is where that lands. Storage
-complexity became display complexity, at about a third of the size and in a place where
-getting it wrong makes a picture look odd rather than making a record wrong.
+**`deleted` must not be pruned.** Dropping an entry that a wider cut already covers looks
+like tidying and is not. Two faults: an entry is always unreachable under its own cut, so
+testing each against the full list drops all of them and resurrects everything; and pruning
+at all breaks undo, since restoring the wide cut then resurrects a subtree that was deleted
+separately and never restored. The apparently redundant entry is precisely what remembers
+that. `Tree.live` takes the least cut per span and is total over any set of addresses, so
+maximality bought nothing to begin with.
 
-Two things fell out of the build that the prose had not anticipated:
-
-- **A branch anchored at byte 0 of a span that also continues** — what `branch <span> 0
-  <rank>` produces — makes a derived run of zero width. That is not a run but a fork point,
-  and its branches belong in its parent's list, so the counterfactual renders as a sibling
-  of the span whose first token it replaces. Getting it wrong loops forever or loses the
-  branch.
-- **`deleted` must not be pruned.** The first implementation dropped entries another already
-  covered, on the `token-loom/1` habit of keeping maximal roots. Two faults: an entry is
-  always unreachable under its own cut, so testing it against the full list drops everything;
-  and pruning at all breaks undo, since restoring a wide cut then resurrects a subtree that
-  was deleted separately. `Tree.live` takes the least cut per span and is total over any
-  set, so there was nothing to buy.
-
-**Arithmetic in a test is code too, and nothing checks it.** Of the three failures the new
-test suite found, two were miscounted byte lengths in the assertions and one was the pruning
-bug above. That ratio is the usual one. Compute the expected values; do not eyeball them.
+**Arithmetic in a test is code too, and nothing checks it.** Of the three failures the test
+suite found while this was being built, two were miscounted byte lengths in the assertions
+and one was the pruning bug above. That ratio is the usual one. Compute the expected values;
+do not eyeball them.
 
 ## Open
 

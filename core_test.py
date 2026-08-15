@@ -266,10 +266,11 @@ def operations(workdir):
           str(validate(tree, store)))
 
     print('\nthe cursor is an address, and no operation moves it')
-    # In token-loom/1 this section was the standing demonstration of the
-    # hazard: `selected` was keyed by a run id, and a split left it resolving
-    # to a run that no longer reached that far, so both split and delete
-    # carried fix-up code. There is nothing to reseat now, and this asserts it.
+    # The invariant, not the value: a recorded address stays the same address.
+    # It holds by construction -- a span is written once and never cut, so
+    # nothing an operation does can move a position out from under a cursor,
+    # and there is no fix-up code anywhere to go wrong. This asserts it anyway,
+    # because "by construction" is a claim about code that can be edited.
     tree.selected = Position('s1', 6)
     was, address = tree.absolute(tree.selected), tree.selected
     author(tree, tree.tip('s4'), b' -- or so he said')
@@ -572,9 +573,10 @@ def main():
               's5' not in tree.live())
         check('s2 survives its sibling', 's2' in tree.live())
 
-        # what token-loom/1 checked as "prefix coverage" and could only assert
-        # positively, since delete took whole subtrees. It is the shape of the
-        # answer now, and there is no other shape available.
+        # `Tree.live` answers with one offset per span, so "the live part is a
+        # prefix from byte 0" is the shape of the answer rather than a property
+        # of it. What is worth checking is that reading up to that offset gives
+        # the bytes it should, which is the claim the shape is there to support.
         check('a live extent is a prefix from byte 0 by construction',
               tree.path_bytes(Position('s3', tree.live()['s3']))
               == PROMPT + spelled(CLEAR)[:CUT])

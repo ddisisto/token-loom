@@ -82,9 +82,9 @@ def complete(tree: Tree, store: BulkStore, span_id: str, tokens: list[Token],
              reason: str, counterfactuals=None) -> Span:
     """Fill in a span's byte record. Filled in, never overwritten.
 
-    Nothing structural happens here. In `token-loom/1` this also had to widen
-    the placeholder piece that linked the span to its run; the span carries its
-    own attachment now, so there is nothing to grow but the text.
+    Nothing structural happens here, and nothing but the text grows: a span
+    records its attachment when it is created and the bytes arrive into a shape
+    already fixed.
     """
     span = tree.spans[span_id]
     if span.complete:
@@ -126,24 +126,22 @@ def delete(tree: Tree, pos: Position) -> None:
 
     `pos` means *nothing continues past here*: the span's own bytes from that
     offset on stop being reached, and so does everything anchored at or after
-    it. A whole span is the offset-0 case, which is how one fork is deleted
-    while its sibling survives -- one address type where `token-loom/1` needed
-    a run id for the fork and a split-then-delete for the truncation.
+    it. One address covers both of the things this has to express -- deleting a
+    whole fork while its sibling survives is the offset-0 case, and truncating
+    mid-span is every other case.
 
     Nothing is rewritten and no span is opened: a deleted subtree keeps every
     byte it recorded. Generated tokens cost real GPU time, so destroying them
     on a keystroke is the wrong default.
 
-    `token-loom/1` had to keep its `deleted` list to maximal roots, because
-    liveness was one walk over run ids and a nested entry would have confused
-    it. Nothing here needs that: `Tree.live` takes the least cut per span, so
-    the list may hold entries that cover each other and still answer correctly.
-
-    Pruning it anyway is worse than useless -- dropping an entry a wider cut
-    covers makes `restore` on the wider one resurrect a subtree that was
-    deleted separately and never restored. The redundant entry is what
-    remembers that. Deleting something already unreachable is still a no-op,
-    which is what keeps the list from growing on repeated calls.
+    **The list is not pruned, and must not be.** An entry that a wider cut
+    already covers looks redundant and is not: dropping it makes `restore` on
+    the wider one resurrect a subtree that was deleted separately and never
+    restored. The redundant entry is precisely what remembers that. Nor is
+    there anything to buy by pruning -- `Tree.live` takes the least cut per
+    span and is total over any set of addresses, including ones that nest.
+    Deleting something already unreachable is still a no-op, which is what
+    keeps the list from growing on repeated calls.
     """
     if pos is None:
         raise ValueError('the root cannot be deleted')

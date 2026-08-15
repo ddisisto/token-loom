@@ -239,8 +239,8 @@ class Tree:
     """The tree file: spans, and the interned parameter table.
 
     That is the whole of it. There is no separate structure to keep in step
-    with the spans, which is why more than half of what the `token-loom/1`
-    validator checked is not a question that can be asked here.
+    with the spans, which is why most of what a validator over this data would
+    otherwise check is not a question that can be asked here at all.
     """
     tree_id: str
     base_seed: int
@@ -361,9 +361,9 @@ class Tree:
         are all still recorded, the tree simply stops reaching them, and
         nothing continues past the cut.
 
-        That the live extent of a span is a prefix from byte 0 was an invariant
-        the `token-loom/1` validator had to check. Here it is the shape of the
-        answer, and there is no other shape available.
+        That the live extent of a span is a prefix from byte 0 is not an
+        invariant anything has to check. It is the shape of the answer, and
+        there is no other shape available.
         """
         cut: dict[str, int] = {}
         for pos in self.deleted:

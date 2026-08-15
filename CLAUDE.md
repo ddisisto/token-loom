@@ -19,13 +19,12 @@ reasoning behind it, and is meant to outlive the phases; `BEYOND-MVP.md` holds t
 that reach past the MVP and the constraints they impose on decisions made now. This file is
 for things that are true about the code and easy to get wrong.
 
-**Phase 1 has landed, and been amended once.** The token core is built, tested and usable
-from the command line. Using the `token-loom/1` build surfaced that runs and pieces were a
-larger mechanism than the problem: `token-loom/2` replaced them with a parent address on each
-span, which deleted `split` outright along with two of nine validator checks and a third that
-went tautological. It also settled what a position looks like on the wire, which was the one
-Phase 2 decision flagged as needing to be made early. `FORMAT.md` has the shape and the
-alternatives. Phase 2 — the API and front end rebuilt against it — is the current work.
+**Phase 1 has landed.** The token core is built, tested and usable from the command line,
+and the on-disk format is `token-loom/1`. It settled what a position looks like on the wire,
+which was the one Phase 2 decision flagged as needing to be made early. `FORMAT.md` has the
+shape, the alternatives it was chosen over, and — worth reading before proposing a change to
+it — the one-line rejection that nearly kept the wrong one. Phase 2, the API and front end
+rebuilt against it, is the current work.
 
 `origin` is `ddisisto/token-loom` (GitHub redirects the old `ddisisto/loom`), `upstream` is
 `socketteer/loom`. Work happens on `main`. The tag `pre-token-core` preserves the last commit
@@ -135,7 +134,8 @@ Two things worth keeping in mind if that ever happens:
   `model_responses`, keyed by response id, with the node holding `generation: {id, index}`.
   Siblings from one call **share** a response id, so anything reasoning about reachability
   must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does.
-  `token-loom/1` retires this: token data lives with the tokens, keyed by span.
+  The token core retires this: token data lives with the tokens, keyed by span, so nothing
+  can be orphaned and there is no collection pass.
 - **Three things about the format that are easy to get wrong**, all load-bearing:
   - **Text is `bytes` everywhere in the core.** Every offset is a byte offset, and `len` on
     a `str` counts characters — holding text as a string is wrong on the first non-ASCII
@@ -147,8 +147,8 @@ Two things worth keeping in mind if that ever happens:
     forward before the span records it).
   - **A position is `(span, offset)`, and nothing else is durable.** A span is written once
     and never cut, so the pair survives every operation. Absolute root-relative offsets are
-    derived, and do not survive export of a subtree. Run ids are display-only under
-    `token-loom/2` and must never reach storage or the wire.
+    derived, and do not survive export of a subtree. Runs are derived too — they have no ids
+    and nothing that identifies one may reach storage or the wire.
 - **One thing about the derived runs**, which is display-only and still bites: a branch
   anchored at byte 0 of a span that also continues makes a run of zero width. That is a fork
   point rather than a run, and `loom.py:outline` needs its `resuming` flag to say so — without
@@ -169,16 +169,23 @@ Two things worth keeping in mind if that ever happens:
 
 What has paid off here, and what it cost to skip.
 
-- **Plan in prose, then build.** Phase 1 went: lock the decisions in a document, stress-test
-  it, *then* write code. Ten real faults fell out in prose that would have been expensive in
-  code — including a validator invariant that contradicted soft delete and would have fired
-  on every tree after the first delete. Prose is not sufficient, though: the eleventh fault,
-  the one that cost a format version, only fell out of *using* the finished thing. Both
-  stages are load-bearing and neither finds the other's bugs.
-- **A one-line rejection of a structural option is a warning sign.** `token-loom/1` dismissed
-  the shape that turned out to be right in a single sentence, aimed at a variant nobody had
-  written down. Options that would change the shape of the format deserve a worked
-  counterexample before they are struck out. See "Alternatives considered" in `FORMAT.md`.
+- **Three stages, and each finds bugs the others cannot.** Phase 1 went: lock the decisions
+  in a document, stress-test the document, then write code. Ten real faults fell out in prose
+  that would have been expensive in code — including a validator invariant that contradicted
+  soft delete and would have fired on every tree after the first delete. The eleventh, which
+  cost a format version, fell out only of *using* the finished thing. The twelfth fell out
+  only of *running a path nothing had run*: `CONTEXT` was unreachable dead code, because the
+  flag that signals it was being raised on as an error. Planning, using and exercising are
+  three different instruments and none of them substitutes.
+- **A one-line rejection of a structural option is a warning sign.** The shape that turned
+  out to be right was dismissed in a single sentence, aimed at a variant nobody had written
+  down, and got as far as being built the other way. Options that would change the shape of
+  the format deserve a worked counterexample before they are struck out. See "Alternatives
+  considered" in `FORMAT.md`.
+- **A derived value is the easiest thing to get silently wrong**, because nothing disagrees
+  with it. Of the five termination reasons, four are reported by the server and one is
+  computed — and the computed one was the one that had never once been recorded. Anything
+  derived deserves a test that reaches it on purpose, since ordinary use will not.
 - **Probe rather than reason, when the question is decidable.** Confident assumptions that a
   throwaway script overturned in minutes: the native and OpenAI endpoints return an
   *identical* token payload; the sampled token is absent from its own top-3 about a third of
@@ -222,17 +229,21 @@ What has paid off here, and what it cost to skip.
 
 ## Open threads
 
-**The `token-loom/2` amendment** is the live one — `FORMAT.md` under "Landing the
-amendment". It is decided, not open; what is outstanding is the code.
+Nothing is open at the format level. Phase 1 is closed and Phase 2 — the API and front end,
+rebuilt against the core — is the work.
 
-Then **throughput under broad sampling** — `ROADMAP.md` under "Open questions" — which is a
-measurement rather than a decision, and is cheap to take: `core/session.py:generate` issues
-N sequential calls with `cache_prompt` on, which is the best case for the prompt cache.
+Two limitations left deliberately unhandled, both recorded in `FORMAT.md` under "Settled by
+measurement" and both with the same root:
 
-One limitation left deliberately unhandled: a generation point placed *inside* a character
-has no string form, and `core/llama.py` raises rather than guessing. Fixing it properly means
-sending token ids, which is the token-replay path in `BEYOND-MVP.md` and needs mixed-mode
-assembly, since human spans have no tokens.
+- **A generation point placed *inside* a character** has no string form, and `core/llama.py`
+  raises rather than guessing.
+- **A stop string that does not land on a token boundary** silently loses the bytes the
+  model emitted before the match, because llama-server drops trailing entries by the stop
+  string's token count and a span's text is what its token rows spell.
+
+Both are fixed properly by sending and matching on **token ids** rather than text — the
+token-replay path in `BEYOND-MVP.md`, which needs mixed-mode assembly since human spans have
+no tokens. Neither is worth pulling that forward for.
 
 The naming thread is closed: **token loom**. The repo rename and package identity land in
 Phase 0, before `model.py` is rewritten. Note the name collides with crypto in search

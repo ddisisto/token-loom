@@ -1,27 +1,22 @@
 """The load-time validator: seven checks, four structural.
 
-`token-loom/1` had nine, six of them structural, and the three that went were
-all asking the same question in different words -- do runs and pieces still
-agree with the spans they point into. With a span carrying its own attachment
-there is no second representation to disagree, so those are not questions that
-can be asked here:
+Seven is fewer than a validator over this data usually needs, and the reason is
+worth stating once here. A span carries its own attachment, so there is exactly
+one representation of where each byte sits. Most of what a validator does is
+hold two representations to agreeing, and there is no second one:
 
-- **Strong coverage** (every byte of a span covered by exactly one piece) has
-  nothing to tile.
-- **Prefix coverage** (the live pieces of a span cover a contiguous prefix) is
-  the shape `Tree.live` answers in, and no other shape is available.
-- **The offset chain** (`run.start == parent.start + ...`) has no stored
-  absolute offset to check, since `Tree.absolute` derives it.
+- **that every byte of a span is covered exactly once** has nothing to tile
+- **that the live part of a span is a contiguous prefix** is the shape
+  `Tree.live` answers in, and no other shape is available
+- **that a stored absolute offset agrees with its parent's** has nothing
+  stored, since `Tree.absolute` derives it
 
-One check also went tautological rather than redundant, which is worth naming
-because it looks like a gap: `token-loom/1` checked that `text` and `extent[1]`
-agreed about whether a span was in flight. There is one field now, and
-`Span.complete` reads it, so there is nothing left that could disagree.
+Nor can a span disagree with itself about being in flight: `text` is the only
+field that says so and `Span.complete` reads it.
 
-What replaced them is check 3's slice clause and check 5, both of which
-`token-loom/1` could not have had: an address can be checked against the path
-it claims to lie on, where an absolute offset could only be checked against
-arithmetic.
+What is checkable here instead is that an *address* lies on the path it claims
+to -- check 3's slice clause and check 5. An absolute offset could only be
+checked against arithmetic; an address can be checked against the tree.
 """
 from __future__ import annotations
 
@@ -93,8 +88,8 @@ def _check_spans(tree: Tree, problems: list[str]) -> None:
 
     The slice clause is the one that earns its keep. A slice start is an
     address, so it can be held to lying on the span's own ancestry -- naming a
-    span on some other branch is a bug that `token-loom/1`'s absolute offset
-    could not express, let alone catch.
+    span on some other branch is a bug a root-relative offset could not express,
+    let alone catch.
     """
     for span in tree.spans.values():
         if span.kind not in KINDS:

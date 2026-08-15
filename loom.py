@@ -62,9 +62,10 @@ def outline(tree, reach: dict[str, int], span_id: str | None, offset: int,
             resuming: bool) -> tuple[list[tuple[str, int, int]], list[tuple]]:
     """One derived run from a starting point: its pieces, and where it forks.
 
-    A run is a maximal stretch with no branch point in it. `token-loom/1`
-    stored that as a list of pieces; this computes the same list and throws it
-    away, which is the whole of what "runs are derived" means in practice.
+    A run is a maximal stretch with no branch point in it. This computes that
+    list and throws it away on every render, which is the whole of what "runs
+    are derived" means in practice -- the boundaries carry no meaning of their
+    own, so there is nothing to keep.
 
     `resuming` says the children anchored exactly at `offset` have already been
     emitted by the fork that sent us here. Without it a span with a branch at

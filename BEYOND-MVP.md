@@ -185,10 +185,10 @@ multiplicity, and at short lengths multiplicity is the data. Merge-on-insert wou
 a join-on-delete to stay canonical — a structural mutation, in a format that has none at
 all, for 2%.
 
-That last point got sharper with `token-loom/2`. Spans are now the structure as well as the
-record, so a merge would have to open one — which is the single thing the format forbids.
-Prefix merging is not a deferred feature here; it is off the table for as long as
-immutability is.
+And it is sharper than a cost argument. A span is the structure as well as the record, so
+merging two would mean opening one — which is the single thing the format forbids, and the
+thing every address recorded anywhere depends on not happening. Prefix merging is not a
+deferred feature here; it is off the table for as long as immutability is.
 
 Phase 1 therefore does nothing here beyond what it already does. If a merged *view* of N
 siblings over a shared prefix ever looks worthwhile, reaching it is a computation over data
