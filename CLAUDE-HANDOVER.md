@@ -11,8 +11,12 @@ the three files above instead.
 
 ## Where things stand
 
-Every thread the previous handover carried is closed. `main` holds all of it, unpushed.
-`core_test.py` 144 green with no model, `llama_test.py` 47 green against the server.
+Every thread the previous handover carried is closed, and `main` is pushed and in sync.
+`core_test.py` 145 green with no model, `llama_test.py` 47 green against the server.
+
+`PLAYBOOKS.md` is new and is the best entry point to what the instrument is *for* — five
+moves worked end to end against `data/demo/`, which is **committed** and reads with no model.
+`demo.py --force` rebuilds it. `README.md` is no longer upstream's tkinter documentation.
 
 Phase 1 is done and there is nothing open at the format level. **Phase 2 — the API and front
 end rebuilt against the core — is the whole of what is next**, and `ROADMAP.md` has its
@@ -49,7 +53,11 @@ particular is not disposable.
   The former's `<|endoftext|>` concern is **already satisfied at the format level**:
   end-of-text arrives in the overlay as a token with its id and zero bytes, not swallowed.
   What is left of that note is rendering, which is Phase 2/3 work.
-- Two CLI things noticed and deliberately not done, since neither is needed yet: `params`
-  prints every field of every entry where a diff between two entries would read better, and
-  nothing filters `show` by batch.
-- `main` is ahead of `origin/main` and unpushed.
+- Three CLI things noticed and deliberately not done, since none is needed yet: `params`
+  prints every field of every entry where a diff between two would read better; nothing
+  filters `show` by batch; and **`gen` leaves the cursor on the span it made**, so sampling
+  one position repeatedly means naming the position each time. That last one is right for
+  walking forward and wrong for sampling in place — `PLAYBOOKS.md` documents both rather
+  than picking, because which default is correct depends on the move.
+- `data/tree/` still holds the stale-format tree and `loom.py new` now refuses it cleanly
+  rather than tracebacking. It is disposable; delete it when convenient.
