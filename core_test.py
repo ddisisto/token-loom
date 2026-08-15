@@ -54,6 +54,9 @@ def worked_example():
                          'length': 3, 'stop': [],
                          'model': 'qwen2.5-7b-base', 'tokenizer': 'qwen2.5',
                          'n_ctx': 16384, 'prompt_length': 6000}
+    # a second call at different conditions, so the fixture holds what a sweep
+    # holds: two batches that are two experiments rather than one repeated
+    tree.params['p2'] = dict(tree.params['p1'], temperature=1.3)
     root = Position('s1', len(PROMPT))
     for span in [
         Span('s1', 'human', None, PROMPT, TS),
@@ -66,7 +69,7 @@ def worked_example():
              origin={'span': 's3', 'index': 2, 'token_id': 2058}),
         # in flight: provenance written, byte record still empty
         Span('s5', 'sampled', Position('s3', len(spelled(CLEAR))), None, TS,
-             params='p1', seed=90213, batch='b2', index=0,
+             params='p2', seed=90213, batch='b2', index=0,
              slice_start=Position('s1', 0)),
     ]:
         tree.add(span)
@@ -419,6 +422,7 @@ def driver(workdir):
           _exits(run, 'show'))
 
     several_roots(workdir)
+    capping_the_render(workdir)
 
 
 def cli_reads(path):
@@ -457,6 +461,19 @@ def cli_reads(path):
     check('one batch can be asked for alone',
           code == 0 and 'b1' in out and 'b2' not in out, out)
     check('a batch that does not exist is refused', _exits(run, 'batches', 'b9'))
+
+    # the level between one call and the whole tree: interning is by value, so
+    # one key is one set of conditions however many calls were made under it.
+    # Both directions are checked because a filter that returns everything
+    # passes the first on its own
+    code, out = run('batches', '--params', 'p1')
+    check('batches select down to one set of conditions',
+          code == 0 and 'b1' in out and 'b2' not in out, out)
+    code, out = run('batches', '--params', 'p2')
+    check('and the other conditions select the other call',
+          code == 0 and 'b2' in out and 'b1' not in out, out)
+    check('an unknown parameter set is refused',
+          _exits(run, 'batches', '--params', 'p9'))
 
     code, out = run('params')
     check('the intern table lists, with how many spans use each entry',
@@ -526,6 +543,66 @@ def several_roots(workdir):
           '3 spans, 1 unreachable' in out, out)
 
 
+def capping_the_render(workdir):
+    """`show <position>` and `show --depth n`, which are cuts over the display.
+
+    Neither changes what is reachable, so neither can crash in an obvious way:
+    the failure mode is a miscount, which ordinary use does not surface. The
+    one that did happen, and is the reason this exists: a zero-width node
+    prints nothing, so it must not consume a level either -- otherwise
+    `--depth 1` means "the roots" on a tree with several and "the roots and
+    their forks" on a tree with one, and only the second tree is ever tested.
+
+    So the fixture has both shapes at once: two roots, one of which forks.
+    """
+    import io
+    import contextlib
+    import loom
+
+    print('\ncapping what the render prints')
+    path = os.path.join(workdir, 'depth')
+
+    def run(*argv):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = loom.main(['-d', path, *argv])
+        return code, out.getvalue()
+
+    run('new', '--seed', '5')
+    run('author', 'One.', '.')          # s0, a root
+    run('author', 'Two.', '.')          # s1, another
+    run('author', ' left', 's0')        # s2, at s0's tip
+    run('author', ' right', 's0')       # s3, at the same tip -- so s0 forks
+
+    code, out = run('show')
+    check('uncapped, the fork under a root renders',
+          code == 0 and 'Hs2' in out and 'Hs3' in out, out)
+
+    code, out = run('show', '--depth', '0')
+    check('--depth 0 stops at the roots, not one level short of them',
+          code == 0 and 'Hs0' in out and 'Hs1' in out and 'Hs2' not in out, out)
+    check('and the elision counts the runs it stood in for',
+          '2 more run(s)' in out, out)
+
+    code, out = run('show', '--depth', '1')
+    check('--depth 1 reaches the forks below a root',
+          'Hs2' in out and 'Hs3' in out and 'more run(s)' not in out, out)
+    # the cap is display-only, so the summary underneath still counts the tree
+    check('a depth limit hides runs rather than unreaching them',
+          '4 spans, 0 unreachable' in run('show', '--depth', '0')[1], out)
+
+    code, out = run('show', 's0+0')
+    check('a subtree renders from a position, without its siblings',
+          code == 0 and 'Hs0' in out and 'Hs2' in out and 'Hs1' not in out, out)
+
+    run('delete', 's1+0')
+    check('a subtree rooted at an unreachable span is refused, not a traceback',
+          _exits(run, 'show', 's1+0'))
+    code, out = run('show', '-a', 's1+0')
+    check('and renders under -a, which is what the refusal points at',
+          code == 0 and 'Hs1' in out, out)
+
+
 def _exits(run, *argv):
     try:
         run(*argv)
@@ -584,9 +661,12 @@ def main():
         check('counterfactuals keyed by id',
               [c.token_id for c in store.counterfactuals('s3', 2)]
               == [1005, 2058, 1006])
+        # the two entries differ in one field, which is the case that a
+        # by-identity implementation and a by-value one disagree about
         check('interning is by value, not identity',
               reloaded.intern(reloaded.params['p1']) == 'p1'
-              and len(reloaded.params) == 1)
+              and reloaded.intern(reloaded.params['p2']) == 'p2'
+              and len(reloaded.params) == 2)
         store.close()
 
         print('\nthe marker, and the key the marker cannot stand in for')

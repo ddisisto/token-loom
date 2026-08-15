@@ -179,12 +179,28 @@ Tool gaps that actually block the above, as opposed to conveniences.
   The sibling-divergence profile is the first real read and needs no format support.
 - **No export.** Getting a tree into anything else for analysis means reading the sqlite
   directly. Fine for now; a blocker the moment there is a statistic worth plotting.
-- **No batch filtering.** `show` renders everything; a sweep of six temperature bands would
-  be unreadable. `batches` is per-call and there is nothing between "one call" and "the whole
-  tree".
-- **`gen` moves the cursor** to the span it made, so repeated sampling at one position means
-  naming the position each time. Right for walking forward, wrong for sampling in place, and
-  worth a flag rather than a change of default.
 
 None of these needs a format change, which is the point of the format. They are reads and CLI
 surface, and each should be built when an experiment is actually waiting on it — not before.
+
+### Closed
+
+Both of these were in the way of experiment 1 rather than of the analysis, which is why they
+went first: 360 generations is not a thing you can drive by hand or read whole.
+
+- **~~`gen` moves the cursor~~**, so repeated sampling at one position meant naming the
+  position each time — right for walking forward, wrong for sampling in place. `gen --stay`
+  leaves the cursor at the generation point. Not a change of default: both readings are
+  correct and neither is the other's special case.
+- **~~No batch filtering.~~** `show <position> --depth n` roots the render at a point and caps
+  how far it forks; `batches --params <key>` selects every call made under one set of
+  conditions. Interning is by value, so the key already *is* the condition — the level between
+  "one call" and "the whole tree" turned out to be a selection the tree could already make,
+  and only needed asking for.
+
+Worth recording what building them cost, because it is the same fault twice: the depth cap is
+a derived count over a display tree that splices zero-width nodes, and it was off by one in
+**both** directions before a test that ran the multi-root and single-root shapes side by side
+caught it. A zero-width node prints nothing, so it must neither occupy a level nor be a level
+the cap can cut below. Ordinary use would not have surfaced either — every tree built by
+following the playbooks has a single root.

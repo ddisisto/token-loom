@@ -9,11 +9,13 @@ what makes replacing that front end survivable.
     loom.py new                          start a tree
     loom.py author 'The sea was'         add text at the cursor
     loom.py gen -n 4 --length 40         four continuations from the cursor
+    loom.py gen -n 20 --stay             twenty more, cursor left in place
     loom.py show                         the tree
+    loom.py show s2 --depth 1            one subtree, one level of forks
     loom.py read s4                      one path, whole
     loom.py tokens s2                    the overlay: logprobs, alternatives
     loom.py branch s2 3 1                take the road not taken
-    loom.py batches                      generation calls, as experiments
+    loom.py batches --params p1          generation calls, one condition
     loom.py params                       the interned parameter sets
     loom.py delete s5+9                  soft, and it cascades
 
@@ -21,6 +23,12 @@ The tree directory comes from -d, or $LOOM_TREE, or ./data/tree. A **position**
 is `span` for that span's tip, `span+offset` for a byte offset within it, or
 `.` for the root -- the point before any span, where an initial prompt goes.
 With no position given, commands use the cursor, which `show` marks inline.
+
+`gen` moves the cursor to the first span it made, which is what walking forward
+wants and the opposite of what sampling one position repeatedly wants; `--stay`
+is the second reading. Between them, `show <position> --depth n` and
+`batches --params <key>` are how a sweep stays readable -- a run of twenty
+siblings is three lines of tree and one line of batch, not twenty of each.
 
 The numbers `branch` takes are the two `tokens` prints beside each alternative:
 the token's `idx` down the left, and the alternative's rank at the front of its
@@ -158,7 +166,27 @@ def build(tree, reach: dict[str, int], start: tuple) -> dict:
             'children': children}
 
 
-def show(session: Session, verbose: bool = False, everything: bool = False) -> None:
+def run_count(node: dict) -> int:
+    """Runs in a subtree, so an elision can say what it is standing in for."""
+    return bool(node['width']) + sum(run_count(c) for c in node['children'])
+
+
+def show(session: Session, verbose: bool = False, everything: bool = False,
+         start: Position | None = None, depth: int | None = None) -> None:
+    """The tree, or a subtree of it, or the top few levels of either.
+
+    `start` and `depth` are what sits between `batches` (one call) and the
+    whole tree. A sweep of six temperature bands off one prompt is hundreds of
+    siblings under one node: unreadable rendered whole, and not what `batches`
+    groups by either. Rooting the render at a position and capping how far it
+    forks are the two cuts that make it legible, and both are pure display --
+    nothing here changes what is reachable.
+
+    So the cap is applied while walking rather than while building. The run
+    tree is computed in full either way, which keeps the summary underneath
+    honest about the whole tree: a depth limit hides runs, it does not make
+    them stop existing.
+    """
     tree = session.tree
     reach = ({s.id: s.length for s in tree.spans.values()} if everything
              else tree.live())
@@ -166,7 +194,8 @@ def show(session: Session, verbose: bool = False, everything: bool = False) -> N
     cursor = tree.selected
     marked = False
 
-    def walk(node: dict, indent: str, last: bool, root: bool = False) -> None:
+    def walk(node: dict, indent: str, last: bool, root: bool = False,
+             level: int = 0) -> None:
         nonlocal marked
         pieces = node['pieces']
         joint = '' if root else ('└─ ' if last else '├─ ')
@@ -202,12 +231,31 @@ def show(session: Session, verbose: bool = False, everything: bool = False) -> N
         else:
             body = indent
 
-        for i, child in enumerate(node['children']):
-            walk(child, body, i == len(node['children']) - 1)
+        # zero width is a fork point rather than a run: it neither occupies a
+        # level nor can be the thing a level cuts below, so the cap skips it
+        # entirely and applies to its children as if they were the top
+        if node['width'] and depth is not None and level >= depth \
+                and node['children']:
+            hidden = sum(run_count(c) for c in node['children'])
+            print(f'{body}   … {hidden} more run(s) below; '
+                  f'--depth {depth + 1} goes one further')
+            return
 
-    root = build(tree, reach, (None, 0, False))
+        # a zero-width node is a fork point rather than a run -- it prints
+        # nothing, so it must not consume a level either, or `--depth 1` means
+        # one thing on a tree with a single root and another on a tree with five
+        for i, child in enumerate(node['children']):
+            walk(child, body, i == len(node['children']) - 1,
+                 level=level + bool(node['width']))
+
+    if start is not None and start.span not in reach:
+        raise SystemExit(f'{fmt(start)} is not reachable; `show -a` renders '
+                         f'the deleted ones too')
+    begin = ((None, 0, False) if start is None
+             else (start.span, start.offset, False))
+    root = build(tree, reach, begin)
     if not root['width'] and not root['children']:
-        print('(empty)')
+        print('(empty)' if start is None else f'(nothing below {fmt(start)})')
     else:
         walk(root, '', True, root=True)
 
@@ -277,13 +325,19 @@ def show_tokens(session: Session, span_id: str) -> None:
           'not in the list at all.')
 
 
-def show_batches(session: Session, batch_id: str | None = None) -> None:
+def show_batches(session: Session, batch_id: str | None = None,
+                 params_key: str | None = None) -> None:
     """A batch read back as the experiment it was.
 
     The batch id was pulled forward into Phase 1 precisely so the siblings of
     one call would be linkable afterwards, and nothing read it. This is that
     payoff: one call, its parameters, and what each continuation did with the
     same conditions and a different seed.
+
+    `params_key` groups a level up from that. Interning is by value, so one key
+    *is* one set of conditions however many calls were made under it -- which
+    makes "every batch at this temperature" a selection the tree already knows
+    how to make, rather than something a sweep has to keep track of itself.
     """
     tree, store = session.tree, session.store
     batches: dict[str, list] = {}
@@ -295,6 +349,14 @@ def show_batches(session: Session, batch_id: str | None = None) -> None:
         if batch_id not in batches:
             raise SystemExit(f'no batch {batch_id!r}; see `batches`')
         batches = {batch_id: batches[batch_id]}
+    if params_key is not None:
+        if params_key not in tree.params:
+            raise SystemExit(f'no parameter set {params_key!r}; see `params`')
+        batches = {name: spans for name, spans in batches.items()
+                   if spans[0].params == params_key}
+        if not batches:
+            print(f'(no batches under {params_key})')
+            return
     if not batches:
         print('(no batches; nothing has been generated)')
         return
@@ -388,9 +450,12 @@ def main(argv=None) -> int:
     p = sub.add_parser('new', help='create a tree')
     p.add_argument('--seed', type=int, default=None, help='base seed')
 
-    p = sub.add_parser('show', help='the tree')
+    p = sub.add_parser('show', help='the tree, or a subtree of it')
+    p.add_argument('position', nargs='?', help='root the render here')
     p.add_argument('-v', '--verbose', action='store_true', help='untruncated text')
     p.add_argument('-a', '--all', action='store_true', help='deleted subtrees too')
+    p.add_argument('--depth', type=int, default=None,
+                   help='stop forking after this many levels')
 
     p = sub.add_parser('read', help='one path, whole')
     p.add_argument('position', nargs='?')
@@ -399,6 +464,8 @@ def main(argv=None) -> int:
 
     p = sub.add_parser('batches', help='generation calls, as experiments')
     p.add_argument('batch', nargs='?', help='one batch, or all of them')
+    p.add_argument('--params', default=None,
+                   help='only batches run under this parameter set; see `params`')
 
     sub.add_parser('params', help='the interned parameter sets')
 
@@ -415,6 +482,8 @@ def main(argv=None) -> int:
     p.add_argument('--top-n', type=int, default=3, help='counterfactuals, min 1')
     p.add_argument('--prompt-length', type=int, default=6000, help='bytes')
     p.add_argument('--stop', action='append', default=[])
+    p.add_argument('--stay', action='store_true',
+                   help='leave the cursor at the generation point')
 
     p = sub.add_parser('branch', help='take a counterfactual')
     p.add_argument('span')
@@ -469,7 +538,9 @@ def dispatch(session: Session, args) -> int:
     tree = session.tree
 
     if args.command == 'show':
-        show(session, args.verbose, args.all)
+        show(session, args.verbose, args.all,
+             parse_position(session, args.position) if args.position else None,
+             args.depth)
 
     elif args.command == 'read':
         pos = parse_position(session, args.position)
@@ -483,7 +554,7 @@ def dispatch(session: Session, args) -> int:
         show_tokens(session, known_span(session, args.span))
 
     elif args.command == 'batches':
-        show_batches(session, args.batch)
+        show_batches(session, args.batch, args.params)
 
     elif args.command == 'params':
         show_params(session)
@@ -510,7 +581,15 @@ def dispatch(session: Session, args) -> int:
         for span in spans:
             print(f'{span.id}  {session.store.terminator(span.id):>7}  '
                   f'{show_text(span.text, 70)}')
-        set_cursor(session, session.tip(spans[0].id))
+        # walking forward wants the cursor on what was just made; sampling in
+        # place wants it left where the sampling is happening, or every repeat
+        # has to name the position again. `session.generate` has already saved
+        # per continuation, so staying put needs no write of its own
+        if args.stay:
+            if pos != tree.selected:
+                set_cursor(session, pos)
+        else:
+            set_cursor(session, session.tip(spans[0].id))
 
     elif args.command == 'branch':
         known_span(session, args.span)
