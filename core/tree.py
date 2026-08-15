@@ -37,7 +37,7 @@ from typing import NamedTuple
 
 from util.util import timestamp
 
-FORMAT = 'token-loom/2'
+FORMAT = 'token-loom/1'
 
 # provenance categories. Agency -- what initiated a span -- is deliberately a
 # separate axis, not a fourth value here.
@@ -157,7 +157,26 @@ class Span:
 
     @classmethod
     def from_json(cls, id: str, d: dict) -> Span:
-        return cls(id=id, kind=d['kind'], parent=pos_from_json(d.get('parent')),
+        """`parent` is read as a required key, and that is load-bearing.
+
+        Every span written by this format carries it -- a root carries it as
+        `null` -- so nothing valid is refused. What it refuses is a file from
+        the shape this replaced, where structure lived in runs and pieces and a
+        span had no parent at all. Read with `.get()`, every one of those spans
+        would come back as a root: no error, no missing field, a tree that
+        loads and validates and is not the tree that was written.
+
+        The marker alone cannot catch it. This format and that one both call
+        themselves `token-loom/1`, because that one never went live and the
+        number was reclaimed rather than spent on it. So the check that has to
+        hold is this one, and it holds by reading the key that shape lacks.
+        """
+        if 'parent' not in d:
+            raise ValueError(
+                f'span {id} has no `parent`, so this is not a {FORMAT} tree. '
+                f'A span from the run-and-piece shape kept its structure '
+                f'elsewhere and would load silently as a root.')
+        return cls(id=id, kind=d['kind'], parent=pos_from_json(d['parent']),
                    text=decode_text(d.get('text')), created=d.get('created', ''),
                    params=d.get('params'), seed=d.get('seed'),
                    batch=d.get('batch'), index=d.get('index'),

@@ -11,6 +11,7 @@ Arithmetic in a test is code too, and nothing checks it.
 
 Usage: python core_test.py
 """
+import json
 import os
 import shutil
 import sys
@@ -402,6 +403,15 @@ def driver(workdir):
     check('a bad position is refused too', _exits(run, 'read', 's99'))
     check('and so is a malformed offset', _exits(run, 'cursor', 's0+x'))
 
+    # a file from another format reaches the CLI as a ValueError out of the
+    # loader, which is a traceback unless something catches it
+    stale = os.path.join(path, 'tree.json')
+    d = json.loads(open(stale).read())
+    d['format'] = 'token-loom/0'
+    open(stale, 'w').write(json.dumps(d))
+    check('and so is a tree this format does not read',
+          _exits(run, 'show'))
+
     several_roots(workdir)
 
 
@@ -522,6 +532,31 @@ def main():
               reloaded.intern(reloaded.params['p1']) == 'p1'
               and len(reloaded.params) == 1)
         store.close()
+
+        print('\nthe marker, and the key the marker cannot stand in for')
+        marker = json.loads(open(os.path.join(path, 'tree.json')).read())
+        check('the format marker is what this format is called',
+              marker['format'] == 'token-loom/1', marker['format'])
+        check('a root writes its parent as null rather than omitting it',
+              'parent' in marker['spans']['s1']
+              and marker['spans']['s1']['parent'] is None,
+              repr(marker['spans']['s1'].get('parent', '<absent>')))
+
+        # The shape this replaced kept structure in runs and pieces, so its
+        # spans have no `parent` at all -- and it called itself `token-loom/1`
+        # too, since it never went live and the number was reclaimed. The
+        # marker therefore cannot tell the two apart. Reading `parent` as
+        # required is the whole of what does: with `.get()` every span of such
+        # a file loads as a root, and the result validates.
+        stale = json.loads(json.dumps(marker))
+        del stale['spans']['s2']['parent']
+        try:
+            Tree.from_json(stale)
+            check('a span with no parent is refused', False,
+                  'it loaded, and every span would have been a root')
+        except ValueError as e:
+            check('a span with no parent is refused, loudly', 'parent' in str(e),
+                  str(e))
 
         print('\ndeleting bisects a span, never opens one')
         tree = worked_example()

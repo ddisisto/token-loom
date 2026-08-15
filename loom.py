@@ -319,6 +319,11 @@ def main(argv=None) -> int:
         raise SystemExit(f'no tree at {args.dir}; `loom.py -d {args.dir} new` first')
     except Invalid as e:
         raise SystemExit(f'{args.dir} did not validate:\n{e}')
+    except ValueError as e:
+        # a wrong format marker, or a span from a shape that kept its structure
+        # somewhere else. Both are "this file is not ours", and both used to
+        # arrive as a traceback from inside the loader.
+        raise SystemExit(f'{args.dir} is not a tree this reads: {e}')
 
     try:
         return dispatch(session, args)
