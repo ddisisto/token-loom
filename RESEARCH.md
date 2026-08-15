@@ -42,6 +42,22 @@ A fifth has emerged from the runs rather than from the framing:
 
 5. **At what level does convergence live?** See "The one that surprised me" below.
 
+### The null prompt is not a baseline
+
+Worth writing down because it was believed for a while and is wrong. Generating from an empty
+prompt feels like the privileged view of the prior — the model unprompted, saying what it
+would say. It isn't. It is one more conditioning, and a strange one: the region of the
+distribution reachable from no context at all is narrow and unrepresentative, not neutral.
+
+The prior is whatever it is, and it is not directly observable. Every prompt is a window onto
+some part of it, the sliding window is the instrument for moving that window around, and no
+position of the window is the true one. That reframes question 3 — framing is not distortion
+away from a baseline, because there is no baseline to be distorted away from. It is the only
+access there is.
+
+Which makes the instrument more interesting rather than less, and puts the burden somewhere
+specific: on choosing windows whose bias is legible, and on saying what it is.
+
 ---
 
 ## What has been run
@@ -146,6 +162,109 @@ listed here because they constrain what is measurable:
   as `eos`. Nothing swallows it.
 - **A stop string off a token boundary silently loses bytes**, so stop strings should be kept
   to plausible token sequences until the token-replay path exists.
+
+---
+
+## Sweep 1: temperature, pre-registered
+
+**Written before the sweep ran, and not edited after.** Everything below the horizontal rule
+at the end of this section was fixed before a single continuation existed. Corrections go in
+a *results* section underneath, never here — a pre-registration that gets tidied up once the
+numbers are in is not one.
+
+The reason to bother, given that exploration is what produced the best thing on this page:
+**only the claim already made needs protecting.** Playbook 2 says 0.2 and 1.3 both locked
+onto *the silence of X* while 0.8 escaped. That is written down, it is specific, and it is
+the result that would be most satisfying to keep. Novel observation needs no defending
+against a three-sample impression becoming a twenty-sample one. This does.
+
+### Conditions
+
+Three prompts, all roots of `data/demo/`, all short and all open continuations rather than
+instructions — the two long roots (`s19`, `s28`) are excluded because their length would
+confound with `prompt_length`:
+
+| | prompt | bytes |
+| --- | --- | --- |
+| A | `The lighthouse keeper wrote in his log:` | 39 |
+| B | `There are three kinds of silence. The first is` | 46 |
+| C | `She opened the door and found` | 29 |
+
+B is playbook 2's prompt and carries the claim. A and C are there to say whether it
+generalises. They are as neutral and open as prompts get, which is not very — any of them can
+be read as leading, and how much of that reading is the prompt's and how much is the reader's
+is part of what the sweep is looking at.
+
+Six bands: **0.1, 0.3, 0.6, 0.9, 1.2, 1.5**. `n=20`, `length=28`, `top_n=3`,
+`prompt_length=6000`, everything else default. 18 batches, 360 continuations. `length=28`
+matches playbook 2 so the demo's nine samples stay comparable.
+
+### The measure, fixed now
+
+Frame-lock is read by eye everywhere above, which is exactly the thing that must stop before
+more samples are added. Operationally, over the `n` siblings of one batch:
+
+> **`lock(k)`** = the size of the largest subset of siblings sharing their first `k` tokens,
+> divided by `n`.
+
+`lock(3)` is the primary measure. Three tokens is *the / silence / of*, which is the frame
+the claim is about. `lock(1)` and `lock(10)` are reported beside it. Nothing here needs a
+format change or a new call: it is a comparison of token sequences already stored, which is
+the sibling-divergence read under a different name — and that read must be built and pinned
+against `data/demo/` **before** it is pointed at the sweep.
+
+Note what this measure is not. It is lexical, and "The one that surprised me" established
+that the interesting convergence is not lexical. That is fine and deliberate: playbook 2's
+*the silence of X* is a shared opening token sequence, so it is a lexical claim, and it is a
+different phenomenon from playbook 1's genre convergence. Keeping them apart is half the
+point.
+
+### The predictions
+
+**P0, the null, and the one to beat.** `lock(3)` falls monotonically as temperature rises.
+This is what naive sampling theory says and it is a live possibility. Writing it down first
+is what stops "not monotonic!" from meaning "not perfectly monotonic across six noisy bands".
+
+**P1, the claim under test.** `lock(3)` is U-shaped: higher at 0.1–0.3 and 1.2–1.5 than at
+0.6–0.9, on prompt B. If it holds on A and C too it is a fact about temperature; if it holds
+only on B it is a fact about that prompt, which is also worth knowing and is the more likely
+outcome.
+
+**P2, the sharp one.** The two ends are not the same phenomenon.
+
+- Low-temperature lock is *the same completion*: siblings agree on the frame and keep
+  agreeing. `lock(10)` stays close to `lock(3)`.
+- High-temperature lock is *the same frame, different fillers*: siblings agree for three
+  tokens and then scatter. `lock(10)` collapses relative to `lock(3)`.
+
+So the discriminator is the ratio **`lock(10) / lock(3)`**, predicted high at 0.1 and low at
+1.5 — falling monotonically even if `lock(3)` itself does not. P2 can fail while P1 holds,
+which is what makes it worth stating: if `lock(3)` is U-shaped and the ratio does not
+separate the ends, the U is one effect rather than two and this whole framing needs redoing.
+
+P2 is also where the two levels stop competing. Token overlap and frame agreement become two
+axes of one plot rather than a cheap measure and a good one.
+
+### What this design cannot do
+
+- **`n=20` sees 40% versus 80%. It does not see 60% versus 75%.** A null result means "too
+  small to see at this sample size", not "did not happen".
+- **Three prompts is not a sample of prompts.** Any effect that holds on all three is a
+  hypothesis about prompts in general, not a measurement of them.
+- **One model, one quantisation, one server.** Nothing here separates a fact about
+  temperature from a fact about Qwen2.5-7B at Q4_K_M.
+- The bands are not evenly spaced in anything meaningful. Temperature is not a physical
+  quantity and 0.1→0.3 is not the same step as 1.2→1.5.
+
+### Blinding
+
+Continuations are written to the tree and to a log that neither of us reads while the sweep
+runs. Status is checked with `params`, which prints conditions and span counts and no
+generated text. The classifier is built against `data/demo/` and pinned before the sweep
+output is opened. Then unblind, and look at everything.
+
+The point is narrow: judging "is this locked onto the frame" while knowing the temperature is
+precisely how the three-sample impression got made in the first place.
 
 ---
 
