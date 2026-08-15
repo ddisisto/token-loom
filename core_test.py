@@ -361,9 +361,11 @@ def driver(workdir):
     check('author works on a fresh tree, whose cursor is the root',
           code == 0 and "'The sea was'" in out, out)
 
+    # author leaves the cursor at the tip, so the mark lands at the very end --
+    # which is the common case and has to read as "here", not as a stray glyph
     code, out = run('show')
     check('show renders the derived run and its text',
-          's0+0  0..11  Hs0' in out and "'The sea was'" in out, out)
+          's0+0  0..11  Hs0' in out and f"'The sea was{loom.CURSOR}'" in out, out)
 
     code, out = run('read', 's0')
     check('read prints the path', out.strip() == 'The sea was', out)
@@ -414,6 +416,56 @@ def driver(workdir):
           _exits(run, 'show'))
 
     several_roots(workdir)
+
+
+def cli_reads(path):
+    """`batches`, `params` and the cursor mark, against the worked example.
+
+    Run here rather than in `driver` because they need a tree that has been
+    generated into, and `driver` only authors. The worked example has two
+    batches, one of them in flight, which is the awkward case: a batch whose
+    span has no bytes and no terminator still has to list.
+    """
+    import io
+    import contextlib
+    import loom
+
+    print('\nreading a batch back as the experiment it was')
+
+    def run(*argv):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = loom.main(['-d', path, *argv])
+        return code, out.getvalue()
+
+    code, out = run('batches')
+    check('both batches list', code == 0 and 'b1' in out and 'b2' in out, out)
+    check('the siblings of one call are shown together, in batch order',
+          out.index('[0] s2') < out.index('[1] s3'), out)
+    check('with the seeds that distinguish them',
+          '90211' in out and '90212' in out, out)
+    check('and the parameters they shared', "'temperature': 0.9" in out, out)
+    # s5 was in flight and `open_tree` recovered it, so it lists as aborted
+    check('a recovered span lists with its terminator, not as a gap',
+          'aborted' in out, out)
+    check('a counterfactual span is in no batch', 's4' not in out, out)
+
+    code, out = run('batches', 'b1')
+    check('one batch can be asked for alone',
+          code == 0 and 'b1' in out and 'b2' not in out, out)
+    check('a batch that does not exist is refused', _exits(run, 'batches', 'b9'))
+
+    code, out = run('params')
+    check('the intern table lists, with how many spans use each entry',
+          code == 0 and 'p1' in out and 'span(s)' in out, out)
+    check('and the values, one per line rather than as a dict dump',
+          'temperature' in out and 'prompt_length' in out, out)
+
+    # the cursor is at the tip of s3, which is the end of its run
+    code, out = run('show')
+    check('the cursor marks its place inside the text, not just at the line end',
+          loom.CURSOR in out, out)
+    check('and still flags which run it is in', '←' in out, out)
 
 
 def several_roots(workdir):
@@ -666,6 +718,10 @@ def main():
         check('a start already on a boundary is left alone',
               start == Position('s0', 2) and text == 'écd'.encode(),
               f'{start} {text!r}')
+
+        # before the validator section, which deliberately breaks the store on
+        # disk and leaves it broken
+        cli_reads(path)
 
         print('\nthe validator rejects')
         example_store = BulkStore(os.path.join(path, 'bulk.sqlite'))

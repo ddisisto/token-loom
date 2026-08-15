@@ -13,12 +13,18 @@ what makes replacing that front end survivable.
     loom.py read s4                      one path, whole
     loom.py tokens s2                    the overlay: logprobs, alternatives
     loom.py branch s2 3 1                take the road not taken
+    loom.py batches                      generation calls, as experiments
+    loom.py params                       the interned parameter sets
     loom.py delete s5+9                  soft, and it cascades
 
 The tree directory comes from -d, or $LOOM_TREE, or ./data/tree. A **position**
 is `span` for that span's tip, `span+offset` for a byte offset within it, or
 `.` for the root -- the point before any span, where an initial prompt goes.
-With no position given, commands use the cursor.
+With no position given, commands use the cursor, which `show` marks inline.
+
+The numbers `branch` takes are the two `tokens` prints beside each alternative:
+the token's `idx` down the left, and the alternative's rank at the front of its
+column.
 
 There is no `split`. A branch mid-span is a child anchored at an offset, so
 there is nothing to divide and no boundary to make first. Runs still exist in
@@ -35,11 +41,15 @@ import sys
 from core import Invalid, Position, Server, Truncated, validate
 from core.ops import token_offsets
 from core.session import Session
+from core.tree import id_order
 
 DEFAULT_DIR = os.environ.get('LOOM_TREE', 'data/tree')
 
 
 # -- rendering -------------------------------------------------------------
+
+CURSOR = '‸'
+
 
 def show_text(raw: bytes, limit: int | None = 60) -> str:
     """Bytes as something readable, without pretending they always decode."""
@@ -47,6 +57,33 @@ def show_text(raw: bytes, limit: int | None = 60) -> str:
     if limit is not None and len(text) > limit:
         text = text[:limit - 1] + '…'
     return repr(text)
+
+
+def show_marked(raw: bytes, at: int, limit: int | None = 60) -> str:
+    """The same, with the cursor marked at byte `at` and kept in view.
+
+    Two things make this less trivial than inserting a character. The mark is
+    at a *byte* offset and the output is characters, so the split happens on
+    the bytes and each side is decoded separately -- which is also what keeps a
+    cursor sitting inside a character from corrupting the half it is not in.
+
+    And the mark has to survive truncation, or marking the position is exactly
+    the thing that gets cut. So the window slides to hold it: text is shown
+    from the start until the cursor would fall off the end, and from around the
+    cursor after that. An elision on either side says which happened.
+    """
+    at = max(0, min(at, len(raw)))
+    head = raw[:at].decode('utf-8', errors='replace')
+    tail = raw[at:].decode('utf-8', errors='replace')
+    if limit is None or len(head) + len(tail) <= limit:
+        return repr(head + CURSOR + tail)
+
+    # keep a third of the window ahead of the cursor when it is deep in the run
+    keep = max(0, len(head) - (limit - limit // 3))
+    left = ('…' + head[keep + 1:]) if keep else head
+    room = limit - len(left)
+    right = tail if len(tail) <= room else tail[:max(0, room - 1)] + '…'
+    return repr(left + CURSOR + right)
 
 
 def kind_mark(kind: str) -> str:
@@ -142,18 +179,26 @@ def show(session: Session, verbose: bool = False, everything: bool = False) -> N
             gone = '  (deleted)' if pieces[0][0] in dead else ''
             # a cursor on a run boundary belongs to both; the earlier one wins,
             # which is the same canonical choice `address_at` makes
-            here = ''
-            if not marked and cursor and any(
-                    s == cursor.span and begin <= cursor.offset <= end
-                    for s, begin, end in pieces):
-                here, marked = ' ←', True
+            here, cursor_byte = '', None
+            if not marked and cursor:
+                seen = 0
+                for s, begin, end in pieces:
+                    if s == cursor.span and begin <= cursor.offset <= end:
+                        cursor_byte = seen + cursor.offset - begin
+                        break
+                    seen += end - begin
+                if cursor_byte is not None:
+                    here, marked = ' ←', True
             print(f'{indent}{joint}{fmt(head)}  {at}..{at + node["width"]}  '
                   f'{marks}{gone}{here}')
 
             body = indent + ('   ' if last or root else '│  ')
             text = b''.join(tree.spans[s].text[begin:end]
                             for s, begin, end in pieces if tree.spans[s].text)
-            print(f'{body}  {show_text(text, None if verbose else 68)}')
+            limit = None if verbose else 68
+            print(f'{body}  ' + (show_marked(text, cursor_byte, limit)
+                                 if cursor_byte is not None
+                                 else show_text(text, limit)))
         else:
             body = indent
 
@@ -210,20 +255,95 @@ def show_tokens(session: Session, span_id: str) -> None:
         print('  (no tokens)')
         return
 
-    print(f'  {"byte":>6} {"id":>7}  {"token":<16} {"logprob":>9}   alternatives')
+    # `idx` and the rank prefixes are the two numbers `branch` takes. Printing
+    # the alternatives without them meant counting columns to use the command.
+    print(f'  {"idx":>4} {"byte":>6} {"id":>7}  {"token":<16} {"logprob":>9}'
+          f'   alternatives, by rank')
     for token in tokens:
         # absolute byte offset, so it lines up with everything else printed
         byte = base + offsets[token.idx]
         alts = []
         for c in store.counterfactuals(span_id, token.idx):
             taken = '*' if c.token_id == token.token_id else ' '
-            alts.append(f'{taken}{show_text(c.bytes, 12)}({c.logprob:.2f})')
+            alts.append(f'{c.rank}{taken}{show_text(c.bytes, 12)}'
+                        f'({c.logprob:.2f})')
         logprob = '' if token.logprob is None else f'{token.logprob:9.4f}'
-        print(f'  {byte:>6} {token.token_id:>7}  '
+        print(f'  {token.idx:>4} {byte:>6} {token.token_id:>7}  '
               f'{show_text(token.bytes, 14):<16} {logprob}   {" ".join(alts)}')
-    print('\n  * marks the alternative that was actually sampled; it is not '
+    print(f'\n  each alternative reads <rank><taken>, so `branch {span_id} '
+          f'<idx> <rank>` takes one.')
+    print('  * marks the alternative that was actually sampled; it is not '
           'always ranked first,\n    and at higher temperatures it is often '
           'not in the list at all.')
+
+
+def show_batches(session: Session, batch_id: str | None = None) -> None:
+    """A batch read back as the experiment it was.
+
+    The batch id was pulled forward into Phase 1 precisely so the siblings of
+    one call would be linkable afterwards, and nothing read it. This is that
+    payoff: one call, its parameters, and what each continuation did with the
+    same conditions and a different seed.
+    """
+    tree, store = session.tree, session.store
+    batches: dict[str, list] = {}
+    for span in sorted(tree.spans.values(), key=lambda s: id_order(s.id)):
+        if span.batch:
+            batches.setdefault(span.batch, []).append(span)
+
+    if batch_id is not None:
+        if batch_id not in batches:
+            raise SystemExit(f'no batch {batch_id!r}; see `batches`')
+        batches = {batch_id: batches[batch_id]}
+    if not batches:
+        print('(no batches; nothing has been generated)')
+        return
+
+    live = tree.live()
+    for name, spans in batches.items():
+        spans.sort(key=lambda s: (s.index if s.index is not None else 0))
+        head = spans[0]
+        detail = [f'{len(spans)} span(s)', f'from {fmt(head.parent)}']
+        if head.params:
+            detail.append(head.params)
+        print(f'{name}  ' + '  '.join(detail))
+        if head.params:
+            print(f'  {tree.params[head.params]}')
+        for span in spans:
+            reason = store.terminator(span.id) or 'IN FLIGHT'
+            gone = '' if span.id in live else '  (deleted)'
+            print(f'  [{span.index}] {span.id:<5} seed {span.seed:<8} '
+                  f'{reason:>7}{gone}  {show_text(span.text or b"", 46)}')
+        print()
+
+
+def show_params(session: Session) -> None:
+    """The intern table, which was visible one span at a time and no other way.
+
+    Interning is by value, so two entries here are two genuinely different sets
+    of conditions -- which makes this the list of experiments the tree holds,
+    not merely a storage detail.
+    """
+    tree = session.tree
+    if not tree.params:
+        print('(nothing interned; parameters arrive with the first generation)')
+        return
+
+    users: dict[str, int] = {}
+    for span in tree.spans.values():
+        if span.params:
+            users[span.params] = users.get(span.params, 0) + 1
+
+    # every key that any entry sets, so the columns line up across entries that
+    # differ in which optional parameters they carry
+    fields = sorted({k for v in tree.params.values() for k in v})
+    for key in sorted(tree.params, key=id_order):
+        print(f'{key}  {users.get(key, 0)} span(s)')
+        for field in fields:
+            value = tree.params[key].get(field)
+            if value is not None:
+                print(f'  {field:<14} {value!r}')
+        print()
 
 
 # -- positions -------------------------------------------------------------
@@ -276,6 +396,11 @@ def main(argv=None) -> int:
     p.add_argument('position', nargs='?')
 
     sub.add_parser('tokens', help='the token overlay for a span').add_argument('span')
+
+    p = sub.add_parser('batches', help='generation calls, as experiments')
+    p.add_argument('batch', nargs='?', help='one batch, or all of them')
+
+    sub.add_parser('params', help='the interned parameter sets')
 
     p = sub.add_parser('author', help='add human text at a position')
     p.add_argument('text')
@@ -348,6 +473,12 @@ def dispatch(session: Session, args) -> int:
 
     elif args.command == 'tokens':
         show_tokens(session, known_span(session, args.span))
+
+    elif args.command == 'batches':
+        show_batches(session, args.batch)
+
+    elif args.command == 'params':
+        show_params(session)
 
     elif args.command == 'author':
         pos = parse_position(session, args.position)
