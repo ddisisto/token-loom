@@ -47,7 +47,7 @@ import argparse
 import os
 import sys
 
-from core import Invalid, Position, Server, Truncated, validate
+from core import Incomplete, Invalid, Position, Server, Truncated, validate
 from core.ops import divergence, token_offsets
 from core.session import Session
 from core.tree import id_order
@@ -317,8 +317,11 @@ def show_tokens(session: Session, span_id: str) -> None:
             alts.append(f'{c.rank}{taken}{show_text(c.bytes, 12)}'
                         f'({c.logprob:.2f})')
         logprob = '' if token.logprob is None else f'{token.logprob:9.4f}'
-        print(f'  {token.idx:>4} {byte:>6} {token.token_id:>7}  '
-              f'{show_text(token.bytes, 14):<16} {logprob}   {" ".join(alts)}')
+        # a merged row stands for several tokens of one character, so it has no
+        # single id or logprob to print -- the absence is the record, not a gap
+        ident = '  merged' if token.token_id is None else f'{token.token_id:>7}'
+        print(f'  {token.idx:>4} {byte:>6} {ident}  '
+              f'{show_text(token.bytes, 14):<16} {logprob:>9}   {" ".join(alts)}')
     print(f'\n  each alternative reads <rank><taken>, so `branch {span_id} '
           f'<idx> <rank>` takes one.')
     print('  * marks the alternative that was actually sampled; it is not '
@@ -665,6 +668,10 @@ def dispatch(session: Session, args) -> int:
             spans = session.generate(pos, settings, n=args.n)
         except Truncated as e:
             raise SystemExit(f'refused: {e}')
+        except Incomplete as e:
+            # the spans of this batch that landed are kept and closed out as
+            # aborted on the next load, which is what in-flight recovery is for
+            raise SystemExit(f'abandoned mid-batch: {e}')
         for span in spans:
             print(f'{span.id}  {session.store.terminator(span.id):>7}  '
                   f'{show_text(span.text, 70)}')

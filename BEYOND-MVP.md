@@ -47,6 +47,28 @@ The format-level halves of these are already in Phase 1: the stop list interns w
 other parameters, termination reason distinguishes a stop token from a length limit, and
 every span carries its batch id. What defers is interface.
 
+### The prompt cache, and getting the speed back
+
+`cache_prompt` is **off**, and the cost is real: a batch of twenty continuations from one
+position reprocesses the same prompt twenty times instead of once. It was on until a
+recorded span turned out not to reproduce from what it carries — a full cache hit evaluates
+no prompt tokens, and that changes the arithmetic enough to change what a fixed seed samples.
+Warm reproduced the stored sequence exactly; cold and cache-off both diverged from it at
+index 16. Off is the setting that matches the stated intent, so off is where it stays for now.
+
+Two ways to have both, neither worth building yet:
+
+- **Record it.** Add the cache state to the interned parameters, so a span says which regime
+  produced it. Honest, and it is a format change for a performance feature — the wrong order
+  to do things in, and the reason it is here rather than in `FORMAT.md`.
+- **Make the batch the reproducible unit rather than the span.** A batch is *n* sequential
+  calls on one prompt, so replaying it from its start restores its own cache trajectory. This
+  costs nothing and is arguably what the batch id was always for. It needs verifying before
+  it can be claimed, and the claim is weaker: individual spans stop being independently
+  reproducible, which is a real loss for counterfactual branching.
+
+Worth reaching for when a sweep is slow enough to care. Nothing currently is.
+
 ### Streaming
 
 The only item that needs generation to stop blocking, and the reason Phase 1 carries a

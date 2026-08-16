@@ -102,6 +102,25 @@ things measured there that are not obvious:
 - **Rank 0 is not always the sampled token.** At temperature 0.9 the sampled token is absent
   from its own top-3 roughly a third of the time, so `tokens` and `counterfactuals` are
   independent records rather than one list with a marked entry.
+- **`completion_probabilities` is not the sampled sequence.** It is that sequence regrouped
+  onto character boundaries: the server accumulates generated text and emits a record only
+  once the accumulation is valid UTF-8, so a character split across several tokens yields
+  *one* entry carrying the whole group's bytes but the **last fragment's** id, logprob and
+  alternatives. `tokens` — from `return_tokens` — is the real sequence, and `_align` in
+  `core/llama.py` walks the two together because an entry's id is its group's final token.
+  A merged row records `token_id` and `logprob` as `None` and drops its counterfactuals;
+  anything else asserts a correspondence that does not hold. Zero merging measured on English
+  prompts, all of it on astral-plane characters and rare CJK. Consequences worth keeping in
+  mind: a **sampled** span can therefore never end mid-character, so `FORMAT.md`'s `{"b64": …}`
+  serialisation is unreachable from generation; and `Token.idx` is an entry index, not a model
+  token index, wherever a merge happened.
+- **`cache_prompt` is off, deliberately, and it costs prompt processing on every call.** A
+  full cache hit evaluates no prompt tokens, and that changes the arithmetic enough to change
+  what a fixed seed samples — the same slice, seed and parameters reproduce a *different*
+  continuation warm than cold. Measured on a recorded span: warm reproduced its 20 stored
+  entries exactly, cold and cache-off both gave 22 and diverged at index 16. Conditions that
+  only reproduce from the right cache state are not conditions, and the recorded conditions
+  are the whole product. `BEYOND-MVP.md` holds the thread for getting the speed back.
 
 It is the only setup that gives **raw continuation and per-token logprobs at once**, and
 that pairing is the whole point: a continuation of the prior is a different object than a
@@ -276,11 +295,23 @@ measurement" and both with the same root:
   raises rather than guessing.
 - **A stop string that does not land on a token boundary** silently loses the bytes the
   model emitted before the match, because llama-server drops trailing entries by the stop
-  string's token count and a span's text is what its token rows spell.
+  string's token count and a span's text is what its token rows spell. The alignment in
+  `_read` deliberately does *not* second-guess this: a tail is expected under
+  `stop_type: word` and undecidable from the response, so only a tail under `limit` or `eos`
+  raises `Incomplete`.
 
 Both are fixed properly by sending and matching on **token ids** rather than text — the
 token-replay path in `BEYOND-MVP.md`, which needs mixed-mode assembly since human spans have
-no tokens. Neither is worth pulling that forward for.
+no tokens. The UTF-8 regrouping above is a third case with the same root — the server
+accounts in text, not tokens — and the first that silently corrupted records rather than
+merely refusing. Still not worth pulling token replay forward for, but that ledger now has
+three entries.
+
+One path is now known to be unreachable rather than merely untested: **a sampled span cannot
+end mid-character**, because llama-server emits bytes only once they decode. So
+`FORMAT.md`'s `{"b64": …}` span serialisation is reachable from authoring and branching but
+never from generation — which is exactly the shape of the `CONTEXT` bug, and wants a test
+that reaches it on purpose rather than an assumption that it works.
 
 The naming thread is closed: **token loom**. The repo rename and package identity land in
 Phase 0, before `model.py` is rewritten. Note the name collides with crypto in search

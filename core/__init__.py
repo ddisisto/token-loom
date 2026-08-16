@@ -14,7 +14,7 @@ import os
 from core.ops import (address_at, author, begin_generation,
                       branch_counterfactual, check, complete, delete,
                       divergence, recover, restore, slice_at, token_offsets)
-from core.llama import DEFAULT_BASE, Result, Server, Truncated
+from core.llama import DEFAULT_BASE, Incomplete, Result, Server, Truncated
 from core.store import (ABORTED, CONTEXT, EOS, LENGTH, STOP, BulkStore,
                         Counterfactual, Token, spelled)
 from core.tree import (COUNTERFACTUAL, FORMAT, HUMAN, SAMPLED, Position, Span,
@@ -30,7 +30,7 @@ __all__ = [
     'FORMAT', 'HUMAN', 'SAMPLED', 'COUNTERFACTUAL',
     'LENGTH', 'STOP', 'EOS', 'CONTEXT', 'ABORTED', 'spelled', 'char_boundary',
     # inference
-    'Server', 'Result', 'Truncated', 'DEFAULT_BASE',
+    'Server', 'Result', 'Truncated', 'Incomplete', 'DEFAULT_BASE',
     # the five operations, and what they are built from
     'author', 'begin_generation', 'complete', 'delete', 'slice_at',
     'branch_counterfactual', 'restore', 'recover',

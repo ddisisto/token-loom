@@ -424,6 +424,8 @@ def driver(workdir):
     several_roots(workdir)
     capping_the_render(workdir)
     sibling_divergence(workdir)
+    entry_alignment()
+    merged_records()
 
 
 def cli_reads(path):
@@ -542,6 +544,127 @@ def several_roots(workdir):
     # soft delete, so the span is still there and merely unreachable
     check('and the count says unreachable rather than gone',
           '3 spans, 1 unreachable' in out, out)
+
+
+def entry_alignment():
+    """`_align`, on payloads shaped like the ones that caused it to exist.
+
+    Pure, so it runs with no model. Which matters more than convenience here:
+    the case it exists for needs a character whose UTF-8 spans several tokens,
+    and that is reachable from a live server only by getting the model to emit
+    one. A constructed payload reaches it on purpose.
+
+    A mis-alignment is the dangerous failure -- it does not crash, it silently
+    relabels every record after the slip. So the negative cases matter as much
+    as the positive one, and all of them raise rather than guessing.
+    """
+    from core.llama import Incomplete, _align
+
+    print('\naligning entries against the sampled sequence')
+
+    # one character of three tokens in the middle: the server emits one entry
+    # for it, carrying the group's bytes and the *last* fragment's id
+    tokens = [10, 20, 21, 22, 30]
+    entries = [{'id': 10}, {'id': 22}, {'id': 30}]
+    groups, tail = _align(entries, tokens, len(tokens))
+
+    check('an unmerged entry stands for exactly its own token',
+          groups[0] == [10] and groups[2] == [30], str(groups))
+    check('a merged entry stands for the whole group it completes',
+          groups[1] == [20, 21, 22], str(groups))
+    check('and the groups partition the sampled sequence, losing nothing',
+          [t for g in groups for t in g] == tokens, str(groups))
+    check('nothing is left over when the budget did not expire mid-character',
+          tail == [], str(tail))
+
+    # the same, cut short: the fragments of the last character never flushed
+    groups, tail = _align([{'id': 10}], [10, 20, 21], 3)
+    check('tokens past the last entry are the dropped tail',
+          groups == [[10]] and tail == [20, 21], f'{groups} {tail}')
+
+    check('an entry whose id is nowhere in the sequence raises',
+          _raises(Incomplete, _align, [{'id': 99}], [10, 20], 2))
+    check('a tokens array disagreeing with the reported count raises',
+          _raises(Incomplete, _align, [{'id': 10}], [10, 20], 5))
+    check('no entries at all leaves the whole sequence unclaimed',
+          _align([], [10, 20], 2) == ([], [10, 20]))
+
+
+def merged_records():
+    """What `_read` writes for a merged entry, which is deliberately less.
+
+    The entry's bytes are the whole character and are right. Its id, logprob
+    and alternatives describe only the final fragment, so recording them beside
+    those bytes would assert a correspondence that does not hold. Absent is the
+    honest record, and the test is that the absence is there on purpose rather
+    than by omission.
+    """
+    from core.llama import Incomplete, Server
+
+    print('\nwhat a merged entry is allowed to claim')
+
+    def entry(tid, raw, logprob, alts):
+        return {'id': tid, 'bytes': list(raw), 'logprob': logprob,
+                'top_logprobs': [{'id': a, 'bytes': list(b), 'logprob': lp}
+                                 for a, b, lp in alts]}
+
+    payload = {
+        'tokens': [10, 20, 21, 22, 30],
+        'tokens_predicted': 5,
+        'tokens_evaluated': 7,
+        'stop_type': 'limit',
+        'completion_probabilities': [
+            entry(10, b'A', -0.1, [(10, b'A', -0.1), (11, b'B', -1.0)]),
+            entry(22, '\U0001f701'.encode(), -0.5, [(22, b'\x81', -0.5)]),
+            entry(30, b'C', -0.2, [(30, b'C', -0.2)]),
+        ],
+    }
+    result = Server._read(payload, {'length': 5})
+    merged = result.tokens[1]
+
+    check('a merged row keeps the bytes, which are the whole character',
+          merged.bytes == '\U0001f701'.encode()
+          and len(merged.bytes) == 4, repr(merged.bytes))
+    check('and claims neither an id nor a logprob it does not have',
+          merged.token_id is None and merged.logprob is None, str(merged))
+    check('an unmerged row is untouched by any of this',
+          result.tokens[0].token_id == 10
+          and result.tokens[0].logprob == -0.1, str(result.tokens[0]))
+    check('the alternatives to a fragment are dropped, not relabelled',
+          {c.idx for c in result.counterfactuals} == {0, 2}
+          and len(result.counterfactuals) == 3,
+          str([(c.idx, c.rank) for c in result.counterfactuals]))
+    check('the span still spells what the model produced',
+          b''.join(t.bytes for t in result.tokens)
+          == 'A\U0001f701C'.encode(),
+          repr(b''.join(t.bytes for t in result.tokens)))
+    # the whole character arrived, so three tokens became one row and the row
+    # count is below tokens_predicted without anything having been lost
+    check('a merge shortens the record without shortening the text',
+          len(result.tokens) == 3 and payload['tokens_predicted'] == 5)
+
+    payload['tokens'] = [10, 20, 21, 22, 30, 40, 41]
+    payload['tokens_predicted'] = 7
+    check('but a budget that expired mid-character is refused, not recorded',
+          _raises(Incomplete, Server._read, payload, {'length': 7}))
+
+    # a stop match leaves a tail deliberately -- the server drops the matched
+    # text so it is not part of the span. Refusing that would make stop strings
+    # unusable, and this distinction is the one the live test caught
+    payload['stop_type'] = 'word'
+    stopped = Server._read(payload, {'length': 7})
+    check('a tail left by a stop match is expected, not an incomplete response',
+          [t.idx for t in stopped.tokens] == [0, 1, 2], str(stopped.tokens))
+    check('and the span still ends before the match',
+          b''.join(t.bytes for t in stopped.tokens) == 'A\U0001f701C'.encode())
+
+
+def _raises(kind, fn, *args):
+    try:
+        fn(*args)
+    except kind:
+        return True
+    return False
 
 
 def sibling_divergence(workdir):
