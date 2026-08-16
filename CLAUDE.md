@@ -58,7 +58,7 @@ Three things follow:
   completely different rates.
 
 **Phase 1 has landed.** The token core is built, tested and usable from the command line,
-and the on-disk format is `token-loom/1`. It settled what a position looks like on the wire,
+and the on-disk format is `token-loom/1.1`. It settled what a position looks like on the wire,
 which was the one Phase 2 decision flagged as needing to be made early. `FORMAT.md` has the
 shape, the alternatives it was chosen over, and — worth reading before proposing a change to
 it — the one-line rejection that nearly kept the wrong one. Phase 2, the API and front end
@@ -282,6 +282,20 @@ What has paid off here, and what it cost to skip.
   by line, and `demo.py --force` is the only thing that should rewrite it. `data/*` is
   gitignored with an explicit exception for it. Everything else there is disposable scratch;
   `data/tree/` is `loom.py`'s default.
+- **`demo.py --force` does not reproduce the committed tree — it replaces it.** Measured
+  during the `given` rename: a rebuild at the same base seed, against the same server, with
+  every interned parameter set byte-identical, differed in **14 of 37 spans**. Most diverge
+  after a shared prefix rather than at the first token, which is drift rather than a
+  different seed; the cause is not established and the candidates — unrecorded serving flags
+  (`--parallel`, batch size, build) and ordinary GPU float nondeterminism — are not
+  distinguishable from here. Nothing is contradicted: reproducibility is stated as
+  conditions-level, and this is what that buys. The practical consequences are what matter.
+  Rebuilding invalidates every quoted line in `PLAYBOOKS.md`, so **the demo tree is rebuilt
+  only when its content is meant to change**. The rename was therefore applied to
+  `data/demo/tree.json` as a two-field text substitution — five `kind` values and the marker,
+  six lines, no byte of any span touched — which is the one sanctioned exception to the line
+  above, and it is sanctioned precisely because it keeps the record faithful where a rebuild
+  would not.
 - **The archive is `../archive/`, a sibling of the repo and outside it.** It holds the
   old-format trees (`local.json`, `loom_demo.json` and the rest), `data/backups/`, the dead
   `run.sh`/`screenshot.sh`, and upstream's README screenshots. Nothing there is needed to run
@@ -310,7 +324,7 @@ measurement" and both with the same root:
   raises `Incomplete`.
 
 Both are fixed properly by sending and matching on **token ids** rather than text — the
-token-replay path in `BEYOND-MVP.md`, which needs mixed-mode assembly since human spans have
+token-replay path in `BEYOND-MVP.md`, which needs mixed-mode assembly since given spans have
 no tokens. The UTF-8 regrouping above is a third case with the same root — the server
 accounts in text, not tokens — and the first that silently corrupted records rather than
 merely refusing. Still not worth pulling token replay forward for, but that ledger now has

@@ -92,7 +92,8 @@ Three categories, extensible later:
 - **counterfactual-selected** — a token the model ranked in its top-N but did not sample,
   chosen by the user. Carries the token and its logprob, and **references the sampled span
   whose top-N it came from** rather than inventing generation parameters it never had.
-- **human-authored** — typed by the user. **No tokens.** Bytes only; whatever model reads
+- **given** — text that came from outside this tree's generation. **No tokens.** Bytes
+  only; whatever model reads
   it tokenizes it at generation time.
 
 ### Parameters are interned
@@ -190,7 +191,7 @@ That is the whole of it. The only mutation is branching mid-span.
 operation is delete, which cascades. This makes the tree semantically append-only, not just
 its storage: every address ever recorded stays valid forever, nothing needs marking stale,
 and a recorded slice keeps meaning what it meant when it was written. Initial prompts are
-human-authored spans with no parent — several may coexist, which is what makes `EMPTY_TREE`
+given spans with no parent — several may coexist, which is what makes `EMPTY_TREE`
 literally empty.
 
 The rule is absolute rather than carved out, because the carve-out — "editable until
@@ -262,7 +263,7 @@ Local inference is now the default: `params.py` ships `qwen2.5-7b-base`.
 
 ## Phase 1 — the token core ✅
 
-Built and landed as `token-loom/1`. **`FORMAT.md` is the format document** — decisions
+Built and landed as `token-loom/1.1`. **`FORMAT.md` is the format document** — decisions
 locked, the on-disk shape with a worked example, and the alternatives each choice was made
 over. It also settled the one Phase 2 decision flagged as needing to be made early: what a
 position looks like on the wire.

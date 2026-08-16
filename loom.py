@@ -96,7 +96,7 @@ def show_marked(raw: bytes, at: int, limit: int | None = 60) -> str:
 
 
 def kind_mark(kind: str) -> str:
-    return {'human': 'H', 'sampled': 'S', 'counterfactual': 'C'}.get(kind, '?')
+    return {'given': 'G', 'sampled': 'S', 'counterfactual': 'C'}.get(kind, '?')
 
 
 def fmt(pos: Position | None) -> str:
@@ -556,7 +556,7 @@ def main(argv=None) -> int:
 
     sub.add_parser('params', help='the interned parameter sets')
 
-    p = sub.add_parser('author', help='add human text at a position')
+    p = sub.add_parser('author', help='add given text at a position')
     p.add_argument('text')
     p.add_argument('position', nargs='?')
 

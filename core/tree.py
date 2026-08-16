@@ -37,14 +37,19 @@ from typing import NamedTuple
 
 from util.util import timestamp
 
-FORMAT = 'token-loom/1'
+FORMAT = 'token-loom/1.1'
 
-# provenance categories. Agency -- what initiated a span -- is deliberately a
-# separate axis, not a fourth value here.
-HUMAN = 'human'
+# Provenance categories, and the axis is *where the bytes came from* -- not who
+# typed them. `given` was `human` until the name proved too narrow: the human
+# stays the authority behind such a span, but the bytes may be a paste, a file,
+# or another model's output, none of which anyone authored here.
+#
+# Agency -- what initiated a span -- is deliberately a separate axis, not a
+# fourth value here.
+GIVEN = 'given'
 SAMPLED = 'sampled'
 COUNTERFACTUAL = 'counterfactual'
-KINDS = (HUMAN, SAMPLED, COUNTERFACTUAL)
+KINDS = (GIVEN, SAMPLED, COUNTERFACTUAL)
 
 
 def encode_text(raw: bytes | None):
@@ -166,10 +171,13 @@ class Span:
         would come back as a root: no error, no missing field, a tree that
         loads and validates and is not the tree that was written.
 
-        The marker alone cannot catch it. This format and that one both call
-        themselves `token-loom/1`, because that one never went live and the
-        number was reclaimed rather than spent on it. So the check that has to
-        hold is this one, and it holds by reading the key that shape lacks.
+        The marker alone could not catch it. That shape also called itself
+        `token-loom/1` -- it never went live, so the number was reclaimed
+        rather than spent on it -- and this format called itself the same until
+        the `given` rename moved it to `1.1`. The marker now happens to differ,
+        which is luck rather than a defence: this check is structural, holds
+        whatever a file claims about itself, and reads the one key that shape
+        lacks.
         """
         if 'parent' not in d:
             raise ValueError(

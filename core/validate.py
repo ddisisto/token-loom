@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from core.ops import token_offsets
 from core.store import BulkStore, spelled
-from core.tree import COUNTERFACTUAL, HUMAN, KINDS, SAMPLED, Tree
+from core.tree import COUNTERFACTUAL, GIVEN, KINDS, SAMPLED, Tree
 
 
 class Invalid(Exception):
@@ -130,9 +130,9 @@ def _check_tokens(tree: Tree, store: BulkStore, problems: list[str]) -> None:
     for span in tree.spans.values():
         rows = store.tokens(span.id)
 
-        if span.kind == HUMAN:
+        if span.kind == GIVEN:
             if rows:
-                problems.append(f'{span.id}: human span has {len(rows)} token rows')
+                problems.append(f'{span.id}: given span has {len(rows)} token rows')
             continue
 
         if span.kind == COUNTERFACTUAL:

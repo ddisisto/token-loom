@@ -45,7 +45,7 @@ The base move. One position, `n` continuations, nothing separating them but the 
 What came back:
 
 ```
-├─ s0+0  0..39  Hs0
+├─ s0+0  0..39  Gs0
 │    'The lighthouse keeper wrote in his log:'
 │  ├─ s1+0  39..120  Ss1
 │  │    ' “At 5:00 a.m. I turned on the light. At 7:00 p.m. I turned it off.…'

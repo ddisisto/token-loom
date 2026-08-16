@@ -235,6 +235,6 @@ instrument built around iterating a model against itself, replay is arguably the
 path and re-tokenisation is the artifact. The two therefore differ in result, which makes
 the choice a condition of the run — and conditions intern for free.
 
-Assembly stays mixed-mode regardless. Human-authored spans carry no tokens by design, so
-any prompt crossing one tokenises that region and replays the rest. The join question
-arises at every human/generated boundary, and is the same question in both directions.
+Assembly stays mixed-mode regardless. Given spans carry no tokens by design, so any prompt
+crossing one tokenises that region and replays the rest. The join question arises at every
+given/generated boundary, and is the same question in both directions.

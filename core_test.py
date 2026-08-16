@@ -59,7 +59,7 @@ def worked_example():
     tree.params['p2'] = dict(tree.params['p1'], temperature=1.3)
     root = Position('s1', len(PROMPT))
     for span in [
-        Span('s1', 'human', None, PROMPT, TS),
+        Span('s1', 'given', None, PROMPT, TS),
         Span('s2', 'sampled', root, spelled(CALM), TS, params='p1', seed=90211,
              batch='b1', index=0, slice_start=Position('s1', 0)),
         Span('s3', 'sampled', root, spelled(CLEAR), TS, params='p1', seed=90212,
@@ -138,7 +138,7 @@ def operations(workdir):
     prompt = author(tree, None, OPENING)
     check('the first prompt is a root span, with no node to hang it off',
           prompt.parent is None and tree.children_of(None) == [(0, 's0')])
-    check('the human span carries no parameters and no seed',
+    check('the given span carries no parameters and no seed',
           prompt.params is None and prompt.seed is None)
 
     tip = tree.tip('s0')
@@ -368,7 +368,7 @@ def driver(workdir):
     # which is the common case and has to read as "here", not as a stray glyph
     code, out = run('show')
     check('show renders the derived run and its text',
-          's0+0  0..11  Hs0' in out and f"'The sea was{loom.CURSOR}'" in out, out)
+          's0+0  0..11  Gs0' in out and f"'The sea was{loom.CURSOR}'" in out, out)
 
     code, out = run('read', 's0')
     check('read prints the path', out.strip() == 'The sea was', out)
@@ -387,7 +387,7 @@ def driver(workdir):
           code == 0 and "' still'" in out, out)
     code, out = run('show')
     check('and the branch shows up where it was anchored',
-          's0+7' in out and 'Hs1' in out, out)
+          's0+7' in out and 'Gs1' in out, out)
     code, out = run('read', 's1')
     check('the branch reads as the shorter path',
           out.strip() == 'The sea still', out)
@@ -398,9 +398,9 @@ def driver(workdir):
     code, out = run('delete', 's1+0')
     check('delete reports what is left', 's1+0 deleted' in out, out)
     code, out = run('show')
-    check('a deleted branch is not rendered', 'Hs1' not in out, out)
+    check('a deleted branch is not rendered', 'Gs1' not in out, out)
     code, out = run('show', '-a')
-    check('unless asked for', 'Hs1' in out and '(deleted)' in out, out)
+    check('unless asked for', 'Gs1' in out and '(deleted)' in out, out)
     code, out = run('restore', 's1+0')
     check('restore puts it back', 's1+0 restored' in out, out)
 
@@ -494,7 +494,7 @@ def cli_reads(path):
 def several_roots(workdir):
     """More than one span with `parent: null`, which the format permits.
 
-    `EMPTY_TREE` is literally empty and an initial prompt is an ordinary human
+    `EMPTY_TREE` is literally empty and an initial prompt is an ordinary given
     span with no parent, so nothing stops there being several -- and `show`
     has to splice the zero-width root rather than render it as a run of its
     own. That was a claim from reading `outline`, not from running it.
@@ -522,7 +522,7 @@ def several_roots(workdir):
 
     code, out = at_root('show')
     check('all three roots render', code == 0
-          and all(m in out for m in ('Hs0', 'Hs1', 'Hs2')), out)
+          and all(m in out for m in ('Gs0', 'Gs1', 'Gs2')), out)
     check('none of them is nested under another',
           out.count('├─ ') + out.count('└─ ') == 3, out)
     check('the zero-width root is spliced, not drawn as a run',
@@ -540,7 +540,7 @@ def several_roots(workdir):
     at_root('delete', 's1+0')
     code, out = at_root('show')
     check('deleting one root leaves its siblings',
-          'Hs0' in out and 'Hs2' in out and 'Hs1' not in out, out)
+          'Gs0' in out and 'Gs2' in out and 'Gs1' not in out, out)
     # soft delete, so the span is still there and merely unreachable
     check('and the count says unreachable rather than gone',
           '3 spans, 1 unreachable' in out, out)
@@ -775,31 +775,31 @@ def capping_the_render(workdir):
 
     code, out = run('show')
     check('uncapped, the fork under a root renders',
-          code == 0 and 'Hs2' in out and 'Hs3' in out, out)
+          code == 0 and 'Gs2' in out and 'Gs3' in out, out)
 
     code, out = run('show', '--depth', '0')
     check('--depth 0 stops at the roots, not one level short of them',
-          code == 0 and 'Hs0' in out and 'Hs1' in out and 'Hs2' not in out, out)
+          code == 0 and 'Gs0' in out and 'Gs1' in out and 'Gs2' not in out, out)
     check('and the elision counts the runs it stood in for',
           '2 more run(s)' in out, out)
 
     code, out = run('show', '--depth', '1')
     check('--depth 1 reaches the forks below a root',
-          'Hs2' in out and 'Hs3' in out and 'more run(s)' not in out, out)
+          'Gs2' in out and 'Gs3' in out and 'more run(s)' not in out, out)
     # the cap is display-only, so the summary underneath still counts the tree
     check('a depth limit hides runs rather than unreaching them',
           '4 spans, 0 unreachable' in run('show', '--depth', '0')[1], out)
 
     code, out = run('show', 's0+0')
     check('a subtree renders from a position, without its siblings',
-          code == 0 and 'Hs0' in out and 'Hs2' in out and 'Hs1' not in out, out)
+          code == 0 and 'Gs0' in out and 'Gs2' in out and 'Gs1' not in out, out)
 
     run('delete', 's1+0')
     check('a subtree rooted at an unreachable span is refused, not a traceback',
           _exits(run, 'show', 's1+0'))
     code, out = run('show', '-a', 's1+0')
     check('and renders under -a, which is what the refusal points at',
-          code == 0 and 'Hs1' in out, out)
+          code == 0 and 'Gs1' in out, out)
 
 
 def _exits(run, *argv):
@@ -871,7 +871,7 @@ def main():
         print('\nthe marker, and the key the marker cannot stand in for')
         marker = json.loads(open(os.path.join(path, 'tree.json')).read())
         check('the format marker is what this format is called',
-              marker['format'] == 'token-loom/1', marker['format'])
+              marker['format'] == 'token-loom/1.1', marker['format'])
         check('a root writes its parent as null rather than omitting it',
               'parent' in marker['spans']['s1']
               and marker['spans']['s1']['parent'] is None,
@@ -927,7 +927,7 @@ def main():
         accented = 'café — '
         wide = Tree.empty(base_seed=1)
         wide.params['p1'] = dict(worked_example().params['p1'])
-        wide.add(Span('s1', 'human', None, accented.encode(), TS))
+        wide.add(Span('s1', 'given', None, accented.encode(), TS))
         wide.add(Span('s2', 'sampled', Position('s1', len(accented.encode())),
                       b'yes', TS, params='p1', seed=2, batch='b1', index=0,
                       slice_start=Position('s1', 0)))
@@ -957,7 +957,7 @@ def main():
         symbol = '🜁'.encode()
         cut = Tree.empty(base_seed=3)
         cut.params['p0'] = dict(worked_example().params['p1'])
-        cut.add(Span('s0', 'human', None, b'sign: ', TS))
+        cut.add(Span('s0', 'given', None, b'sign: ', TS))
         cut.add(Span('s1', 'sampled', Position('s0', 6), symbol[:3], TS,
                      params='p0', seed=3, batch='b0', index=0,
                      slice_start=Position('s0', 0)))
@@ -1047,7 +1047,7 @@ def main():
         # prompt_length is in bytes, so subtracting it lands wherever it lands
         mixed = 'abécd'
         edge = Tree.empty(base_seed=4)
-        edge.add(Span('s0', 'human', None, mixed.encode(), TS))
+        edge.add(Span('s0', 'given', None, mixed.encode(), TS))
         check('the text is 5 characters in 6 bytes',
               len(mixed) == 5 and edge.spans['s0'].length == 6)
         start, end, text = slice_at(edge, edge.tip('s0'), 3)
@@ -1113,9 +1113,9 @@ def main():
             lambda t: setattr(t.spans['s3'], 'text', b' calm and CLEAR'),
             'spell', example_store)
         expect_problem(
-            '6. a human span carrying token rows',
-            lambda t: setattr(t.spans['s2'], 'kind', 'human'),
-            'human span has', example_store)
+            '6. a given span carrying token rows',
+            lambda t: setattr(t.spans['s2'], 'kind', 'given'),
+            'given span has', example_store)
         example_store.db.execute("DELETE FROM terminators WHERE span = 's3'")
         example_store.db.commit()
         expect_problem(

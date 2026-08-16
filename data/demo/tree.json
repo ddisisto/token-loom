@@ -1,10 +1,10 @@
 {
-  "format": "token-loom/1",
+  "format": "token-loom/1.1",
   "tree_id": "8c7bc27097924305966e0ff7630e0fc0",
   "base_seed": 31415,
   "spans": {
     "s0": {
-      "kind": "human",
+      "kind": "given",
       "parent": null,
       "text": "The lighthouse keeper wrote in his log:",
       "created": "2026-08-15-18.54.35"
@@ -98,7 +98,7 @@
       "slice_start": ["s0", 0]
     },
     "s9": {
-      "kind": "human",
+      "kind": "given",
       "parent": null,
       "text": "There are three kinds of silence. The first is",
       "created": "2026-08-15-18.54.43"
@@ -203,7 +203,7 @@
       "slice_start": ["s9", 0]
     },
     "s19": {
-      "kind": "human",
+      "kind": "given",
       "parent": null,
       "text": "A note on method. The instrument records what a model does when it is iterated against itself: which continuations recur, how much of the prior has to be visible before they do, and whether anything survives being passed forward repeatedly. Nothing here is a claim about meaning. It is a record of what came back, under conditions written down beside it. The first thing worth saying about the results is",
       "created": "2026-08-15-18.54.51"
@@ -253,7 +253,7 @@
       "slice_start": ["s19", 0]
     },
     "s24": {
-      "kind": "human",
+      "kind": "given",
       "parent": null,
       "text": "She opened the door and found",
       "created": "2026-08-15-18.54.55"
@@ -288,7 +288,7 @@
       "slice_start": ["s24", 0]
     },
     "s28": {
-      "kind": "human",
+      "kind": "given",
       "parent": null,
       "text": "Begin with a plain sentence about the weather.",
       "created": "2026-08-15-18.54.59"

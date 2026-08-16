@@ -4,7 +4,7 @@ What the on-disk shape is, and why it is that shape. `ROADMAP.md` holds directio
 phases; this holds the format and the reasoning that is expensive to reconstruct. It is
 meant to outlive the phases — Phase 2 replaces the interface, not this.
 
-**Status.** `token-loom/1` is what `core/` implements, and the marker in every tree file.
+**Status.** `token-loom/1.1` is what `core/` implements, and the marker in every tree file.
 Spans, provenance, the intern table, the bulk store and the save ordering are as Phase 1
 planned them; what a span's *parent* is went through one revision before anything shipped,
 and the shape below is the one that survived.
@@ -72,7 +72,7 @@ precise rather than aspirational:
 Nothing is ever overwritten under either rule, so the format stays semantically
 append-only. The alternative — deriving a sampled span's text from its token rows, so a
 span really is written in one shot — is cleaner and was rejected: it puts a bulk-store read
-in front of every render and every prompt assembly, and leaves human spans holding text
+in front of every render and every prompt assembly, and leaves given spans holding text
 while sampled ones do not.
 
 ### 3. Spans are the structure
@@ -341,6 +341,33 @@ An in-flight span needs no special link to the structure any more. It carries it
 parent address from the moment it is created, which is what the zero-length piece was
 standing in for, and it is exactly the placeholder fork streaming will need.
 
+### 9. `kind` names where the bytes came from
+
+The three values are `given`, `sampled` and `counterfactual`, and the axis is the *origin of
+the bytes* — not who was at the keyboard.
+
+`given` was `human` until the name was tested against the research thread and turned out to
+be narrower than the thing it names. The human stays the authority behind such a span, but
+need not be its author: pasted material, a file, a transcript from a second model all land
+here, and calling them human-authored would be false in the record while true about who
+decided. The other two values name the model's own doing — one token it sampled, one it
+ranked and did not — so a value that named a *person* was the odd one out on an axis about
+provenance. `authored` was considered and rejected for carrying the same implication one
+step quieter.
+
+This is the whole of the change from `token-loom/1` to `token-loom/1.1`, and it is a rename
+with no structural consequence: nothing moved, nothing was added, and the validator asks the
+same questions of the same fields.
+
+> **The marker is matched exactly, so the minor number is a name, not a promise.** A reader
+> of `1.1` refuses a `1` file and vice versa. The number is how a human tells two vocabularies
+> apart, and the loudness is the point — with no migration path, a tree that silently loaded
+> under the wrong vocabulary would be worse than one that refuses. Nothing in the loader
+> parses the parts or compares them for ordering.
+
+The rename was spent while it was nearly free — one committed tree, no API on the wire, no
+front end. That timing is most of why it was worth doing at all.
+
 ---
 
 ## On-disk shape
@@ -358,13 +385,13 @@ the branch structure is entirely in the `parent` fields.
 
 ```jsonc
 {
-  "format": "token-loom/1",
+  "format": "token-loom/1.1",
   "tree_id": "…",
   "base_seed": 90210,
 
   "spans": {
     // a root: nothing precedes it
-    "s1": { "kind": "human", "text": "The sea was", "parent": null,
+    "s1": { "kind": "given", "text": "The sea was", "parent": null,
             "created": "2026-08-12-10.00.00" },
 
     // batch b1, both continuations anchored at the same point — that is what
@@ -477,9 +504,9 @@ With the store:
 5. **A counterfactual span attaches where its origin says.** `parent == [origin.span, byte
    offset of token origin.index]`. The two records are written together and must not drift.
 6. **A complete span's `text` is what its tokens spell**, with indices contiguous from 0.
-   Human spans have no token rows at all; a counterfactual span has exactly one.
+   Given spans have no token rows at all; a counterfactual span has exactly one.
 7. **A complete sampled span has a terminator row.** Only a sampled span was ever in flight —
-   human and counterfactual spans are complete the moment they are created — so only they
+   given and counterfactual spans are complete the moment they are created — so only they
    have anything to terminate.
 
 Check 6 earns its keep three times over: it is the only thing that would catch byte-fallback
@@ -505,7 +532,7 @@ deliberately broken in that one way.
 
 | operation | notes |
 | --- | --- |
-| `author(position, text)` | one human span with `parent = position`; no tokens |
+| `author(position, text)` | one given span with `parent = position`; no tokens |
 | `generate(position, params, n)` | one batch id, `n` spans all with `parent = position`, `n` seeds derived from the base |
 | `delete(position)` | soft, cascades, and the bulk store is untouched. A span id is the offset-0 case |
 | `slice(position, length)` | resolves to `(start address, end address)` and the text to send |
@@ -617,7 +644,7 @@ that was used rather than the one that was asked for.
 What remains deliberately unhandled: a generation point placed inside a character. The
 prompt then genuinely has no string form, and the adapter raises rather than guessing.
 Fixing it properly means sending token ids instead of text — the token-replay path in
-`BEYOND-MVP.md` — which needs mixed-mode assembly, since human spans have no tokens. Not
+`BEYOND-MVP.md` — which needs mixed-mode assembly, since given spans have no tokens. Not
 worth pulling forward for a case that requires branching inside an emoji on purpose.
 
 ### `truncated` means the *generation* hit the wall, not the prompt

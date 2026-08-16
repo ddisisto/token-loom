@@ -15,7 +15,7 @@ the tree is saved, which is what makes a crash mid-generation legible.
 from __future__ import annotations
 
 from core.store import ABORTED, BulkStore, Token, spelled
-from core.tree import (COUNTERFACTUAL, HUMAN, SAMPLED, Position, Span, Tree,
+from core.tree import (COUNTERFACTUAL, GIVEN, SAMPLED, Position, Span, Tree,
                        char_boundary, next_id, now)
 
 
@@ -39,11 +39,16 @@ def check(tree: Tree, pos: Position | None) -> None:
 # -- authoring and generation ---------------------------------------------
 
 def author(tree: Tree, pos: Position | None, text: bytes) -> Span:
-    """Append a human span. No tokens: whatever model reads it tokenises it."""
+    """Append a given span. No tokens: whatever model reads it tokenises it.
+
+    `given` rather than `authored` because the bytes need not have been typed:
+    a paste, a file and another model's transcript all arrive here, and what
+    they have in common is that they came from outside this tree's generation.
+    """
     if not text:
         raise ValueError('an empty authored span would be a no-op')
     check(tree, pos)
-    return tree.add(Span(tree.new_span_id(), HUMAN, parent=pos, text=text,
+    return tree.add(Span(tree.new_span_id(), GIVEN, parent=pos, text=text,
                          created=now()))
 
 
