@@ -588,6 +588,26 @@ escape wins**, as `{"b64": …}` in place of the usual string:
 `null` keeps meaning *in flight* and nothing else; a string and an object are the two
 complete forms.
 
+> **The length-limit case is not one of the ways in, and that was found later.** The
+> paragraph above reads as though generation is the obvious producer of a fragment span. It
+> cannot produce one at all. llama-server accumulates generated text and emits a record only
+> once the accumulation decodes, so bytes that are half a character never arrive as bytes —
+> they arrive as nothing, and `core/llama.py` raises `Incomplete` rather than recording a
+> short span. **A sampled span therefore always ends on a character boundary.**
+>
+> What is left reaches the escape from the other two directions, and both are ordinary:
+>
+> - **authoring**, since `author` takes bytes and bytes come from files and pastes as well as
+>   from a keyboard — the CLI encodes a `str` and cannot produce it, but the CLI is one client
+> - **branching to a counterfactual**, which needs nobody to arrange it: a byte-fallback token
+>   in the model's own top-N *is* a fragment of a character, and taking it makes a span of
+>   exactly those bytes
+>
+> The second is the reason the escape earns its place, and it is a better reason than the one
+> originally given. Both are reached on purpose by `core_test.py`, under "and the operations
+> that can reach that case" — a path believed to work because nothing contradicts it is
+> exactly the shape of the `CONTEXT` bug two sections below.
+
 **A slice start can land mid-character**, which is the more disruptive half and was not on
 the list at all. `prompt_length` is in bytes, so subtracting it lands wherever it lands — and
 the prompt has to be decoded to be sent. `slice` therefore nudges the start forward to the

@@ -319,8 +319,9 @@ three entries.
 One path is now known to be unreachable rather than merely untested: **a sampled span cannot
 end mid-character**, because llama-server emits bytes only once they decode. So
 `FORMAT.md`'s `{"b64": …}` span serialisation is reachable from authoring and branching but
-never from generation — which is exactly the shape of the `CONTEXT` bug, and wants a test
-that reaches it on purpose rather than an assumption that it works.
+never from generation — which is exactly the shape of the `CONTEXT` bug. Closed: both live
+paths are now reached on purpose in `core_test.py`, and `FORMAT.md` records which operations
+can produce the escape and which cannot.
 
 The naming thread is closed: **token loom**. The repo rename and package identity land in
 Phase 0, before `model.py` is rewritten. Note the name collides with crypto in search

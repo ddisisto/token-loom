@@ -28,22 +28,14 @@ fact that is easy to get wrong and does not belong anywhere permanent yet.
 
 ## Threads to pick up, in the order they will bite
 
-**1. `{"b64": …}` span serialisation is unreachable from generation.** Recorded in
-`CLAUDE.md` under Open threads and agreed for the next session. llama-server emits bytes only
-once they decode, so a *sampled* span can never end mid-character — the format's escape hatch
-for that case is reachable from authoring and branching and nothing else. This is the same
-shape as the `CONTEXT` bug: a path believed to work because nothing contradicted it. It wants
-a test that reaches it on purpose, and possibly a note in `FORMAT.md` about which operations
-can produce it.
-
-**2. `"kind": "human"` may be too narrow a name.** From `daniel-notes.md`, for the return to
+**1. `"kind": "human"` may be too narrow a name.** From `daniel-notes.md`, for the return to
 research. The human remains the authority behind the text, but need not be its direct author —
 pasted material, a second model's output, a file. The three kinds are `human`, `sampled`,
 `counterfactual`, and the axis they actually divide on is *where the bytes came from*, not
 *who typed them*. A rename is a format change and needs a version bump, so it wants deciding
 before anything else forces one, not after.
 
-**3. `data/sweep-1/` predates the alignment fix.** About 40 of its ~10,070 token rows carry
+**2. `data/sweep-1/` predates the alignment fix.** About 40 of its ~10,070 token rows carry
 the pre-`d31a3d2` shape, where a merged entry stored a byte fragment's id as though it
 described a whole character. It was generated with `cache_prompt` on, so it is faithful but
 not reproducible from what each span carries. `lock(3)` and `lock(10)` are unaffected and

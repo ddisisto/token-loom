@@ -983,6 +983,66 @@ def main():
               not validate(cut_back, cstore), str(validate(cut_back, cstore)))
         cstore.close()
 
+        print('\nand the operations that can reach that case')
+        # The span above was hand-built, which proves the serialisation and
+        # nothing about the paths into it. These are the paths: authoring, and
+        # branching to a counterfactual. Generation is *not* one of them --
+        # llama-server accumulates until its bytes decode, so a sampled span
+        # cannot end mid-character and this shape is unreachable from a model
+        # call. A path believed to work because nothing contradicts it is how
+        # `CONTEXT` stayed dead code, so both live ones are reached on purpose.
+        reach_path = os.path.join(workdir, 'reach')
+        reach, rstore = create_tree(reach_path, base_seed=5)
+        conditions = dict(worked_example().params['p1'])
+
+        # 1. authoring. `author` takes bytes, and bytes arrive from a file or a
+        # paste as well as from a keyboard -- the CLI encodes a `str` and so
+        # cannot produce this, but the CLI is not the only client.
+        typed = author(reach, None, b'sign: ')
+        pasted = author(reach, reach.tip(typed.id), symbol[:3])
+        check('an authored fragment serialises as an object',
+              isinstance(reach.to_json()['spans'][pasted.id]['text'], dict),
+              str(reach.to_json()['spans'][pasted.id]['text']))
+
+        # 2. branching to a counterfactual, which is the case that arises
+        # without anyone arranging it: the bytes come from the model's own
+        # vocabulary, where a byte-fallback token is a fragment of a character
+        # by construction. The sampled span it hangs off is whole, as every
+        # sampled span is; the branch takes one alternative and stops there.
+        alt = '中'.encode()[:2]
+        sampled = begin_generation(reach, reach.tip(typed.id), conditions, 1)[0]
+        complete(reach, rstore, sampled.id,
+                 [Token(0, 601, symbol[:3], -0.20),
+                  Token(1, 602, symbol[3:], -0.05)], LENGTH,
+                 [Counterfactual(0, 0, 601, symbol[:3], -0.20),
+                  Counterfactual(0, 1, 603, alt, -2.60)])
+        check('the sampled span it branches from is whole, as sampled spans are',
+              sampled.text == symbol and sampled.text.decode() == '🜁')
+        taken = branch_counterfactual(reach, rstore, sampled.id, 0, 1)
+        check('a counterfactual branch onto a byte-fallback token is a fragment',
+              taken.text == alt and taken.length == 2)
+        check('and it too serialises as an object',
+              isinstance(reach.to_json()['spans'][taken.id]['text'], dict),
+              str(reach.to_json()['spans'][taken.id]['text']))
+
+        save(reach_path, reach)
+        rstore.close()
+        reach_back, rstore = open_tree(reach_path)
+        check('both survive the round trip byte for byte',
+              (reach_back.spans[pasted.id].text,
+               reach_back.spans[taken.id].text) == (symbol[:3], alt))
+        check('the tree validates with two spans that have no string form',
+              not validate(reach_back, rstore), str(validate(reach_back, rstore)))
+        # the point of the format: an address is an address regardless of
+        # whether the bytes it names can be printed. The branch hangs at offset
+        # 0 of the sampled span -- it replaces that token rather than following
+        # it -- so the path holds the prompt and the alternative and nothing of
+        # what was actually sampled.
+        check('and a fragment span is addressable like any other',
+              reach_back.path_bytes(reach_back.tip(taken.id)) == b'sign: ' + alt,
+              repr(reach_back.path_bytes(reach_back.tip(taken.id))))
+        rstore.close()
+
         print('\na slice start that lands inside a character')
         # prompt_length is in bytes, so subtracting it lands wherever it lands
         mixed = 'abécd'
