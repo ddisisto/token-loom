@@ -11,6 +11,12 @@ Generation is still two calls, not one, because decision 2 splits a span across
 the model call: `begin_generation` writes provenance and returns spans with no
 bytes, and `complete` fills the byte record in when they arrive. Between them
 the tree is saved, which is what makes a crash mid-generation legible.
+
+The reads below the operations are here for one reason: **a client that cannot
+do them is short of the floor rather than short of a convenience.** Runs are the
+unit of layout, divergence is the only quantitative handle on where a prompt
+tends to go, and both were written in `loom.py` before there was a second
+client. Neither touches a file or a model, and neither stores anything.
 """
 from __future__ import annotations
 
@@ -163,6 +169,81 @@ def restore(tree: Tree, pos: Position) -> None:
 
 
 # -- reading ---------------------------------------------------------------
+
+def outline(tree: Tree, reach: dict[str, int], span_id: str | None,
+            offset: int, resuming: bool
+            ) -> tuple[list[tuple[str, int, int]], list[tuple]]:
+    """One derived run from a starting point: its pieces, and where it forks.
+
+    A run is a maximal stretch with no branch point in it. This computes that
+    list and the caller throws it away, which is the whole of what "runs are
+    derived" means in practice -- the boundaries carry no meaning of their own,
+    so there is nothing to keep.
+
+    `resuming` says the children anchored exactly at `offset` have already been
+    emitted by the fork that sent us here. Without it a span with a branch at
+    byte 0 -- which `branch s 0 r` produces -- would either lose that branch or
+    fork into itself forever.
+
+    Here rather than in `loom.py`, where it was written, for the reason
+    `divergence` is here: runs are the unit of layout for the API as much as
+    for the command line, and a second implementation of the rule above is a
+    second chance to get it wrong. It returns positions and byte ranges and
+    knows nothing about display, which is what made the move a lift rather
+    than a rewrite.
+    """
+    pieces: list[tuple[str, int, int]] = []
+    while True:
+        if span_id is None:
+            roots = [c for _, c in tree.children_of(None) if c in reach]
+            if len(roots) != 1:
+                return pieces, [(c, 0, False) for c in roots]
+            span_id, offset, resuming = roots[0], 0, False
+            continue
+
+        limit = reach[span_id]
+        kids = [(off, c) for off, c in tree.children_of(span_id) if c in reach]
+        cuts = sorted({off for off, _ in kids
+                       if off < limit and (off > offset
+                                           or (off == offset and not resuming))})
+        if cuts:
+            here = cuts[0]
+            pieces.append((span_id, offset, here))
+            forks = [(c, 0, False) for off, c in kids if off == here]
+            forks.append((span_id, here, True))   # the span carries on past it
+            return pieces, forks
+
+        pieces.append((span_id, offset, limit))
+        onward = [c for off, c in kids if off == limit]
+        if len(onward) == 1:
+            # one continuation is not a branch: the run simply extends, which
+            # is how it comes to cover several spans at different temperatures
+            span_id, offset, resuming = onward[0], 0, False
+            continue
+        return pieces, [(c, 0, False) for c in onward]
+
+
+def runs(tree: Tree, reach: dict[str, int], start: tuple) -> dict:
+    """The derived run tree: `{pieces, width, children}`, recursively.
+
+    A run of zero width is not a run -- it is a fork point, which is what a
+    branch anchored at byte 0 of a span that also continues produces. Its
+    branches are spliced into its parent's, so a client shows the fork where it
+    is rather than inventing a node with no text in it.
+
+    Nothing here has an id, and nothing may acquire one: a derived grouping
+    renumbers the moment a branch appears, so an id for a run would be a lie
+    with a delay on it.
+    """
+    pieces, forks = outline(tree, reach, *start)
+    children: list[dict] = []
+    for fork in forks:
+        child = runs(tree, reach, fork)
+        children.extend(child['children'] if not child['width'] else [child])
+    return {'pieces': pieces,
+            'width': sum(end - begin for _, begin, end in pieces),
+            'children': children}
+
 
 def address_at(tree: Tree, pos: Position | None, target: int
                ) -> Position | None:

@@ -13,7 +13,8 @@ import os
 
 from core.ops import (address_at, author, begin_generation,
                       branch_counterfactual, check, complete, delete,
-                      divergence, recover, restore, slice_at, token_offsets)
+                      divergence, outline, recover, restore, runs, slice_at,
+                      token_offsets)
 from core.llama import DEFAULT_BASE, Incomplete, Result, Server, Truncated
 from core.store import (ABORTED, CONTEXT, EOS, LENGTH, STOP, BulkStore,
                         Counterfactual, Token, spelled)
@@ -34,7 +35,7 @@ __all__ = [
     # the five operations, and what they are built from
     'author', 'begin_generation', 'complete', 'delete', 'slice_at',
     'branch_counterfactual', 'restore', 'recover',
-    'check', 'address_at', 'token_offsets', 'divergence',
+    'check', 'address_at', 'token_offsets', 'divergence', 'outline', 'runs',
     # files
     'open_tree', 'create_tree', 'save', 'validate', 'Invalid',
 ]

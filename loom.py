@@ -48,7 +48,7 @@ import os
 import sys
 
 from core import Incomplete, Invalid, Position, Server, Truncated, validate
-from core.ops import divergence, token_offsets
+from core.ops import divergence, runs, token_offsets
 from core.session import Session
 from core.tree import id_order
 
@@ -102,69 +102,6 @@ def kind_mark(kind: str) -> str:
 def fmt(pos: Position | None) -> str:
     """A position, in the syntax that would be typed back in."""
     return '·' if pos is None else f'{pos.span}+{pos.offset}'
-
-
-def outline(tree, reach: dict[str, int], span_id: str | None, offset: int,
-            resuming: bool) -> tuple[list[tuple[str, int, int]], list[tuple]]:
-    """One derived run from a starting point: its pieces, and where it forks.
-
-    A run is a maximal stretch with no branch point in it. This computes that
-    list and throws it away on every render, which is the whole of what "runs
-    are derived" means in practice -- the boundaries carry no meaning of their
-    own, so there is nothing to keep.
-
-    `resuming` says the children anchored exactly at `offset` have already been
-    emitted by the fork that sent us here. Without it a span with a branch at
-    byte 0 -- which `branch s 0 r` produces -- would either lose that branch or
-    fork into itself forever.
-    """
-    pieces: list[tuple[str, int, int]] = []
-    while True:
-        if span_id is None:
-            roots = [c for _, c in tree.children_of(None) if c in reach]
-            if len(roots) != 1:
-                return pieces, [(c, 0, False) for c in roots]
-            span_id, offset, resuming = roots[0], 0, False
-            continue
-
-        limit = reach[span_id]
-        kids = [(off, c) for off, c in tree.children_of(span_id) if c in reach]
-        cuts = sorted({off for off, _ in kids
-                       if off < limit and (off > offset
-                                           or (off == offset and not resuming))})
-        if cuts:
-            here = cuts[0]
-            pieces.append((span_id, offset, here))
-            forks = [(c, 0, False) for off, c in kids if off == here]
-            forks.append((span_id, here, True))   # the span carries on past it
-            return pieces, forks
-
-        pieces.append((span_id, offset, limit))
-        onward = [c for off, c in kids if off == limit]
-        if len(onward) == 1:
-            # one continuation is not a branch: the run simply extends, which
-            # is how it comes to cover several spans at different temperatures
-            span_id, offset, resuming = onward[0], 0, False
-            continue
-        return pieces, [(c, 0, False) for c in onward]
-
-
-def build(tree, reach: dict[str, int], start: tuple) -> dict:
-    """The derived run tree, ready to print.
-
-    A run of zero width is not a run -- it is a fork point, which is what a
-    branch anchored at byte 0 of a span that also continues produces. Its
-    branches are spliced into its parent's, so the display shows the fork where
-    it is rather than inventing a node with no text in it.
-    """
-    pieces, forks = outline(tree, reach, *start)
-    children: list[dict] = []
-    for fork in forks:
-        child = build(tree, reach, fork)
-        children.extend(child['children'] if not child['width'] else [child])
-    return {'pieces': pieces,
-            'width': sum(end - begin for _, begin, end in pieces),
-            'children': children}
 
 
 def run_count(node: dict) -> int:
@@ -254,7 +191,7 @@ def show(session: Session, verbose: bool = False, everything: bool = False,
                          f'the deleted ones too')
     begin = ((None, 0, False) if start is None
              else (start.span, start.offset, False))
-    root = build(tree, reach, begin)
+    root = runs(tree, reach, begin)
     if not root['width'] and not root['children']:
         print('(empty)' if start is None else f'(nothing below {fmt(start)})')
     else:

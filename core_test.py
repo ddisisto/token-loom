@@ -19,8 +19,8 @@ import tempfile
 
 from core import (BulkStore, Position, Tree, address_at, author,
                   begin_generation, branch_counterfactual, complete,
-                  create_tree, delete, divergence, open_tree, restore, save,
-                  slice_at, token_offsets, validate)
+                  create_tree, delete, divergence, open_tree, restore, runs,
+                  save, slice_at, token_offsets, validate)
 from core.store import Counterfactual, LENGTH, Token
 from core.tree import Span
 
@@ -422,6 +422,7 @@ def driver(workdir):
           _exits(run, 'show'))
 
     several_roots(workdir)
+    derived_runs(workdir)
     capping_the_render(workdir)
     sibling_divergence(workdir)
     entry_alignment()
@@ -739,6 +740,80 @@ def sibling_divergence(workdir):
 
     check('an empty sibling set is None rather than a division by zero',
           divergence(store, []) is None)
+    store.close()
+
+
+def derived_runs(workdir):
+    """The run decomposition itself, not what a renderer prints of it.
+
+    `runs` moved out of `loom.py` when the API turned out to need the identical
+    read, and everything that covered it before went through printed output --
+    which tests the printing at least as much as the derivation. These assert
+    the structure, and the central one is an invariant rather than a value:
+    **the pieces partition the live bytes.** Every reachable byte appears in
+    exactly one piece of exactly one run, which is what makes a run tree a way
+    of reading the span tree rather than a second copy of it.
+    """
+    print('\nthe derived run tree')
+    path = os.path.join(workdir, 'runs')
+    tree, store = create_tree(path, base_seed=7)
+
+    # s0 forks at byte 4 and continues; s1 extends it; s2 is the branch, and
+    # s3 hangs off s2's byte 0 -- the case that needs the `resuming` flag
+    s0 = author(tree, None, b'ABCDEFGH')
+    s1 = author(tree, tree.tip(s0.id), b'IJ')
+    s2 = author(tree, Position(s0.id, 4), b'XY')
+    s3 = author(tree, Position(s2.id, 0), b'Z')
+
+    def pieces_of(node):
+        return [node['pieces']] + [p for c in node['children']
+                                   for p in pieces_of(c)]
+
+    def widths(node):
+        return sorted(c['width'] for c in node['children'])
+
+    def partitions(tree):
+        """Every live byte in exactly one piece, and nothing dead in any."""
+        reach = tree.live()
+        seen: dict[str, list] = {}
+        for run in pieces_of(runs(tree, reach, (None, 0, False))):
+            for span, begin, end in run:
+                seen.setdefault(span, []).extend(range(begin, end))
+        for span, limit in reach.items():
+            if sorted(seen.get(span, [])) != list(range(limit)):
+                return False, f'{span}: {sorted(seen.get(span, []))} vs 0..{limit}'
+        extra = set(seen) - set(reach)
+        return (not extra), f'unreachable spans in the render: {extra}'
+
+    top = runs(tree, tree.live(), (None, 0, False))
+    check('a run stops at the first branch point in it',
+          top['pieces'] == [(s0.id, 0, 4)], str(top['pieces']))
+    check('and one continuation is not a branch, so the run crosses spans',
+          [c['pieces'] for c in top['children'] if c['width'] == 6]
+          == [[(s0.id, 4, 8), (s1.id, 0, 2)]], str(top['children']))
+
+    # s3 is anchored at byte 0 of s2, which also continues. That is a fork
+    # point rather than a run, and it is spliced into its parent's children --
+    # so nothing of width 0 survives to be drawn or laid out
+    check('a branch at byte 0 is a fork point, not a run of no width',
+          widths(top) == [1, 2, 6], str(widths(top)))
+    check('and both sides of that fork reach the tree',
+          [p for run in pieces_of(top) for p in run].count((s2.id, 0, 2)) == 1
+          and (s3.id, 0, 1) in [p for run in pieces_of(top) for p in run],
+          str(pieces_of(top)))
+
+    ok, detail = partitions(tree)
+    check('the pieces partition every live byte, exactly once', ok, detail)
+
+    # a deletion cuts a span mid-way, and the partition has to follow it --
+    # this is the case where a piece's end is a cut rather than a length
+    delete(tree, Position(s0.id, 6))
+    ok, detail = partitions(tree)
+    check('and still do so once a deletion bisects a span', ok, detail)
+    check('the cut span keeps its bytes while the tree stops reaching them',
+          tree.spans[s0.id].length == 8 and tree.live()[s0.id] == 6,
+          f'{tree.spans[s0.id].length} {tree.live().get(s0.id)}')
+
     store.close()
 
 
