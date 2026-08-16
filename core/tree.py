@@ -29,13 +29,13 @@ Four things here are easy to get wrong and worth stating at the top:
 from __future__ import annotations
 
 import base64
+import datetime
 import json
 import os
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import NamedTuple
-
-from util.util import timestamp
 
 FORMAT = 'token-loom/1.1'
 
@@ -458,4 +458,12 @@ class Tree:
 
 
 def now() -> str:
-    return timestamp()
+    """When something was recorded, in the one format the files use.
+
+    Here rather than in a utility module because it *is* format: a span's
+    `created` and a terminator's `written` are the same convention, and two
+    copies of a strftime string is how they come to differ. It was the last
+    thing `util/` still held, and `util/` retired with the stack that filled it.
+    """
+    return datetime.datetime.fromtimestamp(time.time()).strftime(
+        '%Y-%m-%d-%H.%M.%S')

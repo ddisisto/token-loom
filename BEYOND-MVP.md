@@ -111,8 +111,9 @@ transformers is ~15GB against 8GB of VRAM — it does not fit at all, and the 4-
 
 The shape is a **second process, not a replacement**: llama.cpp keeps generation, and
 embeddings come from something small running alongside — either another `llama-server` or
-transformers, since a 100–300M embedding model fits either way. `models.py` absorbs a new
-endpoint as one entry in `MODEL_TYPES`, which is what the capability table was rebuilt for.
+transformers, since a 100–300M embedding model fits either way. A second endpoint is a
+second adapter beside `core/llama.py` — the capability table that would once have absorbed it
+as a dict entry retired with the old stack, and its extension point went with it.
 
 Model-internal states are the exception: those need direct model access, and therefore
 transformers, and therefore a real decision about VRAM. Defer it.

@@ -18,7 +18,8 @@ from __future__ import annotations
 import sqlite3
 from typing import Iterable, NamedTuple
 
-from util.util import timestamp
+# the recorded-time convention lives with the format that records it
+from core.tree import now
 
 # Why a span stopped. `aborted` is what a process that died leaves behind, and
 # is applied at load rather than written by the generation that failed.
@@ -148,7 +149,7 @@ class BulkStore:
         if reason not in REASONS:
             raise ValueError(f'unknown termination reason {reason!r}')
         self.db.execute('INSERT OR REPLACE INTO terminators VALUES (?, ?, ?)',
-                        (span, reason, timestamp()))
+                        (span, reason, now()))
         self.db.commit()
 
     def terminator(self, span: str) -> str | None:

@@ -4,18 +4,19 @@ version = "0.1.0"
 description = "A branching instrument for reading language models at the token level"
 requires-python = ">=3.10"
 dependencies = [
-    "openai>=1.35.5",   # inference, every model type
-    "python-dotenv",    # web/server, loads .env
-    "requests",         # inference, the llama-server health check
+    "requests",         # core/llama, the only thing that leaves the process
 ]
 
-# Everything the tkinter app needed and nothing else did is gone with it: celery and
+# Everything the tkinter app needed and nothing else did went with it: celery and
 # redis (the Janus task queue), transformers and tokenizers (a GPT-2 logit mask),
-# ttkthemes, pillow, pyperclip, deepmerge, diff-match-patch and jsonlines.
+# ttkthemes, pillow, pyperclip, deepmerge, diff-match-patch and jsonlines. numpy,
+# pandas and html2text outlived it by one round, imported at module level in util/
+# but only by functions nothing reached.
 #
-# numpy, pandas and html2text outlived it by one round: they were imported at module
-# level in util/, but only by functions nothing reached. Reachability from the four
-# surviving import lines is the test — not whether a name appears in the file.
+# openai and python-dotenv went with the old stack in Phase 2: the first served
+# inference.py's capability table, the second loaded .env for web/server.py, and
+# neither has a caller now. What is left is one HTTP client for one local server —
+# the API's own dependencies are a group, because a tree is usable without them.
 
 [dependency-groups]
 web = [

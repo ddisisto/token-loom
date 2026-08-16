@@ -737,7 +737,7 @@ bytes, logprob, top_logprobs}` — so the native one is chosen for what it adds 
 - **`tokens_evaluated`** comes back without asking, which is what the context-limit
   derivation needs.
 
-`inference.py`, `models.py` and `params.py` are left untouched and die together in Phase 2,
+`inference.py`, `models.py` and `params.py` were left untouched and died together in Phase 2,
 rather than leaving a half-migrated registry behind. The cost, accepted deliberately: the
 capability table stops being the extension point, so a hosted provider later means a second
 adapter rather than one dict entry.

@@ -9,8 +9,9 @@ tree of text. Upstream went quiet around 2023.
 It has stopped being a revival, and has diverged far enough to take its own name. Loom
 wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tokens as a
 per-span overlay, in `core/`, driven from the command line by `loom.py`. The tkinter app is
-gone; the web front end in `web/` still runs the *old* node format and is what Phase 2
-replaces.
+gone, and so is the browser front end that ran the old node format — Phase 2 retired it
+along with the whole OpenAI-compatible path. The API in `api/` is its replacement's server
+half; the front end itself is unbuilt.
 
 **`ROADMAP.md` is the living document** for the build. Direction, phases and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
@@ -49,8 +50,8 @@ Three things follow:
   on the substrate, not reach into it. The CLI is the reference client and the floor for what
   the API must do; if something is missing, it is usually missing from both.
 - **A branch each.** The threads share `core/` and `loom.py` and will otherwise collide —
-  the research thread wants small CLI additions, the build thread retires `inference.py`,
-  `models.py` and `params.py` around it. The research thread lives on `research`; `main` stays
+  the research thread wants small CLI additions, the build thread retired the old stack
+  around it. The research thread lives on `research`; `main` stays
   the trunk and the build thread's home. Merge `main` into `research` freely, and `research`
   back into `main` when something lands that both threads want — a CLI addition, a doc change.
 - **Findings go in `RESEARCH.md` (or `experiments/`), facts about the code go here.** A
@@ -100,7 +101,8 @@ on port 8081 as `qwen2.5-7b-base`. ~5.2GB VRAM at 16k context on the GTX 1070, 1
 prompt and 32 tok/s generation — fast enough to work in.
 
 The new stack talks to it on the **native `/completion` endpoint**, not the
-OpenAI-compatible one — `core/llama.py`, which does not go through `inference.py`. Both
+OpenAI-compatible one — `core/llama.py`, the only thing in the project that leaves the
+process. Both
 return an identical token payload (`{id, token, bytes, logprob, top_logprobs}`), so the
 native one is chosen for what it adds: `stop_type` separating `eos` from `word` from
 `limit`, where the compatible layer flattens the first two into `finish_reason: stop`. Two
@@ -144,12 +146,12 @@ almost nothing but Instruct. `mradermacher/Qwen2.5-7B-i1-GGUF` is real
 (`base_model: Qwen/Qwen2.5-7B`), and its imatrix quants beat the static ones at identical
 size.
 
-The hosted entries in `models.py` still work for the old stack and are left alone, but the
-new one cannot reach them at all — a deliberate, accepted cost. The reason is upstream of the
-endpoint choice: the token core needs per-token ids, bytes and logprobs on a *raw
-continuation*, and no OpenRouter provider returns logprobs there. Adding a hosted provider
-later means a second adapter beside `core/llama.py`, not an entry in the capability table.
-Two things worth keeping in mind if that ever happens:
+The hosted entries went with `models.py` in Phase 2, and nothing here can reach a hosted
+model at all — a deliberate, accepted cost. The reason is upstream of the endpoint choice:
+the token core needs per-token ids, bytes and logprobs on a *raw continuation*, and no
+OpenRouter provider returns logprobs there. Adding a hosted provider later means a second
+adapter beside `core/llama.py`, not an entry in a capability table. Two things measured
+then, worth keeping if that ever happens:
 
 - **Provider choice changes semantics for an identical request.** DeepInfra serves
   `mistralai/mistral-nemo` as raw continuation; Io Net chat-templates it. Hence the pinned
@@ -159,40 +161,34 @@ Two things worth keeping in mind if that ever happens:
 
 ## Code notes
 
-- **Two stacks coexist, deliberately, until Phase 2 retires the old one.**
+- **One stack, since Phase 2 retired the other.** `core/` is the substrate (`tree.py`
+  spans/interned parameters, `store.py` the bulk sqlite, `validate.py` the load-time checks,
+  `ops.py` the operations and the derived reads, `llama.py` generation, `session.py` the
+  three held together with the save ordering). Two clients sit on it and neither sits on the
+  other: `loom.py` for the command line, `api/` over HTTP. Three suites — `core_test.py` and
+  `api_test.py` run with no model, `llama_test.py` needs the server on 8081.
 
-  The **new** one is everything Phase 1 built: `core/` (`tree.py` runs/spans/interned
-  parameters, `store.py` the bulk sqlite, `validate.py` nine load-time checks, `ops.py` the
-  six operations, `llama.py` generation, `session.py` the three held together with the save
-  ordering) plus `loom.py` for the command line. `core_test.py` runs with no model;
-  `llama_test.py` needs the server.
+  What went: `inference.py`, `models.py`, `params.py`, `util/`, `web/`, `smoke_test.py` and
+  `scripts/web.sh` — the OpenAI-compatible path, the capability table, the old node format
+  and the browser UI that read it. The tag `pre-token-core` has all of it, and git history
+  has every file that was ever tracked. Dependencies are down to `requests`; fastapi,
+  uvicorn and httpx are the `web` group, because a tree is usable without them.
 
-  The **old** one is `inference.py`, `models.py`, `params.py`, `util/` and `web/`. It still
-  runs the browser UI, it is the thing tagged `pre-token-core`, and **the new stack does not
-  import any of it** except `util.util.timestamp`. It retires whole in Phase 2 — do not
-  migrate it piecemeal, and do not extend it.
-- Model types are described by `MODEL_TYPES` in `models.py`, merged over
-  `MODEL_TYPE_DEFAULTS`. Adding a provider means adding one entry there, not editing
-  `model_type in (...)` tuples across `generate()`, `openAI_generate()` and
-  `get_correct_key()` as it used to. Note `sends_echo` (does the request ask for the prompt
-  back) is not `echoes_prompt` (does the response contain it) — Together AI accepts the echo
-  parameter and ignores it, which is why it needed a special case in one place but not the
-  other. Likewise `logprobs_format` is not implied by `endpoint`: `llama-server` answers a
-  *completions* request with the *chat*-shaped logprobs payload (`logprobs.content`, a list
-  of per-token dicts) rather than the legacy parallel arrays.
-- A locally served model has no API key, and the OpenAI client raises rather than sending
-  when it cannot resolve an auth method — so `gen()` falls back to the literal string
-  `'placeholder'`. Without that, no local entry can work at all.
-- Model configs live in `DEFAULT_MODEL_CONFIG` in `models.py`; API keys resolve through
-  `models.py:get_correct_key`, which reads a per-model kwarg first and the environment
-  second. `.env` is loaded in `web/server.py` and is gitignored — it must never reach a
-  commit.
-- **The old node format**, still what `web/` reads. A node's token data lives in
-  `model_responses`, keyed by response id, with the node holding `generation: {id, index}`.
-  Siblings from one call **share** a response id, so anything reasoning about reachability
-  must do it over the whole tree — `util/util_tree.py:collect_orphaned_responses` does.
-  The token core retires this: token data lives with the tokens, keyed by span, so nothing
-  can be orphaned and there is no collection pass.
+  **Do not reconstruct any of it from history to solve a new problem.** The capability
+  table described how hosted providers differ, and the reason it went is upstream of its
+  design: no hosted provider returns logprobs on a raw continuation, so none of them can
+  feed the token core whatever shape it speaks. A hosted provider later is a second adapter
+  beside `core/llama.py`.
+- **The API is one tree per process**, started on a directory. No session registry, no
+  save endpoint — `core/session.py` writes after every mutation, so saving is not something
+  a client does — and no `PATCH`, which `api_test.py` asserts by its absence. Positions are
+  `{"span", "offset"}` in bodies and `s3+9` in query parameters, the grammar `loom.py`
+  parses. Every mutation answers with the whole tree.
+- **Nothing guards two processes writing one tree directory.** `loom.py` and a running API
+  will clobber each other's `tree.json`, and re-minted span ids inherit the dead span's bulk
+  rows. Partly caught by validator check 6; stale counterfactual ranks survive it. The fixes
+  — a lock on the directory, and a check that no bulk row names a span the tree lacks — are
+  in `CLAUDE-HANDOVER.md` and not built.
 - **Three things about the format that are easy to get wrong**, all load-bearing:
   - **Text is `bytes` everywhere in the core.** Every offset is a byte offset, and `len` on
     a `str` counts characters — holding text as a string is wrong on the first non-ASCII
@@ -206,10 +202,12 @@ Two things worth keeping in mind if that ever happens:
     and never cut, so the pair survives every operation. Absolute root-relative offsets are
     derived, and do not survive export of a subtree. Runs are derived too — they have no ids
     and nothing that identifies one may reach storage or the wire.
-- **One thing about the derived runs**, which is display-only and still bites: a branch
+- **One thing about the derived runs**, which is layout-only and still bites: a branch
   anchored at byte 0 of a span that also continues makes a run of zero width. That is a fork
-  point rather than a run, and `loom.py:outline` needs its `resuming` flag to say so — without
-  it the case either loses the branch or forks into itself forever.
+  point rather than a run, and `core/ops.py:outline` needs its `resuming` flag to say so —
+  without it the case either loses the branch or forks into itself forever. `runs` lives in
+  `ops.py` rather than in either client precisely because implementing that rule twice is
+  getting it wrong twice.
 - Generation is an ordinary blocking call. The worker thread, the hand-back queue and the
   virtual events silently dropped across threads were artifacts of Tk owning the main loop,
   and went with it. Streaming would reintroduce asynchrony deliberately — it is deferred to
@@ -218,9 +216,6 @@ Two things worth keeping in mind if that ever happens:
   saved, then the model is called and `complete` fills in the byte record. That ordering is
   not bookkeeping — it makes a crash mid-generation legible, and guarantees no bulk row can
   name a span the tree has not heard of.
-- `logit_bias` no longer exists. It was a GPT-2 token mask, meaningless for the models in
-  use and already listed in `drop_params` for every OpenRouter type. `inference.gen()` still
-  passes `logit_bias=None` so the request builders below it need no change.
 
 ## Method
 
@@ -268,12 +263,12 @@ What has paid off here, and what it cost to skip.
   eaten before the command sees them.
 - Recurring commands go in `scripts/`, so they can be pre-authorised once. It is **committed**
   — it used to be swallowed by a `[Ss]cripts` rule inherited from a virtualenv gitignore
-  template, which was an accident rather than a decision. `scripts/web.sh` runs the web
-  backend on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
+  template, which was an accident rather than a decision. `scripts/api.sh` serves one tree
+  over HTTP on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
   overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`); `scripts/loom.sh` is the command-line
-  instrument (`LOOM_TREE` picks the tree directory, default `data/tree`). `run.sh` (the
-  tkinter app) and `screenshot.sh` (the browser window) are gone with the front ends they
-  drove — both are in the archive below.
+  instrument. Both clients take the tree directory from `LOOM_TREE`, default `data/tree`.
+  `run.sh` (the tkinter app), `screenshot.sh` (the browser window) and `web.sh` (the old
+  backend) are gone with the front ends they drove; the first two are in the archive below.
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
   when capturing the path — without `-q` it prints `path=/...` and the prefix ends up in the

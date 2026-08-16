@@ -296,7 +296,7 @@ What the section below described as scope, and what it looks like having been bu
   is unreachable, and `seed`, which the whole design rests on, was never in the request at
   all. The decisive point is upstream of the endpoint: no hosted provider returns logprobs
   on a raw continuation, so none of them can feed the token core whatever shape it speaks.
-  `inference.py`, `models.py` and `params.py` are left untouched and retire together in
+  `inference.py`, `models.py` and `params.py` were left untouched and retired together in
   Phase 2. Accepted cost: adding a hosted provider later is a second adapter rather than
   one entry in the capability table.
 - Tree/bulk storage split, append-only bulk, soft delete.
@@ -339,25 +339,40 @@ automatically still has *sampled* tokens; what differs is what initiated it. Pro
 stays a statement about token origin, with room beside it for an optional initiator
 reference. Folding the two axes into one enum is what forces the schema change.
 
-## Phase 2 — API and front end, rebuilt
+## Phase 2 — API ✅, front end next
 
-A clean replacement rather than a port. The current API speaks node ids throughout, and a
-node-shaped compatibility view over the new model would mean carrying the old vocabulary
-into the thing built to replace it — cheaper in the short run and a permanent tax after.
-The old front end keeps working from a tag for as long as it is wanted.
+A clean replacement rather than a port. The old API spoke node ids throughout, and a
+node-shaped compatibility view over the new model would have meant carrying the old
+vocabulary into the thing built to replace it — cheaper in the short run and a permanent tax
+after. It was retired whole rather than ported: `inference.py`, `models.py`, `params.py`,
+`util/`, `web/` and `smoke_test.py` are gone, and the tag `pre-token-core` holds them.
 
-- **Positions, not nodes**, in the API surface. A position is `(span, byte offset)`;
+**The server half is built** — `api/server.py` for the routes, `api/wire.py` for the
+encoding, `api_test.py` for 62 checks that need no model. What it settled beyond the
+scope below:
+
+- ✅ **Positions, not nodes**, in the API surface. A position is `(span, byte offset)`;
   generation, branching and selection all take one. Nothing else appears on the wire — in
   particular, derived run ids never do, because a derived grouping renumbers.
-- **No edit endpoint.** `PATCH /api/node/{id}` does not come across, per the immutability
-  rule above. Delete cascades; authoring creates.
-- **Full parameters per call**, rather than server-side settings state. This keeps
+- ✅ **No edit endpoint.** `PATCH /api/node/{id}` does not come across, per the immutability
+  rule above. Delete cascades; authoring creates. Asserted by its absence, because a rule
+  nothing tests is one a later convenience quietly reverses.
+- ✅ **Full parameters per call**, rather than server-side settings state. This keeps
   generation reproducible from the request alone, which is what makes the headless path and
-  the UI the same client. Last-used settings become a client convenience, not a server
-  concern.
-- **Token-level rendering** as the default read surface, with runs as the unit of layout.
-- Sessions, save/save-as and the tree pane carry over in function, rebuilt against the new
-  model.
+  the UI the same client. `GET /api/settings` says what the server would fill in, so a
+  client can send it rather than rely on the server to.
+- ✅ **One tree per process**, the directory a launch argument. No session registry and no
+  active session for a mutation to be ambiguous about; several trees are several processes.
+- ✅ **No save endpoint.** Sessions and save/save-as were listed here as carrying over "in
+  function", and they do: the function of save is the save ordering in `core/session.py`,
+  which writes after every mutation, and the function of save-as is copying a directory.
+- ✅ **Every mutation answers with the whole tree**, so no client keeps a second model of the
+  structure. Affordable because the tree file is small by construction and the bulk data is
+  deliberately elsewhere.
+- **Token-level rendering** as the default read surface, with runs as the unit of layout —
+  the front end's work, and what remains of this phase. Runs are derived in `core/ops.py`
+  and travel as composition with no ids, so the layout unit is available without the client
+  computing it.
 
 Deferred out of this phase and recorded in `BEYOND-MVP.md`: the generation-control UI —
 stop-token configuration and section-break rendering, a server-side settings store, and
@@ -419,9 +434,10 @@ are already folded in above.
   and trades the context depth this design wants for concurrency it may not need. None of
   that needs settling before there is something to be slow.
 - **Migration from the old format.** Historical trees stay historical.
-- **A test suite.** `smoke_test.py` plus live use is the posture; the clean-break format
-  with no migration is what makes that affordable. The smoke test should cover the token
-  path once Phase 1 lands.
+- **A test suite**, in the pytest-and-fixtures sense. What exists instead is three
+  executable checks — `core_test.py`, `api_test.py`, `llama_test.py` — each a script that
+  prints what it asserted and why. The clean-break format with no migration is what makes
+  that affordable. `smoke_test.py` retired with the stack it smoke-tested.
 - **Hosted providers.** Local inference only; the capability table keeps its entries but
   gets no new work.
 - A second model judging, summarising or retransmitting. Generation stays human-gated.

@@ -46,14 +46,20 @@ all:
 
     python loom.py -d data/demo show
 
-`python core_test.py` runs with no model; `python llama_test.py` needs the server.
+The same tree is also servable over HTTP, one tree per process:
+
+    scripts/api.sh data/demo        # then GET /api/tree on 8080
+
+`python core_test.py` and `python api_test.py` run with no model; `python llama_test.py`
+needs the server.
 
 ## State
 
-Phase 1 has landed: the token core is built, tested and driven from the command line, which
-is the **reference client** rather than a scratch tool. Phase 2 — an API and front end
-rebuilt against it — is the current work.
+Phase 1 landed the token core: built, tested, and driven from the command line, which is the
+**reference client** rather than a scratch tool. Phase 2 has landed its server half — `api/`
+is a clean replacement rather than a port, speaking positions rather than node ids, and the
+old browser front end and the whole OpenAI-compatible path retired with it.
 
-The browser front end in `web/` still runs the *old* node format and is what Phase 2
-replaces. The tkinter app is gone; the tag `pre-token-core` preserves the last commit where
-it was the whole instrument, and `git show pre-token-core:README.md` has its documentation.
+What is unbuilt is the front end itself. The tkinter app and the browser UI are both gone;
+the tag `pre-token-core` preserves the last commit where the browser UI was the whole
+instrument, and `git show pre-token-core:README.md` has its documentation.
