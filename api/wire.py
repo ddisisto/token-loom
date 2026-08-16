@@ -32,7 +32,16 @@ sums the ancestry, which is what the core does.
 """
 from __future__ import annotations
 
-from core import BulkStore, Position, Tree
+from core import BulkStore, Position, Tree, divergence, runs, token_offsets
+from core.tree import encode_text, id_order
+
+
+class Unknown(KeyError):
+    """A name the tree does not have: a span, a batch, a token index."""
+
+
+class Malformed(ValueError):
+    """A syntactically wrong address or an offset outside its span."""
 
 
 # -- positions -------------------------------------------------------------
@@ -45,12 +54,38 @@ def parse_position(tree: Tree, text: str) -> Position | None:
     cursor has to say so, because a client that omits an address by accident
     should be told rather than served.
     """
-    raise NotImplementedError
+    if not text:
+        raise Malformed('an address is required; `.` is the root')
+    if text == '.':
+        return None
+    span_id, plus, offset = text.partition('+')
+    if span_id not in tree.spans:
+        raise Unknown(f'no span {span_id}')
+    if not plus:
+        return tree.tip(span_id)
+    try:
+        at = int(offset)
+    except ValueError:
+        raise Malformed(f'{text}: an offset must be a number') from None
+    return checked(tree, Position(span_id, at))
+
+
+def checked(tree: Tree, pos: Position) -> Position:
+    """A position whose offset is inside the bytes its span has.
+
+    `ops.check` asks the same question and answers with `None`; this one hands
+    back the position so it can be used inline, which is the only difference.
+    """
+    span = tree.spans[pos.span]
+    if not 0 <= pos.offset <= span.length:
+        raise Malformed(f'{pos.offset} is outside {pos.span} '
+                        f'(0..{span.length})')
+    return pos
 
 
 def position_json(pos: Position | None) -> dict | None:
     """`{"span", "offset"}`, or `null` for the root."""
-    raise NotImplementedError
+    return None if pos is None else {'span': pos.span, 'offset': pos.offset}
 
 
 def position_from_json(tree: Tree, value) -> Position | None:
@@ -60,7 +95,17 @@ def position_from_json(tree: Tree, value) -> Position | None:
     names a missing span and an address past the end of a real one are the same
     class of client error and should answer the same way.
     """
-    raise NotImplementedError
+    if value is None:
+        return None
+    if isinstance(value, str):
+        # accepted so one client can use one spelling throughout, rather than
+        # switching grammars depending on whether it is asking or telling
+        return parse_position(tree, value)
+    if not isinstance(value, dict) or 'span' not in value:
+        raise Malformed(f'not a position: {value!r}')
+    if value['span'] not in tree.spans:
+        raise Unknown(f"no span {value['span']}")
+    return checked(tree, Position(value['span'], int(value.get('offset', 0))))
 
 
 # -- text ------------------------------------------------------------------
@@ -72,7 +117,7 @@ def text_json(raw: bytes | None):
     reimplemented -- the wire and the file agree by construction, not by two
     functions being kept in step.
     """
-    raise NotImplementedError
+    return encode_text(raw)
 
 
 # -- the tree --------------------------------------------------------------
@@ -93,7 +138,23 @@ def span_json(tree: Tree, store: BulkStore, span_id: str) -> dict:
     "in flight" is a state the client renders differently, and asking a client
     to infer a state from a null is how the null acquires a second meaning.
     """
-    raise NotImplementedError
+    span = tree.spans[span_id]
+    return {
+        'id': span.id,
+        'kind': span.kind,
+        'parent': position_json(span.parent),
+        'text': text_json(span.text),
+        'length': span.length,
+        'created': span.created,
+        'params': span.params,
+        'seed': span.seed,
+        'batch': span.batch,
+        'index': span.index,
+        'slice_start': position_json(span.slice_start),
+        'origin': span.origin,
+        'complete': span.complete,
+        'terminator': store.terminator(span.id),
+    }
 
 
 def runs_json(tree: Tree, reach: dict[str, int], start: tuple) -> dict:
@@ -113,7 +174,14 @@ def runs_json(tree: Tree, reach: dict[str, int], start: tuple) -> dict:
     tuple fields, because a wire format that requires counting positions in an
     array is one a client gets wrong silently.
     """
-    raise NotImplementedError
+    return _name_pieces(runs(tree, reach, start))
+
+
+def _name_pieces(node: dict) -> dict:
+    return {'pieces': [{'span': span, 'begin': begin, 'end': end}
+                       for span, begin, end in node['pieces']],
+            'width': node['width'],
+            'children': [_name_pieces(c) for c in node['children']]}
 
 
 def tree_json(tree: Tree, store: BulkStore) -> dict:
@@ -130,7 +198,19 @@ def tree_json(tree: Tree, store: BulkStore) -> dict:
     the tree still reaches. It is derived, and it is sent anyway, because the
     alternative is every client reimplementing the deletion cascade.
     """
-    raise NotImplementedError
+    reach = tree.live()
+    return {
+        'format': tree.format,
+        'tree_id': tree.tree_id,
+        'base_seed': tree.base_seed,
+        'selected': position_json(tree.selected),
+        'spans': {span_id: span_json(tree, store, span_id)
+                  for span_id in sorted(tree.spans, key=id_order)},
+        'params': tree.params,
+        'deleted': [position_json(p) for p in tree.deleted],
+        'live': reach,
+        'runs': runs_json(tree, reach, (None, 0, False)),
+    }
 
 
 # -- the token overlay -----------------------------------------------------
@@ -156,7 +236,17 @@ def tokens_json(store: BulkStore, span_id: str) -> list[dict]:
     Rank 0 is not the sampled token about a third of the time at temperature
     0.9, so a client must not mark the sampled one by rank. Compare `token_id`.
     """
-    raise NotImplementedError
+    offsets = token_offsets(store, span_id)
+    alternatives: dict[int, list] = {}
+    for c in store.counterfactuals(span_id):
+        alternatives.setdefault(c.idx, []).append(
+            {'rank': c.rank, 'token_id': c.token_id, 'logprob': c.logprob,
+             'text': text_json(c.bytes)})
+    return [{'idx': t.idx, 'begin': offsets[t.idx], 'end': offsets[t.idx + 1],
+             'token_id': t.token_id, 'logprob': t.logprob,
+             'text': text_json(t.bytes),
+             'counterfactuals': alternatives.get(t.idx, [])}
+            for t in store.tokens(span_id)]
 
 
 def batches_json(tree: Tree, store: BulkStore) -> list[dict]:
@@ -169,14 +259,50 @@ def batches_json(tree: Tree, store: BulkStore) -> list[dict]:
     in one response, and sending the values here would duplicate a record whose
     whole point is being stored once.
     """
-    raise NotImplementedError
+    order: list[str] = []
+    members: dict[str, list[str]] = {}
+    for span_id in sorted(tree.spans, key=id_order):
+        span = tree.spans[span_id]
+        if not span.batch:
+            continue
+        if span.batch not in members:
+            order.append(span.batch)
+        members.setdefault(span.batch, []).append(span_id)
+    return [{'batch': batch,
+             'from': position_json(tree.spans[members[batch][0]].parent),
+             'params': tree.spans[members[batch][0]].params,
+             'spans': sorted(members[batch], key=id_order)}
+            for batch in order]
 
 
-def divergence_json(store: BulkStore, span_ids: list[str]) -> dict | None:
+def batch_spans(tree: Tree, batch: str) -> list[str]:
+    """The spans of one call, in the order they were made.
+
+    Raises rather than returning an empty list for a batch that is not there:
+    "no such call" and "a call that produced nothing" are different answers,
+    and the second one cannot happen.
+    """
+    spans = sorted((s.id for s in tree.spans.values() if s.batch == batch),
+                   key=id_order)
+    if not spans:
+        raise Unknown(f'no batch {batch}')
+    return spans
+
+
+def divergence_json(store: BulkStore, span_ids: list[str],
+                    depths=(1, 3, 10)) -> dict | None:
     """`core.ops.divergence`, unchanged -- it already returns plain data.
 
     Sent as-is deliberately. It is the only quantitative read the instrument
     has on where a prompt tends to go, and a client that cannot reach it is
     short of the floor rather than short of a convenience.
     """
-    raise NotImplementedError
+    profile = divergence(store, span_ids, depths)
+    if profile is None:
+        return None
+    # JSON object keys are strings, so the integer depths of `lock` and `short`
+    # would come back as strings anyway. Doing it here means the shape is the
+    # same in the tests as on the wire, rather than differing by a round trip.
+    return dict(profile,
+                lock={str(k): v for k, v in profile['lock'].items()},
+                short={str(k): v for k, v in profile['short'].items()})

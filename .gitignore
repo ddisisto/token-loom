@@ -8,6 +8,13 @@
 data/*
 !data/demo/
 
+# WAL mode leaves two sidecars beside every bulk store, and one of those stores
+# is inside the un-ignored directory above. They are transient -- a clean close
+# checkpoints and removes them -- so anything found here is the residue of a
+# process that was killed, and never something to commit.
+*.sqlite-wal
+*.sqlite-shm
+
 # Local working notes, deliberately out of repo.
 daniel-notes*.md
 

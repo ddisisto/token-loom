@@ -21,6 +21,7 @@ dependencies = [
 web = [
     "fastapi",
     "uvicorn",
+    "httpx",            # api_test, via fastapi's TestClient
 ]
 
 [tool.uv]

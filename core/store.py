@@ -69,9 +69,27 @@ class Counterfactual(NamedTuple):
 
 
 class BulkStore:
+    """One sqlite file, one connection, usable from more than one thread.
+
+    `check_same_thread` is off, and the condition it is off under is checked
+    rather than assumed. Python's `sqlite3.threadsafety` is 3 -- *serialized* --
+    when the underlying library was built with `THREADSAFE=1`, and that is the
+    mode in which a single connection may be used from several threads with the
+    library doing the serialising. Where it is not 3, this leaves the guard on,
+    so a build that cannot share fails loudly on the first cross-thread call
+    instead of corrupting a file quietly.
+
+    This exists because the store had no threaded client until the API: FastAPI
+    runs a blocking handler on a threadpool, so every request touches this
+    connection from a different thread than the one that opened it. Serialising
+    *writes* is still the caller's job -- `api/server.py` holds one lock across
+    every mutation -- and what sqlite provides here is that concurrent reads and
+    a write cannot tear each other, which WAL already assumed.
+    """
+
     def __init__(self, path: str):
         self.path = path
-        self.db = sqlite3.connect(path)
+        self.db = sqlite3.connect(path, check_same_thread=sqlite3.threadsafety < 3)
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA synchronous=NORMAL')
         for statement in SCHEMA:
