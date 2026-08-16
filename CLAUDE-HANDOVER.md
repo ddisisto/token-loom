@@ -11,8 +11,7 @@ the three files above instead.
 
 ## Where things stand
 
-`main` is pushed and in sync, with `research` merged into it. `core_test.py` 184 green with
-no model, `llama_test.py` 42 green against the server on 8081.
+`core_test.py` 198 green with no model, `llama_test.py` 42 green against the server on 8081.
 
 **The research thread has completed one full cycle and is deliberately paused.** Experiment
 001 was pre-registered, run blind, and answered — see `RESEARCH.md`, which is now a landing
@@ -28,7 +27,20 @@ fact that is easy to get wrong and does not belong anywhere permanent yet.
 
 ## Threads to pick up, in the order they will bite
 
-**1. `data/sweep-1/` predates the alignment fix.** About 40 of its ~10,070 token rows carry
+**1. Two writers on one tree directory are unguarded, and the failure is partly silent.**
+Found while settling that the CLI should *not* consume the API — both are clients of `core/`,
+which is right, and which means nothing stops `loom.py author` running against a tree an API
+server has open. `Tree.save` rewrites the file whole via rename, so the loser's spans simply
+vanish. Then ids are minted one past the highest **in the tree**, so a re-minted `s7` inherits
+the dead `s7`'s bulk rows. Check 6 catches most of that — text against what its tokens spell —
+but stale counterfactual *ranks*, at indices the new span also has, survive it: a branch onto a
+token the model never ranked. Two cheap fixes, both in `core/`, neither built: an exclusive
+lock on the tree directory taken by whoever opens it for writing, with `loom.py` refusing
+while the server holds it; and a tenth validator check that no bulk row names a span the tree
+does not have, for which `store.spans_with_tokens()` already exists. Deferred deliberately to
+keep the API moving, not because it is small.
+
+**2. `data/sweep-1/` predates the alignment fix.** About 40 of its ~10,070 token rows carry
 the pre-`d31a3d2` shape, where a merged entry stored a byte fragment's id as though it
 described a whole character. It was generated with `cache_prompt` on, so it is faithful but
 not reproducible from what each span carries. `lock(3)` and `lock(10)` are unaffected and
