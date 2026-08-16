@@ -11,56 +11,83 @@ the three files above instead.
 
 ## Where things stand
 
-Every thread the previous handover carried is closed, and `main` is pushed and in sync.
-`core_test.py` 145 green with no model, `llama_test.py` 47 green against the server.
+`main` is pushed and in sync, with `research` merged into it. `core_test.py` 184 green with
+no model, `llama_test.py` 42 green against the server on 8081.
 
-`PLAYBOOKS.md` is new and is the best entry point to what the instrument is *for* — five
-moves worked end to end against `data/demo/`, which is **committed** and reads with no model.
-`demo.py --force` rebuilds it. `README.md` is no longer upstream's tkinter documentation.
+**The research thread has completed one full cycle and is deliberately paused.** Experiment
+001 was pre-registered, run blind, and answered — see `RESEARCH.md`, which is now a landing
+page, and `experiments/001-temperature.md`, which is the record. The pause is intentional:
+the next research move is choosing an axis to sample prompts along, and that is better done
+with fresh eyes than immediately.
 
-Phase 1 is done and there is nothing open at the format level.
+**The build thread is the current work.** `ROADMAP.md` Phase 2, and specifically the parts
+that do not need interaction — that is what this session's break from research is for.
 
-**The work has since split in two**, which most of this file predates — see `CLAUDE.md`,
-"Two threads, one substrate". Phase 2 is the build thread and `ROADMAP.md` has its scope;
-`RESEARCH.md` leads the other. The notes below are shared unless they say otherwise, and
-each thread gets its own briefing rather than inheriting this one.
+Nothing is open at the format level. Everything below is either a thread to pick up or a
+fact that is easy to get wrong and does not belong anywhere permanent yet.
 
-## What is worth knowing before Phase 2 starts
+## Threads to pick up, in the order they will bite
 
-**The CLI is the specification.** That framing was adopted for the polish pass and it held:
-`loom.py` now does everything the API needs to, so the Phase 2 surface can be read off it
-rather than designed fresh. Positions parse as `span` / `span+offset` / `.`, and `batches`
-and `params` are the two reads that turn recorded-but-unread fields into something.
+**1. `{"b64": …}` span serialisation is unreachable from generation.** Recorded in
+`CLAUDE.md` under Open threads and agreed for the next session. llama-server emits bytes only
+once they decode, so a *sampled* span can never end mid-character — the format's escape hatch
+for that case is reachable from authoring and branching and nothing else. This is the same
+shape as the `CONTEXT` bug: a path believed to work because nothing contradicted it. It wants
+a test that reaches it on purpose, and possibly a note in `FORMAT.md` about which operations
+can produce it.
 
-**Nothing in the CLI emits machine-readable output.** Every command prints for a human. That
-is fine for a reference client and is the one thing the API cannot copy — worth deciding
-early whether the API is a separate surface over `core/` (probably) or whether `loom.py`
-grows a `--json` mode (probably not).
+**2. `"kind": "human"` may be too narrow a name.** From `daniel-notes.md`, for the return to
+research. The human remains the authority behind the text, but need not be its direct author —
+pasted material, a second model's output, a file. The three kinds are `human`, `sampled`,
+`counterfactual`, and the axis they actually divide on is *where the bytes came from*, not
+*who typed them*. A rename is a format change and needs a version bump, so it wants deciding
+before anything else forces one, not after.
+
+**3. `data/sweep-1/` predates the alignment fix.** About 40 of its ~10,070 token rows carry
+the pre-`d31a3d2` shape, where a merged entry stored a byte fragment's id as though it
+described a whole character. It was generated with `cache_prompt` on, so it is faithful but
+not reproducible from what each span carries. `lock(3)` and `lock(10)` are unaffected and
+nothing was re-run. Do not treat it as a clean reference tree; `data/demo/` is the clean one.
+
+## Facts that will save an hour
+
+**`experiments/` files are written in two commits and not tidied between them** — the
+pre-registration before the run, the results after. `CLAUDE.md` has the reasoning. Corrections
+append; editing an experiment file after its results land spends the only thing
+pre-registration buys.
+
+**`cache_prompt` is off and generation is therefore slower**, by the cost of reprocessing the
+prompt on every call. This is deliberate and `BEYOND-MVP.md` holds the two routes back to the
+speed. If a sweep feels slow, that is why, and it is not a regression.
+
+**`scripts/` is committed now.** It used to be swallowed by a `[Ss]cripts` rule inherited from
+a virtualenv gitignore template, which `CLAUDE.md` had rationalised as deliberate. `sweep.sh`
+is there and is a temperature sweep in executable form — copy it rather than editing it for a
+different experiment.
+
+**The archive is `../archive/`**, a sibling of the repo and outside it. It holds the
+old-format trees including `data/local.json`, the dead `run.sh` and `screenshot.sh`, and
+upstream's README screenshots. Nothing there is needed to run anything, and git history still
+has everything that was ever tracked.
 
 **`llama_test.py:context_limit` needs a second server** and skips rather than fails without
-one. It was running during this session and has been stopped:
+one:
 
     CTX=512 PORT=8082 scripts/llama-server.sh --n-gpu-layers 0
 
-CPU-only because a second GPU instance does not fit in 8GB beside the first. Everything else
-uses the ordinary 8081.
+CPU-only, because a second GPU instance does not fit in 8GB beside the first.
 
-**`data/tree/` is a stale-format tree** and refuses to load, correctly — it was written
-before the marker was renumbered. Delete it and `loom.py new` when it is next wanted. The old
-`data/*.json` trees belong to the old format and are untouched; `data/local.json` in
-particular is not disposable.
+## For the build thread specifically
 
-## Loose ends that are not threads
+**The CLI is the specification, and it grew this session.** `loom.py` now also has
+`diverge` (sibling agreement as a number), `show <position> --depth n`, `batches --params
+<key>` and `gen --stay`. All four are reads or flags the API will want, and `divergence` lives
+in `core/ops.py` rather than in `loom.py` precisely so the API can reach it.
 
-- `daniel-notes.md` and `daniel-notes-next.md` are untracked, neither committed nor ignored.
-  The former's `<|endoftext|>` concern is **already satisfied at the format level**:
-  end-of-text arrives in the overlay as a token with its id and zero bytes, not swallowed.
-  What is left of that note is rendering, which is Phase 2/3 work.
-- Three CLI things noticed and deliberately not done, since none is needed yet: `params`
-  prints every field of every entry where a diff between two would read better; nothing
-  filters `show` by batch; and **`gen` leaves the cursor on the span it made**, so sampling
-  one position repeatedly means naming the position each time. That last one is right for
-  walking forward and wrong for sampling in place — `PLAYBOOKS.md` documents both rather
-  than picking, because which default is correct depends on the move.
-- `data/tree/` still holds the stale-format tree and `loom.py new` now refuses it cleanly
-  rather than tracebacking. It is disposable; delete it when convenient.
+**Nothing in the CLI emits machine-readable output.** Every command prints for a human. Still
+worth deciding early whether the API is a separate surface over `core/` (probably) or whether
+`loom.py` grows a `--json` mode (probably not).
+
+**`data/tree/` is disposable scratch** and may hold a stale-format tree; `loom.py new` refuses
+it cleanly rather than tracebacking. Delete it when convenient. `data/demo/` is committed and
+is the one to leave alone — `demo.py --force` is the only thing that should rewrite it.
