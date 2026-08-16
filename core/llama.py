@@ -47,6 +47,25 @@ class Truncated(Exception):
     """
 
 
+class Incomplete(Exception):
+    """The response lost bytes the model had already produced.
+
+    llama-server accumulates generated *text* and only emits a token's record
+    once that text is valid UTF-8. A character whose encoding spans several
+    tokens is therefore held back until the token that completes it. If the
+    `n_predict` budget expires first, the held-back fragments are never flushed
+    and their bytes are gone from the response entirely -- while
+    `tokens_predicted` still counts them and `stop_type` still says `limit`.
+
+    Fatal for the same reason as `Truncated`: a span whose bytes are a strict
+    prefix of what the model emitted, recorded as having stopped at a length
+    limit, is a lie of exactly the kind immutable bytes exist to prevent. It is
+    rare -- zero of 72 measured on English prompts -- and reliably reachable
+    with astral-plane characters, where a retry at a different length usually
+    clears it.
+    """
+
+
 class Result(NamedTuple):
     tokens: list[Token]
     counterfactuals: list[Counterfactual]
@@ -123,7 +142,14 @@ class Server:
             'stop': list(settings['stop']),
             'seed': seed,
             'return_tokens': True,
-            'cache_prompt': True,
+            # off deliberately, and it costs prompt processing on every call.
+            # A full cache hit evaluates no prompt tokens, and that changes the
+            # arithmetic enough to change what a fixed seed samples: the same
+            # slice, seed and parameters reproduce a *different* continuation
+            # warm than cold. Measured, not assumed -- see BEYOND-MVP.md. The
+            # recorded conditions are the whole product here, and conditions
+            # that only reproduce from the right cache state are not conditions
+            'cache_prompt': False,
         }
         r = requests.post(f'{self.base}/completion', json=body,
                           timeout=self.timeout)
@@ -142,15 +168,91 @@ class Server:
     @staticmethod
     def _read(payload: dict, settings: dict) -> Result:
         entries = payload.get('completion_probabilities') or []
-        tokens = [Token(i, e['id'], bytes(e['bytes']), e['logprob'])
-                  for i, e in enumerate(entries)]
-        counterfactuals = [
-            Counterfactual(i, rank, c['id'], bytes(c['bytes']), c['logprob'])
-            for i, e in enumerate(entries)
-            for rank, c in enumerate(e.get('top_logprobs') or [])]
+        groups, tail = _align(entries, payload.get('tokens') or [],
+                              payload.get('tokens_predicted', 0))
+        # a stop match leaves a tail on purpose: the server erases trailing
+        # entries by the stop string's token count so the match itself is not
+        # part of the span. That is the intended behaviour and this is not the
+        # place to second-guess it -- the known fault there is that the erase
+        # is by token count while the match is on text, so a stop string off a
+        # token boundary takes real bytes with it. Undecidable from here, and
+        # fixed properly only by matching on token ids
+        if tail and payload.get('stop_type') != 'word':
+            raise Incomplete(
+                f'the response is {len(tail)} token(s) short of the '
+                f'{payload.get("tokens_predicted", 0)} it reports: a character '
+                f'split across tokens was still incomplete when the length '
+                f'budget ran out, so its bytes never arrived. Retrying at a '
+                f'different --length usually clears it')
+
+        tokens, counterfactuals = [], []
+        for i, (entry, group) in enumerate(zip(entries, groups)):
+            # a merged entry stands for a group, and its id, logprob and
+            # alternatives describe only that group's *last* fragment. Storing
+            # the fragment's id beside the group's bytes would assert a
+            # correspondence that does not hold, so both are recorded absent
+            merged = len(group) > 1
+            tokens.append(Token(i, None if merged else entry['id'],
+                                bytes(entry['bytes']),
+                                None if merged else entry['logprob']))
+            if merged:
+                # alternatives to a byte fragment, at a position whose sampled
+                # value is a whole character. There is nowhere in the format to
+                # say that, so they are dropped rather than mislabelled
+                continue
+            counterfactuals.extend(
+                Counterfactual(i, rank, c['id'], bytes(c['bytes']), c['logprob'])
+                for rank, c in enumerate(entry.get('top_logprobs') or []))
 
         return Result(tokens, counterfactuals,
                       _reason(payload, settings), payload.get('tokens_evaluated', 0))
+
+
+def _align(entries: list[dict], tokens: list[int], predicted: int
+           ) -> tuple[list[list[int]], list[int]]:
+    """Which sampled tokens each returned entry stands for.
+
+    `completion_probabilities` is not the sampled sequence. It is that sequence
+    regrouped onto character boundaries: llama-server accumulates generated
+    text and emits a record only once the accumulation is valid UTF-8, so a
+    character split across several tokens produces *one* entry, carrying the
+    whole group's bytes but the last fragment's id, logprob and alternatives.
+    `tokens` -- requested through `return_tokens` and, until this existed,
+    thrown away -- is the real sequence.
+
+    So the two are alignable and the alignment costs nothing: an entry's `id`
+    is its group's final token, so walking `tokens` and consuming up to and
+    including that id recovers each group. Whatever remains after the last
+    entry is what the server dropped.
+
+    Measured on Qwen2.5 at b10221: no merging at all on English prompts, and
+    every astral-plane character merged, since none of its tokens is valid
+    UTF-8 alone. The counts are the check -- an entry id that never appears, or
+    a `tokens` array that disagrees with `tokens_predicted`, means the walk has
+    lost its place, and a mis-alignment silently mislabels every record after
+    it. Raising is the only honest answer to that.
+    """
+    if not entries:
+        return [], list(tokens)
+    if len(tokens) != predicted:
+        raise Incomplete(
+            f'the response reports {predicted} tokens predicted but returns '
+            f'{len(tokens)} of them, so no alignment against '
+            f'`completion_probabilities` can be trusted')
+
+    groups, at = [], 0
+    for entry in entries:
+        start = at
+        while at < len(tokens) and tokens[at] != entry['id']:
+            at += 1
+        if at == len(tokens):
+            raise Incomplete(
+                f'token {entry["id"]} heads no group in the sampled sequence: '
+                f'entry {len(groups)} of {len(entries)} cannot be aligned, and '
+                f'an unverified alignment mislabels everything after it')
+        at += 1
+        groups.append(tokens[start:at])
+    return groups, tokens[at:]
 
 
 def _is_json(response) -> bool:

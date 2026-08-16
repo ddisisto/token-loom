@@ -19,8 +19,8 @@ import tempfile
 
 from core import (BulkStore, Position, Tree, address_at, author,
                   begin_generation, branch_counterfactual, complete,
-                  create_tree, delete, open_tree, restore, save, slice_at,
-                  token_offsets, validate)
+                  create_tree, delete, divergence, open_tree, restore, save,
+                  slice_at, token_offsets, validate)
 from core.store import Counterfactual, LENGTH, Token
 from core.tree import Span
 
@@ -54,6 +54,9 @@ def worked_example():
                          'length': 3, 'stop': [],
                          'model': 'qwen2.5-7b-base', 'tokenizer': 'qwen2.5',
                          'n_ctx': 16384, 'prompt_length': 6000}
+    # a second call at different conditions, so the fixture holds what a sweep
+    # holds: two batches that are two experiments rather than one repeated
+    tree.params['p2'] = dict(tree.params['p1'], temperature=1.3)
     root = Position('s1', len(PROMPT))
     for span in [
         Span('s1', 'human', None, PROMPT, TS),
@@ -66,7 +69,7 @@ def worked_example():
              origin={'span': 's3', 'index': 2, 'token_id': 2058}),
         # in flight: provenance written, byte record still empty
         Span('s5', 'sampled', Position('s3', len(spelled(CLEAR))), None, TS,
-             params='p1', seed=90213, batch='b2', index=0,
+             params='p2', seed=90213, batch='b2', index=0,
              slice_start=Position('s1', 0)),
     ]:
         tree.add(span)
@@ -419,6 +422,10 @@ def driver(workdir):
           _exits(run, 'show'))
 
     several_roots(workdir)
+    capping_the_render(workdir)
+    sibling_divergence(workdir)
+    entry_alignment()
+    merged_records()
 
 
 def cli_reads(path):
@@ -457,6 +464,19 @@ def cli_reads(path):
     check('one batch can be asked for alone',
           code == 0 and 'b1' in out and 'b2' not in out, out)
     check('a batch that does not exist is refused', _exits(run, 'batches', 'b9'))
+
+    # the level between one call and the whole tree: interning is by value, so
+    # one key is one set of conditions however many calls were made under it.
+    # Both directions are checked because a filter that returns everything
+    # passes the first on its own
+    code, out = run('batches', '--params', 'p1')
+    check('batches select down to one set of conditions',
+          code == 0 and 'b1' in out and 'b2' not in out, out)
+    code, out = run('batches', '--params', 'p2')
+    check('and the other conditions select the other call',
+          code == 0 and 'b2' in out and 'b1' not in out, out)
+    check('an unknown parameter set is refused',
+          _exits(run, 'batches', '--params', 'p9'))
 
     code, out = run('params')
     check('the intern table lists, with how many spans use each entry',
@@ -526,6 +546,262 @@ def several_roots(workdir):
           '3 spans, 1 unreachable' in out, out)
 
 
+def entry_alignment():
+    """`_align`, on payloads shaped like the ones that caused it to exist.
+
+    Pure, so it runs with no model. Which matters more than convenience here:
+    the case it exists for needs a character whose UTF-8 spans several tokens,
+    and that is reachable from a live server only by getting the model to emit
+    one. A constructed payload reaches it on purpose.
+
+    A mis-alignment is the dangerous failure -- it does not crash, it silently
+    relabels every record after the slip. So the negative cases matter as much
+    as the positive one, and all of them raise rather than guessing.
+    """
+    from core.llama import Incomplete, _align
+
+    print('\naligning entries against the sampled sequence')
+
+    # one character of three tokens in the middle: the server emits one entry
+    # for it, carrying the group's bytes and the *last* fragment's id
+    tokens = [10, 20, 21, 22, 30]
+    entries = [{'id': 10}, {'id': 22}, {'id': 30}]
+    groups, tail = _align(entries, tokens, len(tokens))
+
+    check('an unmerged entry stands for exactly its own token',
+          groups[0] == [10] and groups[2] == [30], str(groups))
+    check('a merged entry stands for the whole group it completes',
+          groups[1] == [20, 21, 22], str(groups))
+    check('and the groups partition the sampled sequence, losing nothing',
+          [t for g in groups for t in g] == tokens, str(groups))
+    check('nothing is left over when the budget did not expire mid-character',
+          tail == [], str(tail))
+
+    # the same, cut short: the fragments of the last character never flushed
+    groups, tail = _align([{'id': 10}], [10, 20, 21], 3)
+    check('tokens past the last entry are the dropped tail',
+          groups == [[10]] and tail == [20, 21], f'{groups} {tail}')
+
+    check('an entry whose id is nowhere in the sequence raises',
+          _raises(Incomplete, _align, [{'id': 99}], [10, 20], 2))
+    check('a tokens array disagreeing with the reported count raises',
+          _raises(Incomplete, _align, [{'id': 10}], [10, 20], 5))
+    check('no entries at all leaves the whole sequence unclaimed',
+          _align([], [10, 20], 2) == ([], [10, 20]))
+
+
+def merged_records():
+    """What `_read` writes for a merged entry, which is deliberately less.
+
+    The entry's bytes are the whole character and are right. Its id, logprob
+    and alternatives describe only the final fragment, so recording them beside
+    those bytes would assert a correspondence that does not hold. Absent is the
+    honest record, and the test is that the absence is there on purpose rather
+    than by omission.
+    """
+    from core.llama import Incomplete, Server
+
+    print('\nwhat a merged entry is allowed to claim')
+
+    def entry(tid, raw, logprob, alts):
+        return {'id': tid, 'bytes': list(raw), 'logprob': logprob,
+                'top_logprobs': [{'id': a, 'bytes': list(b), 'logprob': lp}
+                                 for a, b, lp in alts]}
+
+    payload = {
+        'tokens': [10, 20, 21, 22, 30],
+        'tokens_predicted': 5,
+        'tokens_evaluated': 7,
+        'stop_type': 'limit',
+        'completion_probabilities': [
+            entry(10, b'A', -0.1, [(10, b'A', -0.1), (11, b'B', -1.0)]),
+            entry(22, '\U0001f701'.encode(), -0.5, [(22, b'\x81', -0.5)]),
+            entry(30, b'C', -0.2, [(30, b'C', -0.2)]),
+        ],
+    }
+    result = Server._read(payload, {'length': 5})
+    merged = result.tokens[1]
+
+    check('a merged row keeps the bytes, which are the whole character',
+          merged.bytes == '\U0001f701'.encode()
+          and len(merged.bytes) == 4, repr(merged.bytes))
+    check('and claims neither an id nor a logprob it does not have',
+          merged.token_id is None and merged.logprob is None, str(merged))
+    check('an unmerged row is untouched by any of this',
+          result.tokens[0].token_id == 10
+          and result.tokens[0].logprob == -0.1, str(result.tokens[0]))
+    check('the alternatives to a fragment are dropped, not relabelled',
+          {c.idx for c in result.counterfactuals} == {0, 2}
+          and len(result.counterfactuals) == 3,
+          str([(c.idx, c.rank) for c in result.counterfactuals]))
+    check('the span still spells what the model produced',
+          b''.join(t.bytes for t in result.tokens)
+          == 'A\U0001f701C'.encode(),
+          repr(b''.join(t.bytes for t in result.tokens)))
+    # the whole character arrived, so three tokens became one row and the row
+    # count is below tokens_predicted without anything having been lost
+    check('a merge shortens the record without shortening the text',
+          len(result.tokens) == 3 and payload['tokens_predicted'] == 5)
+
+    payload['tokens'] = [10, 20, 21, 22, 30, 40, 41]
+    payload['tokens_predicted'] = 7
+    check('but a budget that expired mid-character is refused, not recorded',
+          _raises(Incomplete, Server._read, payload, {'length': 7}))
+
+    # a stop match leaves a tail deliberately -- the server drops the matched
+    # text so it is not part of the span. Refusing that would make stop strings
+    # unusable, and this distinction is the one the live test caught
+    payload['stop_type'] = 'word'
+    stopped = Server._read(payload, {'length': 7})
+    check('a tail left by a stop match is expected, not an incomplete response',
+          [t.idx for t in stopped.tokens] == [0, 1, 2], str(stopped.tokens))
+    check('and the span still ends before the match',
+          b''.join(t.bytes for t in stopped.tokens) == 'A\U0001f701C'.encode())
+
+
+def _raises(kind, fn, *args):
+    try:
+        fn(*args)
+    except kind:
+        return True
+    return False
+
+
+def sibling_divergence(workdir):
+    """`divergence`, against sequences whose answers are fixed by construction.
+
+    This is the project's first derived *measurement* rather than derived
+    display, which puts it in the category the method notes warn about: nothing
+    disagrees with a number, so a wrong one is indistinguishable from a right
+    one until something reaches it on purpose.
+
+    So the fixture is four sequences chosen to pin every branch at once -- two
+    that agree for nine tokens and part on the tenth, one that leaves after
+    three, and one too short to reach most depths at all. The short one is the
+    case the asymmetry is about: it must lower `lock` (it shares no prefix it
+    cannot reach) while still counting as a distinct path (it went somewhere).
+    """
+    print('\nsibling divergence, as a number')
+    store = BulkStore(os.path.join(workdir, 'divergence.sqlite'))
+
+    seqs = {
+        'a': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        'b': [1, 2, 3, 4, 5, 6, 7, 8, 9, 11],   # parts from a at index 9
+        'c': [1, 2, 3, 20, 21, 22, 23, 24, 25, 26],   # parts at index 3
+        'd': [1, 2],                            # too short for depth 3 and 10
+    }
+    for span, ids in seqs.items():
+        store.add_tokens(span, [Token(i, tid, bytes([65 + i]), -1.0)
+                                for i, tid in enumerate(ids)])
+
+    d = divergence(store, list(seqs))
+    n = len(seqs)
+
+    # every expectation below is computed from `seqs`, not written down
+    def sharing(k):
+        reaching = [tuple(s[:k]) for s in seqs.values() if len(s) >= k]
+        return max(reaching.count(p) for p in reaching) / n if reaching else 0.0
+
+    check('lock counts the largest agreeing subset over every sibling',
+          all(abs(d['lock'][k] - sharing(k)) < 1e-9 for k in (1, 3, 10)),
+          f'{d["lock"]} vs {[sharing(k) for k in (1, 3, 10)]}')
+    check('a sibling too short to reach a depth lowers the lock there',
+          d['lock'][3] == 3 / 4 and d['short'][3] == 1, str(d))
+    check('and is still counted as a path of its own',
+          d['distinct'][2] == 2, str(d['distinct']))
+
+    # the invariants, which hold for any input and catch what values cannot
+    check('lock never rises with depth',
+          d['lock'][1] >= d['lock'][3] >= d['lock'][10], str(d['lock']))
+    check('distinct paths never fall with depth',
+          all(x <= y for x, y in zip(d['distinct'], d['distinct'][1:])),
+          str(d['distinct']))
+    check('the common prefix is exactly the depth before paths appear',
+          all(c == 1 for c in d['distinct'][:d['common']])
+          and d['distinct'][d['common']] > 1, str(d))
+    check('fully distinct is the first depth where every sibling is alone',
+          d['fully_distinct_at'] == 10
+          and d['distinct'][d['fully_distinct_at'] - 1] == n, str(d))
+    check('the common prefix stops at the shortest sibling',
+          d['common'] == 2 and min(len(s) for s in seqs.values()) == 2, str(d))
+
+    # siblings that never part have no depth at which they are all distinct,
+    # which is a missing answer rather than a large one
+    for span in ('e', 'f'):
+        store.add_tokens(span, [Token(i, t, b'x', -1.0)
+                                for i, t in enumerate([7, 7, 7])])
+    same = divergence(store, ['e', 'f'])
+    check('identical siblings report no full-distinction depth, not a number',
+          same['fully_distinct_at'] is None and same['lock'][1] == 1.0,
+          str(same))
+    check('and asking past their length is answered, not raised',
+          same['lock'][10] == 0.0 and same['short'][10] == 2, str(same))
+
+    check('an empty sibling set is None rather than a division by zero',
+          divergence(store, []) is None)
+    store.close()
+
+
+def capping_the_render(workdir):
+    """`show <position>` and `show --depth n`, which are cuts over the display.
+
+    Neither changes what is reachable, so neither can crash in an obvious way:
+    the failure mode is a miscount, which ordinary use does not surface. The
+    one that did happen, and is the reason this exists: a zero-width node
+    prints nothing, so it must not consume a level either -- otherwise
+    `--depth 1` means "the roots" on a tree with several and "the roots and
+    their forks" on a tree with one, and only the second tree is ever tested.
+
+    So the fixture has both shapes at once: two roots, one of which forks.
+    """
+    import io
+    import contextlib
+    import loom
+
+    print('\ncapping what the render prints')
+    path = os.path.join(workdir, 'depth')
+
+    def run(*argv):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = loom.main(['-d', path, *argv])
+        return code, out.getvalue()
+
+    run('new', '--seed', '5')
+    run('author', 'One.', '.')          # s0, a root
+    run('author', 'Two.', '.')          # s1, another
+    run('author', ' left', 's0')        # s2, at s0's tip
+    run('author', ' right', 's0')       # s3, at the same tip -- so s0 forks
+
+    code, out = run('show')
+    check('uncapped, the fork under a root renders',
+          code == 0 and 'Hs2' in out and 'Hs3' in out, out)
+
+    code, out = run('show', '--depth', '0')
+    check('--depth 0 stops at the roots, not one level short of them',
+          code == 0 and 'Hs0' in out and 'Hs1' in out and 'Hs2' not in out, out)
+    check('and the elision counts the runs it stood in for',
+          '2 more run(s)' in out, out)
+
+    code, out = run('show', '--depth', '1')
+    check('--depth 1 reaches the forks below a root',
+          'Hs2' in out and 'Hs3' in out and 'more run(s)' not in out, out)
+    # the cap is display-only, so the summary underneath still counts the tree
+    check('a depth limit hides runs rather than unreaching them',
+          '4 spans, 0 unreachable' in run('show', '--depth', '0')[1], out)
+
+    code, out = run('show', 's0+0')
+    check('a subtree renders from a position, without its siblings',
+          code == 0 and 'Hs0' in out and 'Hs2' in out and 'Hs1' not in out, out)
+
+    run('delete', 's1+0')
+    check('a subtree rooted at an unreachable span is refused, not a traceback',
+          _exits(run, 'show', 's1+0'))
+    code, out = run('show', '-a', 's1+0')
+    check('and renders under -a, which is what the refusal points at',
+          code == 0 and 'Hs1' in out, out)
+
+
 def _exits(run, *argv):
     try:
         run(*argv)
@@ -584,9 +860,12 @@ def main():
         check('counterfactuals keyed by id',
               [c.token_id for c in store.counterfactuals('s3', 2)]
               == [1005, 2058, 1006])
+        # the two entries differ in one field, which is the case that a
+        # by-identity implementation and a by-value one disagree about
         check('interning is by value, not identity',
               reloaded.intern(reloaded.params['p1']) == 'p1'
-              and len(reloaded.params) == 1)
+              and reloaded.intern(reloaded.params['p2']) == 'p2'
+              and len(reloaded.params) == 2)
         store.close()
 
         print('\nthe marker, and the key the marker cannot stand in for')

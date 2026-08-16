@@ -2,56 +2,61 @@
 
 The other thread. `ROADMAP.md` is the build path — an API and a front end, on top of a core
 that is finished. This is the thread that *uses* the core, and its instrument already works:
-`loom.py`, `data/demo/` and `PLAYBOOKS.md` are a working research setup, not a preview of
-one.
+`loom.py`, `data/demo/` and `PLAYBOOKS.md` are a working research setup, not a preview of one.
 
-So this document is not a roadmap and should not become one. It has no end state. It holds
-**the questions, what has been run, what came back, and what to run next** — an agenda at the
-top and a notebook underneath, growing by accretion.
+This is the **landing page**: the questions, what is currently believed about each, and what
+to run next. It has no end state and it is not a roadmap, but it does have a length budget —
+when it stops being readable in one sitting it has stopped doing its job.
 
-`PLAYBOOKS.md` is the *how*: five moves, with commands. This is the *what and why*.
+- `experiments/` is the record. One file per experiment, pre-registration and results,
+  written once and not tidied afterwards.
+- `PLAYBOOKS.md` is the *how*: five moves, with commands, against the committed `data/demo/`.
+- `BEYOND-MVP.md` holds what the instrument cannot do yet and what it would cost.
 
-## The standing caveat
+## How to read the findings
 
-**Nothing recorded here is a result yet.** Every number below comes from three to eight
-samples on one prompt against one model, which is enough to demonstrate a move and enough to
-form a hypothesis, and is not enough to support a claim about anything. Where something reads
-like a finding, read it as *a thing worth running properly*.
+**Every finding carries its evidence.** There is no blanket disclaimer, because a blanket
+disclaimer is wrong in both directions once some things are pre-registered at `n=20` and
+others are three samples read by eye — it over-hedges the first and launders the second.
 
-The apparatus is honest about conditions — every span carries the parameters that produced
-it, and `params` lists them — so upgrading any of these from anecdote to measurement is a
-matter of running more, not of building more.
+A finding tagged *(001)* points at an experiment file. A finding tagged *(playbook 2)* was a
+demonstration, not an experiment: it happened before pre-registration existed here, its
+transcript is in `PLAYBOOKS.md`, and it is an impression rather than a measurement. Where a
+finding has nothing after it, that is the tag.
 
 ---
 
 ## The questions
 
 From `ROADMAP.md`'s framing, which has not changed and is what the instrument was shaped
-around:
+around.
 
-1. **Attractors in the prior.** Where does a prompt tend to go, and how strongly? What
-   escapes?
-2. **Temperature as a gate.** What does temperature give access to, and is the relationship
-   monotonic?
-3. **Framing as a change of basis.** How much of the prior has to be visible before a
-   continuation changes character?
-4. **Survival under retransmission.** Iterate the model against itself — what persists, and
-   what washes out?
+### 1. Attractors in the prior — where does a prompt tend to go?
 
-A fifth has emerged from the runs rather than from the framing:
+**The attractor is not in the token sequence.** Eight continuations of *"The lighthouse keeper
+wrote in his log:"* at 0.9 share no common prefix at all, and seven of the eight arrive at the
+same place: an arithmetic word problem. The prior for that prompt is not "a lighthouse
+keeper's log", it is "a maths textbook using one as set dressing". Continuations that agree on
+nothing lexically still agree on what kind of text they are. Whatever is being pulled toward
+lives at the level of register, form, corpus region — not surface.
+*(playbook 1; n=8, one prompt, read by eye. The best thing on this page and the least
+measured.)*
 
-5. **At what level does convergence live?** See "The one that surprised me" below.
+That is the thing this thread most needs a number for, and the cheapest available number does
+not measure it. `lock(k)` compares token sequences, which is precisely the level the attractor
+is *not* at. **The cheapest measurement and the thing worth measuring are not the same
+thing** — noticing that was worth more than either. It also sharpens what an embedding would
+be *for*: distance between sibling continuations is the natural handle on genre-level
+convergence, where token overlap is the handle on surface convergence, and the gap between
+them is the finding. See `BEYOND-MVP.md`.
 
----
+**Divergence is nested and plural, not a single branch point.** At 0.3, eight continuations
+occupy two distinct paths for three tokens, then five, then seven — a trie among the siblings
+rather than one fork.
 
-## What has been run
-
-### Sibling divergence, measured
-
-Eight continuations of 32 tokens from one position, seeded distinctly, compared token by
-token. Originally run to settle whether prefix-merging was worth doing in storage — it is
-not, and that conclusion lives in `BEYOND-MVP.md` where the storage question belongs. The
-*measurement* is research and belongs here.
+Eight continuations of 32 tokens from one position, seeded distinctly. Run to settle whether
+prefix-merging was worth doing in storage; `BEYOND-MVP.md` cites these numbers and this is
+where they live, because a read about what the model does is not a fact about files.
 
 | temperature | common prefix, all 8 | distinct paths by depth | fully diverged | shared storage |
 | --- | --- | --- | --- | --- |
@@ -59,93 +64,81 @@ not, and that conclusion lives in `BEYOND-MVP.md` where the storage question bel
 | 0.9 | 0 tokens | 3, 7, 8, 8, 8, 8, 8, 8 | depth 3 | 2.3% |
 | 1.2 | 0 tokens | 4, 7, 8, 8, 8, 8, 8, 8 | depth 3 | 2.0% |
 
-**The common prefix of all eight was zero at every temperature.** Not small — zero. Siblings
-differ on their first token essentially always.
+*(one prompt, n=8, three bands. The trie shape holds. The zero common prefix does not
+generalise: 001 found eighteen tokens shared across twenty siblings at 0.1 on a constrained
+prompt, and 0.3 is this table's lowest band. Read the zeroes as "at 0.3 and above, on this
+prompt".)*
 
-And divergence is **nested and plural** rather than a single branch point: at 0.3, eight
-continuations occupy two distinct paths for three tokens, then five, then seven. There is a
-trie among the siblings. "Eight samples, two paths, three tokens deep" is the attractor
-question answered as a number, and it needs nothing new stored — comparing sibling token
-sequences is a read over data already held.
+### 2. Temperature as a gate — what does it give access to?
 
-**This is the most valuable unbuilt read in the project.** It is the only quantitative
-handle on question 1, and everything else so far is eyeballed prose.
+**Agreement declines monotonically with temperature. There is no non-monotonicity.** An
+earlier three-sample reading suggested `lock(3)` was U-shaped, high at both 0.2 and 1.3 and
+low in between. Twenty samples per band across three prompts says otherwise on all three: the
+naive model of temperature was right.
+*(001; n=20, three prompts, six bands, pre-registered. A negative result, and the reason to
+pre-register.)*
 
-### The five playbooks
+**Depth carries the signal; presence does not.** `lock(3)` is pinned at 1.00 across half of
+one prompt's range and never falls below 0.75, while `lock(10)` over the same range runs 1.00
+down to 0.05. Three tokens is short enough that agreement there survives almost anything. The
+interesting variation is in how *far* agreement extends, not whether it exists — which makes
+`lock(10)/lock(3)` the number to watch and made the pre-registered primary measure the blunter
+of the two on offer.
+*(001; n=20, three prompts.)*
 
-Run against `data/demo/`, which is committed. `PLAYBOOKS.md` has the transcripts.
+**At low temperature, most of the samples are the same sample.** At 0.1, exact byte-identical
+duplicates out of 20: 15, 12 and 2 for the three prompts. Twenty generations on the most
+constrained prompt buy five distinct continuations.
+*(001; n=20, three prompts. Bears on the prefix-merging rejection in `BEYOND-MVP.md`, which
+was decided on shared-storage numbers from 0.3 and above and does not cover this case.)*
 
-**1. Attractor strength.** Eight continuations of *"The lighthouse keeper wrote in his
-log:"* at 0.9. All eight open with a timestamp; **seven turn into arithmetic word problems**;
-one stays an actual log entry. The prior for this prompt is not "a lighthouse keeper's log",
-it is "a maths textbook using one as set dressing".
+### 3. Framing as a change of basis — how much prior has to be visible?
 
-**2. Temperature.** Same position at 0.2, 0.8, 1.3, three samples each. **0.2 and 1.3 both
-locked onto the same syntactic frame** — *the silence of X* — differing only in what fills
-`X`. 0.8 was the band that escaped the frame and started sentences a different way.
+**The prompt sets an envelope, and temperature only moves within it.** This is the largest
+effect measured so far and nothing predicted it. Three short, unremarkable English prompts
+spread `lock(3)` at fixed temperature about as widely as six temperature bands spread it at
+fixed prompt — and the most open prompt at **0.1** is less converged than the most constrained
+one at **1.5**. Whatever temperature is doing, the envelope varies more than the thing inside
+it.
+*(001; n=20, three prompts, six bands. Found by an experiment aimed at question 2.)*
 
-If that survives more samples it is the interesting result on this page, because it is
-**non-monotonic** and the naive model of temperature does not predict it. Three samples per
-band is far too few to believe it. It is cheap to run properly.
+**How much prior is visible changes what gets continued.** One position, 40 bytes of prefix
+against 404. With the tail only, the model invents a context — significance testing,
+cosmology. With the whole note it continues the note's own argument, one continuation picking
+up its *first / second* structure.
+*(playbook 3; two points, n=2 each, one prompt. Two points is not a curve.)*
 
-**3. Framing.** One position, 40 bytes of prefix visible versus 404. With the tail only, the
-model invents a context for *"the first thing worth saying about the results is"* —
-significance testing, cosmology. With the whole note it continues the note's own argument,
-one continuation picking up its *first / second* structure. Same position, same temperature,
-different basis.
+#### The null prompt is not a baseline
 
-**4. Counterfactual propagation.** At temperature 0.9 the sampled token is absent from its
-own top-3 **about a third of the time**. In the demo, token 2 sampled `' lying'` at −3.90
-while `' sitting'` sat at −2.13 — and rank 1 was `' ______'`, the model holding a
-fill-in-the-blank exercise open as a live possibility three tokens in. Branching to a
-counterfactual costs no generation; only finding out where it leads does.
+Worth writing down because it was believed for a while and is wrong. Generating from an empty
+prompt feels like the privileged view of the prior — the model unprompted, saying what it
+would say. It isn't. It is one more conditioning, and a strange one: the region of the
+distribution reachable from no context at all is narrow and unrepresentative, not neutral.
 
-**5. Retransmission.** Eight steps, each seeing only 120 bytes of what came before. The
-seed instruction is out of view within two steps. **The content washed out; the genre did
-not** — by step 7 the text was numbering its own advice in the same instructional register it
-had drifted into by step 1.
+The prior is whatever it is, and it is not directly observable. Every prompt is a window onto
+some part of it, the sliding window is the instrument for moving that window around, and no
+position of the window is the true one. So framing is not distortion away from a baseline,
+because there is no baseline to be distorted away from. It is the only access there is.
 
-### The one that surprised me
+Which makes the instrument more interesting rather than less, and puts the burden somewhere
+specific: on choosing windows whose bias is legible, and on saying what it is.
 
-Put the sibling-divergence table beside playbook 1 and they appear to contradict each other.
+### 4. Survival under retransmission — what persists?
 
-- **Token level:** the common prefix of eight siblings is *zero*, and at 0.9 they are fully
-  distinct by depth 3.
-- **Genre level:** seven of eight arrive at the same place — an arithmetic word problem —
-  having shared no tokens at all.
+**The content washes out; the genre does not.** Eight steps, each seeing only 120 bytes of
+what came before. The seed instruction is out of view within two steps, and by step 7 the text
+was numbering its own advice in the same instructional register it had drifted into by step 1.
+*(playbook 5; one chain of 8, one seed. Consistent with question 1 and equally unmeasured.)*
 
-They do not contradict. They say the attractor **is not in the token sequence**. Eight
-continuations that agree on nothing lexically still agree on what kind of text they are.
-Whatever is being pulled toward is at the level of register, form, corpus region — not
-surface.
+### 5. At what level does convergence live?
 
-That reframes question 1. "Where does the prior go" cannot be answered by comparing token
-sequences, which is precisely what the one quantitative read available measures. **The
-cheapest measurement and the thing worth measuring are not the same thing**, and noticing
-that is worth more than either.
+Emerged from the runs rather than from the framing, and it is the question the other four keep
+turning into. Question 1's answer says genre, not tokens. Question 2's says the lexical
+measure has real dynamic range but at a level that may not be the interesting one. Question
+3's says the prompt sets the envelope — and "envelope" is doing unexamined work in that
+sentence.
 
-It also sharpens what an embedding would be *for* — see `BEYOND-MVP.md`. Distance between
-sibling continuations is the natural handle on genre-level convergence, where token overlap
-is the handle on surface convergence, and the gap between the two is the finding.
-
-### About the apparatus
-
-Facts established while building, all recorded in `FORMAT.md` under "Settled by measurement",
-listed here because they constrain what is measurable:
-
-- **No hosted provider returns logprobs on a raw continuation.** Chat endpoints have
-  logprobs and apply a template; completions endpoints give raw continuation and no provider
-  returns logprobs there, including ones whose `/models/{id}/endpoints` claim otherwise. Local
-  serving is not a preference here, it is the only option.
-- **The sampled token is often not rank 0** — about a third of the time at 0.9. Tokens and
-  counterfactuals are independent records for this reason.
-- **A token can be a fragment of a character.** Qwen2.5 tokenises `🜁` into three tokens,
-  none valid UTF-8 alone.
-- **`<|endoftext|>` is an ordinary token in the distribution.** The demo caught it sampled at
-  rank 0 with two ordinary words ranked below it, producing a span of zero bytes terminating
-  as `eos`. Nothing swallows it.
-- **A stop string off a token boundary silently loses bytes**, so stop strings should be kept
-  to plausible token sequences until the token-replay path exists.
+Nothing here answers it yet. It is what an embedding would be for.
 
 ---
 
@@ -153,17 +146,17 @@ listed here because they constrain what is measurable:
 
 Roughly in order of what would sharpen the most per unit of GPU time.
 
-1. **The temperature non-monotonicity, properly.** Playbook 2 at n=20 per band, across 5–6
-   bands from 0.1 to 1.5, on three different prompts. If the frame-lock at both extremes is
-   real it is the most interesting thing here; if it is three-sample noise, that is worth
-   knowing in an hour rather than believing for a month.
+1. **The prompt effect, which is bigger than the one that was being measured.** Many prompts
+   at two or three bands, rather than many bands — the axis worth sampling densely is the one
+   that turned out to move things. Pick prompts along something articulable (how constrained
+   the continuation is, how much of a genre the opening names) so the result is a statement
+   rather than a scatter. That choice is the hard part and wants its own pre-registration.
 2. **Attractor strength as a number.** Playbook 1 across many prompts at fixed conditions.
-   What fraction escape? Does the escape rate move with temperature, and does it move the
-   same way the frame-lock does?
+   What fraction escape? Does the escape rate move with temperature?
 3. **Framing as a sweep, not two points.** `prompt_length` over a range rather than 40 versus
    404, looking for whether character changes gradually or has a threshold.
 4. **Retransmission, long.** Forty steps rather than eight, with a fixed window. When does
-   seed content die, and does the register stabilise or keep drifting? This is the cheapest
+   seed content die, and does the register stabilise or keep drifting? The cheapest
    long-running experiment available.
 5. **Single-token stepping as frequency measurement.** At length 1, N spans over a handful of
    distinct tokens: the multiplicity *is* an empirical frequency, to be set against the
@@ -171,20 +164,62 @@ Roughly in order of what would sharpen the most per unit of GPU time.
 
 ---
 
+## The experiments
+
+| | what | verdict |
+| --- | --- | --- |
+| [001](experiments/001-temperature.md) | Temperature across three prompts, `n=20`, six bands | P1 fails — no U. Turned up the prompt effect instead. |
+
+Each file holds a pre-registration written before the run and results written after, in two
+commits, so `git log --follow` over one file shows whether the registration was edited once
+the numbers were in. That property starts at 002: 001's file begins with a move, since it was
+written when this was one document.
+
+The five playbooks and the original sibling-divergence table are **not** in here. They predate
+pre-registration, and giving them experiment files would imply a rigour they did not have.
+Their record is `PLAYBOOKS.md` and their conclusions are tagged as impressions above.
+
+---
+
 ## What the instrument cannot do yet
 
-Tool gaps that actually block the above, as opposed to conveniences.
+Tool gaps that block the above, as opposed to conveniences. None needs a format change, which
+is the point of the format — they are reads and CLI surface, and each should be built when an
+experiment is waiting on it, not before.
 
-- **Nothing quantitative exists.** Every finding on this page was read by eye off `show`.
-  The sibling-divergence profile is the first real read and needs no format support.
-- **No export.** Getting a tree into anything else for analysis means reading the sqlite
-  directly. Fine for now; a blocker the moment there is a statistic worth plotting.
-- **No batch filtering.** `show` renders everything; a sweep of six temperature bands would
-  be unreadable. `batches` is per-call and there is nothing between "one call" and "the whole
-  tree".
-- **`gen` moves the cursor** to the span it made, so repeated sampling at one position means
-  naming the position each time. Right for walking forward, wrong for sampling in place, and
-  worth a flag rather than a change of default.
+- **No genre-level measure.** Every finding under question 1 was read by eye, and `lock(k)` is
+  explicitly the wrong level for it. This is the gap that matters most and the only one that
+  needs something the project does not have — see embeddings in `BEYOND-MVP.md`.
+- **No export.** Getting a tree into anything else means reading the sqlite directly. Fine for
+  now; a blocker the moment there is a statistic worth plotting.
 
-None of these needs a format change, which is the point of the format. They are reads and CLI
-surface, and each should be built when an experiment is actually waiting on it — not before.
+Closed, both because 001 needed them: `gen --stay` samples repeatedly at one position without
+naming it each time, and `show <position> --depth n` plus `batches --params <key>` make a sweep
+readable. Building the second cost an off-by-one in *both* directions, because the display
+tree splices zero-width nodes and a node that prints nothing must neither occupy a level nor
+be one the cap can cut below — invisible to ordinary use, since every tree the playbooks build
+has a single root.
+
+## Constraints on what is measurable
+
+Facts about the apparatus, kept here only as consequences. The facts themselves live where
+they rot at the right rate: format in `FORMAT.md` under *Settled by measurement*, inference
+and llama-server in `CLAUDE.md` under *Inference*.
+
+- **Local serving is the only option**, not a preference — no hosted provider returns logprobs
+  on a raw continuation.
+- **Tokens and counterfactuals are independent records.** The sampled token is absent from its
+  own top-3 about a third of the time at 0.9, so a counterfactual list is not a ranking with
+  the winner marked.
+- **`<|endoftext|>` is an ordinary token in the distribution.** The demo caught it sampled at
+  rank 0 with two ordinary words ranked below it, producing a span of zero bytes terminating
+  as `eos`. Nothing swallows it, and an empty stop list generates straight through it.
+- **A token can be a fragment of a character**, and llama-server regroups its per-token records
+  onto character boundaries. So a merged row carries no id and no logprob, and any per-token
+  statistic is over *entries* rather than model tokens wherever multi-token characters appear.
+  Measured at zero on English prompts and everywhere on astral-plane ones.
+- **Stop strings off a token boundary lose bytes silently**, so keep them to plausible token
+  sequences until the token-replay path exists.
+- **`cache_prompt` is off**, at the cost of reprocessing every prompt, because a warm cache
+  changes what a fixed seed samples. Conditions that only reproduce from the right cache state
+  are not conditions.

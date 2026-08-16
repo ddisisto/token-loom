@@ -19,7 +19,8 @@ use are first-class, and anything that only works by clicking is half-built.
 | | |
 | --- | --- |
 | [PLAYBOOKS.md](PLAYBOOKS.md) | **start here** — five ways of using it, worked end to end against a real model |
-| [RESEARCH.md](RESEARCH.md) | the questions, what has been run, what came back, and what to run next |
+| [RESEARCH.md](RESEARCH.md) | the questions, what is currently believed about each, and what to run next |
+| [experiments/](experiments/) | the record — one file per experiment, registered before the run and answered after |
 | [ROADMAP.md](ROADMAP.md) | the build path — where the interface is going, and what is out of scope |
 | [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
 | [BEYOND-MVP.md](BEYOND-MVP.md) | wants that reach past the MVP, and the constraints they impose now |

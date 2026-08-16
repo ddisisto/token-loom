@@ -96,11 +96,16 @@ parameter sets, one comparison.
     python loom.py -d data/demo gen s9 --temp 0.8 --length 28 -n 3
     python loom.py -d data/demo gen s9 --temp 1.3 --length 28 -n 3
 
-**The position is named explicitly, and has to be.** `gen` leaves the cursor at the tip of
-the first span it made, so a second bare `gen` would continue *from that continuation*
-rather than sample the same point again — which is the right default for walking forward
-(playbook 5) and the wrong one for sampling in place. `s9` names the tip of the prompt span,
-so all three batches hang off one position.
+**The position is named explicitly here.** `gen` leaves the cursor at the tip of the first
+span it made, so a second bare `gen` would continue *from that continuation* rather than
+sample the same point again — which is the right default for walking forward (playbook 5)
+and the wrong one for sampling in place. `s9` names the tip of the prompt span, so all three
+batches hang off one position.
+
+`--stay` is the same move without the repetition: it leaves the cursor at the generation
+point, so `cursor s9` once and then `gen --stay` as many times as the sweep needs. Three
+calls is short enough to name the position each time; twenty is not, and a sweep that names
+it wrong once produces a chain rather than a batch and does not look wrong afterwards.
 
 | temp | what the three continuations did |
 | --- | --- |
@@ -283,6 +288,8 @@ model chose to stop* — and it sits in the tree beside the seven steps that did
 | where that other token led | `branch <span> <idx> 0`, then `gen` |
 | whether anything survives iteration | `gen` from the tip repeatedly, short `--prompt-length` |
 | what conditions produced any of it | `params`, and `batches` for one call |
+| many samples at one point | `cursor <pos>` once, then `gen --stay` |
+| any of it, once the tree is large | `show <pos> --depth n`, `batches --params <key>` |
 
 Everything above is `loom.py`, which is the **reference client** — the floor for what the
 Phase 2 API has to do, not a scratch tool that precedes it. If a move is worth making here it

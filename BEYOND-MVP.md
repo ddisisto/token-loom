@@ -47,6 +47,28 @@ The format-level halves of these are already in Phase 1: the stop list interns w
 other parameters, termination reason distinguishes a stop token from a length limit, and
 every span carries its batch id. What defers is interface.
 
+### The prompt cache, and getting the speed back
+
+`cache_prompt` is **off**, and the cost is real: a batch of twenty continuations from one
+position reprocesses the same prompt twenty times instead of once. It was on until a
+recorded span turned out not to reproduce from what it carries — a full cache hit evaluates
+no prompt tokens, and that changes the arithmetic enough to change what a fixed seed samples.
+Warm reproduced the stored sequence exactly; cold and cache-off both diverged from it at
+index 16. Off is the setting that matches the stated intent, so off is where it stays for now.
+
+Two ways to have both, neither worth building yet:
+
+- **Record it.** Add the cache state to the interned parameters, so a span says which regime
+  produced it. Honest, and it is a format change for a performance feature — the wrong order
+  to do things in, and the reason it is here rather than in `FORMAT.md`.
+- **Make the batch the reproducible unit rather than the span.** A batch is *n* sequential
+  calls on one prompt, so replaying it from its start restores its own cache trajectory. This
+  costs nothing and is arguably what the batch id was always for. It needs verifying before
+  it can be claimed, and the claim is weaker: individual spans stop being independently
+  reproducible, which is a real loss for counterfactual branching.
+
+Worth reaching for when a sweep is slow enough to care. Nothing currently is.
+
 ### Streaming
 
 The only item that needs generation to stop blocking, and the reason Phase 1 carries a
@@ -155,10 +177,20 @@ matters here is the two things they settled.
 **Sharing is 2% at the working temperature**, rising to 13% only at temperatures the
 instrument is not mainly used at. That is not worth a structural change.
 
+> **These numbers reach further than their evidence.** They come from eight siblings on one
+> prompt at 0.3, 0.9 and 1.2 — and 0.3 is the lowest band measured. Experiment 001 later found
+> fifteen byte-identical duplicates in twenty siblings at 0.1, where the sharing arithmetic is
+> completely different. The conclusion is probably still right, because 0.1 is not a regime
+> this project works in, but *probably* is the honest word and it was not the word used. Left
+> in place rather than cut: they are accurate at the conditions they were taken at, and the
+> record of what was actually measured is worth more than a tidier paragraph. The argument
+> below does not depend on them.
+
 **And there is no single branch point to move to.** The common prefix of all eight siblings
-was zero at every temperature. What exists is a *trie among the siblings*, nested and plural,
-so even the display question is "render the sibling sub-trie" rather than "shift the fork
-chip down". The framing that motivated merging was wrong about the shape.
+was zero at every temperature *measured* — see the caveat above; at 0.1 it is not. What exists
+is a *trie among the siblings*, nested and plural, so even the display question is "render the
+sibling sub-trie" rather than "shift the fork chip down". The framing that motivated merging
+was wrong about the shape, and that is the part of this section that carries the argument.
 
 **Single-token stepping is where this gets sharp.** At length 1, prefix-merging degenerates
 into counting: N spans over a handful of distinct tokens. The multiplicity *is* the
@@ -181,8 +213,11 @@ siblings over a shared prefix ever looks worthwhile, reaching it is a computatio
 already held, not a recovery of data thrown away — and it stays a read, because the spans
 underneath it are the events and cannot be collapsed without losing them.
 
-That read is wanted, and `RESEARCH.md` argues it is the most valuable unbuilt thing in the
-project. It is listed here only to record that it needs nothing from this file.
+That read is **built** — `divergence` in `core/ops.py`, `loom.py diverge` at the command line
+— and it needed nothing from this file, which is what it was listed here to record. It was
+the most valuable unbuilt thing in the project until experiment 001 gave it something to
+measure; what it measures is surface convergence, and the genre-level read that would answer
+question 1 is still unbuilt and still wants embeddings.
 
 ## Token replay instead of re-tokenisation
 

@@ -16,9 +16,9 @@ replaces.
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
 replaced rather than extended. Its companions: `FORMAT.md` is the on-disk format and the
 reasoning behind it, meant to outlive the phases; `BEYOND-MVP.md` holds the wants that reach
-past the MVP and the constraints they impose now; `RESEARCH.md` and `PLAYBOOKS.md` belong to
-the other thread, below. This file is for things that are true about the code and easy to get
-wrong, and it is shared by both.
+past the MVP and the constraints they impose now; `RESEARCH.md`, `experiments/` and
+`PLAYBOOKS.md` belong to the other thread, below. This file is for things that are true about
+the code and easy to get wrong, and it is shared by both.
 
 ## Two threads, one substrate
 
@@ -27,8 +27,16 @@ The work has split in two, and the split is worth understanding before picking e
 - **The build.** An API and a front end, rebuilt against the core. `ROADMAP.md`, Phases 2
   and 3, with `BEYOND-MVP.md` behind it. This is the MVP path and it has an end state.
 - **The research.** Using the instrument that Phase 1 finished — attractors, temperature,
-  framing, retransmission. `RESEARCH.md` is its agenda and notebook; `PLAYBOOKS.md` is how
-  the moves are made. It has no end state, and its instrument already works.
+  framing, retransmission. `RESEARCH.md` is the landing page — the questions, what is believed
+  about each with its evidence attached, and what to run next; `experiments/` is the record,
+  one file per experiment; `PLAYBOOKS.md` is how the moves are made. It has no end state, and
+  its instrument already works.
+
+  **An experiment file is written in two commits and not tidied between them** — the
+  pre-registration before the run, the results after — so `git log --follow` over one file
+  shows whether the predictions moved once the numbers were in. That is the whole of what
+  pre-registration buys, and editing an experiment file after its results land spends it.
+  Corrections are appended, never merged in.
 
 **Both are consumers of one substrate.** `core/` is the instrument; `loom.py` is one client
 and the API is the next. That is why this file is not split: every fact in it — bytes as the
@@ -42,9 +50,12 @@ Three things follow:
   the API must do; if something is missing, it is usually missing from both.
 - **A branch each.** The threads share `core/` and `loom.py` and will otherwise collide —
   the research thread wants small CLI additions, the build thread retires `inference.py`,
-  `models.py` and `params.py` around it.
-- **Findings go in `RESEARCH.md`, facts about the code go here.** A measurement of what a
-  model does is not a note about the codebase, and the two rot at completely different rates.
+  `models.py` and `params.py` around it. The research thread lives on `research`; `main` stays
+  the trunk and the build thread's home. Merge `main` into `research` freely, and `research`
+  back into `main` when something lands that both threads want — a CLI addition, a doc change.
+- **Findings go in `RESEARCH.md` (or `experiments/`), facts about the code go here.** A
+  measurement of what a model does is not a note about the codebase, and the two rot at
+  completely different rates.
 
 **Phase 1 has landed.** The token core is built, tested and usable from the command line,
 and the on-disk format is `token-loom/1`. It settled what a position looks like on the wire,
@@ -100,6 +111,25 @@ things measured there that are not obvious:
 - **Rank 0 is not always the sampled token.** At temperature 0.9 the sampled token is absent
   from its own top-3 roughly a third of the time, so `tokens` and `counterfactuals` are
   independent records rather than one list with a marked entry.
+- **`completion_probabilities` is not the sampled sequence.** It is that sequence regrouped
+  onto character boundaries: the server accumulates generated text and emits a record only
+  once the accumulation is valid UTF-8, so a character split across several tokens yields
+  *one* entry carrying the whole group's bytes but the **last fragment's** id, logprob and
+  alternatives. `tokens` — from `return_tokens` — is the real sequence, and `_align` in
+  `core/llama.py` walks the two together because an entry's id is its group's final token.
+  A merged row records `token_id` and `logprob` as `None` and drops its counterfactuals;
+  anything else asserts a correspondence that does not hold. Zero merging measured on English
+  prompts, all of it on astral-plane characters and rare CJK. Consequences worth keeping in
+  mind: a **sampled** span can therefore never end mid-character, so `FORMAT.md`'s `{"b64": …}`
+  serialisation is unreachable from generation; and `Token.idx` is an entry index, not a model
+  token index, wherever a merge happened.
+- **`cache_prompt` is off, deliberately, and it costs prompt processing on every call.** A
+  full cache hit evaluates no prompt tokens, and that changes the arithmetic enough to change
+  what a fixed seed samples — the same slice, seed and parameters reproduce a *different*
+  continuation warm than cold. Measured on a recorded span: warm reproduced its 20 stored
+  entries exactly, cold and cache-off both gave 22 and diverged at index 16. Conditions that
+  only reproduce from the right cache state are not conditions, and the recorded conditions
+  are the whole product. `BEYOND-MVP.md` holds the thread for getting the speed back.
 
 It is the only setup that gives **raw continuation and per-token logprobs at once**, and
 that pairing is the whole point: a continuation of the prior is a different object than a
@@ -236,23 +266,28 @@ What has paid off here, and what it cost to skip.
 - Multi-line `python -c` gets blocked by the command classifier — write a script into the
   scratchpad and run it. The shell is zsh, so quote globs (`--include='*.py'`) or they are
   eaten before the command sees them.
-- Recurring commands go in `scripts/` (gitignored via a `[Ss]cripts` rule, so it holds
-  local-only tooling) so they can be pre-authorised once. `scripts/web.sh` runs the web
+- Recurring commands go in `scripts/`, so they can be pre-authorised once. It is **committed**
+  — it used to be swallowed by a `[Ss]cripts` rule inherited from a virtualenv gitignore
+  template, which was an accident rather than a decision. `scripts/web.sh` runs the web
   backend on 8080; `scripts/llama-server.sh` serves the local base model on 8081 (env
   overrides `REPO`/`FILE`/`ALIAS`/`PORT`/`CTX`); `scripts/loom.sh` is the command-line
-  instrument (`LOOM_TREE` picks the tree directory, default `data/tree`);
-  `scripts/screenshot.sh` grabs and crops the browser window, overwriting its output in place
-  so an open editor tab refreshes instead of closing — run it bare, with no arguments.
-  `scripts/run.sh` launched the tkinter app and is now dead.
+  instrument (`LOOM_TREE` picks the tree directory, default `data/tree`). `run.sh` (the
+  tkinter app) and `screenshot.sh` (the browser window) are gone with the front ends they
+  drove — both are in the archive below.
 - Models come from the Hugging Face CLI, installed standalone via
   `uv tool install huggingface_hub` so it stays out of the project venv. Use `hf download -q`
   when capturing the path — without `-q` it prints `path=/...` and the prefix ends up in the
   filename.
-- `data/local.json` is not disposable, and belongs to the **old** format — Phase 1 makes no
-  attempt to migrate it, by decision. `data/tree/` is the new stack's default and is
-  disposable scratch. **`data/demo/` is neither** — it is committed, `PLAYBOOKS.md` quotes it
-  line by line, and `demo.py --force` is the only thing that should rewrite it. `data/*` is
-  gitignored with an explicit exception for it.
+- **`data/` holds exactly one committed thing: `data/demo/`** — `PLAYBOOKS.md` quotes it line
+  by line, and `demo.py --force` is the only thing that should rewrite it. `data/*` is
+  gitignored with an explicit exception for it. Everything else there is disposable scratch;
+  `data/tree/` is `loom.py`'s default.
+- **The archive is `../archive/`, a sibling of the repo and outside it.** It holds the
+  old-format trees (`local.json`, `loom_demo.json` and the rest), `data/backups/`, the dead
+  `run.sh`/`screenshot.sh`, and upstream's README screenshots. Nothing there is needed to run
+  anything; it is kept because `local.json` in particular is not reproducible. It is
+  deliberately not a path inside the repo, so no ignore rule has to defend it. Git history
+  still has every file that was once tracked — untracking is not deletion.
 - Use `Read` on files rather than `cat`.
 - Fix root causes. A workaround that leaves the original fault in place is not a fix.
 
@@ -269,11 +304,23 @@ measurement" and both with the same root:
   raises rather than guessing.
 - **A stop string that does not land on a token boundary** silently loses the bytes the
   model emitted before the match, because llama-server drops trailing entries by the stop
-  string's token count and a span's text is what its token rows spell.
+  string's token count and a span's text is what its token rows spell. The alignment in
+  `_read` deliberately does *not* second-guess this: a tail is expected under
+  `stop_type: word` and undecidable from the response, so only a tail under `limit` or `eos`
+  raises `Incomplete`.
 
 Both are fixed properly by sending and matching on **token ids** rather than text — the
 token-replay path in `BEYOND-MVP.md`, which needs mixed-mode assembly since human spans have
-no tokens. Neither is worth pulling that forward for.
+no tokens. The UTF-8 regrouping above is a third case with the same root — the server
+accounts in text, not tokens — and the first that silently corrupted records rather than
+merely refusing. Still not worth pulling token replay forward for, but that ledger now has
+three entries.
+
+One path is now known to be unreachable rather than merely untested: **a sampled span cannot
+end mid-character**, because llama-server emits bytes only once they decode. So
+`FORMAT.md`'s `{"b64": …}` span serialisation is reachable from authoring and branching but
+never from generation — which is exactly the shape of the `CONTEXT` bug, and wants a test
+that reaches it on purpose rather than an assumption that it works.
 
 The naming thread is closed: **token loom**. The repo rename and package identity land in
 Phase 0, before `model.py` is rewritten. Note the name collides with crypto in search
