@@ -16,9 +16,9 @@ replaces.
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
 replaced rather than extended. Its companions: `FORMAT.md` is the on-disk format and the
 reasoning behind it, meant to outlive the phases; `BEYOND-MVP.md` holds the wants that reach
-past the MVP and the constraints they impose now; `RESEARCH.md` and `PLAYBOOKS.md` belong to
-the other thread, below. This file is for things that are true about the code and easy to get
-wrong, and it is shared by both.
+past the MVP and the constraints they impose now; `RESEARCH.md`, `experiments/` and
+`PLAYBOOKS.md` belong to the other thread, below. This file is for things that are true about
+the code and easy to get wrong, and it is shared by both.
 
 ## Two threads, one substrate
 
@@ -27,8 +27,16 @@ The work has split in two, and the split is worth understanding before picking e
 - **The build.** An API and a front end, rebuilt against the core. `ROADMAP.md`, Phases 2
   and 3, with `BEYOND-MVP.md` behind it. This is the MVP path and it has an end state.
 - **The research.** Using the instrument that Phase 1 finished — attractors, temperature,
-  framing, retransmission. `RESEARCH.md` is its agenda and notebook; `PLAYBOOKS.md` is how
-  the moves are made. It has no end state, and its instrument already works.
+  framing, retransmission. `RESEARCH.md` is the landing page — the questions, what is believed
+  about each with its evidence attached, and what to run next; `experiments/` is the record,
+  one file per experiment; `PLAYBOOKS.md` is how the moves are made. It has no end state, and
+  its instrument already works.
+
+  **An experiment file is written in two commits and not tidied between them** — the
+  pre-registration before the run, the results after — so `git log --follow` over one file
+  shows whether the predictions moved once the numbers were in. That is the whole of what
+  pre-registration buys, and editing an experiment file after its results land spends it.
+  Corrections are appended, never merged in.
 
 **Both are consumers of one substrate.** `core/` is the instrument; `loom.py` is one client
 and the API is the next. That is why this file is not split: every fact in it — bytes as the
@@ -45,8 +53,9 @@ Three things follow:
   `models.py` and `params.py` around it. The research thread lives on `research`; `main` stays
   the trunk and the build thread's home. Merge `main` into `research` freely, and `research`
   back into `main` when something lands that both threads want — a CLI addition, a doc change.
-- **Findings go in `RESEARCH.md`, facts about the code go here.** A measurement of what a
-  model does is not a note about the codebase, and the two rot at completely different rates.
+- **Findings go in `RESEARCH.md` (or `experiments/`), facts about the code go here.** A
+  measurement of what a model does is not a note about the codebase, and the two rot at
+  completely different rates.
 
 **Phase 1 has landed.** The token core is built, tested and usable from the command line,
 and the on-disk format is `token-loom/1`. It settled what a position looks like on the wire,
