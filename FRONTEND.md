@@ -57,6 +57,30 @@ Two things follow, both consequences rather than settings:
 - The prompt only ever grows by appending, so a prefix-matching cache hits completely and
   keeps hitting.
 
+### Chunk size, the one dial
+
+How much text arrives per choice is the reader's, and it is the only generation parameter the
+surface exposes. Thirty-two tokens to start.
+
+It is exposed on a distinction rather than as a carve-out. Temperature, top-p and top-n change
+what the model does; chunk size changes how much lands between one choice and the next. It is
+the one parameter whose effect is felt as pacing, and pacing is a reader's business. That it
+is nonetheless `n_predict`, interned with the rest and recorded on every span, is why the
+exception is written down rather than assumed.
+
+**It sets how finely the reader steers, not how long the session runs.** The wall below is a
+count of path tokens, so the text a session holds is the same either way: thirty-two-token
+chunks give somewhere near five hundred choices across it, eight-token chunks two thousand
+across the same text. Small chunks are a reader who wants the tiller, large ones a reader who
+wants to read. Neither buys more session.
+
+It is also the opposite end of the call from the slice, and the two are easy to run together:
+
+| | direction | unit | value |
+| --- | --- | --- | --- |
+| `prompt_length` | what goes in | bytes of path | fixed above any path the context can hold |
+| `length` | what comes out | tokens generated | the dial, thirty-two to start |
+
 ### The end of a session
 
 A shared context has a size, and the path outgrows it. At the sixteen-thousand-token context
@@ -155,8 +179,8 @@ tuning decision rather than a structural one.
 
 **Parameters are chosen once and stay chosen.** `GET /api/settings` at startup gives the set
 the server would fill in; the client holds it for the session and sends it whole with every
-request, which is what keeps each span's record complete. Nothing in the surface names a
-parameter or offers to change one.
+request, which is what keeps each span's record complete. Chunk size aside, nothing in the
+surface names a parameter or offers to change one.
 
 **Waiting is expected and is not designed around.** Generation blocks for as long as it
 blocks, and latency is not this document's problem. Two structural properties make it
@@ -183,7 +207,9 @@ Numbered so that a wireframe can be checked against them one at a time.
 3. **The model's context is the active path, whole.** What the reader can scroll through is
    what the model was given. The scrollable extent, not the visible region — the window onto
    the page is the reader's business and no part of the claim.
-4. **Parameters are chosen at startup and stay out of the surface.**
+4. **Parameters are chosen at startup and stay out of the surface, with one exception.**
+   Chunk size is the reader's, because its effect is pacing rather than behaviour. Everything
+   else is a condition of the session and is named nowhere in it.
 5. **Movement whose answer already exists resolves immediately.** Only movement past the tip
    waits on the model.
 6. **The viewport is the reader's.** It moves when the reader moves it. Text that arrives

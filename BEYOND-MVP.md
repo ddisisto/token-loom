@@ -77,9 +77,9 @@ immediately on top of it, roughly in the order they would arrive:
   research trees and reading trees are separated by living in different directories, which is
   the granularity that matters.
 - **Parameter control**, which is the generation-control section below seen from the reading
-  surface. Its absence from the MVP is the point rather than a gap: the surface names no
-  parameter and offers to change none, so temperature stops being a dial and becomes an
-  invisible condition of the session.
+  surface. Its near-absence from the MVP is the point rather than a gap: the surface exposes
+  chunk size, whose effect is pacing, and nothing else — so temperature and the rest stop
+  being dials and become invisible conditions of the session.
 - **Rendering stop tokens as section breaks**, with the grouping toggles beside it —
   sentence, paragraph, bullet, or consecutive stretches of the same — for reading a batch as
   a group rather than following one path through it. Pure client work that costs the server
