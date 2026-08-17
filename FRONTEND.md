@@ -30,6 +30,46 @@ The appeal is that the friction is nearly all gone. Building an intuition for ho
 branches under itself currently costs a working knowledge of positions, spans, temperature
 and top-N. Here it costs scrolling.
 
+### One context, shared
+
+The model's context is the active path, whole and from the root — not a window onto it, and
+not a length chosen against it. What the reader can scroll through is what the model was
+given, and the two are one object.
+
+That is a claim about attention rather than about buffers. A reader building an intuition for
+how a model branches is trying to relate what came out to what went in, and every byte of
+difference between the text on the screen and the text in the prompt is a place where that
+relation has to be taken on trust instead of read. Holding them identical is what makes the
+surface an instrument: the prior is not described anywhere, it is the thing being scrolled.
+
+**The symmetry holds behind the tip and breaks at it**, and the break is where the reader's
+work is. Each alternative on offer was generated from the shared prefix and from nothing
+else — no continuation saw its sibling. So at the frontier the reader holds more than any
+model did, which is what makes choosing among them a contribution.
+
+Two things follow, both consequences rather than settings:
+
+- `prompt_length` is fixed at a value larger than any path can reach, so the slice always
+  resolves to the root and every span records the whole path as its context. It is sent as
+  one fixed number and never as the path's measured length, which would mint a fresh interned
+  parameter set on every single generation — the trap `FORMAT.md` names when it explains why
+  the slice *length* interns and the resolved start sits on the span.
+- The prompt only ever grows by appending, so a prefix-matching cache hits completely and
+  keeps hitting.
+
+### The end of a session
+
+A shared context has a size, and the path outgrows it. At the sixteen-thousand-token context
+the local server is set up with, that is somewhere near five hundred continuations of
+thirty-two tokens: after it, the prompt does not fit and `llama-server` refuses it outright.
+
+The core is deliberately unforgiving there. An over-long prompt raises `Truncated` and
+nothing is generated at all, because a span recording a slice the model never saw would be
+the one kind of lie immutable bytes exist to prevent. So the wall is real, and the surface's
+job is to be honest about approaching it. What to do when it arrives — slide the window,
+restart from a summary, branch to a fresh root — is deferred, and it is the only case that
+would want the slice to stop being the whole path.
+
 ## Vocabulary
 
 `FORMAT.md`'s terms keep their meanings: **span**, **position**, **run**, **batch**. Three
@@ -126,13 +166,11 @@ fork or asking a token what else it could have been never waits at all. And the 
 is on in the core, which makes reading forward its best case: each continuation extends a
 prompt the server processed moments ago.
 
-That second one has a limit worth predicting now and probing before it is relied on. The
-slice is the last `prompt_length` bytes ending at the tip, so while the whole path is shorter
-than that the prompt only grows and a prefix-matching cache hits completely. Once the path is
-longer, the window slides, the prompt's first token changes, and the hit is expected to
-collapse. At the default six thousand bytes that arrives somewhere around forty continuations
-of thirty-two tokens — early enough in a reading session to be felt. Whether it behaves that
-way is a measurement nobody has taken, and it is cheap to take.
+That second property does not decay, which it would if the slice were a window. Because it is
+the whole path, reading forward appends and hits completely every time. Branching backwards
+hits as well: a generation from an earlier position sends a prefix of what was just
+processed. Any two generations in the tree share their prompt back to their common ancestor,
+so a jump costs in proportion to how far it jumped, and the common case costs nothing.
 
 ## Constraints
 
@@ -142,41 +180,46 @@ Numbered so that a wireframe can be checked against them one at a time.
 
 1. **The seed is the only text the reader supplies.** One given span at the root, once.
 2. **Every generation is a consequence of a navigation act.** Movement is the trigger.
-3. **Parameters are chosen at startup and stay out of the surface.**
-4. **Movement whose answer already exists resolves immediately.** Only movement past the tip
+3. **The model's context is the active path, whole.** What the reader can scroll through is
+   what the model was given. The scrollable extent, not the visible region — the window onto
+   the page is the reader's business and no part of the claim.
+4. **Parameters are chosen at startup and stay out of the surface.**
+5. **Movement whose answer already exists resolves immediately.** Only movement past the tip
    waits on the model.
-5. **The viewport is the reader's.** It moves when the reader moves it. Text that arrives
+6. **The viewport is the reader's.** It moves when the reader moves it. Text that arrives
    lands where it belongs and waits to be scrolled to.
 
 ### From the substrate
 
-6. **Positions are the only durable handle, and the surface addresses in them throughout.**
+7. **Positions are the only durable handle, and the surface addresses in them throughout.**
    Runs are derived and renumber the moment a branch appears, so every piece of view state —
    which alternatives have been seen, where the reader was last, what is marked — keys off
    `(span, offset)`. So does the rendered text: a point in the prose resolves to a byte
    offset in a span, which is what keeps the finer grain reachable.
-7. **The client never diffs.** It issues every mutation, so it already knows what changed:
+8. **The client never diffs.** It issues every mutation, so it already knows what changed:
    the request says where, and the response's `created` names what appeared. The whole-tree
    response is the new source of truth and not the change description. Updates into the
    reading surface are therefore targeted by construction, and scroll stability follows from
    that rather than needing to be defended.
-8. **One writer, and generation holds it.** Every mutation serialises through the server's
+9. **One writer, and generation holds it.** Every mutation serialises through the server's
    lock, including the model call. The client owns one request queue and keeps speculative
    work from being enqueued where a request the reader is waiting on could land behind it.
-9. **A span in flight is a state to render.** Provenance is written before the model is
-   called, and a batch saves per continuation — so with two continuations, the first is
-   readable while the second is still being generated. Showing it then is honest, and it is
-   the same render path that later work would drive.
-10. **Reading works with no model server.** Every route except `GET /api/settings` answers
+10. **A span in flight is a state to render.** Provenance is written before the model is
+    called, and a batch saves per continuation — so with two continuations, the first is
+    readable while the second is still being generated. Showing it then is honest, and it is
+    the same render path that later work would drive.
+11. **Reading works with no model server.** Every route except `GET /api/settings` answers
     without one. Opening a tree and reading it through is a property of the format, and the
     surface keeps it.
+12. **The context wall is shown, not worked around.** A prompt that does not fit is refused
+    outright and generates nothing, so a session approaching it says so.
 
 ### From the deployment
 
-11. **One process.** The API serves the front end's files itself, on its own origin. One
+13. **One process.** The API serves the front end's files itself, on its own origin. One
     tree per process is what the server already promises, and the reading surface is its
     only writer.
-12. **No build step.** ES modules and custom elements, served as they are written. The
+14. **No build step.** ES modules and custom elements, served as they are written. The
     project's dependency floor is a thing worth keeping, and the front end has no problem
     that needs a toolchain to solve.
 
@@ -214,8 +257,12 @@ it without reaching the request or the validator.
 
 The order things arrive in after the MVP lands, most likely first:
 
+- **Reading past the context window.** The one case that wants the slice to stop being the
+  whole path, and with it the only reason to find out how a prefix-matching cache behaves
+  when the window slides.
 - **The slice viewport** — seeing what was in context for a span, and re-selecting the range
-  to generate again under a different framing.
+  to generate again under a different framing. It is the same idea as the symmetry above,
+  made adjustable: the shared object stops being the whole path and becomes a choice.
 - **Parameter control**, and with it sweeps and named batches.
 - **Bookmarks and tags**, anchored to positions.
 - **Sibling divergence** as a read the surface can show.
