@@ -1,0 +1,6218 @@
+{
+  "format": "token-loom/1.1",
+  "tree_id": "c2f2080f92894de8b451338d083e8e56",
+  "base_seed": 20260815,
+  "spans": {
+    "s0": {
+      "kind": "given",
+      "parent": null,
+      "text": "The lighthouse keeper wrote in his log:",
+      "created": "2026-08-15-20.40.24"
+    },
+    "s1": {
+      "kind": "given",
+      "parent": null,
+      "text": "There are three kinds of silence. The first is",
+      "created": "2026-08-15-20.40.24"
+    },
+    "s2": {
+      "kind": "given",
+      "parent": null,
+      "text": "She opened the door and found",
+      "created": "2026-08-15-20.40.24"
+    },
+    "s3": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120 degrees. At 10:",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260815,
+      "batch": "b0",
+      "index": 0,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s4": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:0",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260816,
+      "batch": "b0",
+      "index": 1,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s5": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120 degrees. At 10:",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260817,
+      "batch": "b0",
+      "index": 2,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s6": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260818,
+      "batch": "b0",
+      "index": 3,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s7": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260819,
+      "batch": "b0",
+      "index": 4,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s8": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260820,
+      "batch": "b0",
+      "index": 5,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s9": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120\u00b0 from the lighthouse. At",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260821,
+      "batch": "b0",
+      "index": 6,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s10": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260822,
+      "batch": "b0",
+      "index": 7,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s11": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260823,
+      "batch": "b0",
+      "index": 8,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s12": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120 degrees. At 10:",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260824,
+      "batch": "b0",
+      "index": 9,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s13": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260825,
+      "batch": "b0",
+      "index": 10,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s14": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:0",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260826,
+      "batch": "b0",
+      "index": 11,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s15": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120 degrees. At 10:",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260827,
+      "batch": "b0",
+      "index": 12,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s16": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260828,
+      "batch": "b0",
+      "index": 13,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s17": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260829,
+      "batch": "b0",
+      "index": 14,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s18": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260830,
+      "batch": "b0",
+      "index": 15,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s19": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:0",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260831,
+      "batch": "b0",
+      "index": 16,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s20": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260832,
+      "batch": "b0",
+      "index": 17,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s21": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260833,
+      "batch": "b0",
+      "index": 18,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s22": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.24",
+      "params": "p0",
+      "seed": 20260834,
+      "batch": "b0",
+      "index": 19,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s23": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260835,
+      "batch": "b1",
+      "index": 0,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s24": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles. At 12",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260836,
+      "batch": "b1",
+      "index": 1,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s25": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles due north of the l",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260837,
+      "batch": "b1",
+      "index": 2,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s26": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260838,
+      "batch": "b1",
+      "index": 3,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s27": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260839,
+      "batch": "b1",
+      "index": 4,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s28": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 o'clock in the morning, I lit the light; at 10 o'clock at night, I extinguished it",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260840,
+      "batch": "b1",
+      "index": 5,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s29": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120\u00b0 from the lighthouse. At",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260841,
+      "batch": "b1",
+      "index": 6,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s30": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120 degrees. At 10:",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260842,
+      "batch": "b1",
+      "index": 7,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s31": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles due north of the l",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260843,
+      "batch": "b1",
+      "index": 8,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s32": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260844,
+      "batch": "b1",
+      "index": 9,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s33": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles due north of the l",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260845,
+      "batch": "b1",
+      "index": 10,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s34": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260846,
+      "batch": "b1",
+      "index": 11,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s35": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:3",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260847,
+      "batch": "b1",
+      "index": 12,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s36": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260848,
+      "batch": "b1",
+      "index": 13,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s37": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I lit the lamp; at 6:00 PM, I extinguished it.\" How",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260849,
+      "batch": "b1",
+      "index": 14,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s38": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260850,
+      "batch": "b1",
+      "index": 15,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s39": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120\u00b0 from the lighthouse. At",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260851,
+      "batch": "b1",
+      "index": 16,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s40": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260852,
+      "batch": "b1",
+      "index": 17,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s41": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 30 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260853,
+      "batch": "b1",
+      "index": 18,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s42": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees. At 8:0",
+      "created": "2026-08-15-20.40.41",
+      "params": "p1",
+      "seed": 20260854,
+      "batch": "b1",
+      "index": 19,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s43": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of $d$ nautical miles due south of the l",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260855,
+      "batch": "b2",
+      "index": 0,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s44": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles due east of the l",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260856,
+      "batch": "b2",
+      "index": 1,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s45": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 12:00, a ship was sailing 40 km north of the lighthouse. After 3 hours,",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260857,
+      "batch": "b2",
+      "index": 2,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s46": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees from the lighthouse. At",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260858,
+      "batch": "b2",
+      "index": 3,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s47": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 37\u00b0 from the lighthouse; at ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260859,
+      "batch": "b2",
+      "index": 4,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s48": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 a.m. the shadow of the lighthouse was 10 meters long, and at 10 a.m.",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260860,
+      "batch": "b2",
+      "index": 5,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s49": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 5:00 AM, we sighted a ship at point A, and at 6:30 AM, we",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260861,
+      "batch": "b2",
+      "index": 6,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s50": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 8 o'clock, the hour hand and the minute hand of the clock formed an angle of 120 degrees. At",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260862,
+      "batch": "b2",
+      "index": 7,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s51": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, we saw a ship at a bearing of 15\u00b0 from the lighthouse. At ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260863,
+      "batch": "b2",
+      "index": 8,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s52": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles sailing southeast. At ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260864,
+      "batch": "b2",
+      "index": 9,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s53": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 9 o'clock, the lighthouse is at an angle of elevation of $30^{\\circ}$ from the ship.",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260865,
+      "batch": "b2",
+      "index": 10,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s54": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I lit the oil lamp; at 10:00 PM, I extinguished the",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260866,
+      "batch": "b2",
+      "index": 11,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s55": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45\u00b0 from the lighthouse. At ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260867,
+      "batch": "b2",
+      "index": 12,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s56": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a distance of 12 nautical miles in the direction of ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260868,
+      "batch": "b2",
+      "index": 13,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s57": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 PM, I observed a ship at a bearing of 45 degrees from the lighthouse. At ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260869,
+      "batch": "b2",
+      "index": 14,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s58": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees north of east from the lighthouse",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260870,
+      "batch": "b2",
+      "index": 15,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s59": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 12:00, I observed the boat 10 km away from the lighthouse, and at 12",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260871,
+      "batch": "b2",
+      "index": 16,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s60": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 125 degrees from the lighthouse. At",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260872,
+      "batch": "b2",
+      "index": 17,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s61": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 8 o'clock, I saw a ship. At 10 o'clock, I saw another ship.\" How many ships did",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260873,
+      "batch": "b2",
+      "index": 18,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s62": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 45 degrees from the lighthouse; at ",
+      "created": "2026-08-15-20.40.58",
+      "params": "p2",
+      "seed": 20260874,
+      "batch": "b2",
+      "index": 19,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s63": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM on May 16th, the weather forecast shows a 40% chance of fog;",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260875,
+      "batch": "b3",
+      "index": 0,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s64": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 o'clock in the evening, I noticed the ship at a distance of 3 nautical miles from the lighthouse and",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260876,
+      "batch": "b3",
+      "index": 1,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s65": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 AM, I noticed the ship. At 12 PM, the ship was exactly to the west of me. At",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260877,
+      "batch": "b3",
+      "index": 2,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s66": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 2:00, the light flashes. 45 seconds later, there is another flash. In 5 seconds,",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260878,
+      "batch": "b3",
+      "index": 3,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s67": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 o'clock, the first ship sailed north, and at 7 o'clock, the second ship sailed south.\" What did",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260879,
+      "batch": "b3",
+      "index": 4,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s68": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I saw the sun rising; at 18:00, the sun was about to",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260880,
+      "batch": "b3",
+      "index": 5,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s69": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 8 a.m. I raised the flagpole. An hour later, I lowered it to half its height. At 3",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260881,
+      "batch": "b3",
+      "index": 6,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s70": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a 30\u00b0 angle of elevation.\" At what time will he",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260882,
+      "batch": "b3",
+      "index": 7,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s71": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On December 11, 2003, the wind blew strongly all night, and the sea level rose. The sea",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260883,
+      "batch": "b3",
+      "index": 8,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s72": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 a.m., I sighted a ship at a bearing of 15\u00b0 east of south from the lighthouse.",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260884,
+      "batch": "b3",
+      "index": 9,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s73": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 23:00, the red light was on, and at 23:37, the green light was",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260885,
+      "batch": "b3",
+      "index": 10,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s74": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I sighted a ship at a bearing of $N32^\\circ E$. At ",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260886,
+      "batch": "b3",
+      "index": 11,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s75": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 AM, I observed a ship at a distance of 12 nautical miles south of the lighthouse, bearing ",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260887,
+      "batch": "b3",
+      "index": 12,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s76": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cThe weather is clear. The lighthouse is working. The fog horn is working. I am alone. I am well.\u201d What can",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260888,
+      "batch": "b3",
+      "index": 13,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s77": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed a ship at a bearing of 120 degrees from the lighthouse. At",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260889,
+      "batch": "b3",
+      "index": 14,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s78": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 o'clock, the light flashed once and every 7 seconds after that. At 7 o'clock, the light flashed",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260890,
+      "batch": "b3",
+      "index": 15,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s79": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On May 18, at 2:10 am, I lit the light; at 5:50 am,",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260891,
+      "batch": "b3",
+      "index": 16,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s80": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 10:00 AM, the sun was directly behind me, and at 4:00 PM, the sun",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260892,
+      "batch": "b3",
+      "index": 17,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s81": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On the evening of June 13, 1964, at 20:30, I observed a ship",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260893,
+      "batch": "b3",
+      "index": 18,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s82": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On June 1st, the wind changed from a south wind to a north wind. I noticed the change in the wind direction ",
+      "created": "2026-08-15-20.41.15",
+      "params": "p3",
+      "seed": 20260894,
+      "batch": "b3",
+      "index": 19,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s83": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 7 o'clock, the wind blew strongly and the waves rose high.\" The correct understanding of the meaning of this sentence is (",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260895,
+      "batch": "b4",
+      "index": 0,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s84": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 7 o'clock, I observed the ship for the first time. At 10 o'clock, the ship was exactly one",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260896,
+      "batch": "b4",
+      "index": 1,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s85": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cOn 7 August 1912, while the weather was good, the fog was particularly dense at dusk, and a ship",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260897,
+      "batch": "b4",
+      "index": 2,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s86": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 8 a.m., we hoisted the signal flag, and every hour on the hour we lowered it. On the 7",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260898,
+      "batch": "b4",
+      "index": 3,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s87": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 9:30 am, I spotted a yacht heading due west with a speed of 20 km/h. At ",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260899,
+      "batch": "b4",
+      "index": 4,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s88": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 12 o'clock I lit the light; the hour hand was between the numbers 7 and 8, and the minute",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260900,
+      "batch": "b4",
+      "index": 5,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s89": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cAt 8:20 AM I fired the noon signal gun. At 12:15 PM I sounded the fog horn",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260901,
+      "batch": "b4",
+      "index": 6,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s90": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 5:30 AM, the foghorn blew.\" However, the log also contains another entry that reads, \"At ",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260902,
+      "batch": "b4",
+      "index": 7,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s91": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 o'clock, the sea was calm. At 12 o'clock, there was a strong wind.\" Is this record",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260903,
+      "batch": "b4",
+      "index": 8,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s92": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cToday I saw a total of 9 ships at sea. In the morning, I saw 2 of them, and in the afternoon",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260904,
+      "batch": "b4",
+      "index": 9,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s93": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 12:00 noon, the water level was 925 centimeters.\" The lighthouse keeper forgot to write",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260905,
+      "batch": "b4",
+      "index": 10,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s94": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed the buoy on the ship at an angle of elevation of 30\u00b0. At",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260906,
+      "batch": "b4",
+      "index": 11,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s95": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 10:35, we saw a ship.\" In which direction was the ship? The lighthouse keeper saw the ship",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260907,
+      "batch": "b4",
+      "index": 12,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s96": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On July 1, the sun rose exactly in the east. On what day will it rise exactly in the west?\" To determine on",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260908,
+      "batch": "b4",
+      "index": 13,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s97": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 9 o'clock tonight, the sea was calm, and I noticed a ship passing by.\" The lighthouse keeper's assistant asked",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260909,
+      "batch": "b4",
+      "index": 14,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s98": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 9 o'clock tonight, the lighthouse was lit, and at midnight, it was extinguished. It was lit again at",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260910,
+      "batch": "b4",
+      "index": 15,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s99": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 o'clock in the morning, we sighted the lighthouse at a 120-degree angle from point A.",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260911,
+      "batch": "b4",
+      "index": 16,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s100": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM, I observed the buoy. At 12:00 PM, the buoy was in the",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260912,
+      "batch": "b4",
+      "index": 17,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s101": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cI saw 38 lamps from the tower. However, the lights were not evenly distributed among the ships. Most of the ships had",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260913,
+      "batch": "b4",
+      "index": 18,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s102": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 8:30, we saw a ship passing by.\" However, his log was forged. What time did the ship actually",
+      "created": "2026-08-15-20.41.31",
+      "params": "p4",
+      "seed": 20260914,
+      "batch": "b4",
+      "index": 19,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s103": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 5:00, I turned on the light in the tower twice. At 10:00, I turned",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260915,
+      "batch": "b5",
+      "index": 0,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s104": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 a.m. on a certain day, the depth of the water near the coast was -7 meters, at noon it",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260916,
+      "batch": "b5",
+      "index": 1,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s105": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On a certain night, I observed three ships at sea. The first ship fired a shot every 5 minutes, the second every ",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260917,
+      "batch": "b5",
+      "index": 2,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s106": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 2 a.m. today, I saw a ship that was 40 kilometers away.\" The lighthouse keeper's assistant asked",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260918,
+      "batch": "b5",
+      "index": 3,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s107": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 12 o'clock we observed a ship passing at a speed of $13$ nautical miles. The angle of elevation",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260919,
+      "batch": "b5",
+      "index": 4,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s108": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6 a.m., I observed a ship at an angle of elevation of $15^{\\circ}$. At 7",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260920,
+      "batch": "b5",
+      "index": 5,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s109": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 6:00 AM on June 1, I lit the oil lamp; at 6:00 PM, I",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260921,
+      "batch": "b5",
+      "index": 6,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s110": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cThe wind is shifting counterclockwise. There are signs that we may be entering the storm season. But the next day there was",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260922,
+      "batch": "b5",
+      "index": 7,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s111": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 3 o'clock, I saw the ship 'Blue Sky' leaving the port. At 6 o'clock, I saw it",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260923,
+      "batch": "b5",
+      "index": 8,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s112": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 9:00 am, I hoisted a flag; every 45 minutes, I lowered the flag to rest and",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260924,
+      "batch": "b5",
+      "index": 9,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s113": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"On the evening of the 1st of this month, there was an accident. We saw the ship on the 5th and",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260925,
+      "batch": "b5",
+      "index": 10,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s114": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cOn the night of July 4th, at 12:01 a.m., the light suddenly disappeared, and then the",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260926,
+      "batch": "b5",
+      "index": 11,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s115": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \u201cOn Friday at 16:00, we had two visitors, the captain of a fishing trawler, and his friend",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260927,
+      "batch": "b5",
+      "index": 12,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s116": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 7 a.m., we saw a ship and a fishing boat near our lighthouse. By 11 a.m., the",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260928,
+      "batch": "b5",
+      "index": 13,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s117": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 8 o'clock, I lit the light; at 17:15, I extinguished it. From 1",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260929,
+      "batch": "b5",
+      "index": 14,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s118": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 4 AM, I noticed that the water level in the tower is at a dangerous level, and the clock shows the minute hand",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260930,
+      "batch": "b5",
+      "index": 15,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s119": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 10:24, a ship sank at sea.\" Which of the following could be the most likely time at the sea",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260931,
+      "batch": "b5",
+      "index": 16,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s120": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 4 o'clock, we sighted a ship. After 70 minutes, the ship was in the middle of our l",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260932,
+      "batch": "b5",
+      "index": 17,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s121": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 4:00 PM, the angle of elevation of the sun is 35\u00b0, and at 8:3",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260933,
+      "batch": "b5",
+      "index": 18,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s122": {
+      "kind": "sampled",
+      "parent": [
+        "s0",
+        39
+      ],
+      "text": " \"At 12 o'clock noon, the light made 80 revolutions, at 6 pm it made only 68 revolutions",
+      "created": "2026-08-15-20.41.48",
+      "params": "p5",
+      "seed": 20260934,
+      "batch": "b5",
+      "index": 19,
+      "slice_start": [
+        "s0",
+        0
+      ]
+    },
+    "s123": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260935,
+      "batch": "b6",
+      "index": 0,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s124": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. It is a comfortable silence; there is no tension in it. The second is the",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260936,
+      "batch": "b6",
+      "index": 1,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s125": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind. It is the silence of the mind that is the first step towards the realization of the Self. The second is",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260937,
+      "batch": "b6",
+      "index": 2,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s126": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool, who has nothing to say. The second is the silence of the wise man, who has nothing left to say",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260938,
+      "batch": "b6",
+      "index": 3,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s127": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260939,
+      "batch": "b6",
+      "index": 4,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s128": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but is afraid to",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260940,
+      "batch": "b6",
+      "index": 5,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s129": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the person who has nothing to say. The second is the silence of the person who has no courage to say it. The",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260941,
+      "batch": "b6",
+      "index": 6,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s130": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool, who has nothing to say. The second is the silence of the wise man, who has nothing left to say",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260942,
+      "batch": "b6",
+      "index": 7,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s131": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260943,
+      "batch": "b6",
+      "index": 8,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s132": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260944,
+      "batch": "b6",
+      "index": 9,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s133": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the person who has nothing to say. The second is the silence of the person who has no courage to say it. The",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260945,
+      "batch": "b6",
+      "index": 10,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s134": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool, who has nothing to say. The second is the silence of the wise man, who has something to say but",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260946,
+      "batch": "b6",
+      "index": 11,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s135": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool, who has nothing to say. The second is the silence of the wise man, who has nothing left to say",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260947,
+      "batch": "b6",
+      "index": 12,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s136": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind. It is the silence of the mind that is the first step in meditation. The second is the silence of the",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260948,
+      "batch": "b6",
+      "index": 13,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s137": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260949,
+      "batch": "b6",
+      "index": 14,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s138": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260950,
+      "batch": "b6",
+      "index": 15,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s139": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but does not want",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260951,
+      "batch": "b6",
+      "index": 16,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s140": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but is afraid to",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260952,
+      "batch": "b6",
+      "index": 17,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s141": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool, who has nothing to say. The second is the silence of the wise man, who has nothing left to say",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260953,
+      "batch": "b6",
+      "index": 18,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s142": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has something to say but is afraid to",
+      "created": "2026-08-15-20.42.05",
+      "params": "p0",
+      "seed": 20260954,
+      "batch": "b6",
+      "index": 19,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s143": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the ignorant. The second is the silence of the wise. And the third is the silence of the fool. The silence of",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260955,
+      "batch": "b7",
+      "index": 0,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s144": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the tomb, the silence of death. The second is the silence of the grave, the silence of the living who are dead",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260956,
+      "batch": "b7",
+      "index": 1,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s145": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. It is a comfortable silence; there is no tension in it. The second is the",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260957,
+      "batch": "b7",
+      "index": 2,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s146": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when you have nothing to say. The second is when you don\u2019t know what to say. The third is when you have something to say",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260958,
+      "batch": "b7",
+      "index": 3,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s147": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool. The second is the silence of the wise. The third is the silence of God. The first is the silence",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260959,
+      "batch": "b7",
+      "index": 4,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s148": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind. It is the silence of the mind that is the beginning of all knowledge. The second is the silence of the",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260960,
+      "batch": "b7",
+      "index": 5,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s149": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who does not wish to say. The third",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260961,
+      "batch": "b7",
+      "index": 6,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s150": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind. It is a silence that is not the absence of thought, but the absence of the need to think. It",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260962,
+      "batch": "b7",
+      "index": 7,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s151": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool. He is afraid to speak, and so he keeps silent. The second is the silence of the wise. He",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260963,
+      "batch": "b7",
+      "index": 8,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s152": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the grave, the second is the silence of the tomb, and the third is the silence of the grave and the tomb.",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260964,
+      "batch": "b7",
+      "index": 9,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s153": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the person who has nothing to say. The second is the silence of the person who has something to say but who is afraid",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260965,
+      "batch": "b7",
+      "index": 10,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s154": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. It is a comfortable silence. The second is the silence of the one who has something",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260966,
+      "batch": "b7",
+      "index": 11,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s155": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind. The second is the silence of the heart. The third is the silence of the spirit. The first is the",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260967,
+      "batch": "b7",
+      "index": 12,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s156": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the bird. It is the silence of the bird in flight. It is the silence of the bird in the tree. It",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260968,
+      "batch": "b7",
+      "index": 13,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s157": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool, who has nothing to say. The second is the silence of the wise man, who has nothing left to say",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260969,
+      "batch": "b7",
+      "index": 14,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s158": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. It is a comfortable silence; there is no tension in it. The second is the",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260970,
+      "batch": "b7",
+      "index": 15,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s159": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind, the second is the silence of the heart, and the third is the silence of the spirit. The silence of",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260971,
+      "batch": "b7",
+      "index": 16,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s160": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the ignorant. The second is the silence of the wise. The third is the silence of the fool. The first kind of",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260972,
+      "batch": "b7",
+      "index": 17,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s161": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the mind. It is a state of mind in which there is no thought, no word, no image, no memory,",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260973,
+      "batch": "b7",
+      "index": 18,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s162": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the man who has nothing to say. The second is the silence of the man who has no time to say it. The",
+      "created": "2026-08-15-20.42.21",
+      "params": "p1",
+      "seed": 20260974,
+      "batch": "b7",
+      "index": 19,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s163": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the birds in the woods. The second is the silence of the sea. The third is the silence of the grave. This",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260975,
+      "batch": "b8",
+      "index": 0,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s164": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool. He is always silent because he has nothing to say. He never wants to break the silence. The second is",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260976,
+      "batch": "b8",
+      "index": 1,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s165": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the man who knows nothing; the second is the silence of the man who knows all; the third is the silence of the",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260977,
+      "batch": "b8",
+      "index": 2,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s166": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. It is a negative form of speech, and it is used to avoid answering a question",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260978,
+      "batch": "b8",
+      "index": 3,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s167": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the void. It is the silence that comes from an absence of sound or of words. The second is the silence of the",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260979,
+      "batch": "b8",
+      "index": 4,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s168": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of those who are in agreement and have nothing to add, or of those who are in disagreement and do not wish to express their",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260980,
+      "batch": "b8",
+      "index": 5,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s169": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the person who knows that he or she is wrong. The second is the silence of the person who knows that he or she",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260981,
+      "batch": "b8",
+      "index": 6,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s170": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of those who know nothing. The second is the silence of those who know everything. The third is the silence of those who have",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260982,
+      "batch": "b8",
+      "index": 7,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s171": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence that comes when the person is not yet capable of expressing himself. The second is the silence that comes when the person is not yet",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260983,
+      "batch": "b8",
+      "index": 8,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s172": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the grave. The second is the silence of the fool. The third is the silence of the wise. Which would you prefer",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260984,
+      "batch": "b8",
+      "index": 9,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s173": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the grave. The second is that which is caused by fear. The third is that which is caused by a sense of dignity",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260985,
+      "batch": "b8",
+      "index": 10,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s174": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when you don\u2019t know what to say. The second is when you don\u2019t want to say what you know. The third is when you",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260986,
+      "batch": "b8",
+      "index": 11,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s175": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the coward. The second is the silence of the wise. The third is the silence of the saint.\nThe first is the",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260987,
+      "batch": "b8",
+      "index": 12,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s176": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when you don't know what to say. The second is when you don't want to say. The third is when you can't say",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260988,
+      "batch": "b8",
+      "index": 13,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s177": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when the mouth is closed and the ears are open. The second is when the ears are closed and the mouth is open. The third is",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260989,
+      "batch": "b8",
+      "index": 14,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s178": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who has nothing to say. The second is the silence of the one who has no courage to speak. The third",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260990,
+      "batch": "b8",
+      "index": 15,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s179": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of those who have nothing to say. The second is the silence of those who are too well-bred to say what they mean",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260991,
+      "batch": "b8",
+      "index": 16,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s180": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the person who knows. The second is the silence of the person who has nothing to say. The third is the silence of",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260992,
+      "batch": "b8",
+      "index": 17,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s181": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the wise man. He is silent because he knows that there is nothing to be said. The second is the silence of the",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260993,
+      "batch": "b8",
+      "index": 18,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s182": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the person who has something to say, but is afraid to say it. The second is the silence of the person who knows",
+      "created": "2026-08-15-20.42.38",
+      "params": "p2",
+      "seed": 20260994,
+      "batch": "b8",
+      "index": 19,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s183": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of which we have no consciousness: the silence of a room that is in fact full of sound, but whose occupants are absorbed in",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20260995,
+      "batch": "b9",
+      "index": 0,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s184": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a silence that is born of sorrow. The second is a silence that is born of joy. The third is a silence that is born of",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20260996,
+      "batch": "b9",
+      "index": 1,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s185": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a natural silence, when we are alone, when we are deeply absorbed in our work. The second silence is when we are together and we",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20260997,
+      "batch": "b9",
+      "index": 2,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s186": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool. This is a silence which comes out of ignorance. It is the silence of the man who doesn't know what",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20260998,
+      "batch": "b9",
+      "index": 3,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s187": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence that comes when a person has nothing more to say. The second is the silence that comes when a person wants to say something but",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20260999,
+      "batch": "b9",
+      "index": 4,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s188": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a lack of speech. A second type of silence is a lack of truth. And the third is the refusal to speak the truth.\nThe",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261000,
+      "batch": "b9",
+      "index": 5,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s189": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a silence that comes over you at some moment and fills you with an overwhelming sense of your own solitude; this silence is terrible. The second",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261001,
+      "batch": "b9",
+      "index": 6,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s190": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the kind we use to be polite, to show that we are listening to the other person. The second is the kind that we use to",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261002,
+      "batch": "b9",
+      "index": 7,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s191": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the absence of sound. The second is a profound calm. The third is the silence of the soul. The first is what most people know",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261003,
+      "batch": "b9",
+      "index": 8,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s192": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a silence of despair, when nothing can be said because nothing can be done; the second is a silence of submission to authority, of acqu",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261004,
+      "batch": "b9",
+      "index": 9,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s193": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " silence out of love. It is a gentle, compassionate, nonjudgmental silence, a silence of respect. It is a kind of",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261005,
+      "batch": "b9",
+      "index": 10,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s194": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of indifference or boredom. It is the silence of those who are not interested in the conversation, those who do not care. The",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261006,
+      "batch": "b9",
+      "index": 11,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s195": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of those who have nothing to say. They are usually those who have not made the effort to find something to say. They cannot",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261007,
+      "batch": "b9",
+      "index": 12,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s196": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a quiet, a peaceful stillness. It is the silence of the monastery or of a park in the moonlight. The second is a",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261008,
+      "batch": "b9",
+      "index": 13,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s197": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when one speaks and is unable to think of any word. The second is when one knows the word, but chooses not to utter it.",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261009,
+      "batch": "b9",
+      "index": 14,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s198": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when one cannot speak, the second is when one will not speak, and the third is when one dares not speak. When one cannot",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261010,
+      "batch": "b9",
+      "index": 15,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s199": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the lips. The second is the silence of the tongue. The third is the silence of the heart. The first is the",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261011,
+      "batch": "b9",
+      "index": 16,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s200": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the one who does not know. He has no knowledge of the subject and so can only remain silent. The second is the",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261012,
+      "batch": "b9",
+      "index": 17,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s201": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of indifference. It is the silence of the person who has nothing to say because he has no interest in the subject. This is",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261013,
+      "batch": "b9",
+      "index": 18,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s202": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the absence of sound; the second is the silence that you use to listen, to observe, to reflect; and the third is the silence",
+      "created": "2026-08-15-20.42.55",
+      "params": "p3",
+      "seed": 20261014,
+      "batch": "b9",
+      "index": 19,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s203": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a silence of the mouth; the second is a silence of the heart; the third is a silence of the spirit. When a person shuts",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261015,
+      "batch": "b10",
+      "index": 0,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s204": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a kind of absence. It occurs when the voice is absent, or when sound has been prevented from existing by the absence of air. The",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261016,
+      "batch": "b10",
+      "index": 1,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s205": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the voice. The second is the silence of the mind. And the third is the silence of the soul. There are also",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261017,
+      "batch": "b10",
+      "index": 2,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s206": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a polite silence; the second is a deliberate silence; and the third is an uncomfortable silence.\nThe first kind of silence occurs during a conversation",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261018,
+      "batch": "b10",
+      "index": 3,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s207": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the dead. It is an emptiness without hope or the capacity to fill. The second is the silence of the weak.",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261019,
+      "batch": "b10",
+      "index": 4,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s208": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a lack of sound. If you shut your mouth, and keep it shut, you make silence. If you plug your ears with cotton,",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261020,
+      "batch": "b10",
+      "index": 5,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s209": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a dead silence, a kind of stillness that is the opposite of speech. In this type, the silence itself has meaning. The second",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261021,
+      "batch": "b10",
+      "index": 6,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s210": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the kind in which you feel that if the silence was broken the world would end. The second is the kind in which you feel that if",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261022,
+      "batch": "b10",
+      "index": 7,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s211": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when no one speaks, the second is when people say nothing meaningful and the third is when they say something meaningful that no one hears.\nThe",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261023,
+      "batch": "b10",
+      "index": 8,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s212": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence that comes over us in the presence of something awesome. The second is the silence of indifference, the silence of a man in a",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261024,
+      "batch": "b10",
+      "index": 9,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s213": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when someone says too much and then says nothing at all. The second is when someone says just the right thing and then says nothing at all",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261025,
+      "batch": "b10",
+      "index": 10,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s214": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a sign of indifference and is worse than rude words, the second is a sign of embarrassment, and the third is a sign of intelligence.",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261026,
+      "batch": "b10",
+      "index": 11,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s215": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of one who does not understand. The second is the silence of one who cannot speak. And the third is the silence of one",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261027,
+      "batch": "b10",
+      "index": 12,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s216": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence that speaks volumes: silence in the face of a crime, a catastrophe, or an atrocity. It is a silence that",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261028,
+      "batch": "b10",
+      "index": 13,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s217": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of a person who knows nothing of what he is saying. The second is the silence of one who knows so much that he needs",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261029,
+      "batch": "b10",
+      "index": 14,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s218": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a lack of noise, where people are so absorbed in their own thoughts that they are quiet. The second is when one deliberately chooses to be",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261030,
+      "batch": "b10",
+      "index": 15,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s219": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence that precedes action. The second is the silence that follows action. The third is the silence that encompasses everything.\n\nCan you elaborate",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261031,
+      "batch": "b10",
+      "index": 16,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s220": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a void, the absence of words, the absence of meaning. The second is the silence that says: I am here with you in this",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261032,
+      "batch": "b10",
+      "index": 17,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s221": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the man who knows and does not speak. This is the silence of the wise. The second is the silence of the man",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261033,
+      "batch": "b10",
+      "index": 18,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s222": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the cave: the silence of one who is deaf and dumb, who does not communicate, who does not understand, who has",
+      "created": "2026-08-15-20.43.11",
+      "params": "p4",
+      "seed": 20261034,
+      "batch": "b10",
+      "index": 19,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s223": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of fear or shock. When there is a frightening incident, most people do not speak. When an unexpected accident happens, it is",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261035,
+      "batch": "b11",
+      "index": 0,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s224": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when someone speaks and nobody answers, and this silence is often embarrassing. The second is when everyone is waiting to speak, and this silence is",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261036,
+      "batch": "b11",
+      "index": 1,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s225": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the fool. The second is the silence of the wise. And the third is the silence of the spirit. The first two",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261037,
+      "batch": "b11",
+      "index": 2,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s226": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the kind that happens after we are done eating too much sugar, or too much pizza or after too much of anything. The kind where the",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261038,
+      "batch": "b11",
+      "index": 3,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s227": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the kind you create by walking away and thinking to yourself that there\u2019s something else going on than just being on the same planet as those people",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261039,
+      "batch": "b11",
+      "index": 4,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s228": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when a man\u2019s thoughts are so deep that he has not yet learnt to make any sound in speech. This is silence which comes of the",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261040,
+      "batch": "b11",
+      "index": 5,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s229": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the deaf. The second is the silence which men use when words fail them; they know they would be wrong if they spoke",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261041,
+      "batch": "b11",
+      "index": 6,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s230": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the absence of sound: the soundlessness of a desert at dusk. The second is the presence of sound: the silence of a funeral,",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261042,
+      "batch": "b11",
+      "index": 7,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s231": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " silence before speech; the second is silence after speech; the third is silence because of speech.\nThe silence of the first kind, the silence",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261043,
+      "batch": "b11",
+      "index": 8,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s232": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " that of a dead person. The second is that of a person who wants to say something that they are too shy to say out loud.",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261044,
+      "batch": "b11",
+      "index": 9,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s233": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a silence of which one is the author, who by it announces his will. It is the silence of the master who dismisses his slaves",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261045,
+      "batch": "b11",
+      "index": 10,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s234": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a positive absence, an absence that says \u201cyes\u201d to the other in order to receive the other, and to give yourself back. The",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261046,
+      "batch": "b11",
+      "index": 11,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s235": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " a natural one, the silence of a wild place where nature and its inhabitants have been allowed to remain in relative harmony. A bird sings here",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261047,
+      "batch": "b11",
+      "index": 12,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s236": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of a man who has no heart. The second is the silence of a man who has no brains. But the third is the",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261048,
+      "batch": "b11",
+      "index": 13,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s237": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of a man who has nothing to say; the second of the man who has nothing worth saying; the third is that of him",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261049,
+      "batch": "b11",
+      "index": 14,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s238": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " silence by agreement; this is the kind you must avoid at all costs. The second is silence by default; this is the kind you must",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261050,
+      "batch": "b11",
+      "index": 15,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s239": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " when the soul is absorbed in God. This silence is inexpressible, ineffable and incomparable. The second kind is the silence of",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261051,
+      "batch": "b11",
+      "index": 16,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s240": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the graveyard, which makes you wonder whether there is even any life left on earth. The second is the silence of the wilderness",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261052,
+      "batch": "b11",
+      "index": 17,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s241": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of the grave. The second is the silence of the fool who cannot express himself. The third is the silence of the wise man",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261053,
+      "batch": "b11",
+      "index": 18,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s242": {
+      "kind": "sampled",
+      "parent": [
+        "s1",
+        46
+      ],
+      "text": " the silence of which we are unaware; it is the silence of our not hearing. The second kind is that which we have the feeling of",
+      "created": "2026-08-15-20.43.28",
+      "params": "p5",
+      "seed": 20261054,
+      "batch": "b11",
+      "index": 19,
+      "slice_start": [
+        "s1",
+        0
+      ]
+    },
+    "s243": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a newspaper in his hand.\nA. held\nB. holding\nC. to hold\nD.",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261055,
+      "batch": "b12",
+      "index": 0,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s244": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a newspaper in his hand.\nA. held\nB. holding\nC. to hold\nD.",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261056,
+      "batch": "b12",
+      "index": 1,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s245": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a newspaper in his hand.\nA. held\nB. holding\nC. to hold\nD.",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261057,
+      "batch": "b12",
+      "index": 2,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s246": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son ________ in the garden.\nA. play\nB. playing\nC. to play\nD. played\n\u7b54\u6848:\nB",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261058,
+      "batch": "b12",
+      "index": 3,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s247": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting on the sofa, reading a book. Which of the following options correctly describes this scene?\nA. sat; read\nB",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261059,
+      "batch": "b12",
+      "index": 4,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s248": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a newspaper in his hand.\nA. to hold\nB. holding\nC. held\nD.",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261060,
+      "batch": "b12",
+      "index": 5,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s249": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son ________ in the garden.\nA. played\nB. playing\nC. to play\nD. play\n\u7b54\u6848:\nB",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261061,
+      "batch": "b12",
+      "index": 6,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s250": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting on the sofa, reading a book.\nA. sat\nB. sitting\nC. to sit\nD. sits\n",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261062,
+      "batch": "b12",
+      "index": 7,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s251": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ his hat.\nA. to take off\nB. taking off\nC. took off\nD.",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261063,
+      "batch": "b12",
+      "index": 8,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s252": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, who was her long-lost brother. Which of the following options correctly describes this situation?\nA. She found a",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261064,
+      "batch": "b12",
+      "index": 9,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s253": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, _______ a newspaper in his hand.\nA. to hold\nB. holding\nC. held\nD.",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261065,
+      "batch": "b12",
+      "index": 10,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s254": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, who was her father. Which of the following options correctly describes this situation?\nA. She found a man standing there",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261066,
+      "batch": "b12",
+      "index": 11,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s255": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, who was holding a bunch of flowers. Which of the following options correctly describes this scene?\nA. A man was",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261067,
+      "batch": "b12",
+      "index": 12,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s256": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a newspaper.\nA. read\nB. reading\nC. to read\nD. reads\n\u7b54\u6848",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261068,
+      "batch": "b12",
+      "index": 13,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s257": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her husband ________ in the garden.\nA. working\nB. to work\nC. worked\nD. work\n\u7b54\u6848:\nA",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261069,
+      "batch": "b12",
+      "index": 14,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s258": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting there,______.\nA. surprised\nB. surprising\nC. to be surprised\nD. being surprised\n\u7b54\u6848",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261070,
+      "batch": "b12",
+      "index": 15,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s259": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting on the sofa,______.\nA. reading\nB. to read\nC. read\nD. having read\n",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261071,
+      "batch": "b12",
+      "index": 16,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s260": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son ________ in the garden.\nA. playing\nB. to play\nC. played\nD. play\n\u7b54\u6848:\nA",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261072,
+      "batch": "b12",
+      "index": 17,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s261": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son sitting on the floor, his eyes ________ on the TV set.\nA. fixing\nB. fixed\nC. to fix",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261073,
+      "batch": "b12",
+      "index": 18,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s262": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting there,______a newspaper.\nA. read\nB. to read\nC. reading\nD. having read\n",
+      "created": "2026-08-15-20.43.45",
+      "params": "p0",
+      "seed": 20261074,
+      "batch": "b12",
+      "index": 19,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s263": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a black bag.\nA. carried\nB. carrying\nC. to carry\nD. being carried",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261075,
+      "batch": "b13",
+      "index": 0,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s264": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty. The underlined part means ______.\nA. found the room was empty\nB. found the room is empty\nC",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261076,
+      "batch": "b13",
+      "index": 1,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s265": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there, ________ a newspaper in his hand.\nA. to hold\nB. holding\nC. held\nD.",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261077,
+      "batch": "b13",
+      "index": 2,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s266": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty.\uff08\u6539\u4e3a\u540c\u4e49\u53e5\uff09 She opened the door and found the room ____.\nto be empty\n\n\u9605\u8bfb\u4e0b\u9762\u7684\u6750\u6599",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261078,
+      "batch": "b13",
+      "index": 3,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s267": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son sitting on the floor, his eyes ________ on the computer.\nA. fixing\nB. fixed\nC. to fix\n",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261079,
+      "batch": "b13",
+      "index": 4,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s268": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty. What did she find? Options: - apartment building - closet - mansion - house - office Let's think step by step",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261080,
+      "batch": "b13",
+      "index": 5,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s269": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother standing there.\nA. found\nB. founds\nC. finding\nD. to find\n\u7b54\u6848:\nA\n\n\u4e0b\u5217",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261081,
+      "batch": "b13",
+      "index": 6,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s270": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty. A. opened; found B. opened; found it C. opened; found out D. opened; found out it",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261082,
+      "batch": "b13",
+      "index": 7,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s271": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there.____\nA. \u4ed6\u6253\u5f00\u95e8\uff0c\u53d1\u73b0\u4e00\u4e2a\u7537\u4eba\u7ad9\u5728\u90a3\u91cc\u3002\nB. \u4ed6\u6253\u5f00\u95e8\uff0c\u53d1\u73b0",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261083,
+      "batch": "b13",
+      "index": 8,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s272": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her daughter sitting on the floor\uff0c____ \uff08play\uff09 with her toys\uff0e\n\nplaying\n\nThe boy is____\uff08play\uff09 with his toy",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261084,
+      "batch": "b13",
+      "index": 9,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s273": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother ________ in the garden. A. working B. worked C. works D. to work\nAnswer:\nA\n\nThe main",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261085,
+      "batch": "b13",
+      "index": 10,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s274": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting there\uff0e\uff08\u6539\u4e3a\u540c\u4e49\u53e5\uff09 She found her mother sitting there when she opened the door\uff0e\n\u7b54\u6848\uff1awhen\uff0c",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261086,
+      "batch": "b13",
+      "index": 11,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s275": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty.\uff08\u6539\u4e3a\u540c\u4e49\u53e5\uff09 She opened the door and found the room ____ ____ ____.\n\nin,an,empty\n\n",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261087,
+      "batch": "b13",
+      "index": 12,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s276": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the house empty. ____\nA. found\nB. to find\nC. finding\nD. to have found\nAnswer:\n\nB",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261088,
+      "batch": "b13",
+      "index": 13,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s277": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty. She had to wait for him to come back. What did she find?\nA. The door was open\nB.",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261089,
+      "batch": "b13",
+      "index": 14,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s278": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there.\nA. stood\nB. standing\nC. to stand\nD. stand\n\u7b54\u6848:\n\nB\n\n\u4e0b\u5217\u5173\u4e8e",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261090,
+      "batch": "b13",
+      "index": 15,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s279": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother sitting there\uff0e\uff08\u6539\u4e3a\u540c\u4e49\u53e5\uff09 She found her mother sitting there when she opened the door\uff0e\n\u7b54\u6848\uff1awhen she",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261091,
+      "batch": "b13",
+      "index": 16,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s280": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there.\uff08\u6539\u4e3a\u540c\u4e49\u53e5\uff09 She found a man standing there when she opened the door.\n\u8003\u67e5\u540c\u4e49\u53e5\u8f6c\u6362",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261092,
+      "batch": "b13",
+      "index": 17,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s281": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing there\uff0c____\uff08wear\uff09 a pair of glasses\uff0e wearing\n\n\u6839\u636e\u53e5\u610f\u53ca\u9996\u5b57\u6bcd\u63d0\u793a\u8865\u5168\u5355\u8bcd\uff0e The",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261093,
+      "batch": "b13",
+      "index": 18,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s282": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing outside\uff0c____\uff08wear\uff09 a pair of sunglasses\uff0e wearing\n\n\u7528\u6240\u7ed9\u8bcd\u7684\u9002\u5f53\u5f62\u5f0f\u586b\u7a7a\uff0e I____",
+      "created": "2026-08-15-20.44.02",
+      "params": "p1",
+      "seed": 20261094,
+      "batch": "b13",
+      "index": 19,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s283": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing outside, looking very______.\nA. sad\nB. happy\nC. angry\nD. surprised\nAnswer:",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261095,
+      "batch": "b14",
+      "index": 0,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s284": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her husband _______ in bed.\nA. lay\nB. lie\nC. lying\nD. lies\n\u7b54\u6848:\n\nC\n\nWhat",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261096,
+      "batch": "b14",
+      "index": 1,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s285": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that the room was empty.____\nA. \u4ed6\u6253\u5f00\u95e8,\u623f\u95f4\u662f\u7a7a\u7684\u3002\nB. \u5979\u6253\u5f00\u95e8,",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261097,
+      "batch": "b14",
+      "index": 2,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s286": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the house was empty. A. \u7a81\u7136 B. \u5076\u7136 C. \u968f\u5373 D. \u6309",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261098,
+      "batch": "b14",
+      "index": 3,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s287": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty. A. \u7a97\u53e3 B. \u95e8 C. \u7a97\u6237 D. \u95e8\u5385\ndoor\n\n",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261099,
+      "batch": "b14",
+      "index": 4,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s288": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the house in a terrible mess, with all the windows broken and the lights on. Which of the following options correctly describes this scene?\nA",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261100,
+      "batch": "b14",
+      "index": 5,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s289": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her husband standing there\uff0c______ \uff08shock\uff09\uff0e\n\nshocked\uff0e\u8003\u67e5\u5355\u8bcd\u586b\u7a7a\uff0e\u6839\u636e\u53e5\u610f\u53ca\u53e5\u5b50\u7ed3\u6784\uff0c",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261101,
+      "batch": "b14",
+      "index": 6,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s290": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing outside, his face covered with a mask.\nAnswer: D\n\nThe main reason for the continuous decline in the number of rural",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261102,
+      "batch": "b14",
+      "index": 7,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s291": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man _______ in the hall.\nlying\nlaying\nlay\nlayed\n\u7b54\u6848:\nA\n\n______ is my teacher.",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261103,
+      "batch": "b14",
+      "index": 8,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s292": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the house empty.\nA. found\nB. finding\nC. to find\nD. found\nAnswer:\nC\n\nWhich of the",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261104,
+      "batch": "b14",
+      "index": 9,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s293": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother in the room\uff0e\uff08\u6539\u4e3a\u540c\u4e49\u53e5\uff09 She found her mother in the room when she opened the door\uff0e\n\n\u7b54\u6848\uff1a",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261105,
+      "batch": "b14",
+      "index": 10,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s294": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her dog lying on the floor, dead.\nA. lay\nB. lied\nC. lied\nD. lay\nAnswer:\nD",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261106,
+      "batch": "b14",
+      "index": 11,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s295": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son sitting on the bed, his eyes staring at the wall without any emotion. What was his state?\nA. Staring at the",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261107,
+      "batch": "b14",
+      "index": 12,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s296": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man waiting for her at the door.____\nA. waited\nB. to wait\nC. wait\nD. waiting\n\n",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261108,
+      "batch": "b14",
+      "index": 13,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s297": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that the fire had spread to the living room. Which option should be filled in the blank?\nA. which\nB. that\nC",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261109,
+      "batch": "b14",
+      "index": 14,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s298": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty.____\nA. \u5bbe\u8bed\nB. \u8868\u8bed\nC. \u72b6\u8bed\nD. \u5b9a",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261110,
+      "batch": "b14",
+      "index": 15,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s299": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " nothing there\uff0e____\nA. to look\nB. to be looking\nC. looking\nD. looked\n\u7b54\u6848:\nA\uff0e",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261111,
+      "batch": "b14",
+      "index": 16,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s300": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the house empty.\nA. \u7a7a\u7684\nB. \u6bd4\u8f83\u7a7a\nC. \u7a7a\u8361\u8361\u7684\n",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261112,
+      "batch": "b14",
+      "index": 17,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s301": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the dog was dead\uff0e \u2192She opened the door and found the dog dead \uff0e\n\u7b54\u6848\uff1aShe opened the door and found the dog",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261113,
+      "batch": "b14",
+      "index": 18,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s302": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room in a terrible mess.____\nA. in\nB. to\nC. at\nD. for\n\u7b54\u6848:\nA",
+      "created": "2026-08-15-20.44.18",
+      "params": "p2",
+      "seed": 20261114,
+      "batch": "b14",
+      "index": 19,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s303": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " herself ________ on the ground by the robber.\nA. threatening\nB. threatened\nC. to be threatened\nD. being threatened",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261115,
+      "batch": "b15",
+      "index": 0,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s304": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the children _____ in the classroom.\nA. to play\nB. played\nC. playing\nD. play\nAnswer: C\n\n",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261116,
+      "batch": "b15",
+      "index": 1,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s305": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her dog ________ in front of the TV set.\nA. lay\nB. laid\nC. lying\nD. lying\nAnswer",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261117,
+      "batch": "b15",
+      "index": 2,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s306": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the room empty.\nA. looked around\nB. found around\nC. searched\nD. inspected\nAnswer: A\n\nAccording to",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261118,
+      "batch": "b15",
+      "index": 3,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s307": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a girl of about the same _________ waiting for her there.\nA. age\nB. height\nC. size\nD. years",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261119,
+      "batch": "b15",
+      "index": 4,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s308": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that her husband was already home.\nAnswer:\nA\n\nWhich of the following statements about the properties of organic compounds is true?\nA. Eth",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261120,
+      "batch": "b15",
+      "index": 5,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s309": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " herself face to face with _______ she had thought to be dead.____\nA. someone\nB. the someone\nC. which",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261121,
+      "batch": "b15",
+      "index": 6,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s310": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man sitting on a chair inside the house. He was dressed in a black coat and wearing a black hat. The woman did not know",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261122,
+      "batch": "b15",
+      "index": 7,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s311": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a young man ______ at the door.\nA. waiting\nB. to wait\nC. to be waited\nD. wait\n\u7b54\u6848",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261123,
+      "batch": "b15",
+      "index": 8,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s312": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " nothing was wrong. ________, she went on working.\nA. Instead\nB. Therefore\nC. Besides\nD. However\n\u7b54\u6848",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261124,
+      "batch": "b15",
+      "index": 9,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s313": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the little boy____ \uff08lie\uff09 on the floor. lying\n\n\u7528be\u52a8\u8bcd\u7684\u9002\u5f53\u5f62\u5f0f\u586b\u7a7a\uff0e -Is this your bike",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261125,
+      "batch": "b15",
+      "index": 10,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s314": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " herself ________ in a dark room.\nA. lost\nB. to have lost\nC. losing\nD. having lost\n\u7b54\u6848",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261126,
+      "batch": "b15",
+      "index": 11,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s315": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a big box\uff0e\uff08\u6539\u4e3a\u5bbe\u8bed\u4ece\u53e5\uff09 She found that a big box was opened by her\uff0e \u7b54\u6848\uff1athat",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261127,
+      "batch": "b15",
+      "index": 12,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s316": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her daughter standing in front of her, smiling sweetly, and said, \"I'm glad you're home.\" What was her daughter doing",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261128,
+      "batch": "b15",
+      "index": 13,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s317": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a note _________ in it\uff0e____\nlaying\nlain\nlaid\nto lay\n\u7b54\u6848:\n\nC\n\n\u4e0b\u5217\u53e5\u5b50\u4e2d\uff0c",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261129,
+      "batch": "b15",
+      "index": 14,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s318": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " herself____\uff08\u9762\u671d\uff09a tall man with long hair\uff0e\nfacing\n\nIf we can learn to be____\uff08\u6709\u8010\u5fc3\u7684",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261130,
+      "batch": "b15",
+      "index": 15,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s319": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother in the bedroom, ________.\nlying on the bed, sleeping\nto lie on the bed, sleeping\nlying on the bed",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261131,
+      "batch": "b15",
+      "index": 16,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s320": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her daughter sitting on the bed, her eyes______ with tears.\nA. were filled\nB. filling\nC. to fill\n",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261132,
+      "batch": "b15",
+      "index": 17,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s321": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a big dog _____ there. A. lies B. is lying C. lying D. lay\n\n\u3010\u7b54\u6848\u3011 C \u3010\u89e3\u6790\u3011",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261133,
+      "batch": "b15",
+      "index": 18,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s322": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son _______in bed.____\nlay\nlying\nlaying\nlaid\n\u7b54\u6848:\n B\n\n\u5173\u4e8e\u7269\u8d28\u7684\u5206\u79bb\u3001",
+      "created": "2026-08-15-20.44.35",
+      "params": "p3",
+      "seed": 20261134,
+      "batch": "b15",
+      "index": 19,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s323": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " nobody inside\uff0eShe went in____\uff08cautious\uff09\uff0e\n\ncautiously\n\n\uff081\uff09$\\sqrt{12}-{\uff08",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261135,
+      "batch": "b16",
+      "index": 0,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s324": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " ______ a big snake. ____\nlay\nlying\nto lie\nlaying\n\u7b54\u6848:  lying\n\nThe young lady was in the",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261136,
+      "batch": "b16",
+      "index": 1,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s325": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a tall man waiting for her.\n\nA. lying\nB. lie\nC. to lie\nD. lay\n\nTo determine the correct",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261137,
+      "batch": "b16",
+      "index": 2,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s326": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother waiting for her ____. \uff08\u7528\u9002\u5f53\u7684\u8bcd\u586b\u7a7a\uff09\ninside\n\n\u5728\u65e5\u5e38\u751f\u6d3b\u4e2d\uff0c\u6211\u4eec\u901a\u5e38\u7528____\u548c____\u6765\u8868\u793a",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261138,
+      "batch": "b16",
+      "index": 3,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s327": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a _______ on it: \u201cPlease open your bag and pass the examination.\u201d\nword\nsentence\nmessage\nnotice\n\u7b54\u6848: D\n\n",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261139,
+      "batch": "b16",
+      "index": 4,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s328": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man standing in front of it\uff0c with his hands in his pockets\uff0e\n\u7b54\u6848\uff1ain\uff0e\u8003\u67e5\u5355\u8bcd\u586b\u7a7a\uff0e\u53e5\u610f\uff1a",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261140,
+      "batch": "b16",
+      "index": 5,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s329": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the cat ___ in the middle of the floor.____\nA. lie\nB. lay\nC. lying\nD. to lie",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261141,
+      "batch": "b16",
+      "index": 6,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s330": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a little boy sitting there.\nA. stood\nB. sitting\nC. sitting there\nD. sat down\n\u7b54\u6848:\nB\n\n",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261142,
+      "batch": "b16",
+      "index": 7,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s331": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the woman standing there in a long dark dress. The woman's eyes seemed to ( ) for a moment as she saw the girl standing there",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261143,
+      "batch": "b16",
+      "index": 8,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s332": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that it was the same room that he had entered two days _______.\nA. before\nB. ago\nC. previous\nD",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261144,
+      "batch": "b16",
+      "index": 9,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s333": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " herself ______ with an old man.\nA. face to face\nB. side to side\nC. hand in hand\nD. shoulder",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261145,
+      "batch": "b16",
+      "index": 10,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s334": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " herself ______ in a room where a dozen people were busy preparing for the party.\nA. having\nB. having been\nC. being",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261146,
+      "batch": "b16",
+      "index": 11,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s335": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a man ____ \uff08hide\uff09 behind it.\n\nhiding\n\n\u4e00\u4e2a\u5706\u67f1\u7684\u4fa7\u9762\u5c55\u5f00\u540e\u662f\u4e00\u4e2a\u6b63\u65b9\u5f62\uff0c\u8fd9\u4e2a\u5706\u67f1\u7684\u5e95",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261147,
+      "batch": "b16",
+      "index": 12,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s336": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the man ________ in her ________.\nlay, bedroom\nlaid, bed\nlaid, bedroom\nlying, bed\n\u7b54\u6848",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261148,
+      "batch": "b16",
+      "index": 13,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s337": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son on the bed\uff0c___________\uff0e____\nA. sleeping soundly\nB. sleeping soundly\nC. sleep soundly",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261149,
+      "batch": "b16",
+      "index": 14,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s338": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " him _______ there.\nA. sat\nB. to sit\nC. seated\nD. sit\n\u7b54\u6848:\nC\n\nWhen she",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261150,
+      "batch": "b16",
+      "index": 15,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s339": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her children _______ in the living room watching TV.\nA. sitting\nB. sat\nC. sit\nD. to sit\n",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261151,
+      "batch": "b16",
+      "index": 16,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s340": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the whole family ______ her birthday party.\nA. celebrate\nB. celebrates\nC. celebrating\nD. to celebrate\n\u7b54\u6848:\n\nC",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261152,
+      "batch": "b16",
+      "index": 17,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s341": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " it empty\uff0e It was a trick\uff0c ________\uff0c to frighten her\uff0e____\nintending\nintended\nintends\nto",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261153,
+      "batch": "b16",
+      "index": 18,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s342": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that it was an empty house.\nA. find\nB. found\nC. to find\nD. finds\n\u7b54\u6848:\nB\n\n",
+      "created": "2026-08-15-20.44.52",
+      "params": "p4",
+      "seed": 20261154,
+      "batch": "b16",
+      "index": 19,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s343": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that a man in a dark suit had knocked ________.\nA. ) by\nB. ) of\nC. ) down\nD",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261155,
+      "batch": "b17",
+      "index": 0,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s344": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " nothing there. What did she find?\nShe found nothing when she opened the door.",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261156,
+      "batch": "b17",
+      "index": 1,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s345": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " it ____. \nA. close\nB. closed\nC. opening\nD. being closed\nAnswer:\nB\n\nI saw them",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261157,
+      "batch": "b17",
+      "index": 2,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s346": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " nobody inside\uff0e\nA. \u5bbe\u8bed\u8865\u8db3\u8bed\nB. \u5b9a\u8bed\nC. \u5bbe\u8bed\nD.",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261158,
+      "batch": "b17",
+      "index": 3,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s347": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her friend___________ outside.\uff08\uff09to wait waiting waited waits\n\nB\n\n\u3010\u9898\u6587\u3011I can see a big_________on",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261159,
+      "batch": "b17",
+      "index": 4,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s348": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a note in the envelope\uff08\u4fe1\u5c01\uff09\uff0e____\non\nunder\nat\nover\n\u7b54\u6848: B\n\n\u82e5f\uff08x",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261160,
+      "batch": "b17",
+      "index": 5,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s349": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " ____ outside.\nA. nothing\nB. none\nC. anyone\nD. someone\nAnswer:\n\nA\n\nThe 'Ten Commitments",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261161,
+      "batch": "b17",
+      "index": 6,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s350": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her mother in the sitting room.\uff08\u540c\u4e49\u53e5\u8f6c\u6362\uff09 She found her mother____ the door____ in the sitting room.\n\nafter,",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261162,
+      "batch": "b17",
+      "index": 7,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s351": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " no one was there. Which option should be filled in this sentence?\nA. There were no people\nB. There was no one\n",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261163,
+      "batch": "b17",
+      "index": 8,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s352": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " it raining cats and dogs. \"Raining cats and dogs\" here is a _________.\nA. simile\nB. metaphor\n",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261164,
+      "batch": "b17",
+      "index": 9,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s353": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her father lying ________ on the ground.\ndead\ndeadly\ndeadly\ndeadly\nAnswer: A\n\nWhen I saw my",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261165,
+      "batch": "b17",
+      "index": 10,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s354": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her boyfriend had gone without leaving a ________ .____\nmessage\naddress\nmessage to\naddress to\n\u7b54\u6848:\n\nB\n\n\u5173\u4e8e\u901f\u5ea6",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261166,
+      "batch": "b17",
+      "index": 11,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s355": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " that he had ________ for America the night before\uff0e____\nA. set out\nB. left out\nC. been away\n",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261167,
+      "batch": "b17",
+      "index": 12,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s356": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the boy____\uff0e\uff08play\uff09 \u7a81\u7136\u5979\u6253\u5f00\u95e8\uff0c\u53d1\u73b0\u90a3\u4e2a\u7537\u5b69\u6b63\u73a9\u7740\u8db3\u7403\uff0e\nplaying football suddenly\n\n",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261168,
+      "batch": "b17",
+      "index": 13,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s357": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the hall ________ with people. A\uff0efilling B\uff0eto fill C\uff0eto be filled D\uff0efilled D \u89e3\u6790 \u8bd5\u9898",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261169,
+      "batch": "b17",
+      "index": 14,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s358": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the apartment empty . He is a little tired of life with his wife and wanted to explore the world , so he booked a vacation on his",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261170,
+      "batch": "b17",
+      "index": 15,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s359": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " the lights off.\n\nHow would you consider the linguistic integrity of the preceding sentence?\nOptions:\n(A). unacceptable.\n(B). acceptable. (B",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261171,
+      "batch": "b17",
+      "index": 16,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s360": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " a note___________\"I'll be back soon.\" A\uff1asays B\uff1asaying C\uff1asaid D\uff1asay B \u89e3\u6790\uff1a",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261172,
+      "batch": "b17",
+      "index": 17,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s361": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her son and daughter playing on the floor. It is a scene played out in homes across the United States, but for this mother, it",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261173,
+      "batch": "b17",
+      "index": 18,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    },
+    "s362": {
+      "kind": "sampled",
+      "parent": [
+        "s2",
+        29
+      ],
+      "text": " her cat dead at the ____\uff08\u5e95\u90e8\uff09.\n\nbottom\n\nA\uff1aWhat a great day!The weather is just\uff081\uff09____\uff08",
+      "created": "2026-08-15-20.45.09",
+      "params": "p5",
+      "seed": 20261174,
+      "batch": "b17",
+      "index": 19,
+      "slice_start": [
+        "s2",
+        0
+      ]
+    }
+  },
+  "params": {
+    "p0": {
+      "temperature": 0.1,
+      "top_p": 1.0,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p1": {
+      "temperature": 0.3,
+      "top_p": 1.0,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p2": {
+      "temperature": 0.6,
+      "top_p": 1.0,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p3": {
+      "temperature": 0.9,
+      "top_p": 1.0,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p4": {
+      "temperature": 1.2,
+      "top_p": 1.0,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    },
+    "p5": {
+      "temperature": 1.5,
+      "top_p": 1.0,
+      "top_n": 3,
+      "length": 28,
+      "stop": [],
+      "prompt_length": 6000,
+      "model": "qwen2.5-7b-base",
+      "n_ctx": 16384,
+      "tokenizer": "qwen2.5-7b-base"
+    }
+  },
+  "selected": [
+    "s2",
+    29
+  ],
+  "deleted": []
+}

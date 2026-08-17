@@ -39,6 +39,20 @@ The work has split in two, and the split is worth understanding before picking e
   pre-registration buys, and editing an experiment file after its results land spends it.
   Corrections are appended, never merged in.
 
+  **The tree an experiment produced is committed beside its write-up**, as
+  `experiments/NNN-name/` next to `experiments/NNN-name.md`. Not in `data/`, which is ignored
+  scratch, and not left out because it is binary: a span is not guaranteed to regenerate from
+  the conditions it carries, so the artefact *is* the evidence and a write-up citing a tree
+  nobody else has is citing nothing. 001 is 1.4MB for 360 spans, which is the scale to reckon
+  with — if an experiment ever produces enough to make that a bad trade, the honest move is to
+  say so in its file rather than to quietly not commit it. Run logs are not committed; the
+  tree holds every byte they recorded.
+
+  **Committed trees have to be migrated when the format moves.** 001's was gitignored when the
+  `given` rename bumped the marker, and stopped loading without anything noticing. `data/demo/`
+  survived only because `demo.py --force` rebuilt it — which an experiment tree can never do,
+  since rebuilding it would destroy the record.
+
 **Both are consumers of one substrate.** `core/` is the instrument; `loom.py` is one client
 and the API is the next. That is why this file is not split: every fact in it — bytes as the
 anchor, the save ordering, `n_probs >= 1`, the conventions, the method — is equally true on

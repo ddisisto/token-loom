@@ -199,6 +199,11 @@ commits, so `git log --follow` over one file shows whether the registration was 
 the numbers were in. That property starts at 002: 001's file begins with a move, since it was
 written when this was one document.
 
+**The tree is committed beside the write-up**, at `experiments/NNN-name/`. That follows from
+the stance above rather than from tidiness: if a span is not guaranteed to regenerate from
+what it carries, the artefact is the evidence, and a verdict citing a tree nobody else has is
+a verdict nobody can check. Read one with `LOOM_TREE=experiments/NNN-name scripts/loom.sh`.
+
 The five playbooks and the original sibling-divergence table are **not** in here. They predate
 pre-registration, and giving them experiment files would imply a rigour they did not have.
 Their record is `PLAYBOOKS.md` and their conclusions are tagged as impressions above.

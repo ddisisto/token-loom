@@ -1,7 +1,9 @@
 # 001 — Temperature, across three prompts
 
-Run 2026-08-15 against Qwen2.5-7B base (i1-Q4_K_M) on llama-server b10221. Tree at
-`data/sweep-1/`, which is not committed. Measure pinned at `06d573c`, results at `129670e`.
+Run 2026-08-15 against Qwen2.5-7B base (i1-Q4_K_M) on llama-server b10221. Tree committed
+beside this file at `experiments/001-temperature/` — read it with
+`LOOM_TREE=experiments/001-temperature scripts/loom.sh diverge`. Measure pinned at `06d573c`,
+results at `129670e`.
 
 **Verdict: P1 fails, P0 holds, P2 survives with its framing moot.** The headline is in the
 results below, and the finding it turned up instead — that the prompt effect is larger than
@@ -246,3 +248,21 @@ document never needed.
 002 will have the same property and it is no longer a problem to be avoided. Per-span byte
 exactness would want the ways recorded in `BEYOND-MVP.md`, and no experiment has yet wanted
 it.
+
+**2026-08-17 — the tree is now committed, and moved.** It was at `data/sweep-1/`, gitignored,
+and the `given` rename had bumped the format marker to `token-loom/1.1` without it — so the
+only copy of this experiment's raw data had quietly stopped loading. It is migrated (the
+marker, and three spans from `human` to `given`; nothing structural moved between those
+versions) and now lives at `experiments/001-temperature/`, tracked. The header pointer above
+was corrected rather than appended to, being navigation rather than a claim; the pre-migration
+copy is in `../archive/sweep-1-preformat11/` along with the run log, which is not committed
+because the tree already holds every byte it recorded.
+
+Verified after migrating: `diverge` reproduces the tables in this file exactly, which is the
+check that matters — the numbers are the published verdict and a migration that changed them
+would be a corrupted record rather than a moved one.
+
+This is what the softened stance costs. Once a span is not guaranteed to regenerate from the
+conditions it carries, **the artefact is the evidence** and a write-up citing an uncommitted
+tree is citing something nobody else can see. So experiment data is committed from here on —
+see `CLAUDE.md`.

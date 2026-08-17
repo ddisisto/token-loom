@@ -5,6 +5,11 @@
 # demo.py --force is the only thing that should rewrite it. The directory has
 # to be un-ignored before git will look inside it at all. Everything else under
 # data/ is disposable scratch (data/tree/ is loom.py's default) or local history.
+#
+# Experiment trees do NOT live here. They are committed at experiments/NNN-name/
+# beside their write-up, deliberately outside anything this rule can swallow —
+# 001's was under data/, was ignored, and had quietly stopped loading by the
+# time anyone looked.
 data/*
 !data/demo/
 
