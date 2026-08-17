@@ -56,9 +56,9 @@ the note in `CLAUDE.md` about the sanctioned text substitution would want rewrit
 
 **3. `data/sweep-1/` predates the alignment fix.** About 40 of its ~10,070 token rows carry
 the pre-`d31a3d2` shape, where a merged entry stored a byte fragment's id as though it
-described a whole character. It was generated with `cache_prompt` on, so it is faithful but
-not reproducible from what each span carries. `lock(3)` and `lock(10)` are unaffected and
-nothing was re-run. Do not treat it as a clean reference tree; `data/demo/` is the clean one.
+described a whole character. `lock(3)` and `lock(10)` are unaffected and nothing was re-run.
+Do not treat it as a clean reference tree; `data/demo/` is the clean one. Its `cache_prompt`
+history is no longer a defect — see below.
 
 ## For the front end specifically
 
@@ -92,9 +92,20 @@ pre-registration before the run, the results after. `CLAUDE.md` has the reasonin
 append; editing an experiment file after its results land spends the only thing
 pre-registration buys.
 
-**`cache_prompt` is off and generation is therefore slower**, by the cost of reprocessing the
-prompt on every call. This is deliberate and `BEYOND-MVP.md` holds the two routes back to the
-speed. If a sweep feels slow, that is why, and it is not a regression.
+**`cache_prompt` is on again as of this session, and byte-exact replay of a span is now a
+stated non-goal.** It was off for two days on the reasoning that recorded conditions should
+reproduce their span; the reasoning was wrong in a specific way worth knowing, since the cache
+is a pure function of the prompt tokens and carries nothing of one request's sampling into the
+next. What differs warm from cold is unbiased floating-point noise, so distributional results
+are untouched and only the particular draw changes. `RESEARCH.md`'s *What a finding may claim*
+is the stance, `BEYOND-MVP.md` has the ways back to exactness, and generation is faster again.
+
+**This intersects the front-end work.** `FRONTEND.md` designs `cache_prompt` as an interned
+per-call parameter, which is the right mechanism and the first of the routes back — but it
+specifies `False` as the default, and the core default is now `True`. Daniel is carrying that
+correction into `FRONTEND.md` from the other session; the mechanism is unchanged and only the
+default moves. Making it a parameter is still worth doing, because a span saying which regime
+produced it is what the softened constraint needs to stay honest.
 
 **`scripts/` is committed.** `sweep.sh` is a temperature sweep in executable form — copy it
 rather than editing it for a different experiment. `api.sh` serves one tree on 8080.

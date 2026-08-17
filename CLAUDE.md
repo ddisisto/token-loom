@@ -125,13 +125,23 @@ things measured there that are not obvious:
   mind: a **sampled** span can therefore never end mid-character, so `FORMAT.md`'s `{"b64": …}`
   serialisation is unreachable from generation; and `Token.idx` is an entry index, not a model
   token index, wherever a merge happened.
-- **`cache_prompt` is off, deliberately, and it costs prompt processing on every call.** A
-  full cache hit evaluates no prompt tokens, and that changes the arithmetic enough to change
-  what a fixed seed samples — the same slice, seed and parameters reproduce a *different*
-  continuation warm than cold. Measured on a recorded span: warm reproduced its 20 stored
-  entries exactly, cold and cache-off both gave 22 and diverged at index 16. Conditions that
-  only reproduce from the right cache state are not conditions, and the recorded conditions
-  are the whole product. `BEYOND-MVP.md` holds the thread for getting the speed back.
+- **`cache_prompt` is on, and a span is therefore not guaranteed to replay byte for byte.** A
+  full cache hit evaluates no prompt tokens, which changes the reduction order enough to
+  perturb the logits and occasionally flip a near-tie: the same slice, seed and parameters can
+  give a *different* continuation warm than cold. Measured — warm reproduced a stored span's
+  20 entries exactly, cold gave 22 and diverged at index 16; on another prompt at 16 tokens
+  they agreed completely.
+
+  **This is not contamination between calls, and the distinction is the whole reason it is
+  acceptable.** The cache is a pure function of the prompt tokens — no seed reaches it, and
+  nothing of one request's sampling survives into the next. What differs is unbiased
+  floating-point noise from a different batch shape, so warm and cold are two draws from the
+  same distribution rather than one right and one wrong. Distributional statistics are
+  unaffected; only bitwise replay of a *particular* span is lost, and that was already
+  conditional on the same build, GPU and quantisation. It was off for a stretch on the
+  contrary reasoning, which is recorded in `BEYOND-MVP.md` along with the three ways back to
+  the stronger form — the first of which is to make it an interned parameter, so a span at
+  least says which regime produced it.
 
 It is the only setup that gives **raw continuation and per-token logprobs at once**, and
 that pairing is the whole point: a continuation of the prior is a different object than a

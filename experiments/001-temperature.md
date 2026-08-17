@@ -227,3 +227,22 @@ sweep, and a full cache hit changes what a fixed seed samples. Replaying a span 
 reproduces it exactly; replaying it cold does not. So these 360 continuations are a faithful
 record of what the model produced, but they are *not* reproducible from the conditions each
 span carries alone. It is off from `d31a3d2` onward, so 002 will not have this problem.
+
+**2026-08-17 — the note above is superseded, and this sweep's results were never affected.**
+`cache_prompt` is on again, and byte-exact replay is now a stated non-goal rather than a
+regression: see `RESEARCH.md`, *What a finding may claim*. The correction that matters is to
+the reasoning, not the setting. A warm cache does not carry anything from one request's
+sampling into the next — the cache is a pure function of the prompt tokens and no seed reaches
+it — so what differs warm from cold is unbiased floating-point noise from a different batch
+shape. Warm and cold are two draws from the same distribution.
+
+Everything measured here is distributional: `lock(k)` over twenty siblings, common prefixes,
+path counts, duplicate counts. None of it depends on any individual span being the one that
+would recur, and the perturbation is orders of magnitude below what `n=20` can resolve. So the
+verdicts stand exactly as written, and the sentence above overstated the problem when it said
+reproducibility was "weaker than this document assumed" — what was weaker was a guarantee the
+document never needed.
+
+002 will have the same property and it is no longer a problem to be avoided. Per-span byte
+exactness would want the ways recorded in `BEYOND-MVP.md`, and no experiment has yet wanted
+it.

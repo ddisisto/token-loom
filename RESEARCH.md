@@ -24,6 +24,30 @@ demonstration, not an experiment: it happened before pre-registration existed he
 transcript is in `PLAYBOOKS.md`, and it is an impression rather than a measurement. Where a
 finding has nothing after it, that is the tag.
 
+### What a finding may claim
+
+**Distributional, with a confidence — never a byte-exact absolute.** This is a deliberate
+trade and it decides what the instrument is for.
+
+An individual span is not guaranteed to regenerate byte for byte from the conditions it
+carries. `cache_prompt` is on, and a warm prompt cache perturbs the logits enough to flip a
+near-tie now and then. What that perturbation is *not* is contamination between calls: the
+cache is a pure function of the prompt tokens, no seed reaches it, and nothing of one
+request's sampling survives into the next. It is unbiased numerical noise from a different
+batch shape, so warm and cold are two draws from one distribution rather than one right and
+one wrong.
+
+Which means a claim about *what the model tends to do* is untouched, and a claim about *what
+this specific span did* is a claim about a record rather than about a reproducible event. The
+first is what the questions below ask. The second was never the product, and buying it back
+cost a prompt reprocessed on every call for a guarantee already conditional on the same build,
+the same GPU and the same quantisation.
+
+So: prefer more samples over exact ones, and report an interval rather than a number wherever
+the sample size will carry one. Experiment 001 is the pattern in negative — `n=20` was chosen
+to resolve 40% against 80% and was honest that it could not resolve 60% against 75%, which is
+what let its null result mean "too small to see here" instead of "did not happen".
+
 ---
 
 ## The questions
@@ -220,6 +244,9 @@ and llama-server in `CLAUDE.md` under *Inference*.
   Measured at zero on English prompts and everywhere on astral-plane ones.
 - **Stop strings off a token boundary lose bytes silently**, so keep them to plausible token
   sequences until the token-replay path exists.
-- **`cache_prompt` is off**, at the cost of reprocessing every prompt, because a warm cache
-  changes what a fixed seed samples. Conditions that only reproduce from the right cache state
-  are not conditions.
+- **A span is not guaranteed to replay byte for byte.** `cache_prompt` is on, and a warm cache
+  perturbs the logits enough to occasionally flip a near-tie. The perturbation is unbiased
+  floating-point noise from a different batch shape — the cache carries nothing from one
+  request's *sampling* into the next — so a distribution is unaffected and only the particular
+  draw changes. This is the trade named under *What a finding may claim*, and
+  `BEYOND-MVP.md` holds the ways back to exactness.

@@ -47,27 +47,54 @@ The format-level halves of these are already in Phase 1: the stop list interns w
 other parameters, termination reason distinguishes a stop token from a length limit, and
 every span carries its batch id. What defers is interface.
 
-### The prompt cache, and getting the speed back
+### The prompt cache, and getting byte-exact replay back
 
-`cache_prompt` is **off**, and the cost is real: a batch of twenty continuations from one
-position reprocesses the same prompt twenty times instead of once. It was on until a
-recorded span turned out not to reproduce from what it carries — a full cache hit evaluates
-no prompt tokens, and that changes the arithmetic enough to change what a fixed seed samples.
-Warm reproduced the stored sequence exactly; cold and cache-off both diverged from it at
-index 16. Off is the setting that matches the stated intent, so off is where it stays for now.
+`cache_prompt` is **on**, and what it costs is bitwise replay of an individual span. A full
+cache hit evaluates no prompt tokens, which changes the reduction order enough to perturb the
+logits, which occasionally flips a near-tie. Measured: warm reproduced a stored sequence
+exactly, cold diverged from it at index 16 — and at sixteen tokens on another prompt, warm and
+cold agreed completely. Late and sometimes, which is the signature of a small unbiased
+perturbation rather than a wrong answer.
 
-Two ways to have both, neither worth building yet:
+It was off for a stretch, on the reasoning that recorded conditions ought to reproduce their
+span. **That reasoning was wrong in an interesting way.** The cache is a pure function of the
+prompt tokens — no seed reaches it, and nothing of one request's sampling survives into the
+next — so there is no contamination to argue is harmless. There is only floating-point noise
+from a different batch shape, unbiased and uncorrelated with token identity. Warm and cold are
+two draws from the same distribution, not one right and one wrong, and every distributional
+statistic the research thread computes is unaffected to within that noise.
 
-- **Record it.** Add the cache state to the interned parameters, so a span says which regime
-  produced it. Honest, and it is a format change for a performance feature — the wrong order
-  to do things in, and the reason it is here rather than in `FORMAT.md`.
-- **Make the batch the reproducible unit rather than the span.** A batch is *n* sequential
-  calls on one prompt, so replaying it from its start restores its own cache trajectory. This
-  costs nothing and is arguably what the batch id was always for. It needs verifying before
-  it can be claimed, and the claim is weaker: individual spans stop being independently
-  reproducible, which is a real loss for counterfactual branching.
+What was traded away is therefore narrower than it first looked: not correctness, but the
+ability to regenerate a *particular* span byte for byte. That guarantee was already
+conditional on the same llama.cpp build, the same GPU and the same quantisation. The cache was
+one more condition in a list — distinguished only by varying call to call and being invisible,
+which is a real objection to *silently* depending on it and not an objection to depending on
+it at all.
 
-Worth reaching for when a sweep is slow enough to care. Nothing currently is.
+Three ways back to the stronger form, roughly in order of cost:
+
+- **Make it a parameter and record it.** `cache_prompt` becomes a setting like any other,
+  interned with the rest, so every span says which regime produced it. Cheaper than this
+  section used to claim: `Tree.intern` hashes whatever dict it is handed and the validator
+  does not inspect parameters, so there is no schema to extend and no version to bump. This is
+  the one to do, and the front-end work reaches the same conclusion from the other direction.
+- **Control the cache explicitly rather than inheriting it.** Cold is a reproducible state;
+  warm is only reproducible if you know the history. So byte-exact replay under a warm cache
+  needs the cache reset at a known boundary, not merely the flag set — otherwise a span that
+  replays today does so by luck. Whether llama-server exposes a clean reset wants checking
+  before this is counted on.
+- **A second adapter over `transformers`.** Where `past_key_values` is an object the caller
+  owns rather than server state it inherits. This does not make warm and cold agree — same
+  arithmetic, same perturbation — but it makes the choice explicit and auditable. It is wanted
+  anyway for model internals, and that is the reason to build it; cache control is a bonus.
+
+**Making the batch the reproducible unit is not on this list**, having been considered and
+rejected. A batch is *n* sequential calls on one prompt, so replaying it from its start ought
+to restore its own cache trajectory — but only if the state entering the batch is known, which
+is server history nothing records and nothing can verify afterwards. A span that replays
+because the cache happened to be warm the same way is a lucky record, not a reproducible one.
+It also degenerates for a batch of one, which is what counterfactual branching and every
+retransmission chain produce.
 
 ### Streaming
 

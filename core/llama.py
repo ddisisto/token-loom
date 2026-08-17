@@ -142,14 +142,22 @@ class Server:
             'stop': list(settings['stop']),
             'seed': seed,
             'return_tokens': True,
-            # off deliberately, and it costs prompt processing on every call.
-            # A full cache hit evaluates no prompt tokens, and that changes the
-            # arithmetic enough to change what a fixed seed samples: the same
-            # slice, seed and parameters reproduce a *different* continuation
-            # warm than cold. Measured, not assumed -- see BEYOND-MVP.md. The
-            # recorded conditions are the whole product here, and conditions
-            # that only reproduce from the right cache state are not conditions
-            'cache_prompt': False,
+            # on, and it costs byte-exact replay of an individual span. A full
+            # cache hit evaluates no prompt tokens, which changes the reduction
+            # order enough to perturb the logits, which occasionally flips a
+            # near-tie: the same slice, seed and parameters can reproduce a
+            # *different* continuation warm than cold. Measured, not assumed.
+            #
+            # It was off for a while on the reasoning that recorded conditions
+            # should reproduce their span. What that missed is that the cache is
+            # a pure function of the prompt tokens -- no seed reaches it -- so
+            # the perturbation is unbiased numerical noise and the *distribution*
+            # is unchanged to within it. Warm and cold are two draws from the
+            # same distribution, not one right and one wrong. What is lost is
+            # bitwise replay, which was already conditional on the same build
+            # and the same GPU, and which the research thread has traded for the
+            # prompt processing. See BEYOND-MVP.md for the ways back to it
+            'cache_prompt': True,
         }
         r = requests.post(f'{self.base}/completion', json=body,
                           timeout=self.timeout)
