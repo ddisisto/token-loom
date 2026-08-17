@@ -185,7 +185,9 @@ The intended flow, working well:
    separator.
 2. Generate forward, varying parameters, navigating the space that seed creates.
 
-That is the whole of it. The only mutation is branching mid-span.
+That is the whole of it. The only mutation is branching mid-span. The command line does all
+of it; the front end in Phase 3 takes a deliberately narrower path through the same flow,
+and `FRONTEND.md` says which and why.
 
 **Nothing is editable in place, ever.** Recorded bytes are immutable; the only destructive
 operation is delete, which cascades. This makes the tree semantically append-only, not just
@@ -205,11 +207,12 @@ The consequence is worth stating plainly rather than softening: fixing a typo in
 that has already generated means losing what it generated. That is the honest price of
 records that stay true, and it is why forking is cheap.
 
-**Local inference only.** `llama-server` is the target for MVP; the hosted providers in the
-capability table stay as they are, and anything they'd need is deferred rather than built.
+**Local inference only.** `llama-server` is the target for MVP. The capability table that
+described how hosted providers differ retired with the old stack in Phase 2, and a hosted
+provider later is a second adapter beside `core/llama.py` rather than an entry in a table.
 
-**The MVP is Phases 0 through 3**: clear the ground, the token core, the API and front end
-rebuilt against it, then the reads that make the core legible. Generation control beyond
+**The MVP is Phases 0 through 3**: clear the ground, the token core, the API, and the front
+end built on it. Generation control beyond
 what the format already records, and streaming, are work *on top* rather than steps toward
 it — both are deferred entire to `BEYOND-MVP.md`. Deferring streaming costs nothing later
 because the representation it needs lands in Phase 1 regardless, which was the reason for
@@ -339,7 +342,7 @@ automatically still has *sampled* tokens; what differs is what initiated it. Pro
 stays a statement about token origin, with room beside it for an optional initiator
 reference. Folding the two axes into one enum is what forces the schema change.
 
-## Phase 2 — API ✅, front end next
+## Phase 2 — the API ✅
 
 A clean replacement rather than a port. The old API spoke node ids throughout, and a
 node-shaped compatibility view over the new model would have meant carrying the old
@@ -347,9 +350,8 @@ vocabulary into the thing built to replace it — cheaper in the short run and a
 after. It was retired whole rather than ported: `inference.py`, `models.py`, `params.py`,
 `util/`, `web/` and `smoke_test.py` are gone, and the tag `pre-token-core` holds them.
 
-**The server half is built** — `api/server.py` for the routes, `api/wire.py` for the
-encoding, `api_test.py` for 62 checks that need no model. What it settled beyond the
-scope below:
+**Built** — `api/server.py` for the routes, `api/wire.py` for the encoding, `api_test.py`
+for 62 checks that need no model. What it settled beyond the scope below:
 
 - ✅ **Positions, not nodes**, in the API surface. A position is `(span, byte offset)`;
   generation, branching and selection all take one. Nothing else appears on the wire — in
@@ -369,53 +371,47 @@ scope below:
 - ✅ **Every mutation answers with the whole tree**, so no client keeps a second model of the
   structure. Affordable because the tree file is small by construction and the bulk data is
   deliberately elsewhere.
-- **Token-level rendering** as the default read surface, with runs as the unit of layout —
-  the front end's work, and what remains of this phase. Runs are derived in `core/ops.py`
-  and travel as composition with no ids, so the layout unit is available without the client
-  computing it.
+- ✅ **Runs travel as composition, with no ids at any depth.** Derived in `core/ops.py` and
+  shared by both clients, so the unit of layout arrives ready to lay out and the zero-width
+  fork rule is not implemented twice. What renders them is Phase 3.
 
 Deferred out of this phase and recorded in `BEYOND-MVP.md`: the generation-control UI —
 stop-token configuration and section-break rendering, a server-side settings store, and
 sweeps beyond the batch id that Phase 1 mints. The parts of those that are format-level
 are already in Phase 1; what defers is UI.
 
-## Phase 3 — reads and annotation
+## Phase 3 — the front end
 
-The last of the MVP. Unlocked by Phase 1 and cheap once Phase 2 has somewhere to put it.
+The last of the MVP, and **`FRONTEND.md` is its document** — the concept, the vocabulary it
+introduces, the constraints a wireframe is checked against, and the reasoning behind each.
+The shape only is here.
 
-- **Slice-selectable viewport.** Showing the slice that was sent is the first half: when
-  viewing a token, the viewport shows exactly what was in context for the span that
-  produced it, which makes an otherwise invisible property of the run legible. Slice is a
-  property of the span, not of the token, so a selection anywhere in a span resolves to
-  that span's slice.
+A given goes in at the root. Everything after that is navigation, and generation is a
+consequence of navigating rather than something the reader asks for: the surface supplies
+continuations at the rate they are read, and the reader's whole agency is choosing among
+them. Behind the reading position the text flows, because every fork it passes was a choice
+already made. At the tip it stops, because nothing continues from there yet.
 
-  The second half is that the range is **re-selectable**: drag the start, and generate
-  again under that context. This replaces `prompt_length` as a number with direct
-  manipulation, and since slice start is a recorded parameter, the result is a comparable
-  experiment rather than a transient view.
+One test decides what is in — **does it serve seeing the alternatives and picking one?** —
+and most of what this core could offer does not. That is what makes this the minimum rather
+than a first pass at everything.
 
-  Both handles are selectable, and they mean different things:
+Three things about it bear on the phases before it:
 
-  - **moving the start** keeps the generation point and changes how much prefix the model
-    sees — a new experiment at the same tip
-  - **moving the end** moves the generation point itself — a new branch from that earlier
-    position, which is the primitive the tree already has
-  - **both** is the general case: branch at an earlier position under a restricted context
+- **It asks the core for nothing.** The front end is a client of the API, which is a client
+  of the substrate. The one change it wanted — the prompt cache on — arrived from the
+  research thread instead, and for a better reason than the one it would have given.
+- **Branching to a counterfactual is in**, as potential rather than actual: any sampled token
+  can be asked what else it could have been, and answers out of what was stored when its span
+  was made. It is the finest grain the instrument has and it costs no generation at all,
+  which is what makes it affordable at the minimum. What it forces is one property of the
+  surface from the first version — every point in the rendered text resolves to a
+  `(span, offset)`, and a span is never an opaque string.
+- **Reads and annotation are not this phase.** The slice viewport, bookmarks and tags, the
+  divergence profile as something visible, and parameter control are all work on top, and
+  are in `BEYOND-MVP.md`.
 
-  The end never floats free of the continuation point because it *is* the continuation
-  point. The invariant that a prompt is a contiguous ancestry slice ending at the branch
-  point holds by construction, not by prohibition.
-- **Bookmarks and tags**, anchored to `(span, offset)` — one address, not an offset plus a
-  node id. A range bookmark is two of them, valid when both lie on one path.
-- **Branch to a counterfactual**: at any token, the stored top-N are alternatives the model
-  ranked but did not take. Selecting one anchors a new span at that token's offset — no
-  generation needed for the branch itself, and nothing divided to make room for it. This is the payoff that makes storing
-  counterfactuals worth their size.
-- Visual distinction between explored and unexplored forks.
-- **Sibling divergence**, as a read over stored token ids: siblings of one batch agree for
-  a while and then split, nested rather than at a single point. Measured at 2% of storage
-  and so explicitly not a storage feature — see `BEYOND-MVP.md`. The profile it yields is
-  the cheapest direct read of the attractor question the instrument exists for.
+One process serving one tree, local inference, and no build step.
 
 ---
 
@@ -438,8 +434,9 @@ are already folded in above.
   executable checks — `core_test.py`, `api_test.py`, `llama_test.py` — each a script that
   prints what it asserted and why. The clean-break format with no migration is what makes
   that affordable. `smoke_test.py` retired with the stack it smoke-tested.
-- **Hosted providers.** Local inference only; the capability table keeps its entries but
-  gets no new work.
+- **Hosted providers.** Local inference only. No hosted provider returns logprobs on a raw
+  continuation, so none of them can feed the token core at all; adding one later is a second
+  adapter beside `core/llama.py`.
 - A second model judging, summarising or retransmitting. Generation stays human-gated.
 - Prompt library, composition, templating.
 - Automation, playbooks, hooks, instrumentation.

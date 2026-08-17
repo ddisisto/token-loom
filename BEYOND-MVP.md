@@ -6,9 +6,9 @@ than extended. This file is where that next thing will start from.
 
 Two kinds of thing live here, and they differ in how settled they are:
 
-- **Deferred from the MVP** — scoped and agreed, just not first. Generation control and
-  streaming, which were phases until the MVP was cut back to the core, an interface on it,
-  and the reads that make it legible.
+- **Deferred from the MVP** — scoped and agreed, just not first. Reads and annotation,
+  generation control, and streaming. The first was Phase 3 until the front end took that
+  name; the others were phases until the MVP was cut back to the core and an interface on it.
 - **Wanted eventually** — recorded now **only** because they bear on decisions the MVP is
   about to make. Embeddings, a generation controller, sibling divergence, token replay.
 
@@ -21,10 +21,72 @@ Everything else fits without the format knowing about it in advance.
 
 ## Deferred from the MVP
 
-These were phases in their own right until the MVP was cut back to "the token core, an
-interface built on it, and the reads that make it legible". Both sit *on top* of that
-rather than lead to it. Neither is speculative in the way the rest of this file is — they
-are scoped, agreed, and simply not first.
+These were phases in their own right until the MVP was cut back to the token core, an
+interface on it, and the smallest reading surface that is the instrument rather than a
+demonstration of it. They sit *on top* of that rather than lead to it, and none of them is
+speculative in the way the rest of this file is — they are scoped, agreed, and simply not
+first.
+
+### Reads and annotation
+
+This was Phase 3 until the front end took the name. What it holds is everything the reading
+surface could show that is not needed in order to seed, read and choose. Each is a read over
+data already stored, and none of them wants anything from the format.
+
+- **The slice viewport.** Showing the slice that was sent makes an otherwise invisible
+  property legible: when looking at a token, the viewport shows exactly what was in context
+  for the span that produced it. Slice is a property of the span rather than of the token, so
+  a selection anywhere in a span resolves to that span's slice. `GET /api/slice` already
+  answers it, and reports the nudged start — the slice that would be used rather than the one
+  asked for.
+
+  The second half is that the range is **re-selectable**: drag the start, and generate again
+  under that context. That replaces `prompt_length` as a number with direct manipulation, and
+  since slice start is a recorded parameter the result is a comparable experiment rather than
+  a transient view. Both handles are selectable and they mean different things:
+
+  - **moving the start** keeps the generation point and changes how much prefix the model
+    sees — a new experiment at the same tip
+  - **moving the end** moves the generation point itself — a new branch from that earlier
+    position, which is the primitive the tree already has
+  - **both** is the general case: branch at an earlier position under a restricted context
+
+  The end never floats free of the continuation point because it *is* the continuation point.
+  The invariant that a prompt is a contiguous ancestry slice ending at the branch point holds
+  by construction rather than by prohibition.
+- **Bookmarks and tags**, anchored to `(span, offset)` — one address, not an offset plus an
+  id. A range bookmark is two of them, valid when both lie on one path. These want somewhere
+  to keep something the format does not already hold, and the bulk store being generic over
+  record type is what makes that a new record type rather than a new mechanism.
+- **Sibling divergence as something visible.** The computation is built — `divergence` in
+  `core/ops.py`, `loom.py diverge`, and `GET /api/batches/{batch}/divergence` — so what
+  defers is only the showing of it. It is the cheapest direct read of the attractor question
+  the instrument exists for, and it is currently reachable only by someone who knows to ask.
+- **Visual distinction between explored and unexplored forks**, which the tree response
+  already carries everything needed to derive.
+
+### The reading surface's next layer
+
+`FRONTEND.md` scopes the front end to seeding, reading and choosing. Four things sit
+immediately on top of it, roughly in the order they would arrive:
+
+- **Generating ahead of the request.** A reader who exhausts the alternatives at a tip asks
+  for another and waits. Producing one speculatively, before it is asked for, is the first
+  thing that would make the surface feel ahead of its reader — and it is the first generation
+  the reader did not initiate, which is where an `initiator` key earns its place. Until then
+  research trees and reading trees are separated by living in different directories, which is
+  the granularity that matters.
+- **Parameter control**, which is the generation-control section below seen from the reading
+  surface. Its absence from the MVP is the point rather than a gap: the surface names no
+  parameter and offers to change none, so temperature stops being a dial and becomes an
+  invisible condition of the session.
+- **Rendering stop tokens as section breaks**, with the grouping toggles beside it —
+  sentence, paragraph, bullet, or consecutive stretches of the same — for reading a batch as
+  a group rather than following one path through it. Pure client work that costs the server
+  nothing.
+- **Reading a research tree**, read-only or read-write on a copy. Nothing in the surface
+  prevents it and nothing in it is designed for it. The read-only case needs no change
+  tracking at all, since a client that issues no mutation has nothing to keep in step.
 
 ### Generation control
 
@@ -77,7 +139,8 @@ Three ways back to the stronger form, roughly in order of cost:
   interned with the rest, so every span says which regime produced it. Cheaper than this
   section used to claim: `Tree.intern` hashes whatever dict it is handed and the validator
   does not inspect parameters, so there is no schema to extend and no version to bump. This is
-  the one to do, and the front-end work reaches the same conclusion from the other direction.
+  the one to do when it is wanted. The front end does not want it: the cache being on for
+  everything is what it would have asked for.
 - **Control the cache explicitly rather than inheriting it.** Cold is a reproducible state;
   warm is only reproducible if you know the history. So byte-exact replay under a warm cache
   needs the cache reset at a known boundary, not merely the flag set — otherwise a span that
