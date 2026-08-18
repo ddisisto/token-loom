@@ -100,6 +100,51 @@ function slider() {
   };
 }
 
+// -- the address bar -------------------------------------------------------
+
+/** Where the reader is standing, as a fragment: `#s7+31/1`.
+ *
+ * The target fork in the grammar `loom.py` parses, and which of its cards is
+ * selected. Written on every draw and read on load, so the address bar is a
+ * live readout of the reader's location and a link that puts someone else in
+ * front of the same thing -- which is mostly what it is for: "look at this"
+ * is otherwise a paragraph of directions.
+ *
+ * **The cursor is deliberately not in it.** It lives in the tree, on disk, so
+ * a link opened against the same tree already lands on the same path; putting
+ * it in the URL as well would mean a page load quietly rewriting where the
+ * reader was. The fragment names where you are *standing*, not which path you
+ * are standing on.
+ *
+ * `replaceState` rather than `pushState`: the browser's back button belongs to
+ * the reader, and one history entry per arrow key would take it from them.
+ */
+function locate(fork, card) {
+  if (!fork) return;
+  const at = fork.at === null ? '.' : `${fork.at.span}+${fork.at.offset}`;
+  const hash = `#${at}/${card}`;
+  if (hash !== window.location.hash) history.replaceState(null, '', hash);
+}
+
+/** The same, read back. `null` when there is no fragment or it is not one of
+ * ours -- a hand-typed address is a reasonable thing to be wrong, and falling
+ * back to the tip is the same thing that happens when a target has been
+ * deleted out from under the reader. */
+function located() {
+  const raw = decodeURIComponent(window.location.hash.slice(1));
+  if (!raw) return null;
+  const [where, card] = raw.split('/');
+  let at;
+  if (where === '.') at = null;
+  else {
+    const parsed = /^([A-Za-z0-9_-]+)\+(\d+)$/.exec(where);
+    if (!parsed) return null;
+    at = { span: parsed[1], offset: Number(parsed[2]) };
+  }
+  const n = Number(card);
+  return { at, card: Number.isInteger(n) && n >= 0 ? n : null };
+}
+
 /** Remember how far the reader got down every branch on the current path.
  *
  * Keyed by the first span of each branch, which is durable, and consulted when
@@ -214,7 +259,11 @@ function grow() {
   const { fork } = slider();
   if (!fork || writes.busy || state.readOnly) return;
   const last = fork.children[fork.children.length - 1];
-  if (nodeState(state.tree, last) !== 'ready') return;
+  // only a continuation still running blocks another. One that finished with
+  // no bytes is finished, and asking for one more is the *only* thing left to
+  // do there -- an end-of-text at a tip stops the path, and refusing to grow
+  // as well leaves the reader with no move at all.
+  if (nodeState(state.tree, last) === 'flight') return;
   state.growing = true;
   generate(fork.at, 1);
 }
@@ -319,7 +368,7 @@ function draw(chase = true) {
   const strip = cardStrip(state.tree, fork, card, {
     growable: Boolean(fork) && atTip && !chosen && !state.readOnly
       && card === fork.children.length - 1
-      && nodeState(state.tree, fork.children[card]) === 'ready',
+      && nodeState(state.tree, fork.children[card]) !== 'flight',
   });
 
   // one flow, laid out once and drawn twice: the clone is a copy of the
@@ -334,6 +383,7 @@ function draw(chase = true) {
   // earlier fork, and what lies past it is dimmed rather than removed
   const shift = place(dom, index < 0 ? -1 : nodeOf[index], { muted: !atTip });
   renderMargin(dom.margin, dom.above, points, index, shift);
+  locate(fork, card);
   if (chase) follow(dom.band, LEAD);
 }
 
@@ -419,6 +469,15 @@ async function start() {
   dom.chunkValue.textContent = String(state.chunk);
   dom.submit.addEventListener('click', submitSeed);
   document.addEventListener('keydown', keys);
+  // our own writes are `replaceState` and do not fire this; a pasted or edited
+  // address does, and moving there is what the reader asked for
+  window.addEventListener('hashchange', () => {
+    const to = located();
+    if (!to || !state.tree) return;
+    state.sliderAt = to.at;
+    state.card = to.card;
+    draw();
+  });
   document.addEventListener('click', clicks);
   // a resize re-wraps the flow, so the clips and the band are stale in a way
   // that re-measuring fixes and re-rendering is not needed for. This is the one
@@ -439,6 +498,13 @@ async function start() {
     banner(dom.banners, e instanceof Refusal && e.status === 503
       ? 'no model server is attached; reading works, generation does not'
       : String(e.message));
+  }
+  // the fragment is read before the first draw, so a link lands where it says
+  // rather than at the tip and then jumping
+  const here = located();
+  if (here) {
+    state.sliderAt = here.at;
+    state.card = here.card;
   }
   try {
     forgetText();

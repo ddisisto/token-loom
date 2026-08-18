@@ -171,14 +171,27 @@ and that is what a placeholder is rendering. The client learns about them by rea
 `GET /api/tree` while its generate call is still open — reads do not queue behind writes, and
 a batch saves per continuation, so the first card lands while the second is still running.
 
-A card can also be **empty and finished** — a generation that produced no bytes at all, from
-a batch interrupted and closed as `aborted` or a model that stopped on its first token. That
-is a different answer from a placeholder and says so: one will fill and one will not.
+A card can also be **empty and finished** — a generation that produced no bytes at all. That
+is a different answer from a placeholder and says so: one will fill and one will not. It says
+*which* answer, too, by reading the span's terminator rather than assuming: `<|endoftext|>`
+where the model emitted end-of-text before anything else, and the reason in plain words
+otherwise — an interrupted batch, a full context, a stop string matching immediately.
 
-**Growing.** When the selected card is the rightmost, is fully generated, and nothing of the
-client's is in flight, a new empty card appears to its right and one
-`POST /api/generate {n: 1}` fills it. Moving right past the rightmost card is unavailable
-until that generation is running. Every other movement is always available.
+`<|endoftext|>` rather than "no bytes" because anyone working at this level reads it
+immediately, and because it explains the thing the reader is about to run into: nothing
+continues from there, so down does nothing. Measured across two working trees, every empty
+span was `eos` — the label is the common case named, not a guess.
+
+**Growing.** When the selected card is the rightmost, is finished, and nothing of the client's
+is in flight, a new empty card appears to its right and one `POST /api/generate {n: 1}` fills
+it. Moving right past the rightmost card is unavailable until that generation is running.
+Every other movement is always available.
+
+**Finished includes finished with nothing.** Only a continuation still running blocks another
+— an end-of-text stops the path downward, and refusing to grow as well would leave the reader
+with no move at all at a fork whose every alternative ended. Asking for one more is exactly
+the right question there, and it may of course come back empty too, which is itself worth
+seeing.
 
 A new card is a fresh draw rather than a repeat: seeds derive from the tree's base seed plus
 a call index, so every continuation ever made at a position has its own. A reader who finds
@@ -304,11 +317,29 @@ be done about it.
 **Reads never queue.** `GET /api/tree` runs underneath a generation and is what fills the
 placeholders.
 
+## The address bar
+
+The fragment is where the reader is standing: `#s7+31/1`, the target fork in the grammar
+`loom.py` parses and which of its cards is selected. It is written on every draw and read on
+load, so the address bar is a live readout and a link that puts someone else in front of the
+same thing — which is most of what it is for, since "look at this" is otherwise a paragraph
+of directions.
+
+**The cursor is deliberately not in it.** It lives in the tree, on disk, so a link opened
+against the same tree already lands on the same path; carrying it in the URL as well would
+mean a page load quietly rewriting where the reader was. The fragment names where you are
+standing, not which path you are standing on.
+
+`replaceState` rather than `pushState`: the browser's back button belongs to the reader, and
+one history entry per arrow key would take it from them. A fragment typed or pasted by hand
+does move the target, and one that names a position no longer on the path falls back to the
+tip — the same thing that happens when a target is deleted out from under the reader.
+
 ## What survives a reload
 
 The tree, which is on disk, and the cursor, which is in it. From the cursor the whole active
 path follows by walking parents, so a reload restores what was being read without the client
-having stored anything.
+having stored anything. The fragment adds where in it the reader was standing.
 
 Everything else is session state and may go: which alternatives have been looked at, where
 the path resumed after a re-route, the muting. A reader who reloads lands at their tip with

@@ -231,6 +231,38 @@ export function renderMargin(host, above, points, active, shift) {
 
 // -- the cards -------------------------------------------------------------
 
+/** What a card with no bytes says, by why it has none.
+ *
+ * A continuation that produced nothing is a recorded answer rather than a
+ * failure to render, and which answer it is decides what the reader can do
+ * next: the model emitting end-of-text is a hard stop at that tip, and an
+ * interrupted batch is not. `<|endoftext|>` rather than "no bytes" because
+ * anyone working at this level reads it immediately, and because it says why
+ * nothing continues from there -- which "no bytes" leaves the reader to
+ * discover by pressing down and having nothing happen.
+ *
+ * The terminator is on the wire for every complete span, so this is read
+ * rather than assumed. `length` cannot really produce an empty span and is
+ * listed so the map is total against `core/store.py`.
+ */
+const ENDED = {
+  eos: '<|endoftext|>',
+  aborted: 'aborted',
+  context: 'context full',
+  stop: 'stop string',
+  length: 'no bytes',
+};
+
+const WHY = {
+  eos: 'the model emitted end-of-text before anything else: nothing continues '
+    + 'from here',
+  aborted: 'the batch was interrupted before this continuation produced '
+    + 'anything',
+  context: 'the path fills the context, so there was no room to generate',
+  stop: 'a stop string matched before any bytes were emitted',
+  length: 'the call produced no bytes',
+};
+
 /** The alternatives on offer, one card per run leaving the fork.
  *
  * A card is a run rather than a span, and where an alternative is the
@@ -259,8 +291,10 @@ export function cardStrip(tree, fork, selected, { growable }) {
       card.append(el('div', 'waiting', ''));
       card.title = 'still generating';
     } else {
-      card.append(el('div', 'nothing', 'no bytes'));
-      card.title = 'this continuation produced nothing at all';
+      const held = node.pieces.length ? tree.spans[node.pieces[0].span] : null;
+      const why = held ? held.terminator : null;
+      card.append(el('div', 'nothing', ENDED[why] || 'no bytes'));
+      card.title = WHY[why] || 'this continuation produced nothing at all';
     }
     strip.append(card);
   });
