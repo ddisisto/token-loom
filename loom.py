@@ -504,7 +504,8 @@ def main(argv=None) -> int:
     p.add_argument('--temp', type=float, default=0.9)
     p.add_argument('--top-p', type=float, default=1.0)
     p.add_argument('--top-n', type=int, default=3, help='counterfactuals, min 1')
-    p.add_argument('--prompt-length', type=int, default=6000, help='bytes')
+    p.add_argument('--prompt-length', type=int, default=None,
+                   help='bytes of path to send; the whole of it if omitted')
     p.add_argument('--stop', action='append', default=[])
     p.add_argument('--stay', action='store_true',
                    help='leave the cursor at the generation point')
@@ -520,7 +521,7 @@ def main(argv=None) -> int:
 
     p = sub.add_parser('slice', help='the prompt a position would send')
     p.add_argument('position', nargs='?')
-    p.add_argument('--prompt-length', type=int, default=6000)
+    p.add_argument('--prompt-length', type=int, default=None)
 
     args = parser.parse_args(argv)
     server = Server(args.server) if args.server else Server()

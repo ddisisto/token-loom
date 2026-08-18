@@ -255,6 +255,15 @@ def routes(workdir):
     check('a slice reports the start it would use, nudged to a boundary',
           body['bytes'] == 12 and body['start']['span'] == root,
           str(body))
+    whole = client.get('/api/slice', params={'at': f'{made[0]}'}).json()
+    check('and omitting the length asks for the whole path, not for nothing',
+          whole['start'] == {'span': root, 'offset': 0}
+          and whole['bytes'] == len(client.get(
+              '/api/path', params={'to': f'{made[0]}'}).json()['text']),
+          str(whole))
+    check('which is what the settings a client starts from ask for',
+          'prompt_length' in settings and settings['prompt_length'] is None,
+          str(settings))
 
     print('\nbranching to a counterfactual')
     body = client.post('/api/branch',

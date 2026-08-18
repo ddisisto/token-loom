@@ -208,13 +208,17 @@ def read_params() -> dict:
 
 
 @app.get('/api/slice')
-def read_slice(at: str, length: int) -> dict:
+def read_slice(at: str, length: int | None = None) -> dict:
     """What a generation from `at` would send: `{start, end, text, bytes}`.
 
     The read Phase 3's viewport is built on, and it is worth having before the
     viewport exists: it is the only way to see what was actually in context,
     and the start it reports is the nudged one -- the slice that would be used,
     not the one that was asked for.
+
+    Omitting `length` asks for the whole path, matching `prompt_length: null`
+    in a generate request. `?length=0` is a different question with a real
+    answer -- the empty prompt -- rather than a way of spelling this one.
     """
     session = held()
     pos = wire.parse_position(session.tree, at)

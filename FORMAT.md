@@ -283,13 +283,27 @@ Three numeric parameters, two unit systems, and nothing in the names to tell the
 
 | field | unit | why |
 | --- | --- | --- |
-| `prompt_length` | bytes | it is a slice length, and slices are byte ranges |
+| `prompt_length` | bytes, or `null` for the whole path | it is a slice length, and slices are byte ranges |
 | `length` | tokens | it is `max_tokens` on the request |
 | `n_ctx` | tokens | it is the server's `--ctx-size` |
 
 The mix is not an accident to be tidied away. The slice is chosen against the tree, which is
 bytes; the limits are imposed by the model, which is tokens. Deriving one from the other
 needs a tokenizer, which is exactly what the byte anchor exists to avoid depending on.
+
+**`null` is a third answer rather than a large number**, and it is the default. A caller that
+wants the whole path cannot spell that as a length: it would have to name a bound above
+anything the path can reach, and since the value interns, every time the guess changed the
+tree would record a change of framing where none happened. `0` is not the spelling either and
+keeps its own meaning — an empty prompt, sampling from the prior with nothing given.
+
+The default moved off a number for a related reason. A recorded parameter with an arbitrary
+default hands a framing decision to callers who never made one, and puts it on every span
+they produce. Sending the whole path is the choice that claims nothing; where it does not
+fit, the server refuses outright rather than quietly reading less than the reader can see.
+Narrowing the slice stays available and stays deliberate, which is what `PLAYBOOKS.md` asks
+of it. Trees written before this keep their recorded numbers and mean exactly what they
+always meant, which is what interning per span is for.
 
 ### 5. Bulk records are per token
 

@@ -97,11 +97,20 @@ class Session:
         what the user asked for, and both are recorded per span: reproducibility
         is conditions-level, and "hit the context limit" means nothing without
         knowing which limit.
+
+        `prompt_length` defaults to `None` -- the whole path. The number it
+        replaced was arbitrary, and arbitrary is the wrong kind of default for
+        a recorded parameter: a caller who never thought about framing had one
+        chosen for them and it went onto every span they made. Sending the whole
+        path is the choice that makes no claim, and where it does not fit, the
+        server refuses outright rather than quietly reading less than the
+        reader can see. Narrowing the slice stays available and stays
+        deliberate, which is what `PLAYBOOKS.md` asks of it.
         """
         if self.server is None:
             raise RuntimeError('no server attached to this session')
         base = {'temperature': 0.9, 'top_p': 1, 'top_n': 3, 'length': 32,
-                'stop': [], 'prompt_length': 6000}
+                'stop': [], 'prompt_length': None}
         base.update(self.server.describe())
         base.setdefault('tokenizer', base.get('model'))
         base.update(over)

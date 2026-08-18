@@ -285,7 +285,7 @@ def address_at(tree: Tree, pos: Position | None, target: int
     return chain[-1] if chain else None
 
 
-def slice_at(tree: Tree, pos: Position | None, length: int
+def slice_at(tree: Tree, pos: Position | None, length: int | None
              ) -> tuple[Position | None, Position | None, bytes]:
     """The prompt: `(start, end, bytes)`, clamped at the root.
 
@@ -293,6 +293,15 @@ def slice_at(tree: Tree, pos: Position | None, length: int
     are immutable -- the bounds keep meaning what they meant when written. Both
     bounds are addresses, so they survive export of a subtree, where a
     root-relative offset would not.
+
+    **`None` is the whole path**, and it is a third answer rather than a large
+    number. A caller that wants everything cannot spell it as a length: it
+    would have to name a bound above anything the path can reach, and every
+    value it guessed would intern as its own parameter set the moment the guess
+    changed -- so a tree would record a change of framing where none happened.
+    `0` is not that spelling either, and keeps meaning what it means: an empty
+    prompt, sampling from the prior with nothing given, which is reachable and
+    worth keeping reachable.
 
     The start is nudged forward to a character boundary when subtracting a byte
     length lands inside one. That is a real case rather than a precaution: a
@@ -302,7 +311,8 @@ def slice_at(tree: Tree, pos: Position | None, length: int
     slice that was actually used, not the one that was asked for.
     """
     prefix = tree.path_bytes(pos)
-    at = char_boundary(prefix, max(0, len(prefix) - length))
+    at = char_boundary(prefix, 0 if length is None
+                       else max(0, len(prefix) - length))
     return address_at(tree, pos, at), pos, prefix[at:]
 
 

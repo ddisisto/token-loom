@@ -216,6 +216,22 @@ def operations(workdir):
     start, _, text = slice_at(tree, tree.tip('s3'), 1000)
     check('and clamps at the root rather than running off it',
           start == Position('s0', 0) and text == whole)
+
+    # `None` is the whole path and is the default. It has to be its own answer
+    # rather than a big number: a number that happens to cover the path today
+    # is one that interns, so raising it later records a change of framing that
+    # did not happen. And `0` keeps its own meaning rather than becoming the
+    # spelling for this -- an empty prompt is reachable, and the only reason
+    # nothing runs it is that the MVP requires a character in the seed.
+    unbounded = slice_at(tree, tree.tip('s3'), None)
+    check('no length at all is the whole path, root-anchored',
+          unbounded == (Position('s0', 0), tree.tip('s3'), whole),
+          str(unbounded))
+    check('and is the same slice a length large enough to cover it gives',
+          unbounded == slice_at(tree, tree.tip('s3'), 1000))
+    start, _, text = slice_at(tree, tree.tip('s3'), 0)
+    check('while zero is an empty prompt, which is a different question',
+          text == b'' and start == tree.tip('s3'), f'{start} {text!r}')
     check('an absolute offset resolves back to an address',
           address_at(tree, tree.tip('s3'), 30) == Position('s1', 2),
           str(address_at(tree, tree.tip('s3'), 30)))
