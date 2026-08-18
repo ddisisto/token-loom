@@ -339,6 +339,11 @@ def refusals(session, client, root, made):
           client.post('/api/sessions/open', json={}).status_code == 404)
     check('nor a save, because saving is not a thing a client does',
           client.post('/api/save', json={}).status_code == 404)
+    check('an unknown path under /api is 404 whatever the method asks for',
+          {client.request(m, '/api/nothing/here').status_code
+           for m in ('GET', 'POST', 'PUT', 'PATCH', 'DELETE')} == {404},
+          str({m: client.request(m, '/api/nothing/here').status_code
+               for m in ('GET', 'POST', 'PUT', 'PATCH', 'DELETE')}))
     paths = {r.path for r in server.app.routes if hasattr(r, 'path')}
     check('and no route mentions a node at all',
           not any('node' in p for p in paths), str(sorted(paths)))

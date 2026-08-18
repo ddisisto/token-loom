@@ -54,6 +54,7 @@ import threading
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from api import wire
@@ -361,6 +362,42 @@ def install_error_handlers(app: FastAPI) -> None:
 
 
 install_error_handlers(app)
+
+
+# -- the front end ---------------------------------------------------------
+
+# One process, one origin, no build step -- `FRONTEND.md` constraints 13 and
+# 14. The files are served exactly as they are written, which is why they are
+# `.mjs`: Python's `mimetypes` already answers `text/javascript` for it, so ES
+# modules load with nothing configured, and the extension says at every
+# reference what the file is.
+#
+# Mounted last on purpose. A mount at `/` matches any path, so it has to sit
+# below every `/api` route in the table or it would swallow them all. Routes
+# register in declaration order, so "last in the file" is the whole of the
+# mechanism -- worth writing down, because a new route added underneath this
+# line would go unreachable with no error anywhere.
+
+
+@app.api_route('/api/{rest:path}', include_in_schema=False,
+               methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'])
+def no_such_route(rest: str):
+    """Everything under `/api` that names no route, as a 404 from the API.
+
+    Without this the mount below catches them, and a static file server answers
+    a POST with 405 -- "wrong method", which says the path exists for GET. It
+    does not, and `api_test.py` asserts the absence of `/api/save` and the
+    session routes by their status code, so the wrong answer here reads as the
+    endpoint quietly coming back.
+
+    The API owns its namespace whole; the front end gets everything else.
+    """
+    raise HTTPException(404, f'no route /api/{rest}')
+
+
+WEB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                   'web')
+app.mount('/', StaticFiles(directory=WEB, html=True), name='web')
 
 
 # -- lifecycle -------------------------------------------------------------
