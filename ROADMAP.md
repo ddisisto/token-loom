@@ -380,9 +380,35 @@ stop-token configuration and section-break rendering, a server-side settings sto
 sweeps beyond the batch id that Phase 1 mints. The parts of those that are format-level
 are already in Phase 1; what defers is UI.
 
-## Phase 3 — the front end
+## Phase 3 — the front end ✅ built
 
-The last of the MVP, and **`FRONTEND.md` is its document** — the concept, the vocabulary it
+Built and not yet lived in. `web/` is ES modules with no build step, served by the API off
+its own origin: `path.mjs` for the derivations the client owns, `api.mjs` for the wire and
+the writer queue, `surface.mjs` and `flyout.mjs` for what is drawn, `main.mjs` for where the
+reader is standing. `node web/web_test.mjs` is the fourth executable check, on fixtures
+`web/fixtures.py` generates through `wire.tree_json`.
+
+It asked the core for two things after all, where this section said it would ask for
+nothing. Both are small and both were the design being right rather than the core being
+wrong:
+
+- **A zero-width run node is spliced only when it has children.** The splice exists to lift a
+  fork point's branches into its parent; a childless one has none to lift, so splicing it
+  deleted the two states decision 8 exists to make renderable — a span in flight, and one
+  completed with no bytes. The CLI cannot reach either, because it renders only finished
+  generations.
+- **`prompt_length: null` means the whole path, and is the default.** A shared context that
+  *is* the path cannot be spelled as a length without naming a bound above anything the path
+  can reach — and since the value interns, every time that guess changed the tree would
+  record a change of framing that never happened.
+
+One thing it declines rather than supports: branching onto a byte-fallback token, whose span
+has no string form. `loom.py` keeps it; the surface says why it will not.
+
+What remains is the stage every phase before this one learned something from — a person
+reading through it, at length, against a real model.
+
+**`FRONTEND.md` is its document** — the concept, the vocabulary it
 introduces, the constraints a wireframe is checked against, and the reasoning behind each.
 The shape only is here.
 

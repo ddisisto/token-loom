@@ -277,6 +277,28 @@ Numbered so that a wireframe can be checked against them one at a time.
 Nothing. The front end sits on the API, which sits on the substrate, and it asks the
 substrate for no change at all.
 
+> **Two things, as it turned out, and the claim above is left standing so the correction has
+> something to be a correction to.** Both were found by building against it, both are small,
+> and neither is the core having been wrong — they are places where this document's own
+> position needed the core to say what it already meant.
+>
+> - **A zero-width run node is spliced only when it has children.** The splice exists to lift
+>   a fork point's branches into its parent's list; a childless one has none to lift, so
+>   splicing it was a deletion, and what it deleted was a span in flight and one completed
+>   with no bytes. Constraint 10 says the first of those is a state to render, and a client
+>   cannot render what the layout it was handed does not mention. The CLI reaches neither
+>   state, because it renders only finished generations.
+> - **`prompt_length: null` means the whole path, and is now the default.** "One context,
+>   shared" above asked for a fixed sentinel above anything the path can hold. That was the
+>   wrong shape and the section says why in its own next sentence: the value interns, so
+>   every time the guess had to be raised, the tree would record a change of framing that
+>   never happened. A third answer costs nothing and cannot drift.
+>
+> Neither reached the format's decisions and neither needed a version bump. The estimate this
+> section was making — that the front end sits on the substrate rather than reaching into it
+> — held; what did not hold was "no change at all", which was a stronger claim than the
+> argument supported.
+
 That is worth recording rather than assuming, because it was nearly not true. The one thing
 this design wanted from the core was the prompt cache on, since reprocessing a
 fifteen-hundred-token prompt before every continuation is most of the wait between choices.

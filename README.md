@@ -48,12 +48,13 @@ all:
 
     python loom.py -d data/demo show
 
-The same tree is also servable over HTTP, one tree per process:
+The same tree is also servable over HTTP, one tree per process — and the same process serves
+the reading surface, on the same origin:
 
-    scripts/api.sh data/demo        # then GET /api/tree on 8080
+    scripts/api.sh data/demo        # then http://127.0.0.1:8080/ , or GET /api/tree
 
-`python core_test.py` and `python api_test.py` run with no model; `python llama_test.py`
-needs the server.
+`python core_test.py` and `python api_test.py` run with no model, and `node web/web_test.mjs`
+checks the client's derivations with no browser; `python llama_test.py` needs the server.
 
 ## State
 
@@ -62,12 +63,17 @@ Phase 1 landed the token core: built, tested, and driven from the command line, 
 replacement rather than a port, speaking positions rather than node ids, and the old browser
 front end and the whole OpenAI-compatible path retired with it.
 
-Phase 3 is the front end, and it is designed rather than built. A given goes in at the root
-and everything after that is navigation: the surface supplies continuations at the rate they
-are read, and the reader chooses among them. The model's context is the whole active path, so
-what can be scrolled through is what the model was given — one object, looked at by both.
-[FRONTEND.md](FRONTEND.md) has the concept and the constraints, [INTERACTION.md](INTERACTION.md)
-has the screen.
+Phase 3 is the front end, and it is **built and not yet lived in**. A given goes in at the
+root and everything after that is navigation: the surface supplies continuations at the rate
+they are read, and the reader chooses among them. The model's context is the whole active
+path, so what can be scrolled through is what the model was given — one object, looked at by
+both. [FRONTEND.md](FRONTEND.md) has the concept and the constraints,
+[INTERACTION.md](INTERACTION.md) has the screen.
+
+`web/` is ES modules and no build step, served by the API off its own origin. It works end to
+end against a live model and renders in a real browser, but nobody has yet read anything
+through it for an hour, which is the stage that found the faults planning and testing did not
+in every phase before this one.
 
 The tkinter app and the browser UI are both gone; the tag `pre-token-core` preserves the last
 commit where the browser UI was the whole instrument, and `git show pre-token-core:README.md`

@@ -10,8 +10,8 @@ It has stopped being a revival, and has diverged far enough to take its own name
 wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tokens as a
 per-span overlay, in `core/`, driven from the command line by `loom.py`. The tkinter app is
 gone, and so is the browser front end that ran the old node format — Phase 2 retired it
-along with the whole OpenAI-compatible path. `api/` is its replacement's server half. The
-front end is designed and not yet built.
+along with the whole OpenAI-compatible path. `api/` is its replacement's server half and
+`web/` its reading surface — built, and not yet lived in.
 
 **`ROADMAP.md` is the living document** for the build. Direction, phases and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
@@ -88,14 +88,26 @@ to be made early. `FORMAT.md` has the shape, the alternatives it was chosen over
 reading before proposing a change to it — the one-line rejection that nearly kept the wrong
 one.
 
-**Phase 3, the front end, is the current work, and it is designed rather than started.** It
-asks the core for nothing: the one change it wanted was the prompt cache on, and the research
-thread had already turned it on for a better reason. Two things about it are easy to get
-wrong from the outside — the model's context is the whole active path rather than a window
-onto it, so `prompt_length` is a fixed sentinel above anything the context can hold and never
-the path's measured length; and counterfactual branching is in, which means every point in
-the rendered text has to resolve to a `(span, offset)` from the first version, since a
-finished surface cannot be opened up to accept that later.
+**Phase 3, the front end, is built and not yet lived in.** `web/` works end to end against a
+live model and renders in a real browser; what has not happened is a person reading through
+it for an hour, which is the stage that found the faults planning and testing did not in
+every phase before this one. It asked the core for two things in the end rather than none —
+both small, both recorded below and in `FORMAT.md`.
+
+Three things about it are easy to get wrong from the outside:
+
+- **The model's context is the whole active path** rather than a window onto it, so
+  `prompt_length` is `null` — the whole path — and never the path's measured length, which
+  would mint a fresh interned parameter set on every generation.
+- **Every point in the rendered text resolves to a `(span, offset)`**, which counterfactual
+  branching needs and a finished surface cannot be opened up to accept later. On the wire
+  that offset is a byte; in the browser a string index counts UTF-16 units, and the two part
+  company on the first curly quote a model emits. `web/path.mjs:indexed` is the conversion
+  and it is not optional.
+- **Branching onto a byte-fallback token is declined by the surface, not by the core.** Such
+  a span has no string form, and rendering the path around one would mean decoding across a
+  span boundary. `loom.py` keeps the capability; the flyout shows those alternatives
+  unselectable with the reason, and a tree already holding one is refused rather than drawn.
 
 `origin` is `ddisisto/token-loom` (GitHub redirects the old `ddisisto/loom`), `upstream` is
 `socketteer/loom`. Work happens on `main`. The tag `pre-token-core` preserves the last commit
@@ -207,13 +219,23 @@ then, worth keeping if that ever happens:
   spans/interned parameters, `store.py` the bulk sqlite, `validate.py` the load-time checks,
   `ops.py` the operations and the derived reads, `llama.py` generation, `session.py` the
   three held together with the save ordering). Two clients sit on it and neither sits on the
-  other: `loom.py` for the command line, `api/` over HTTP. Three suites — `core_test.py` and
-  `api_test.py` run with no model, `llama_test.py` needs the server on 8081.
+  other: `loom.py` for the command line, `api/` over HTTP. Four suites — `core_test.py`,
+  `api_test.py` and `node web/web_test.mjs` run with no model, `llama_test.py` needs the
+  server on 8081.
 
-  **The front end will be a third shape rather than a third client of the core.** It is a
+  **The front end is a third shape rather than a third client of the core.** `web/` is a
   client of the API, served by the same process off the same origin, and it reaches `core/`
   through nothing. If it ever seems to need the core directly, that is the "stop and ask why"
   case above.
+
+  **`web/` is ES modules with no build step, and `.mjs` rather than `.js` on purpose** —
+  Python's `mimetypes` already answers `text/javascript` for it, so modules load with nothing
+  configured and the extension says what the file is at every reference. `path.mjs` holds
+  every derivation and touches no document, which is what lets `node web/web_test.mjs` check
+  them; `fixtures.py` generates that test's input through `wire.tree_json`, so the fixtures
+  are what the server sends rather than what the test's author believed it sends. The static
+  mount is last in `api/server.py` and a catch-all keeps `/api` from falling into it, because
+  a file server answers an unknown POST with 405 rather than 404.
 
   What went: `inference.py`, `models.py`, `params.py`, `util/`, `web/`, `smoke_test.py` and
   `scripts/web.sh` — the OpenAI-compatible path, the capability table, the old node format
