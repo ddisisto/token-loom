@@ -237,11 +237,13 @@ then, worth keeping if that ever happens:
   mount is last in `api/server.py` and a catch-all keeps `/api` from falling into it, because
   a file server answers an unknown POST with 405 rather than 404.
 
-  **The path is laid out once and drawn twice**, and reading `surface.mjs` as if it renders
-  once will not survive contact. `#above` and `#below` hold the same flow at the same width,
-  clipped to complementary L-shapes, with the lower one translated down to open the gap the
-  card band sits in — so moving the target animates two clips and one offset and never
-  re-wraps a line. `INTERACTION.md` has the reasoning; three things about it bite:
+  **The path is laid out once and drawn twice, and the target section is drawn by neither
+  copy.** Reading `surface.mjs` as if it renders once will not survive contact. `#above` and
+  `#below` hold the same flow at the same width, clipped at two different points — the fork
+  the reader is standing on, and the end of the run leaving it — with the lower one translated
+  so it resumes under the card band. The stretch between the two points is the band's, and
+  leaving it in the prose as well is what put a verbatim copy of the selected card directly
+  beneath its own card. `INTERACTION.md` has the reasoning; three things about it bite:
   `clip-path` clips **hit-testing** as well as painting, which is why clicks need no
   arbitration between the copies; the split is the **line box**, which `getClientRects()`
   does not give you (it answers with font boxes, 10px shorter here) and a zero-width

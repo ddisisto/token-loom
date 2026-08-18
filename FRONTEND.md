@@ -233,8 +233,19 @@ Numbered so that a wireframe can be checked against them one at a time.
    else is a condition of the session and is named nowhere in it.
 5. **Movement whose answer already exists resolves immediately.** Only movement past the tip
    waits on the model.
-6. **The viewport is the reader's.** It moves when the reader moves it. Text that arrives
-   lands where it belongs and waits to be scrolled to.
+6. **The viewport is the reader's.** It moves when the reader moves it, and never otherwise.
+   Text that arrives lands where it belongs and waits to be scrolled to.
+
+   *Clarified after a session of use, 2026-08-18.* This was read as "the page never scrolls
+   itself", and that reading is too strong in one direction and too weak in nothing. Pressing
+   up or down **is** the reader moving the viewport — it moves the target, and a surface that
+   then leaves them to chase their own cursor down the page by hand is not deferring to them,
+   it is refusing to follow. So a navigation brings the target back into view, minimally and
+   to the nearer edge, and the reader can still scroll away and stay away until they navigate
+   again. What the constraint protects is unchanged and is the whole of its point: **text
+   arriving must never move the page.** A poll filling a card, a generation landing, a resize
+   — none of them scroll. The distinction is the reader's own action versus the model's, not
+   whether a scroll happens at all.
 
 ### From the substrate
 

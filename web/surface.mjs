@@ -58,9 +58,14 @@ export function renderFlow(host, tree) {
   const points = forks(tree);
   const forkOf = new Map(points.map((f, i) => [f.node, i]));
 
-  for (const node of nodes) {
+  // every run ends in a mark, not only the ones that fork: the section lifted
+  // into the band runs from one run's end to the next one's, so `place` needs
+  // both edges and only one of them is a fork
+  const nodeOf = [];
+  nodes.forEach((node, k) => {
     const here = forkOf.has(node) ? forkOf.get(node) : -1;
-    if (!node.pieces.length) continue;
+    if (here >= 0) nodeOf[here] = k;
+    if (!node.pieces.length) return;
     const run = el('span', 'run');
     for (const piece of node.pieces) {
       const text = pieceText(tree, piece);
@@ -70,31 +75,42 @@ export function renderFlow(host, tree) {
       chunk.dataset.begin = String(piece.begin);
       run.append(chunk);
     }
-    if (here >= 0) {
-      const mark = el('i', 'mark');
-      mark.dataset.fork = String(here);
-      run.append(mark);
-    }
+    const mark = el('i', 'mark');
+    mark.dataset.node = String(k);
+    if (here >= 0) mark.dataset.fork = String(here);
+    run.append(mark);
     host.append(run);
-  }
-  return points;
+  });
+  return { points, nodeOf };
 }
 
-/** Copy the flow, clip both halves, and open the gap the target sits in.
+/** Clip the two copies, lift the target section out between them, and open
+ * the gap the band sits in.
  *
- * Returns the vertical displacement, which the margin needs: everything below
+ * Returns the vertical displacement, which the margin needs: everything past
  * the target moved by it and the chips have to move with it.
  *
+ * **Three parts, not two.** `head` is where the target's fork falls and above
+ * stops; `tail` is where the run leaving that fork ends and below resumes. The
+ * section between them is what the band is a cross-section of, and it is drawn
+ * by the band alone. Leaving it in the prose as well is what put a verbatim
+ * second copy of the selected card directly beneath its own card -- invisible
+ * while the path continued past it, and the whole of what was on screen once
+ * the chosen branch was a leaf.
+ *
+ * `head === tail` where nothing has been chosen at the target yet: the path
+ * ends at the fork, there is no section to lift, and the two halves tile.
+ *
  * The order is forced by what depends on what. The flow must be laid out
- * before the fork can be measured; the band must be positioned and filled
+ * before the two edges can be measured; the band must be positioned and filled
  * before its height is known; and the displacement is a function of that
  * height, so the clips and the stack's own height come last.
  *
  * A target with no mark is the root fork, which has no pieces and so no
  * position in the text. Zero for all three is the right reading of it rather
- * than a fallback: the whole path is below a target at the root.
+ * than a fallback: the whole path lies at or below a target at the root.
  */
-export function place(parts, targetIndex, { muted }) {
+export function place(parts, nodeIndex, { muted }) {
   const { stack, above, below, band } = parts;
 
   const base = stack.getBoundingClientRect();
@@ -102,39 +118,73 @@ export function place(parts, targetIndex, { muted }) {
   const width = flow.width;
   const height = flow.height;
 
-  let x = 0;
-  let lineTop = 0;
-  let lineBottom = 0;
-  const mark = above.querySelector(`.mark[data-fork="${targetIndex}"]`);
-  if (mark) {
+  const edgeAt = (mark) => {
     const at = mark.getBoundingClientRect();
-    x = at.left - base.left;
-    lineTop = at.top - base.top;
-    lineBottom = at.bottom - base.top;
-  }
+    return {
+      x: at.left - base.left,
+      lineTop: at.top - base.top,
+      lineBottom: at.bottom - base.top,
+    };
+  };
+  const start = above.querySelector(`.mark[data-node="${nodeIndex}"]`);
+  const head = start ? edgeAt(start) : { x: 0, lineTop: 0, lineBottom: 0 };
+  const next = above.querySelector(`.mark[data-node="${nodeIndex + 1}"]`);
+  const tail = next ? edgeAt(next) : head;
 
   // full width of the page rather than of the column, measured rather than
   // computed in `vw` units, which count the scrollbar and would overflow
   const page = document.documentElement.clientWidth;
   band.style.left = `${-base.left}px`;
   band.style.width = `${page}px`;
-  band.style.top = `${lineBottom}px`;
+  band.style.top = `${head.lineBottom}px`;
   // the selected card aligns with the path above it, so the strip starts where
   // the reading column does and not where the band does
   band.style.setProperty('--origin', `${base.left}px`);
 
   const bandHeight = band.getBoundingClientRect().height;
-  const shift = (lineBottom - lineTop) + bandHeight;
+  // below resumes directly under the band. Where the lifted section is taller
+  // than the band that replaced it this is negative, and below moves *up* --
+  // correct, and the reason the stack's height is a max rather than a sum.
+  const shift = (head.lineBottom + bandHeight) - tail.lineTop;
 
-  const shape = clips({ width, height, x, lineTop, lineBottom });
+  const shape = clips({ width, height, head, tail });
   above.style.clipPath = polygon(shape.above);
   below.style.clipPath = polygon(shape.below);
   below.style.transform = `translateY(${shift}px)`;
   below.classList.toggle('muted', Boolean(muted));
-  stack.style.height = `${height + shift}px`;
+  stack.style.height =
+    `${Math.max(head.lineBottom + bandHeight, height + shift)}px`;
 
   return shift;
 }
+
+/** Bring the target into view, and no further.
+ *
+ * `FRONTEND.md` constraint 6 says the page never moves except as the direct
+ * consequence of something the reader did -- so this is called by the acts and
+ * never by a poll or a resize. Text arriving must not yank the page; an arrow
+ * key that moves the target is the reader asking to go there, and leaving them
+ * to chase it down the page by hand is the interface refusing to follow its
+ * own cursor.
+ *
+ * Minimal, and to the nearer edge: already-visible is left alone, and a target
+ * taller than the window aligns its top rather than scrolling past its start.
+ * The line above the band comes with it, because the text a choice follows
+ * from is part of the choice.
+ */
+export function follow(band, lead) {
+  const at = band.getBoundingClientRect();
+  const top = at.top - lead;
+  const room = window.innerHeight - MARGIN * 2;
+  let delta = 0;
+  if (at.bottom - top > room || top < MARGIN) delta = top - MARGIN;
+  else if (at.bottom > window.innerHeight - MARGIN) {
+    delta = at.bottom - (window.innerHeight - MARGIN);
+  }
+  if (delta) window.scrollBy(0, delta);
+}
+
+const MARGIN = 24;
 
 /** Chips in the margin, one per fork, on the line its fork falls on.
  *
@@ -156,7 +206,7 @@ export function renderMargin(host, above, points, active, shift) {
   host.replaceChildren();
   const top = above.getBoundingClientRect().top;
   const lines = new Map();
-  for (const mark of above.querySelectorAll('.mark')) {
+  for (const mark of above.querySelectorAll('.mark[data-fork]')) {
     const index = Number(mark.dataset.fork);
     if (index === points.length - 1 || index === active) continue;
     const fork = points[index];

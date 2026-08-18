@@ -40,8 +40,16 @@ the new span's tip with `n: 2`.
 **Three parts, and the layout is what happens between them.**
 
 - **above** — the path from the root down to the fork the reader is standing on
-- **the target** — that fork, opened out across the page
-- **below** — the path onward from it, to the tip
+- **the target** — the section leaving that fork, opened out across the page beside its
+  alternatives
+- **below** — the path onward from that section, to the tip
+
+The three are the path, in order, each byte of it in exactly one of them. **The target
+section is lifted out of the prose**, not merely marked within it: what the selected card
+holds is the stretch of text that would otherwise sit between above and below, and drawing it
+in both places puts a verbatim copy of the card directly under its own card. Invisible while
+the path continues past it, and the whole of what is on screen once the chosen branch is a
+leaf.
 
 Outside the target the two ends **meet on one line**, where the fork falls mid-line, which is
 the ordinary case. The path is one stretch of prose and the join is invisible: reading behind
@@ -58,17 +66,25 @@ instrument is for reading. Each part may translate; none may relayout.
 ### How the parts come apart
 
 The path is laid out **once**, as one prose flow, and drawn **twice**. Both copies share that
-one layout exactly, because they are the same content at the same width.
+one layout exactly, because they are the same content at the same width. Two points in that
+layout decide everything: the **head**, where the target's fork falls, and the **tail**, where
+the section leaving it ends.
 
-- The **above** copy is clipped to an L: every line before the target's line, plus the part of
-  the target's line that precedes the fork.
-- The **below** copy is clipped to the complement: the rest of that line, and every line
-  after.
+- The **above** copy is clipped to an L: every line before the head's line, plus the part of
+  that line preceding it.
+- The **below** copy is clipped to the complementary shape at the tail: the rest of the
+  tail's line, and every line after.
+- Between them lies the target section, drawn by the band and by neither copy.
 
-The two L-shapes tile the original with nothing over and nothing missing, so with no
-displacement they are indistinguishable from the single flow they came from. Opening the
-target translates the below copy down. Moving the target animates two clip paths and one
-offset, and no glyph is ever placed a second time.
+Where nothing has been chosen at the target — the tip, where the cards are offers rather than
+choices — head and tail are the same point, there is no section to lift, and the two shapes
+tile the layout exactly. Everywhere else the gap between them is precisely what the band is a
+cross-section of. Moving the target animates two clip paths and one offset, and no glyph is
+ever placed a second time.
+
+The below copy is translated so its first visible line sits directly under the band. Where the
+lifted section was taller than the band that replaced it, that translation is *upward*, which
+is why the stack's height is a maximum rather than a sum.
 
 The alternative — splitting the flow into two blocks and indenting the second to meet the
 first — was rejected for one reason: the indent is a function of where the target is, so
@@ -97,16 +113,23 @@ none` kills selection in half the page, and nothing hides text from find-in-page
 hiding it from the reader. The instrument is for navigating a path rather than extracting
 prose from one, which is why this is a cost rather than a fault.
 
-### The viewport does not move, and does not need to
+### The viewport follows the target, and nothing else
 
-Constraint 6 stands unamended: nothing scrolls the page on the reader's behalf. It survives
-because **every way of moving the target is already local**. A chip is clicked, so it was on
-screen; up and down step one fork. The target therefore never jumps somewhere the reader was
-not already looking, and the above copy does not move at all when a target opens — so the
-line the reader's eye is on stays exactly where it was, and what moves is what is below it.
+A navigation brings the target into view: minimally, to the nearer edge, with the line above
+the band coming along because the text a choice follows from is part of the choice. Already
+visible is left alone, and a target taller than the window aligns its top rather than
+scrolling past its own start. The reader can scroll wherever they like and stay there; the
+next arrow key snaps back to where the action is.
 
-This is the reason to prefer the above copy as the fixed one. Anchoring the top of the page
-instead, and letting the target slide, would make every retarget a small unrequested scroll.
+This is constraint 6 read correctly rather than set aside. **Pressing up or down is the reader
+moving the viewport** — it moves the target, and leaving them to chase their own cursor down
+the page by hand is not deference. What the constraint protects is untouched: **text arriving
+never moves the page.** A poll filling a card, a generation landing, a window resize — none of
+them scroll, and the code says so by taking the follow as an argument that only the acts pass.
+
+The above copy still never moves when a target opens, which is why following is a small
+correction rather than a lurch: the line the reader's eye is on stays where it was, and what
+moves is what is below it.
 
 ### The margin
 
@@ -185,14 +208,16 @@ not — selecting is what re-routes at an earlier fork, and it has already happe
 down is pressed. So down is always "towards the tip", and confirming is what that means when
 the tip is where you already are.
 
-**What separates them is whether the path already runs past the fork**, not whether the fork
-is the last one. Those coincide in ordinary use, because generation attaches its alternatives
-at the tip and nothing continues past them — but a tree authored from the command line ends
-past its last fork, and so does one whose tip was deleted. There the last fork has a chosen
-child: down has nothing to confirm and nowhere further to go, and the card drawn as selected
-is the one the prose below actually follows. Reading the last fork as the tip instead drew
-card 0 as selected above a passage that was card 1, which is the surface contradicting itself
-on load.
+**Down at the last fork confirms, even where the path already runs through the selected
+card.** That state is ordinary rather than exotic: re-routing at an earlier fork onto a branch
+that ends without alternatives leaves the reader exactly there, and so does loading a tree
+authored from the command line. The cursor is already at the section's end, so the write is a
+no-op and what down does is the generation — which is "carry on from here", the one move the
+surface otherwise had no gesture for.
+
+The card drawn as selected is the one the prose actually follows, which is a separate matter
+and was separately wrong: reading the last fork as always being the tip drew card 0 as
+selected above a passage that was card 1, the surface contradicting itself on load.
 
 The chunk slider never moves and is always available. Changing it applies to the next call
 and to nothing already made.

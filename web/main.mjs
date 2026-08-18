@@ -18,7 +18,9 @@ import {
   unrenderable,
 } from './path.mjs';
 import * as flyout from './flyout.mjs';
-import { banner, cardStrip, place, renderFlow, renderMargin } from './surface.mjs';
+import {
+  banner, cardStrip, follow, place, renderFlow, renderMargin,
+} from './surface.mjs';
 
 /** The stops on the chunk slider, in tokens.
  *
@@ -29,6 +31,11 @@ import { banner, cardStrip, place, renderFlow, renderMargin } from './surface.mj
  */
 const CHUNKS = [8, 16, 32, 64, 96];
 const START = 2;
+
+/** How much of the line above the band is kept in view when the page follows
+ * the target: one line, because the text a choice follows from is part of the
+ * choice. In `rem` so it tracks the type rather than the screen. */
+const LEAD = 32;
 
 const dom = {};
 const state = {
@@ -124,10 +131,15 @@ function refused(e) {
   banner(dom.banners, e.detail);
 }
 
-/** Apply a whole-tree response. The response *is* the new state. */
-function apply(tree) {
+/** Apply a whole-tree response. The response *is* the new state.
+ *
+ * `chase` is whether this draw should bring the target back into view. True
+ * for everything the reader did and false for everything that merely arrived:
+ * a poll filling a card must not move the page under them. See `follow`.
+ */
+function apply(tree, chase = true) {
   state.tree = tree;
-  draw();
+  draw(chase);
 }
 
 function settingsNow() {
@@ -147,10 +159,17 @@ function generate(at, n) {
 
 // -- the acts --------------------------------------------------------------
 
-/** Confirm the selected card: it joins the path, and the tip moves onto it. */
+/** Confirm the selected card: it joins the path, and the tip moves onto it.
+ *
+ * Where the path already runs through the selected card -- which is where a
+ * re-route at an earlier fork leaves the reader, when the branch they moved
+ * onto ends without alternatives -- the cursor is already at its end and the
+ * write is a no-op. What down does there is the generation, which is exactly
+ * "carry on from here" and was the one move the surface had no gesture for.
+ */
 function confirm() {
-  const { fork, card, chosen } = slider();
-  if (!fork || chosen) return;
+  const { fork, card } = slider();
+  if (!fork) return;
   const node = fork.children[card];
   if (!node || nodeState(state.tree, node) !== 'ready') return;
 
@@ -266,7 +285,7 @@ function take(spanId, index, rank) {
 
 // -- drawing ---------------------------------------------------------------
 
-function draw() {
+function draw(chase = true) {
   if (!state.tree) return;
   const spans = Object.keys(state.tree.spans);
   dom.seed.hidden = spans.length > 0;
@@ -305,16 +324,17 @@ function draw() {
 
   // one flow, laid out once and drawn twice: the clone is a copy of the
   // finished layout rather than a second render, which is what guarantees the
-  // two halves tile rather than merely agree
-  renderFlow(dom.above, state.tree);
+  // two halves agree about where every glyph is
+  const { nodeOf } = renderFlow(dom.above, state.tree);
   dom.below.replaceChildren(
     ...[...dom.above.childNodes].map((n) => n.cloneNode(true)));
   dom.band.replaceChildren(...(strip ? [strip] : []));
 
   // the cross-section is behind the tip when the reader has come back to an
   // earlier fork, and what lies past it is dimmed rather than removed
-  const shift = place(dom, index, { muted: !atTip });
+  const shift = place(dom, index < 0 ? -1 : nodeOf[index], { muted: !atTip });
   renderMargin(dom.margin, dom.above, points, index, shift);
+  if (chase) follow(dom.band, LEAD);
 }
 
 // -- the seed --------------------------------------------------------------
@@ -346,7 +366,7 @@ function chunkChanged(index) {
 
 function keys(event) {
   if (dom.seed.hidden === false) return;
-  const { fork, index, points, card, chosen } = slider();
+  const { fork, index, points, card } = slider();
   if (!fork) return;
   if (event.key === 'ArrowLeft') { select(card - 1); }
   else if (event.key === 'ArrowRight') {
@@ -354,10 +374,8 @@ function keys(event) {
     else if (index === points.length - 1) grow();
   } else if (event.key === 'ArrowUp') { back(); }
   else if (event.key === 'ArrowDown' || event.key === 'Enter') {
-    // down is always towards the tip. At the last fork that means confirming
-    // what is selected -- unless the path already runs past it, where there is
-    // nothing to confirm and nowhere further forward to go.
-    if (index === points.length - 1) { if (!chosen) confirm(); }
+    // down is always towards the tip; at the last fork that means confirming
+    if (index === points.length - 1) confirm();
     else forward();
   } else return;
   event.preventDefault();
@@ -376,10 +394,10 @@ function clicks(event) {
   if (card) {
     if (card.dataset.grow) return grow();
     const i = Number(card.dataset.card);
-    const { index, points, card: at, chosen } = slider();
+    const { index, points, card: at } = slider();
     // a mouse reader does in two clicks what arrow-then-down does from the
     // keyboard: select what is not selected, confirm what is
-    if (i === at && index === points.length - 1 && !chosen) confirm();
+    if (i === at && index === points.length - 1) confirm();
     else select(i);
     return undefined;
   }
@@ -406,9 +424,11 @@ async function start() {
   // that re-measuring fixes and re-rendering is not needed for. This is the one
   // reflow the surface allows, and the reader asked for it.
   window.addEventListener('resize', () => {
-    if (state.tree) draw();
+    if (state.tree) draw(false);
   });
-  pollWhile(writes, apply);
+  // a poll is text arriving rather than the reader moving, so it draws
+  // without touching the viewport
+  pollWhile(writes, (tree) => apply(tree, false));
 
   try {
     state.settings = await api.settings();

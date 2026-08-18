@@ -248,34 +248,41 @@ export function forget() {
 
 // -- the two clips ---------------------------------------------------------
 
-/** The complementary L-shapes the path is drawn through, in pixels.
+/** The two shapes the path is drawn through, in pixels.
  *
- * `INTERACTION.md`: the path is laid out once and drawn twice, and the two
- * copies are clipped to shapes that tile the original with nothing over and
- * nothing missing. Above gets every line before the target's, plus the head of
- * the target's line; below gets the rest of that line and everything after.
+ * `INTERACTION.md`: the path is laid out once and drawn twice, and the section
+ * the reader is standing on is lifted out of the sequence into the card band.
+ * So there are three parts and not two -- above stops at `head`, the band holds
+ * everything from `head` to `tail`, and below resumes at `tail`. Nothing is
+ * drawn twice, which is the point: the selected card *is* that section, and
+ * leaving it in the prose as well put a verbatim copy of it directly under its
+ * own card.
+ *
+ * `head === tail` is the case where nothing has been chosen yet -- the path
+ * ends at the fork and there is no section to lift. The two shapes then tile
+ * the layout exactly, which is what they did before there was a third part.
  *
  * Pure arithmetic on a measurement, which is why it is here rather than in the
- * render: `web_test.mjs` can check that the two halves tile the rectangle
- * exactly, which is the property the whole mechanism rests on and the one that
- * would fail silently -- a sliver counted twice reads as a bold line, and a
- * sliver missed reads as a crack.
+ * render: `web_test.mjs` samples the plane and checks that every point falls in
+ * the half its position in reading order says it should. A sliver counted twice
+ * reads as a bold line and a sliver missed reads as a crack, both at one pixel
+ * and neither with anything to disagree with them.
  *
- * **Always six vertices, even when a rectangle would do.** A target on the
- * first or last line makes an edge degenerate, and dropping it would leave the
- * two shapes with different point counts at different moments -- `clip-path`
- * interpolates polygons only between equal counts, so a retarget across the
- * first line would jump instead of moving.
+ * **Always six vertices, even when a rectangle would do.** A split on the first
+ * or last line makes an edge degenerate, and dropping it would leave the shapes
+ * with different point counts at different moments -- `clip-path` interpolates
+ * polygons only between equal counts, so a retarget across the first line would
+ * jump instead of moving.
  */
-export function clips({ width, height, x, lineTop, lineBottom }) {
+export function clips({ width, height, head, tail }) {
   return {
     above: [
-      [0, 0], [width, 0], [width, lineTop],
-      [x, lineTop], [x, lineBottom], [0, lineBottom],
+      [0, 0], [width, 0], [width, head.lineTop],
+      [head.x, head.lineTop], [head.x, head.lineBottom], [0, head.lineBottom],
     ],
     below: [
-      [x, lineTop], [width, lineTop], [width, height],
-      [0, height], [0, lineBottom], [x, lineBottom],
+      [tail.x, tail.lineTop], [width, tail.lineTop], [width, height],
+      [0, height], [0, tail.lineBottom], [tail.x, tail.lineBottom],
     ],
   };
 }

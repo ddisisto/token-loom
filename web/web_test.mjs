@@ -245,55 +245,114 @@ function refusal(cases) {
 
 // -- the two clips ---------------------------------------------------------
 
-/** The property the drawn-twice layout rests on: the two L-shapes tile the
- * one layout, with nothing counted twice and nothing left out.
+/** Is a point inside a polygon? Ray casting, and the only geometry in this
+ * file that is not the thing under test. */
+function inside(points, x, y) {
+  let hit = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [xi, yi] = points[i];
+    const [xj, yj] = points[j];
+    if ((yi > y) !== (yj > y)
+      && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+/** The property the drawn-twice layout rests on: every point of the one layout
+ * is drawn by the half that reading order says owns it, and by that half only.
  *
- * Checked as an invariant rather than against expected vertex lists, because a
- * vertex list is the implementation written down again and would pass on a
- * wrong one. Area is the thing that has to hold: a sliver counted twice reads
- * as a bold line where the halves overlap, and a sliver missed reads as a
- * crack across the page -- both at one pixel, and neither with anything to
- * disagree with them.
+ * Sampled against reading order rather than compared to a vertex list, because
+ * a vertex list is the implementation written down a second time and would
+ * pass on a wrong one. What the shapes mean is "everything before the head"
+ * and "everything from the tail on", and those are statements about position
+ * in the text that can be written independently -- which is what makes this a
+ * check rather than an echo.
+ *
+ * The gap between them is the section lifted into the card band, and no point
+ * may fall in both halves at once: an overlap of one pixel reads as a bold
+ * line and a gap of one reads as a crack.
  */
-function tiling() {
-  console.log('\nthe two clips tile the one layout');
-  const box = { width: 500, height: 900 };
-  const line = { lineTop: 300, lineBottom: 327.2 };
-  const whole = box.width * box.height;
+function parts() {
+  console.log('\nthe two clips, against reading order');
+  const width = 500;
+  const height = 900;
+  const LINE = 27.2;
 
   const cases = {
-    'mid-line, mid-page': { ...box, ...line, x: 210 },
-    'at the head of its line': { ...box, ...line, x: 0 },
-    'at the end of its line': { ...box, ...line, x: box.width },
-    'on the first line': { ...box, x: 210, lineTop: 0, lineBottom: 27.2 },
-    'on the last line': {
-      ...box, x: 210, lineTop: box.height - 27.2, lineBottom: box.height,
+    'nothing chosen: the halves tile': {
+      head: { x: 210, lineTop: 300, lineBottom: 300 + LINE },
+      tail: { x: 210, lineTop: 300, lineBottom: 300 + LINE },
+    },
+    'a section lifted out, same line': {
+      head: { x: 120, lineTop: 300, lineBottom: 300 + LINE },
+      tail: { x: 380, lineTop: 300, lineBottom: 300 + LINE },
+    },
+    'a section lifted out, several lines': {
+      head: { x: 120, lineTop: 300, lineBottom: 300 + LINE },
+      tail: { x: 260, lineTop: 400, lineBottom: 400 + LINE },
+    },
+    'the target on the first line': {
+      head: { x: 210, lineTop: 0, lineBottom: LINE },
+      tail: { x: 90, lineTop: LINE, lineBottom: 2 * LINE },
+    },
+    'the target on the last line': {
+      head: { x: 210, lineTop: height - LINE, lineBottom: height },
+      tail: { x: 210, lineTop: height - LINE, lineBottom: height },
     },
     'at the root, with no position in the text': {
-      ...box, x: 0, lineTop: 0, lineBottom: 0,
+      head: { x: 0, lineTop: 0, lineBottom: 0 },
+      tail: { x: 140, lineTop: 0, lineBottom: LINE },
+    },
+    'the fork at the head of its line': {
+      head: { x: 0, lineTop: 300, lineBottom: 300 + LINE },
+      tail: { x: 300, lineTop: 300, lineBottom: 300 + LINE },
+    },
+    'the fork at the end of its line': {
+      head: { x: width, lineTop: 300, lineBottom: 300 + LINE },
+      tail: { x: width, lineTop: 300, lineBottom: 300 + LINE },
     },
   };
 
-  for (const [what, geometry] of Object.entries(cases)) {
-    const { above, below } = clips(geometry);
-    const sum = area(above) + area(below);
-    check(`${what}: the halves sum to the whole`,
-      Math.abs(sum - whole) < 1e-6, `${sum} vs ${whole}`);
+  for (const [what, { head, tail }] of Object.entries(cases)) {
+    const { above, below } = clips({ width, height, head, tail });
+
+    // reading order, written from what the two halves mean rather than from
+    // how they are drawn
+    const before = (x, y) => y < head.lineTop
+      || (y < head.lineBottom && x < head.x);
+    const from = (x, y) => y >= tail.lineBottom
+      || (y >= tail.lineTop && x >= tail.x);
+
+    let wrongAbove = null;
+    let wrongBelow = null;
+    let overlaps = 0;
+    // off-grid sample points, so no sample lands exactly on an edge
+    for (let x = 3.5; x < width; x += 17.3) {
+      for (let y = 2.5; y < height; y += LINE / 3) {
+        const a = inside(above, x, y);
+        const b = inside(below, x, y);
+        if (a && b) overlaps++;
+        if (a !== before(x, y) && !wrongAbove) wrongAbove = [x, y, a];
+        if (b !== from(x, y) && !wrongBelow) wrongBelow = [x, y, b];
+      }
+    }
+    check(`${what}: above draws exactly what precedes the target`,
+      wrongAbove === null, JSON.stringify(wrongAbove));
+    check(`${what}: below draws exactly what follows it`,
+      wrongBelow === null, JSON.stringify(wrongBelow));
+    check(`${what}: and never the same point twice`, overlaps === 0, overlaps);
     check(`${what}: six vertices each, so a retarget interpolates`,
       above.length === 6 && below.length === 6,
       `${above.length}, ${below.length}`);
   }
 
-  // the halves are complementary rather than merely equal in area: above holds
-  // the target's own line up to the fork and below holds it from there
-  const { above, below } = clips({ ...box, ...line, x: 210 });
-  const head = area(above) - box.width * line.lineTop;
-  check('above gets the head of the target line, to the fork and no further',
-    Math.abs(head - 210 * (line.lineBottom - line.lineTop)) < 1e-6, head);
-  const tail = area(below) - box.width * (box.height - line.lineBottom);
-  check('and below gets the rest of that line, from the fork on',
-    Math.abs(tail - (box.width - 210) * (line.lineBottom - line.lineTop)) < 1e-6,
-    tail);
+  // the case that has to stay exact rather than merely consistent: with
+  // nothing chosen there is no section to lift, so the halves are the whole
+  const flat = { x: 210, lineTop: 300, lineBottom: 300 + LINE };
+  const { above, below } = clips({ width, height, head: flat, tail: flat });
+  const sum = area(above) + area(below);
+  check('nothing chosen: the halves sum to the whole layout',
+    Math.abs(sum - width * height) < 1e-6, `${sum} vs ${width * height}`);
 
   check('the CSS is pixels, which is what the measurement was in',
     polygon([[0, 0], [1.5, 2]]) === 'polygon(0px 0px, 1.5px 2px)',
@@ -308,7 +367,7 @@ paths(cases);
 ambiguous(cases);
 slider(cases);
 refusal(cases);
-tiling();
+parts();
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
