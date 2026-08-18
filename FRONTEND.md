@@ -2,7 +2,8 @@
 
 What it is, what the reader does with it, and the constraints a wireframe gets checked
 against. `ROADMAP.md` Phase 3 carries the shape and how it bears on the phases before it;
-the specifics are here.
+the specifics are here. `INTERACTION.md` is what gets checked against them — the elements,
+the gestures, and what each action does.
 
 Written greenfield. The front end has no code, and nothing below is described by reference
 to anything that came before it.
