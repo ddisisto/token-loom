@@ -24,43 +24,56 @@ function el(tag, className, text) {
 
 // -- the path --------------------------------------------------------------
 
-/** Draw the active path as continuous prose, with a marker at each fork.
+/** Draw the active path as continuous prose, with the cards in their place.
  *
  * Runs are tinted alternately rather than ruled off. The boundary is drawn at
  * runs because a run boundary is where a choice was made, which is what a
  * reader scanning back is looking for -- and it coincides with a span boundary
  * everywhere except inside a fork, where the span boundary would be noise.
  *
- * `mutedFrom` is the index of the fork the slider has been taken back to;
- * everything after it is what the reader is about to leave, and is dimmed
- * rather than removed. Nothing has been lost at that point and the render
- * should not suggest otherwise.
+ * **The card strip is inserted where its fork sits, not below the path.** The
+ * surface is one sequence read downwards with a cross-section opened at the
+ * position the reader is standing on: what is above is what has been read, what
+ * is below is what continues, and the alternatives lie across. A strip pinned
+ * to the foot of the page instead put the choice arbitrarily far from the text
+ * it belonged to -- going back to an early fork left the cards off-screen
+ * entirely -- and broke the symmetry the whole interaction is, which is that
+ * confirming folds a cross-section into the sequence and going back opens one
+ * out of it.
+ *
+ * `mutedFrom` is the fork the reader has come back to; everything after it is
+ * what they are about to leave, and is dimmed rather than removed. Nothing has
+ * been lost at that point and the render should not suggest otherwise.
  */
-export function renderPath(host, tree, { mutedFrom = -1 } = {}) {
+export function renderPath(host, tree, { mutedFrom = -1, strip = null } = {}) {
   host.replaceChildren();
   const nodes = activePath(tree);
   const points = forks(tree);
   const forkOf = new Map(points.map((f, i) => [f.node, i]));
+  const openAt = mutedFrom >= 0 ? mutedFrom : points.length - 1;
 
   let muted = false;
   nodes.forEach((node, i) => {
-    if (!node.pieces.length) return;
-    const run = el('div', `run ${i % 2 ? 'odd' : 'even'}${muted ? ' muted' : ''}`);
-    for (const piece of node.pieces) {
-      const text = pieceText(tree, piece);
-      if (!text) continue;
-      const span = el('span', 'piece', text);
-      span.dataset.span = piece.span;
-      span.dataset.begin = String(piece.begin);
-      run.append(span);
+    const here = forkOf.has(node) ? forkOf.get(node) : -1;
+    if (node.pieces.length) {
+      const run = el('div', `run ${i % 2 ? 'odd' : 'even'}${muted ? ' muted' : ''}`);
+      for (const piece of node.pieces) {
+        const text = pieceText(tree, piece);
+        if (!text) continue;
+        const chunk = el('span', 'piece', text);
+        chunk.dataset.span = piece.span;
+        chunk.dataset.begin = String(piece.begin);
+        run.append(chunk);
+      }
+      if (here >= 0) {
+        const mark = el('i', 'mark');
+        mark.dataset.fork = String(here);
+        run.append(mark);
+      }
+      host.append(run);
     }
-    if (forkOf.has(node)) {
-      const mark = el('i', 'mark');
-      mark.dataset.fork = String(forkOf.get(node));
-      run.append(mark);
-      if (forkOf.get(node) === mutedFrom) muted = true;
-    }
-    host.append(run);
+    if (here >= 0 && here === openAt && strip) host.append(strip);
+    if (here >= 0 && here === mutedFrom) muted = true;
   });
   return points;
 }
@@ -114,9 +127,9 @@ export function renderMargin(host, column, points, active) {
  * the path above it -- the eye should not have to travel between reading and
  * choosing.
  */
-export function renderCards(host, tree, fork, selected, { growable }) {
-  host.replaceChildren();
-  if (!fork) return;
+export function cardStrip(tree, fork, selected, { growable }) {
+  if (!fork) return null;
+  const slice = el('div', 'slice');
   const strip = el('div', 'strip');
   fork.children.forEach((node, i) => {
     const state = nodeState(tree, node);
@@ -141,7 +154,8 @@ export function renderCards(host, tree, fork, selected, { growable }) {
     strip.append(more);
   }
   strip.style.setProperty('--at', String(selected));
-  host.append(strip);
+  slice.append(strip);
+  return slice;
 }
 
 // -- banners ---------------------------------------------------------------

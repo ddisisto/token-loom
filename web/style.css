@@ -37,6 +37,13 @@
 
 * { box-sizing: border-box; }
 
+/* `hidden` is an attribute selector, so any rule here that sets `display` on an
+ * id outranks it and the element stays on screen with the attribute set. That
+ * is not hypothetical: #seed is a flex row, and it sat over the reading surface
+ * for the whole of the first session. Asserting the attribute in a test does
+ * not catch it -- the attribute was correct and the page was wrong. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   padding: 0;
@@ -204,8 +211,9 @@ body {
 
 /* -- the cards ----------------------------------------------------------- */
 
-#cards {
-  margin-top: 1.2rem;
+/* the cross-section, in the flow at the position it belongs to */
+.slice {
+  margin: 0.9rem 0;
   overflow: visible;
 }
 

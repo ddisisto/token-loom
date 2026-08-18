@@ -8,4 +8,12 @@
 # step, because web/ is served exactly as it is written.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-exec uv run --group web python -m api.server "${1:-${LOOM_TREE:-data/tree}}" "${@:2}"
+TREE="${1:-${LOOM_TREE:-data/tree}}"
+
+# A path with no tree in it is a new session rather than a mistake. The reading
+# surface opens on an empty tree with the seed screen, which is exactly what
+# there is to do with one, so erroring here would only mean typing `loom.py new`
+# and running this again.
+[ -f "$TREE/tree.json" ] || uv run python loom.py -d "$TREE" new
+
+exec uv run --group web python -m api.server "$TREE" "${@:2}"

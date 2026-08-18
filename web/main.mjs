@@ -18,7 +18,7 @@ import {
   unrenderable,
 } from './path.mjs';
 import * as flyout from './flyout.mjs';
-import { banner, renderCards, renderMargin, renderPath } from './surface.mjs';
+import { banner, cardStrip, renderMargin, renderPath } from './surface.mjs';
 
 /** The stops on the chunk slider, in tokens.
  *
@@ -255,8 +255,6 @@ function draw() {
 
   const { points, index, fork } = slider();
   const atTip = index === points.length - 1;
-  renderPath(dom.path, state.tree, { mutedFrom: atTip ? -1 : index });
-  renderMargin(dom.margin, dom.path, points, index);
 
   if (fork && state.growing) {
     // the card asked for has arrived, so move onto it as the reader intended
@@ -268,11 +266,16 @@ function draw() {
   }
   const room = fork ? Math.min(state.card, fork.children.length - 1) : 0;
   state.card = Math.max(0, room);
-  renderCards(dom.cards, state.tree, fork, state.card, {
+
+  // built first and handed to the path, which inserts it at its own fork: the
+  // cross-section belongs at the position it is a cross-section of
+  const strip = cardStrip(state.tree, fork, state.card, {
     growable: Boolean(fork) && atTip && !state.readOnly
       && state.card === fork.children.length - 1
       && nodeState(state.tree, fork.children[state.card]) === 'ready',
   });
+  renderPath(dom.path, state.tree, { mutedFrom: atTip ? -1 : index, strip });
+  renderMargin(dom.margin, dom.path, points, index);
 }
 
 // -- the seed --------------------------------------------------------------
@@ -346,7 +349,7 @@ function clicks(event) {
 
 async function start() {
   for (const id of ['banners', 'seed', 'input', 'submit', 'reading', 'path',
-    'margin', 'cards', 'flyout', 'refuse', 'chunk', 'chunkValue']) {
+    'margin', 'flyout', 'refuse', 'chunk', 'chunkValue']) {
     dom[id] = document.getElementById(id);
   }
 
