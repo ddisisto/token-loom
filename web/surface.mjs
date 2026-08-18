@@ -140,6 +140,13 @@ export function place(parts, nodeIndex, { muted }) {
   // the selected card aligns with the path above it, so the strip starts where
   // the reading column does and not where the band does
   band.style.setProperty('--origin', `${base.left}px`);
+  // and it *is* the column: same measure as the prose, and a first line that
+  // begins where the line above it stopped. Both are facts about the rendered
+  // flow, so they are set here rather than guessed at in the stylesheet, and
+  // set before the band is measured because both change how tall it is.
+  band.style.setProperty('--text', `${width}px`);
+  band.style.setProperty('--indent', `${head.x}px`);
+  slide(band, base.left);
 
   const bandHeight = band.getBoundingClientRect().height;
   // below resumes directly under the band. Where the lifted section is taller
@@ -156,6 +163,29 @@ export function place(parts, nodeIndex, { muted }) {
     `${Math.max(head.lineBottom + bandHeight, height + shift)}px`;
 
   return shift;
+}
+
+/** Slide the strip so the selected card's *text* starts at the column.
+ *
+ * Not a card count times a card width: the selected card is the width of the
+ * reading column and the rest are half of it, so there is no stride to
+ * multiply. What the layout already knows is where that card's text sits, and
+ * the distance from there to the column is the whole of the answer.
+ *
+ * The transform is cleared before the measurement rather than reasoned about:
+ * a rect is where the element is *painted*, so measuring one under the
+ * transform being replaced would compound the two. `offsetLeft` avoids that
+ * and is rounded to whole pixels, which drifts by one once a few half-width
+ * cards have accumulated -- measured, at the third card in.
+ */
+function slide(band, origin) {
+  const strip = band.querySelector('.strip');
+  const on = band.querySelector('.card.on');
+  if (!strip || !on) return;
+  const lead = on.firstElementChild || on;
+  strip.style.transform = 'none';
+  const at = lead.getBoundingClientRect().left;
+  strip.style.transform = `translateX(${origin - at}px)`;
 }
 
 /** Bring the target into view, and no further.
@@ -270,13 +300,19 @@ const WHY = {
  * that span. That is invisible here on purpose: the children of a run node are
  * the cards uniformly, with no case analysis over how each fork came to be.
  *
- * The band takes the full width of the page; a card does not, and stays about
- * half the reading column. Those are two different claims and only the first
- * changed when the target opened out: what expands is the room the sibling
- * stack is given, not the size of any one alternative. The strip slides so the
- * selected card sits at the column's left edge, aligned with the path above
- * it -- the eye should not travel between reading and choosing -- and the extra
- * width is what makes the neighbours legible rather than implied.
+ * The band takes the full width of the page; a card does not. The selected one
+ * takes the reading column exactly -- same measure as the prose, first line
+ * beginning where the line above it stopped -- so reading down through the
+ * target is reading rather than reading, stopping, and starting again in a
+ * different shape. The unselected ones stay half-width and unindented, because
+ * they are alternatives to compare rather than prose to read, and because the
+ * comparison is easier when more than one of them is on screen. The strip
+ * slides so the selected card's text lands at the column; `place` does the
+ * arithmetic, since only the layout knows where that is.
+ *
+ * The cost is a reflow of two cards each time the selection moves -- the one
+ * entering the column and the one leaving it. Accepted: it is the moving part
+ * of the surface, and everything the reader is not moving through holds still.
  */
 export function cardStrip(tree, fork, selected, { growable }) {
   if (!fork) return null;
@@ -305,7 +341,6 @@ export function cardStrip(tree, fork, selected, { growable }) {
     more.title = 'ask for another continuation';
     strip.append(more);
   }
-  strip.style.setProperty('--at', String(selected));
   return strip;
 }
 

@@ -165,12 +165,28 @@ children of a run node are the cards, uniformly, with no case analysis over how 
 came to exist.
 
 **Layout.** *The band* takes the full width of the page, breaking out of the reading column;
-*a card* does not, and stays about half the column wide. The two are different claims and
-only the first changed: what expands at the target is the room the sibling stack is given,
-not the size of any one alternative. The selected card's text is left-aligned with the path
-above it, so the eye does not travel between reading and choosing, and moving the selection
-slides the whole strip — adjacent cards sit partly outside the frame, more distant ones
-entirely outside. The extra width is what makes those neighbours legible rather than implied.
+*a card* does not. What expands at the target is the room the sibling stack is given, and the
+two sizes in it answer two different questions.
+
+*The selected card is the reading column.* Its text sits in the same measure as the prose,
+and its first line begins where the line above it stopped — so reading down through the
+target is reading, rather than reading, stopping, and starting again in a different shape.
+Both numbers are measured from the rendered flow rather than declared in the stylesheet:
+the column is as wide as it wrapped to, and the indent is where the path's last line ended.
+
+*The unselected cards stay half the column, and are not indented.* They are alternatives to
+compare rather than prose to read, and the comparison wants more than one of them on screen.
+Moving the selection slides the strip so the selected card's text lands at the column;
+adjacent cards sit partly outside the frame, more distant ones entirely outside.
+
+*Adding one more* is neither, so it is a square the height of a single line at the right-hand
+end of the strip — a request rather than an alternative, and it should not read as an empty
+card of text.
+
+**The cost is a reflow of two cards** whenever the selection moves: the one entering the
+column and the one leaving it. Accepted, and the exception rather than the rule — the path
+itself never reflows, which is the thing constraint 7 is actually about. What is reflowing is
+the part the reader is moving through, where a change of shape is the movement being shown.
 
 **Filling.** A generation shows its `n` cards immediately as placeholders, the first active,
 and they fill in as the server produces them. A span in flight has provenance and no bytes,
