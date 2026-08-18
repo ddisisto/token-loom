@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>token loom</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div id="banners"></div>
+
+<!-- The one dial. It never moves and is always available, on the seed screen
+     and on the reading surface alike: changing it applies to the next call and
+     to nothing already made, so a session can be steered coarsely and then
+     finely without starting over. -->
+<aside id="dial">
+  <input id="chunk" type="range" min="0" max="4" step="1" value="2"
+         aria-label="chunk size">
+  <span id="chunkValue"></span>
+</aside>
+
+<!-- The seed. One given span at the root, once: it is the only text the reader
+     supplies, and on submit it stops being editable and stays on the screen as
+     the head of the path. That is the format showing through rather than a
+     decision made here -- recorded bytes are immutable and there is no edit
+     route. -->
+<main id="seed">
+  <div id="input" contenteditable="plaintext-only" spellcheck="false"
+       aria-label="the seed"></div>
+  <button id="submit" title="begin">→</button>
+</main>
+
+<main id="reading" hidden>
+  <div id="column">
+    <div id="path"></div>
+    <div id="margin"></div>
+  </div>
+  <div id="cards"></div>
+</main>
+
+<p id="refuse" hidden></p>
+
+<div id="flyout" hidden></div>
+
+<script type="module" src="./main.mjs"></script>
+</body>
+</html>

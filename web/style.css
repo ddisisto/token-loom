@@ -1,0 +1,320 @@
+/* The reading surface.
+ *
+ * Two things here are load-bearing rather than taste:
+ *
+ * The viewport is the reader's -- nothing scrolls the page on its own, and
+ * text that arrives lands where it belongs and waits to be scrolled to.
+ * There is no `scroll-behavior` and no `scrollIntoView` anywhere in this
+ * front end, which is the whole of how that is kept.
+ *
+ * Behind the tip reading flows and at the tip it stops, so the path is set as
+ * continuous prose and the cards are set apart from it. The run tint is the
+ * lightest mark that still says "a choice was made here"; anything stronger
+ * turns reading back into inspecting.
+ */
+
+:root {
+  --ink: #1b1a17;
+  --dim: #6b6862;
+  --page: #faf8f4;
+  --tint: #f2eee6;
+  --edge: #ddd7cb;
+  --live: #7a5c2e;
+  --column: 34rem;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8e4db;
+    --dim: #8b8579;
+    --page: #161513;
+    --tint: #1e1c19;
+    --edge: #2e2b26;
+    --live: #c9a15f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 1rem/1.7 Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+}
+
+/* -- banners ------------------------------------------------------------- */
+
+#banners {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+
+.banner {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.6rem 1rem;
+  background: var(--tint);
+  border-bottom: 1px solid var(--edge);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.banner .says { flex: 1; }
+
+.dismiss {
+  border: 0;
+  background: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* -- the dial ------------------------------------------------------------ */
+
+#dial {
+  position: fixed;
+  top: 4rem;
+  right: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  z-index: 10;
+}
+
+#chunk {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  appearance: slider-vertical;
+  width: 1.2rem;
+  height: 9rem;
+  accent-color: var(--live);
+  cursor: pointer;
+}
+
+#chunkValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--dim);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+#chunkValue.showing { opacity: 1; }
+
+/* -- the seed ------------------------------------------------------------ */
+
+#seed {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+  max-width: var(--column);
+  margin: 22vh auto 0;
+  padding: 0 1rem;
+}
+
+#input {
+  flex: 1;
+  min-height: 17rem;      /* ten lines, and it grows with what is typed */
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  background: var(--tint);
+  outline: none;
+  white-space: pre-wrap;
+}
+
+#input:focus { border-color: var(--live); }
+
+#submit {
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.3rem 0.7rem;
+}
+
+#submit:hover { border-color: var(--live); color: var(--live); }
+
+/* -- the path ------------------------------------------------------------ */
+
+#reading {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: 4rem 1rem 60vh;   /* the tail reaches the top of the window */
+}
+
+#column { position: relative; }
+
+.run { padding: 0.1rem 0; }
+
+.run.odd { background: var(--tint); }
+
+.run.muted { opacity: 0.45; }
+
+.piece { white-space: pre-wrap; }
+
+.mark {
+  display: inline-block;
+  width: 0;
+  height: 1em;
+  vertical-align: baseline;
+}
+
+#margin {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 8rem;
+  height: 100%;
+  pointer-events: none;
+}
+
+.chips {
+  position: absolute;
+  left: 0.8rem;
+  display: flex;
+  gap: 0.25rem;
+  pointer-events: auto;
+}
+
+.chip {
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  background: var(--page);
+  color: var(--dim);
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  padding: 0 0.25rem;
+}
+
+.chip:hover, .chip.at { border-color: var(--live); color: var(--live); }
+
+/* -- the cards ----------------------------------------------------------- */
+
+#cards {
+  margin-top: 1.2rem;
+  overflow: visible;
+}
+
+.strip {
+  display: flex;
+  gap: 0.8rem;
+  transform: translateX(calc(var(--at) * (-50% - 0.4rem)));
+  transition: transform 0.18s ease-out;
+}
+
+.card {
+  flex: 0 0 calc(50% - 0.4rem);
+  min-height: 4.5rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  background: var(--tint);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.18s;
+}
+
+.card.on {
+  opacity: 1;
+  border-color: var(--live);
+}
+
+.card .text { white-space: pre-wrap; }
+
+.card .nothing, .card .waiting {
+  color: var(--dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+/* a span in flight has provenance and no bytes, and that is what this draws */
+.card.flight .waiting::after {
+  content: '·····';
+  letter-spacing: 0.2em;
+  animation: breathe 1.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+
+/* -- the flyout ---------------------------------------------------------- */
+
+#flyout {
+  position: absolute;
+  z-index: 30;
+  min-width: 11rem;
+  max-width: 18rem;
+  padding: 0.4rem;
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  background: var(--page);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+#flyout .head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.2rem 0.4rem 0.4rem;
+  border-bottom: 1px solid var(--edge);
+  color: var(--live);
+}
+
+#flyout .alt {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+#flyout .alt:hover:not(:disabled) { background: var(--tint); }
+
+#flyout .alt:disabled { color: var(--dim); cursor: default; }
+
+#flyout .lp { color: var(--dim); }
+
+#flyout .note {
+  margin: 0.3rem 0.4rem;
+  color: var(--dim);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* -- the refusal --------------------------------------------------------- */
+
+#refuse {
+  max-width: var(--column);
+  margin: 6rem auto;
+  padding: 1rem;
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--live);
+  color: var(--dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
