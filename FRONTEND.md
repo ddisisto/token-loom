@@ -62,6 +62,11 @@ Two things follow, both consequences rather than settings:
 How much text arrives per choice is the reader's, and it is the only generation parameter the
 surface exposes. Thirty-two tokens to start.
 
+It stays available and never moves. Changing it applies to the next call and to nothing
+already made, so a session can be steered coarsely and then finely without starting over. A
+tree therefore records where its reader changed pace, since each value interns as its own
+parameter set — which is interning working as intended rather than the trap above.
+
 It is exposed on a distinction rather than as a carve-out. Temperature, top-p and top-n change
 what the model does; chunk size changes how much lands between one choice and the next. It is
 the one parameter whose effect is felt as pacing, and pacing is a reader's business. That it
@@ -124,10 +129,21 @@ The division is the whole of the interaction, and it is why the same surface can
 relaxed and pointed. Behind the tip there is nothing to decide and the reader is carried
 along by prose. At the tip there is nothing but the decision.
 
-Taking a fork behind the tip makes that fork the new tip: the path is re-chosen from there,
-and what was read past it is still on the tree and no longer on the path. Moving between
-sibling alternatives at any fork resolves immediately, because both were generated when the
-fork was made.
+Returning to a fork behind the tip does not shorten the path. Choosing the alternative
+already taken changes nothing; choosing another re-routes there and then carries forward, to
+the deepest point previously visited down that branch. What leaves the path stays on the tree
+and is reached by coming back. Moving between alternatives resolves immediately either way,
+since all of them were generated when the fork was made.
+
+Where the path resumes after a re-route is view state rather than a record. It keys off
+`(span, offset)` like everything else, and a session that has forgotten it lands at the fork,
+which is the honest fallback rather than a degraded one.
+
+**What a fork offers is runs, not spans.** They are the same thing wherever a span was
+generated whole, and they come apart at a fork inside a span — where one alternative is the
+remainder of a span that already exists. `core/ops.py` computes the distinction and the API
+carries it, so a client that renders the children of a run node is right in both cases
+without knowing there were two.
 
 ### The finer grain
 
@@ -151,7 +167,11 @@ Keeping them apart is what lets "every alternative here has been seen" stay a qu
 an answer. It is a question about the path layer, where alternatives are countable and few.
 
 Taking a token alternative gives a span one token long with nothing continuing from it, which
-makes it a tip like any other, and the forward reflex applies to it unchanged.
+makes it a tip like any other, and the forward reflex applies to it unchanged. Nothing is
+divided to make room for it: the fork that appears is between the alternate and the remainder
+of the span the reader was reading, and that remainder becomes a sibling of it. So prose that
+had no choice point in it acquires one, mid-span, and the path the reader was on stays whole
+and reachable by coming back to the fork.
 
 **What this costs from the start is one property of the surface**: a point in the rendered
 prose is always resolvable to `(span, byte offset)`, and a span is never an opaque string.
@@ -237,8 +257,10 @@ Numbered so that a wireframe can be checked against them one at a time.
 11. **Reading works with no model server.** Every route except `GET /api/settings` answers
     without one. Opening a tree and reading it through is a property of the format, and the
     surface keeps it.
-12. **The context wall is shown, not worked around.** A prompt that does not fit is refused
-    outright and generates nothing, so a session approaching it says so.
+12. **Refusals reach the reader as themselves.** A prompt that does not fit is refused
+    outright and generates nothing; so is a response that lost bytes, and a request with no
+    model server behind it. Each is reported and dismissed rather than worked around or
+    retried quietly. Seeing the context wall *before* it arrives is later work.
 
 ### From the deployment
 
