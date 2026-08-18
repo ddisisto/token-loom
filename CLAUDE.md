@@ -237,6 +237,18 @@ then, worth keeping if that ever happens:
   mount is last in `api/server.py` and a catch-all keeps `/api` from falling into it, because
   a file server answers an unknown POST with 405 rather than 404.
 
+  **The path is laid out once and drawn twice**, and reading `surface.mjs` as if it renders
+  once will not survive contact. `#above` and `#below` hold the same flow at the same width,
+  clipped to complementary L-shapes, with the lower one translated down to open the gap the
+  card band sits in — so moving the target animates two clips and one offset and never
+  re-wraps a line. `INTERACTION.md` has the reasoning; three things about it bite:
+  `clip-path` clips **hit-testing** as well as painting, which is why clicks need no
+  arbitration between the copies; the split is the **line box**, which `getClientRects()`
+  does not give you (it answers with font boxes, 10px shorter here) and a zero-width
+  `height: 1lh` mark does; and the band's width is measured against the viewport, so
+  `html { overflow-y: scroll }` is load-bearing rather than cosmetic — without it the
+  scrollbar's arrival changes the width that decided the layout that summoned the scrollbar.
+
   What went: `inference.py`, `models.py`, `params.py`, `util/`, `web/`, `smoke_test.py` and
   `scripts/web.sh` — the OpenAI-compatible path, the capability table, the old node format
   and the browser UI that read it. The tag `pre-token-core` has all of it, and git history
@@ -374,7 +386,13 @@ What has paid off here, and what it cost to skip.
   anything; it is kept because `local.json` in particular is not reproducible. It is
   deliberately not a path inside the repo, so no ignore rule has to defend it. Git history
   still has every file that was once tracked — untracking is not deletion.
-- Use `Read` on files rather than `cat`.
+- **Read files with whichever tool the harness is steering towards.** This used to say
+  "use `Read` rather than `cat`", and it was dropped rather than defended: some sessions
+  inject a standing instruction to prefer shell equivalents (`cat`, `sed -n`, heredocs) over
+  the file tools, and a project rule that contradicts it produces a silent coin-flip every
+  turn plus an argument about which authority wins. The rules below it are the ones with a
+  reason behind them and they still hold either way: one operation per call, no `&&` chains,
+  no redirecting output to a file to read it back.
 - Fix root causes. A workaround that leaves the original fault in place is not a fix.
 
 ## Open threads

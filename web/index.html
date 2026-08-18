@@ -32,11 +32,17 @@
 </main>
 
 <main id="reading" hidden>
-  <!-- One sequence read downwards, with a cross-section opened at the fork
-       the reader is standing on. The cards are drawn inside #path, in place,
-       rather than in a region of their own below it. -->
+  <!-- One sequence read downwards, with a cross-section opened at the fork the
+       reader is standing on. The path is laid out once and drawn twice: #above
+       and #below hold the same flow, clipped to complementary L-shapes, and
+       #below is translated down to open the gap #band sits in. Nothing
+       reflows when the target moves; the lower half slides. -->
   <div id="column">
-    <div id="path"></div>
+    <div id="stack">
+      <div id="above" class="copy"></div>
+      <div id="below" class="copy" aria-hidden="true"></div>
+      <div id="band"></div>
+    </div>
     <div id="margin"></div>
   </div>
 </main>

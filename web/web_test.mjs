@@ -24,8 +24,9 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  activePath, ancestry, byteOffset, continues, forks, forget, indexed,
-  leaving, nodeState, nodeText, pieceText, stringIndex, textOf, unrenderable,
+  activePath, ancestry, area, byteOffset, clips, continues, forks, forget,
+  indexed, leaving, nodeState, nodeText, pieceText, polygon, stringIndex,
+  textOf, unrenderable,
 } from './path.mjs';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -242,6 +243,63 @@ function refusal(cases) {
     && cases.flight.tree.spans.s2.text === null);
 }
 
+// -- the two clips ---------------------------------------------------------
+
+/** The property the drawn-twice layout rests on: the two L-shapes tile the
+ * one layout, with nothing counted twice and nothing left out.
+ *
+ * Checked as an invariant rather than against expected vertex lists, because a
+ * vertex list is the implementation written down again and would pass on a
+ * wrong one. Area is the thing that has to hold: a sliver counted twice reads
+ * as a bold line where the halves overlap, and a sliver missed reads as a
+ * crack across the page -- both at one pixel, and neither with anything to
+ * disagree with them.
+ */
+function tiling() {
+  console.log('\nthe two clips tile the one layout');
+  const box = { width: 500, height: 900 };
+  const line = { lineTop: 300, lineBottom: 327.2 };
+  const whole = box.width * box.height;
+
+  const cases = {
+    'mid-line, mid-page': { ...box, ...line, x: 210 },
+    'at the head of its line': { ...box, ...line, x: 0 },
+    'at the end of its line': { ...box, ...line, x: box.width },
+    'on the first line': { ...box, x: 210, lineTop: 0, lineBottom: 27.2 },
+    'on the last line': {
+      ...box, x: 210, lineTop: box.height - 27.2, lineBottom: box.height,
+    },
+    'at the root, with no position in the text': {
+      ...box, x: 0, lineTop: 0, lineBottom: 0,
+    },
+  };
+
+  for (const [what, geometry] of Object.entries(cases)) {
+    const { above, below } = clips(geometry);
+    const sum = area(above) + area(below);
+    check(`${what}: the halves sum to the whole`,
+      Math.abs(sum - whole) < 1e-6, `${sum} vs ${whole}`);
+    check(`${what}: six vertices each, so a retarget interpolates`,
+      above.length === 6 && below.length === 6,
+      `${above.length}, ${below.length}`);
+  }
+
+  // the halves are complementary rather than merely equal in area: above holds
+  // the target's own line up to the fork and below holds it from there
+  const { above, below } = clips({ ...box, ...line, x: 210 });
+  const head = area(above) - box.width * line.lineTop;
+  check('above gets the head of the target line, to the fork and no further',
+    Math.abs(head - 210 * (line.lineBottom - line.lineTop)) < 1e-6, head);
+  const tail = area(below) - box.width * (box.height - line.lineBottom);
+  check('and below gets the rest of that line, from the fork on',
+    Math.abs(tail - (box.width - 210) * (line.lineBottom - line.lineTop)) < 1e-6,
+    tail);
+
+  check('the CSS is pixels, which is what the measurement was in',
+    polygon([[0, 0], [1.5, 2]]) === 'polygon(0px 0px, 1.5px 2px)',
+    polygon([[0, 0], [1.5, 2]]));
+}
+
 // -- main ------------------------------------------------------------------
 
 const cases = load();
@@ -250,6 +308,7 @@ paths(cases);
 ambiguous(cases);
 slider(cases);
 refusal(cases);
+tiling();
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

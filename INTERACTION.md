@@ -76,11 +76,26 @@ every retarget re-wraps everything below it. The clipped pair costs a second cop
 path in the DOM, which at a full context is tens of kilobytes, and buys the invariant
 outright rather than during a movement only.
 
-**One thing to measure before building this**: whether `clip-path` clips hit-testing as well
-as painting. If it does, each copy is clickable only where it is visible and the token flyout
-needs nothing; if it does not, the invisible half of each copy will answer clicks meant for
-the other, and the fix is a hit-test against the clip in the click handler. It is decidable
-in a minute and is not worth reasoning about.
+**`clip-path` clips hit-testing as well as painting** — measured before building this, and
+the answer that costs least. The clipped-away half of a copy is not merely behind the other
+one, it is absent from `elementsFromPoint` entirely, so each copy answers clicks exactly
+where it is visible and the flyout needs no hit-test of its own. `caretPositionFromPoint`
+follows the same rule, which is what makes a click resolve to a `(span, offset)` in whichever
+half the reader was looking at.
+
+**The split is the line box, not the font box**, and the two are not the same rectangle. A
+run's `getClientRects()` answers with font boxes — 17px against a 27.2px line at the sizes
+here — so clipping at those bounds cuts several pixels into the line above and leaves a
+sliver of the one below. The zero-width mark at each fork is `height: 1lh` aligned to the top
+of the line, which makes its own rect the line box exactly.
+
+**Two costs of the text existing twice**, both accepted for now rather than solved. A
+selection dragged across the target picks up the invisible half, so copying out of the middle
+of a path duplicates it; and find-in-page matches everything twice, once in a region that
+cannot be scrolled to. Neither has a fix that does not give up something — `user-select:
+none` kills selection in half the page, and nothing hides text from find-in-page without also
+hiding it from the reader. The instrument is for navigating a path rather than extracting
+prose from one, which is why this is a cost rather than a fault.
 
 ### The viewport does not move, and does not need to
 
@@ -100,7 +115,9 @@ exist. A chip sits on the line its fork falls on, and several may share a line �
 side by side. The target's own fork gets no chip: it is not a choice already made, and it is
 already open.
 
-Chips are read off one copy, not both.
+Chips are measured off one copy, not both — the above one, which never moves — and a chip
+past the target is then displaced by the same amount its half of the path was. Measuring each
+one in whichever copy draws it gives the same answer and requires knowing which that is.
 
 **No run tinting.** An earlier pass separated runs by alternate background shading, which
 works on blocks and cannot work here: an inline background wraps raggedly and reads as
@@ -167,6 +184,15 @@ Down does two things because at the tip there is something to confirm and behind
 not — selecting is what re-routes at an earlier fork, and it has already happened by the time
 down is pressed. So down is always "towards the tip", and confirming is what that means when
 the tip is where you already are.
+
+**What separates them is whether the path already runs past the fork**, not whether the fork
+is the last one. Those coincide in ordinary use, because generation attaches its alternatives
+at the tip and nothing continues past them — but a tree authored from the command line ends
+past its last fork, and so does one whose tip was deleted. There the last fork has a chosen
+child: down has nothing to confirm and nowhere further to go, and the card drawn as selected
+is the one the prose below actually follows. Reading the last fork as the tip instead drew
+card 0 as selected above a passage that was card 1, which is the surface contradicting itself
+on load.
 
 The chunk slider never moves and is always available. Changing it applies to the next call
 and to nothing already made.

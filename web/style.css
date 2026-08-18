@@ -37,6 +37,15 @@
 
 * { box-sizing: border-box; }
 
+/* The band is measured against the viewport, and the viewport's width depends
+ * on whether a vertical scrollbar is showing, which depends on how tall the
+ * band made the page. Keeping the scrollbar there always cuts that loop, and
+ * a second one behind it: on a narrow window a scrollbar arriving re-wraps the
+ * flow, which invalidates the clip that was measured before it. `overflow-y:
+ * scroll` rather than `scrollbar-gutter: stable`, which computes as asked and
+ * reserves nothing on the root element (measured, Chrome 144). */
+html { overflow-y: scroll; }
+
 /* `hidden` is an attribute selector, so any rule here that sets `display` on an
  * id outranks it and the element stays on screen with the attribute set. That
  * is not hypothetical: #seed is a flex row, and it sat over the reading surface
@@ -163,19 +172,42 @@ body {
 
 #column { position: relative; }
 
-.run { padding: 0.1rem 0; }
+/* The path is laid out once and drawn twice. Both copies are the same content
+ * at the same width, so they lay out identically; the clips decide which half
+ * of that one layout each of them shows, and the lower one is translated to
+ * open the gap. `clip-path` clips hit-testing as well as painting -- measured,
+ * not assumed -- so each copy answers clicks only where it is visible and the
+ * flyout needs no hit-test of its own.
+ *
+ * The stack's height is set from script, because it is the flow's height plus
+ * the displacement and neither is known to CSS. */
+#stack { position: relative; }
 
-.run.odd { background: var(--tint); }
+.copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transition: clip-path 0.18s ease-out, transform 0.18s ease-out,
+              opacity 0.18s;
+}
 
-.run.muted { opacity: 0.45; }
+/* what the reader is about to leave rather than something already lost */
+#below.muted { opacity: 0.45; }
 
-.piece { white-space: pre-wrap; }
+/* Runs are inline: a run boundary falls mid-sentence far more often than not,
+ * and a block per run makes a page of prose into a stack of stripes. */
+.run, .piece { white-space: pre-wrap; }
 
+/* Zero width, and a full line box tall so its rect *is* the line box. The
+ * obvious `1em` at the baseline measures the font box, which is 10px shorter
+ * and centred differently -- clipping there cuts into the line above and
+ * leaves a sliver of the one below. */
 .mark {
   display: inline-block;
   width: 0;
-  height: 1em;
-  vertical-align: baseline;
+  height: 1lh;
+  vertical-align: top;
 }
 
 #margin {
@@ -211,21 +243,30 @@ body {
 
 /* -- the cards ----------------------------------------------------------- */
 
-/* the cross-section, in the flow at the position it belongs to */
-.slice {
-  margin: 0.9rem 0;
-  overflow: visible;
+/* The band: the full width of the page, breaking out of the reading column,
+ * in the gap the two clipped halves opened for it. Its left and width are set
+ * from script -- `100vw` counts the scrollbar and would overflow, and the
+ * measurement is already being taken. */
+#band {
+  position: absolute;
+  padding: 0.9rem 0;
+  overflow: hidden;
+  --card: calc(var(--column) / 2);
+  --gap: 0.8rem;
 }
 
+/* `--origin` is where the reading column starts, so the selected card lines up
+ * with the path above it rather than with the band it sits in. */
 .strip {
   display: flex;
-  gap: 0.8rem;
-  transform: translateX(calc(var(--at) * (-50% - 0.4rem)));
+  gap: var(--gap);
+  padding-left: var(--origin);
+  transform: translateX(calc(var(--at) * -1 * (var(--card) + var(--gap))));
   transition: transform 0.18s ease-out;
 }
 
 .card {
-  flex: 0 0 calc(50% - 0.4rem);
+  flex: 0 0 var(--card);
   min-height: 4.5rem;
   padding: 0.6rem 0.8rem;
   border: 1px solid var(--edge);

@@ -18,7 +18,7 @@ import {
   unrenderable,
 } from './path.mjs';
 import * as flyout from './flyout.mjs';
-import { banner, cardStrip, renderMargin, renderPath } from './surface.mjs';
+import { banner, cardStrip, place, renderFlow, renderMargin } from './surface.mjs';
 
 /** The stops on the chunk slider, in tokens.
  *
@@ -35,8 +35,20 @@ const state = {
   tree: null,
   settings: null,
   chunk: CHUNKS[START],
-  sliderAt: null,       // the fork the slider is on, as a position
-  card: 0,
+  // The fork the target is on, as a position, and `undefined` for "wherever
+  // the tip is". Not `null` for that, which is a real position: the root fork
+  // has no pieces and so no address, and `endOf` answers `null` for it. Using
+  // one value for both meant up from the first fork silently retargeted the
+  // tip instead -- it moved the selection and nothing else, which looks like a
+  // stuck key rather than like a bug.
+  sliderAt: undefined,
+  // Which card is selected, and `null` for "whichever one the path already
+  // goes through". A number is the reader having said otherwise. Defaulting to
+  // 0 was wrong wherever the target's fork had already been chosen through --
+  // it drew card 0 as selected while the prose below it was card 1, which is
+  // the surface contradicting itself. Reachable on load, since the last fork
+  // has a chosen child in any tree whose tip does not.
+  card: null,
   deepest: new Map(),   // first span of a branch -> the deepest tip seen down it
   growing: false,
   readOnly: false,
@@ -48,20 +60,37 @@ const writes = new Writes();
 
 const key = (pos) => (pos === null ? '.' : `${pos.span}+${pos.offset}`);
 
-/** The forks along the path, and which one the slider is on.
+/** The forks along the path, which one the target is on, and which card of it.
  *
  * Resolved by position rather than kept as an index, so a branch appearing
- * anywhere earlier does not silently move the slider somewhere else.
+ * anywhere earlier does not silently move the target somewhere else. The card
+ * is resolved here too, and for the same reason: `state.card` is an override
+ * and the default is whatever the path itself goes through, which only the
+ * tree can answer.
  */
 function slider() {
   const points = forks(state.tree);
-  if (!points.length) return { points, index: -1, fork: null };
+  if (!points.length) {
+    return { points, index: -1, fork: null, card: 0, chosen: false };
+  }
   let index = points.length - 1;
-  if (state.sliderAt) {
+  if (state.sliderAt !== undefined) {
     const found = points.findIndex((f) => key(f.at) === key(state.sliderAt));
     if (found >= 0) index = found;
   }
-  return { points, index, fork: points[index] };
+  const fork = points[index];
+  const want = state.card === null ? Math.max(0, fork.active) : state.card;
+  return {
+    points,
+    index,
+    fork,
+    card: Math.max(0, Math.min(want, fork.children.length - 1)),
+    // whether the path continues past this fork. Normally false at the last
+    // fork, because generation attaches its alternatives at the tip -- but an
+    // authored tree, or one whose tip was deleted, ends past its last fork,
+    // and then there is nothing here to confirm.
+    chosen: fork.active >= 0,
+  };
 }
 
 /** Remember how far the reader got down every branch on the current path.
@@ -120,16 +149,16 @@ function generate(at, n) {
 
 /** Confirm the selected card: it joins the path, and the tip moves onto it. */
 function confirm() {
-  const { fork } = slider();
-  if (!fork) return;
-  const node = fork.children[state.card];
+  const { fork, card, chosen } = slider();
+  if (!fork || chosen) return;
+  const node = fork.children[card];
   if (!node || nodeState(state.tree, node) !== 'ready') return;
 
   // the cursor is written before the generation rather than after, so a reload
   // during a long call lands where the reader is and not a step behind it
   const at = endOf(node);
-  state.sliderAt = null;
-  state.card = 0;
+  state.sliderAt = undefined;
+  state.card = null;
   writes.clearPending();
   writes.submit(async () => {
     apply(await api.cursor(at));
@@ -140,10 +169,11 @@ function confirm() {
 
 /** Move the selection. Behind the tip, moving *is* re-routing. */
 function select(index) {
-  const { fork, index: where, points } = slider();
+  const { fork, chosen } = slider();
   if (!fork || index < 0 || index >= fork.children.length) return;
   state.card = index;
-  if (where === points.length - 1) return draw();      // the tip: nothing yet chosen
+  // nothing has been chosen at this fork yet, so selecting is only a pick
+  if (!chosen) return draw();
   if (index === fork.active) return draw();            // already on the path
 
   const to = resumeInto(fork.children[index]);
@@ -175,7 +205,7 @@ function back() {
   const { points, index } = slider();
   if (index <= 0) return;
   state.sliderAt = points[index - 1].at;
-  state.card = points[index - 1].active;
+  state.card = null;
   draw();
 }
 
@@ -189,8 +219,9 @@ function back() {
 function forward() {
   const { points, index } = slider();
   if (index < 0 || index >= points.length - 1) return;
-  state.sliderAt = index + 1 === points.length - 1 ? null : points[index + 1].at;
-  state.card = Math.max(0, points[index + 1].active);
+  state.sliderAt = index + 1 === points.length - 1
+    ? undefined : points[index + 1].at;
+  state.card = null;
   draw();
 }
 
@@ -225,8 +256,8 @@ function take(spanId, index, rank) {
     const made = tree.created && tree.created[0];
     if (!made) return;
     const at = { span: made, offset: tree.spans[made].length };
-    state.sliderAt = null;
-    state.card = 0;
+    state.sliderAt = undefined;
+    state.card = null;
     apply(await api.cursor(at));
     remember();
     apply(await api.generate(at, 2, settingsNow()));
@@ -253,29 +284,37 @@ function draw() {
   }
   dom.refuse.hidden = true;
 
-  const { points, index, fork } = slider();
+  let { points, index, fork, card, chosen } = slider();
   const atTip = index === points.length - 1;
 
   if (fork && state.growing) {
     // the card asked for has arrived, so move onto it as the reader intended
     const arrived = fork.children.length - 1;
-    if (arrived > state.card) {
+    if (arrived > card) {
       state.card = arrived;
+      card = arrived;
       state.growing = false;
     }
   }
-  const room = fork ? Math.min(state.card, fork.children.length - 1) : 0;
-  state.card = Math.max(0, room);
 
-  // built first and handed to the path, which inserts it at its own fork: the
-  // cross-section belongs at the position it is a cross-section of
-  const strip = cardStrip(state.tree, fork, state.card, {
-    growable: Boolean(fork) && atTip && !state.readOnly
-      && state.card === fork.children.length - 1
-      && nodeState(state.tree, fork.children[state.card]) === 'ready',
+  const strip = cardStrip(state.tree, fork, card, {
+    growable: Boolean(fork) && atTip && !chosen && !state.readOnly
+      && card === fork.children.length - 1
+      && nodeState(state.tree, fork.children[card]) === 'ready',
   });
-  renderPath(dom.path, state.tree, { mutedFrom: atTip ? -1 : index, strip });
-  renderMargin(dom.margin, dom.path, points, index);
+
+  // one flow, laid out once and drawn twice: the clone is a copy of the
+  // finished layout rather than a second render, which is what guarantees the
+  // two halves tile rather than merely agree
+  renderFlow(dom.above, state.tree);
+  dom.below.replaceChildren(
+    ...[...dom.above.childNodes].map((n) => n.cloneNode(true)));
+  dom.band.replaceChildren(...(strip ? [strip] : []));
+
+  // the cross-section is behind the tip when the reader has come back to an
+  // earlier fork, and what lies past it is dimmed rather than removed
+  const shift = place(dom, index, { muted: !atTip });
+  renderMargin(dom.margin, dom.above, points, index, shift);
 }
 
 // -- the seed --------------------------------------------------------------
@@ -307,15 +346,18 @@ function chunkChanged(index) {
 
 function keys(event) {
   if (dom.seed.hidden === false) return;
-  const { fork, index, points } = slider();
+  const { fork, index, points, card, chosen } = slider();
   if (!fork) return;
-  if (event.key === 'ArrowLeft') { select(state.card - 1); }
+  if (event.key === 'ArrowLeft') { select(card - 1); }
   else if (event.key === 'ArrowRight') {
-    if (state.card + 1 < fork.children.length) select(state.card + 1);
+    if (card + 1 < fork.children.length) select(card + 1);
     else if (index === points.length - 1) grow();
   } else if (event.key === 'ArrowUp') { back(); }
   else if (event.key === 'ArrowDown' || event.key === 'Enter') {
-    if (index === points.length - 1) confirm();
+    // down is always towards the tip. At the last fork that means confirming
+    // what is selected -- unless the path already runs past it, where there is
+    // nothing to confirm and nowhere further forward to go.
+    if (index === points.length - 1) { if (!chosen) confirm(); }
     else forward();
   } else return;
   event.preventDefault();
@@ -327,17 +369,17 @@ function clicks(event) {
     const { points } = slider();
     const at = points[Number(chip.dataset.fork)];
     state.sliderAt = at.at;
-    state.card = at.active;
+    state.card = null;
     return draw();
   }
   const card = event.target.closest('.card');
   if (card) {
     if (card.dataset.grow) return grow();
     const i = Number(card.dataset.card);
-    const { index, points } = slider();
+    const { index, points, card: at, chosen } = slider();
     // a mouse reader does in two clicks what arrow-then-down does from the
     // keyboard: select what is not selected, confirm what is
-    if (i === state.card && index === points.length - 1) confirm();
+    if (i === at && index === points.length - 1 && !chosen) confirm();
     else select(i);
     return undefined;
   }
@@ -348,8 +390,9 @@ function clicks(event) {
 }
 
 async function start() {
-  for (const id of ['banners', 'seed', 'input', 'submit', 'reading', 'path',
-    'margin', 'flyout', 'refuse', 'chunk', 'chunkValue']) {
+  for (const id of ['banners', 'seed', 'input', 'submit', 'reading', 'stack',
+    'above', 'below', 'band', 'margin', 'flyout', 'refuse', 'chunk',
+    'chunkValue']) {
     dom[id] = document.getElementById(id);
   }
 
@@ -359,9 +402,11 @@ async function start() {
   dom.submit.addEventListener('click', submitSeed);
   document.addEventListener('keydown', keys);
   document.addEventListener('click', clicks);
+  // a resize re-wraps the flow, so the clips and the band are stale in a way
+  // that re-measuring fixes and re-rendering is not needed for. This is the one
+  // reflow the surface allows, and the reader asked for it.
   window.addEventListener('resize', () => {
-    if (state.tree) renderMargin(dom.margin, dom.path, forks(state.tree),
-      slider().index);
+    if (state.tree) draw();
   });
   pollWhile(writes, apply);
 

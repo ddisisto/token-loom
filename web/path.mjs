@@ -245,3 +245,54 @@ export function stringIndex(tree, spanId, byte) {
 export function forget() {
   indexes.clear();
 }
+
+// -- the two clips ---------------------------------------------------------
+
+/** The complementary L-shapes the path is drawn through, in pixels.
+ *
+ * `INTERACTION.md`: the path is laid out once and drawn twice, and the two
+ * copies are clipped to shapes that tile the original with nothing over and
+ * nothing missing. Above gets every line before the target's, plus the head of
+ * the target's line; below gets the rest of that line and everything after.
+ *
+ * Pure arithmetic on a measurement, which is why it is here rather than in the
+ * render: `web_test.mjs` can check that the two halves tile the rectangle
+ * exactly, which is the property the whole mechanism rests on and the one that
+ * would fail silently -- a sliver counted twice reads as a bold line, and a
+ * sliver missed reads as a crack.
+ *
+ * **Always six vertices, even when a rectangle would do.** A target on the
+ * first or last line makes an edge degenerate, and dropping it would leave the
+ * two shapes with different point counts at different moments -- `clip-path`
+ * interpolates polygons only between equal counts, so a retarget across the
+ * first line would jump instead of moving.
+ */
+export function clips({ width, height, x, lineTop, lineBottom }) {
+  return {
+    above: [
+      [0, 0], [width, 0], [width, lineTop],
+      [x, lineTop], [x, lineBottom], [0, lineBottom],
+    ],
+    below: [
+      [x, lineTop], [width, lineTop], [width, height],
+      [0, height], [0, lineBottom], [x, lineBottom],
+    ],
+  };
+}
+
+/** A point list as the CSS function. */
+export function polygon(points) {
+  return `polygon(${points.map(([x, y]) => `${x}px ${y}px`).join(', ')})`;
+}
+
+/** Twice the signed area of a polygon -- the shoelace sum. Tests only, but it
+ * lives beside what it checks so the two cannot drift apart. */
+export function area(points) {
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % points.length];
+    sum += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(sum) / 2;
+}
