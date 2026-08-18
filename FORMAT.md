@@ -762,6 +762,22 @@ the span whose first token it replaces. `outline()`'s `resuming` flag is what sa
 children at that offset were already emitted by the fork that arrived there. Without it the
 case either loses the branch or forks into itself forever.
 
+> **Phase 3 sharpened that rule, and the sharpening was already implied by the reason above.**
+> Splicing exists to lift a node's *branches* past a point with no text at it. A zero-width
+> node with no children has none to lift, so splicing it is not a splice — it is a deletion,
+> and what it deleted was exactly the two states that have provenance and no bytes: a span in
+> flight, and a span completed with none (a batch interrupted and closed as `aborted`, or a
+> generation the model ended on its first token). Decision 8 says in flight is a state to
+> render, and a client cannot render what the layout it was handed does not mention. So a
+> zero-width node is spliced **only when it has children**, which leaves the fork-point case
+> untouched — that one always has both branches under it — and costs nothing to state, because
+> it is what the justification said all along.
+>
+> Found by asking what the front end would render rather than by running anything, and it
+> would not have surfaced in ordinary use: the CLI renders trees whose generations have all
+> finished, so both states are unreachable from it in practice. That is the `CONTEXT` shape
+> again, caught one stage earlier. `core_test.py` now reaches both on purpose.
+
 **`deleted` must not be pruned.** Dropping an entry that a wider cut already covers looks
 like tidying and is not. Two faults: an entry is always unreachable under its own cut, so
 testing each against the full list drops all of them and resurrects everything; and pruning

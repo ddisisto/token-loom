@@ -255,6 +255,14 @@ then, worth keeping if that ever happens:
   without it the case either loses the branch or forks into itself forever. `runs` lives in
   `ops.py` rather than in either client precisely because implementing that rule twice is
   getting it wrong twice.
+
+  **Zero width is not the condition for splicing that node away — zero width *and* having
+  children is.** Splicing lifts a node's branches past a point with no text at it, so a
+  childless zero-width node has nothing to lift and splicing it merely deletes it. What it
+  deleted was a span in flight and a span completed with no bytes, which are the two states
+  decision 8 exists to make renderable. Phase 3 found this by asking what the card slider
+  would draw; the CLI cannot reach either state, because it only ever renders finished
+  generations.
 - Generation is an ordinary blocking call. The worker thread, the hand-back queue and the
   virtual events silently dropped across threads were artifacts of Tk owning the main loop,
   and went with it. Streaming would reintroduce asynchrony deliberately — it is deferred to

@@ -226,10 +226,30 @@ def outline(tree: Tree, reach: dict[str, int], span_id: str | None,
 def runs(tree: Tree, reach: dict[str, int], start: tuple) -> dict:
     """The derived run tree: `{pieces, width, children}`, recursively.
 
-    A run of zero width is not a run -- it is a fork point, which is what a
-    branch anchored at byte 0 of a span that also continues produces. Its
-    branches are spliced into its parent's, so a client shows the fork where it
-    is rather than inventing a node with no text in it.
+    A run of zero width **that forks** is not a run -- it is a fork point, which
+    is what a branch anchored at byte 0 of a span that also continues produces.
+    Its branches are spliced into its parent's, so a client shows the fork where
+    it is rather than inventing a node with no text in it.
+
+    **A zero-width node with no children is kept**, and the qualification is
+    the whole of the rule rather than a caveat on it. Splicing exists to lift a
+    node's branches past a point that has no text at it; a childless node has
+    none to lift, so splicing it is not a splice at all -- it is a deletion, and
+    it deletes exactly the two states that have provenance and no bytes:
+
+    - **a span in flight.** Decision 8's whole claim is that this is a state to
+      render, and a client cannot render what the layout it was handed does not
+      mention. A reader watching a batch of two arrive sees both from the
+      moment the intent was written, rather than one card that later acquires a
+      neighbour.
+    - **a span completed with no bytes at all** -- a batch interrupted and
+      closed as `aborted` by `recover`, or a generation the model ended on its
+      first token. Empty is what happened, and a run tree that omits it says
+      instead that it never happened.
+
+    Neither is reachable from `branch <span> 0 <rank>`, which is the case the
+    splice was written for and which always has both branches under it. So the
+    two rules do not overlap and the fork-point case is unchanged.
 
     Nothing here has an id, and nothing may acquire one: a derived grouping
     renumbers the moment a branch appears, so an id for a run would be a lie
@@ -239,7 +259,8 @@ def runs(tree: Tree, reach: dict[str, int], start: tuple) -> dict:
     children: list[dict] = []
     for fork in forks:
         child = runs(tree, reach, fork)
-        children.extend(child['children'] if not child['width'] else [child])
+        spliced = not child['width'] and child['children']
+        children.extend(child['children'] if spliced else [child])
     return {'pieces': pieces,
             'width': sum(end - begin for _, begin, end in pieces),
             'children': children}

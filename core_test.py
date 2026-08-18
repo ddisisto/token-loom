@@ -21,7 +21,7 @@ from core import (BulkStore, Position, Tree, address_at, author,
                   begin_generation, branch_counterfactual, complete,
                   create_tree, delete, divergence, open_tree, restore, runs,
                   save, slice_at, token_offsets, validate)
-from core.store import Counterfactual, LENGTH, Token
+from core.store import ABORTED, Counterfactual, LENGTH, Token
 from core.tree import Span
 
 TS = '2026-08-12-10.00.00'
@@ -804,6 +804,37 @@ def derived_runs(workdir):
 
     ok, detail = partitions(tree)
     check('the pieces partition every live byte, exactly once', ok, detail)
+
+    # Zero width and no children is the other way to have no bytes, and it is
+    # not a fork point: a span in flight, and a span completed with none. The
+    # partition invariant above cannot see the difference between "kept, and
+    # covers no bytes" and "absent" -- both give an empty range -- so these ask
+    # the structure directly. Reached on purpose, because ordinary use of the
+    # CLI renders trees whose generations have all finished.
+    flight, empty = begin_generation(tree, tree.tip(s1.id), SETTINGS, n=2)
+    complete(tree, store, empty.id, [], ABORTED)
+
+    def named(node):
+        return {span for run in pieces_of(node) for span, _, _ in run}
+
+    top = runs(tree, tree.live(), (None, 0, False))
+    onward = [c for c in top['children'] if c['width'] == 6][0]
+    check('a span in flight is a node of no width rather than no node',
+          flight.id in named(top), str(pieces_of(top)))
+    check('and so is one completed with no bytes at all',
+          empty.id in named(top), str(pieces_of(top)))
+    check('the run they continue from forks into exactly the two of them',
+          [c['pieces'] for c in onward['children']]
+          == [[(flight.id, 0, 0)], [(empty.id, 0, 0)]], str(onward['children']))
+    check('and neither acquires children by being kept',
+          all(not c['children'] for c in onward['children']),
+          str(onward['children']))
+    check('while the byte-0 fork point is still spliced, not drawn',
+          widths(top) == [1, 2, 6], str(widths(top)))
+
+    ok, detail = partitions(tree)
+    check('the partition still holds with two spans holding no bytes',
+          ok, detail)
 
     # a deletion cuts a span mid-way, and the partition has to follow it --
     # this is the case where a piece's end is a cut rather than a length
