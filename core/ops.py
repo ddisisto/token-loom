@@ -209,8 +209,16 @@ def outline(tree: Tree, reach: dict[str, int], span_id: str | None,
         if cuts:
             here = cuts[0]
             pieces.append((span_id, offset, here))
-            forks = [(c, 0, False) for off, c in kids if off == here]
-            forks.append((span_id, here, True))   # the span carries on past it
+            # The span carrying on past the cut comes first, and the branches
+            # anchored there follow in the order `children_of` gives them,
+            # which is creation. That is one rule rather than two: the span was
+            # there before anything branched off it, so the whole list reads
+            # oldest first -- and a continuation generated at this point is
+            # therefore always the last of them. It used to be appended last,
+            # which put every new branch second from the end and made the
+            # surface's "one more, on the right" land on the left instead.
+            forks = [(span_id, here, True)]
+            forks.extend((c, 0, False) for off, c in kids if off == here)
             return pieces, forks
 
         pieces.append((span_id, offset, limit))

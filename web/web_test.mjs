@@ -166,11 +166,14 @@ function ambiguous(cases) {
     JSON.stringify(fork.children.map((c) => c.pieces[0])));
 
   // Uniqueness rather than position, and the difference is the whole check.
-  // `outline` appends the resuming branch last, so "the first child whose span
-  // is on the path" gets the right answer on every tree it builds -- and
-  // passed every other assertion in this file when it was tried. Nothing on
-  // the wire promises that order, so what has to hold is that one child
-  // qualifies and the other does not.
+  // It used to be that `outline` emitted the resuming branch last, so "the
+  // first child whose span is on the path" got the right answer on every tree
+  // it built -- and passed every other assertion in this file when it was
+  // tried. `outline` now emits it first, so that shortcut would answer with
+  // the span the path *left*, on every counterfactual fork. Nothing on the
+  // wire promises either order, which is why what has to hold is that one
+  // child qualifies and the other does not; the reorder was safe because of
+  // this check rather than in spite of it.
   const where = leaving(tree);
   const matching = fork.children.filter((c) => continues(c, where));
   check('exactly one child qualifies, so the choice does not rest on order',

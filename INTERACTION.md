@@ -151,6 +151,13 @@ that the reader is not standing on is not information they need marked in the te
 
 One card per alternative, in the order they were generated.
 
+*Made true after a session of use, 2026-08-19.* At a fork left by a counterfactual branch
+one of the alternatives is the remainder of the span the branch was taken from, and that
+remainder is **older than every branch anchored there** -- it was the text already present.
+`core/ops.py:outline` emitted it last, so the strip read oldest-last at exactly those forks,
+and a continuation asked for at the right-hand end arrived one place in from it. It is
+emitted first now, which is the rule above applied rather than an exception to it.
+
 **A card is a run**, not a span. Where an alternative is the remainder of a span that already
 exists — which is what a counterfactual branch leaves behind — its card begins partway
 through that span. This is invisible to the reader and load-bearing for the render: the

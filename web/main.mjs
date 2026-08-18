@@ -57,7 +57,6 @@ const state = {
   // has a chosen child in any tree whose tip does not.
   card: null,
   deepest: new Map(),   // first span of a branch -> the deepest tip seen down it
-  growing: false,
   readOnly: false,
 };
 
@@ -191,17 +190,6 @@ function settingsNow() {
   return { ...state.settings, length: state.chunk };
 }
 
-function generate(at, n) {
-  if (state.readOnly) {
-    banner(dom.banners, 'no model server is attached, so nothing can be '
-      + 'generated; the tree still reads');
-    return;
-  }
-  writes.submit(async () => {
-    apply(await api.generate(at, n, settingsNow()));
-  }, refused);
-}
-
 // -- the acts --------------------------------------------------------------
 
 /** Confirm the selected card: it joins the path, and the tip moves onto it.
@@ -248,6 +236,31 @@ function select(index) {
   }, refused);
 }
 
+/** Move the selection onto a card that has just arrived.
+ *
+ * **By the span it holds, never by its index.** A generation attaches at a
+ * position; which card that becomes is the layout's business, and `wire.py`
+ * sends runs as composition and promises no order -- the same reason
+ * `path.mjs:continues` decides by bytes rather than by position.
+ *
+ * Assuming the newest card is the last one was wrong at exactly one kind of
+ * fork, which is how it was found: at a fork made by a counterfactual branch,
+ * `outline` emitted the branches first and the span carrying on past the cut
+ * last, so a fresh continuation landed second from the right and the selection
+ * stayed on the card to its right. `outline` now orders that list oldest
+ * first, so the two agree -- and this reads the span rather than trusting that
+ * they will keep agreeing.
+ */
+function landed(made) {
+  if (!made) return;
+  const { fork } = slider();
+  const i = fork ? fork.children.findIndex(
+    (c) => c.pieces.length && c.pieces[0].span === made) : -1;
+  if (i < 0) return;
+  state.card = i;
+  draw();
+}
+
 /** Ask for one more continuation at this fork.
  *
  * A fresh draw rather than a repeat: seeds derive from the tree's base seed
@@ -257,15 +270,26 @@ function select(index) {
  */
 function grow() {
   const { fork } = slider();
-  if (!fork || writes.busy || state.readOnly) return;
-  const last = fork.children[fork.children.length - 1];
+  if (!fork || writes.busy) return;
+  if (state.readOnly) {
+    banner(dom.banners, 'no model server is attached, so nothing can be '
+      + 'generated; the tree still reads');
+    return;
+  }
   // only a continuation still running blocks another. One that finished with
   // no bytes is finished, and asking for one more is the *only* thing left to
   // do there -- an end-of-text at a tip stops the path, and refusing to grow
-  // as well leaves the reader with no move at all.
-  if (nodeState(state.tree, last) === 'flight') return;
-  state.growing = true;
-  generate(fork.at, 1);
+  // as well leaves the reader with no move at all. Any child in flight, rather
+  // than the last one: with a resuming branch at the end of the strip, the
+  // last card is the oldest text at that fork and says nothing about what is
+  // still running.
+  if (fork.children.some((c) => nodeState(state.tree, c) === 'flight')) return;
+  const at = fork.at;
+  writes.submit(async () => {
+    const tree = await api.generate(at, 1, settingsNow());
+    apply(tree);
+    landed(tree.created && tree.created[0]);
+  }, refused);
 }
 
 /** Take the slider back one fork, which is what up does from anywhere. */
@@ -352,18 +376,8 @@ function draw(chase = true) {
   }
   dom.refuse.hidden = true;
 
-  let { points, index, fork, card, chosen } = slider();
+  const { points, index, fork, card, chosen } = slider();
   const atTip = index === points.length - 1;
-
-  if (fork && state.growing) {
-    // the card asked for has arrived, so move onto it as the reader intended
-    const arrived = fork.children.length - 1;
-    if (arrived > card) {
-      state.card = arrived;
-      card = arrived;
-      state.growing = false;
-    }
-  }
 
   const strip = cardStrip(state.tree, fork, card, {
     growable: Boolean(fork) && atTip && !chosen && !state.readOnly

@@ -136,13 +136,15 @@ export function leaving(tree) {
  * covers no byte the path does. That is what separates them.
  *
  * **The rule has to select exactly one child, not merely the right one first.**
- * `core/ops.py:outline` happens to append the resuming branch after the
- * branches leaving the fork, so "the first child whose span is on the path" is
- * right by accident on every tree it produces. Nothing on the wire promises
- * that order -- `wire.py` sends runs as composition and says so -- and a rule
- * that holds only in the order it was handed will break the first time
- * anything reorders. `web_test.mjs` asserts uniqueness rather than position for
- * exactly that reason, and the naive rule passed every other check in it.
+ * `core/ops.py:outline` used to emit the resuming branch after the branches
+ * leaving the fork, which made "the first child whose span is on the path"
+ * right by accident on every tree it produced. It now emits it first -- so
+ * that rule would name the span the path *left*, every time. Nothing on the
+ * wire promises either order -- `wire.py` sends runs as composition and says
+ * so -- and a rule that holds only in the order it was handed breaks the first
+ * time anything reorders, which is a thing that has now happened.
+ * `web_test.mjs` asserts uniqueness rather than position for exactly that
+ * reason, and the naive rule passed every other check in it.
  *
  * The one case bytes cannot separate: the path ends at byte 0 of its tip span,
  * so it covers nothing of it. Then a node starting there is where the reader
