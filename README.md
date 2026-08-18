@@ -22,6 +22,8 @@ use are first-class, and anything that only works by clicking is half-built.
 | [RESEARCH.md](RESEARCH.md) | the questions, what is currently believed about each, and what to run next |
 | [experiments/](experiments/) | the record — one file per experiment, registered before the run and answered after |
 | [ROADMAP.md](ROADMAP.md) | the build path — where the interface is going, and what is out of scope |
+| [FRONTEND.md](FRONTEND.md) | the front end: what it is for, and the constraints that hold it to it |
+| [INTERACTION.md](INTERACTION.md) | the front end: what is on the screen and what each action does |
 | [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
 | [BEYOND-MVP.md](BEYOND-MVP.md) | wants that reach past the MVP, and the constraints they impose now |
 
@@ -56,10 +58,17 @@ needs the server.
 ## State
 
 Phase 1 landed the token core: built, tested, and driven from the command line, which is the
-**reference client** rather than a scratch tool. Phase 2 has landed its server half — `api/`
-is a clean replacement rather than a port, speaking positions rather than node ids, and the
-old browser front end and the whole OpenAI-compatible path retired with it.
+**reference client** rather than a scratch tool. Phase 2 landed the API — `api/` is a clean
+replacement rather than a port, speaking positions rather than node ids, and the old browser
+front end and the whole OpenAI-compatible path retired with it.
 
-What is unbuilt is the front end itself. The tkinter app and the browser UI are both gone;
-the tag `pre-token-core` preserves the last commit where the browser UI was the whole
-instrument, and `git show pre-token-core:README.md` has its documentation.
+Phase 3 is the front end, and it is designed rather than built. A given goes in at the root
+and everything after that is navigation: the surface supplies continuations at the rate they
+are read, and the reader chooses among them. The model's context is the whole active path, so
+what can be scrolled through is what the model was given — one object, looked at by both.
+[FRONTEND.md](FRONTEND.md) has the concept and the constraints, [INTERACTION.md](INTERACTION.md)
+has the screen.
+
+The tkinter app and the browser UI are both gone; the tag `pre-token-core` preserves the last
+commit where the browser UI was the whole instrument, and `git show pre-token-core:README.md`
+has its documentation.

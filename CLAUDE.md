@@ -10,23 +10,32 @@ It has stopped being a revival, and has diverged far enough to take its own name
 wove text blocks; this weaves tokens. The tree is a trie over **bytes** with tokens as a
 per-span overlay, in `core/`, driven from the command line by `loom.py`. The tkinter app is
 gone, and so is the browser front end that ran the old node format — Phase 2 retired it
-along with the whole OpenAI-compatible path. The API in `api/` is its replacement's server
-half; the front end itself is unbuilt.
+along with the whole OpenAI-compatible path. `api/` is its replacement's server half. The
+front end is designed and not yet built.
 
 **`ROADMAP.md` is the living document** for the build. Direction, phases and what is
 deliberately out of scope live there. It stays MVP-only until the MVP lands, then gets
 replaced rather than extended. Its companions: `FORMAT.md` is the on-disk format and the
-reasoning behind it, meant to outlive the phases; `BEYOND-MVP.md` holds the wants that reach
-past the MVP and the constraints they impose now; `RESEARCH.md`, `experiments/` and
+reasoning behind it, meant to outlive the phases; `FRONTEND.md` and `INTERACTION.md` are
+Phase 3, the concept and the interaction respectively; `BEYOND-MVP.md` holds the wants that
+reach past the MVP and the constraints they impose now; `RESEARCH.md`, `experiments/` and
 `PLAYBOOKS.md` belong to the other thread, below. This file is for things that are true about
 the code and easy to get wrong, and it is shared by both.
+
+**`FRONTEND.md` and `INTERACTION.md` are two documents on purpose.** The first holds the
+concept and fourteen numbered constraints; the second holds the elements, the gestures and
+what each action does, and is the thing checked against them. Folding them together leaves
+nothing outside the specifics to hold them to, and the first specific that conflicts with a
+constraint gets fixed by softening the constraint in the same edit. They also rot at very
+different rates.
 
 ## Two threads, one substrate
 
 The work has split in two, and the split is worth understanding before picking either up.
 
-- **The build.** An API and a front end, rebuilt against the core. `ROADMAP.md`, Phases 2
-  and 3, with `BEYOND-MVP.md` behind it. This is the MVP path and it has an end state.
+- **The build.** An API and a front end, rebuilt against the core. The API landed as Phase 2;
+  Phase 3 is the front end, and `FRONTEND.md` with `INTERACTION.md` is where it lives.
+  `BEYOND-MVP.md` sits behind all of it. This is the MVP path and it has an end state.
 - **The research.** Using the instrument that Phase 1 finished — attractors, temperature,
   framing, retransmission. `RESEARCH.md` is the landing page — the questions, what is believed
   about each with its evidence attached, and what to run next; `experiments/` is the record,
@@ -72,12 +81,21 @@ Three things follow:
   measurement of what a model does is not a note about the codebase, and the two rot at
   completely different rates.
 
-**Phase 1 has landed.** The token core is built, tested and usable from the command line,
-and the on-disk format is `token-loom/1.1`. It settled what a position looks like on the wire,
-which was the one Phase 2 decision flagged as needing to be made early. `FORMAT.md` has the
-shape, the alternatives it was chosen over, and — worth reading before proposing a change to
-it — the one-line rejection that nearly kept the wrong one. Phase 2, the API and front end
-rebuilt against it, is the current work.
+**Phases 1 and 2 have landed.** The token core is built, tested and usable from the command
+line, the on-disk format is `token-loom/1.1`, and `api/` speaks it over HTTP. Phase 1 settled
+what a position looks like on the wire, which was the one Phase 2 decision flagged as needing
+to be made early. `FORMAT.md` has the shape, the alternatives it was chosen over, and — worth
+reading before proposing a change to it — the one-line rejection that nearly kept the wrong
+one.
+
+**Phase 3, the front end, is the current work, and it is designed rather than started.** It
+asks the core for nothing: the one change it wanted was the prompt cache on, and the research
+thread had already turned it on for a better reason. Two things about it are easy to get
+wrong from the outside — the model's context is the whole active path rather than a window
+onto it, so `prompt_length` is a fixed sentinel above anything the context can hold and never
+the path's measured length; and counterfactual branching is in, which means every point in
+the rendered text has to resolve to a `(span, offset)` from the first version, since a
+finished surface cannot be opened up to accept that later.
 
 `origin` is `ddisisto/token-loom` (GitHub redirects the old `ddisisto/loom`), `upstream` is
 `socketteer/loom`. Work happens on `main`. The tag `pre-token-core` preserves the last commit
@@ -191,6 +209,11 @@ then, worth keeping if that ever happens:
   three held together with the save ordering). Two clients sit on it and neither sits on the
   other: `loom.py` for the command line, `api/` over HTTP. Three suites — `core_test.py` and
   `api_test.py` run with no model, `llama_test.py` needs the server on 8081.
+
+  **The front end will be a third shape rather than a third client of the core.** It is a
+  client of the API, served by the same process off the same origin, and it reaches `core/`
+  through nothing. If it ever seems to need the core directly, that is the "stop and ask why"
+  case above.
 
   What went: `inference.py`, `models.py`, `params.py`, `util/`, `web/`, `smoke_test.py` and
   `scripts/web.sh` — the OpenAI-compatible path, the capability table, the old node format
@@ -327,8 +350,14 @@ What has paid off here, and what it cost to skip.
 ## Open threads
 
 Nothing is open at the format level, which is what allows the two threads to run beside each
-other: Phase 2 is the build thread's work, `RESEARCH.md`'s "what to run next" is the other's,
+other: Phase 3 is the build thread's work, `RESEARCH.md`'s "what to run next" is the other's,
 and neither needs the format to change.
+
+One cheap probe is outstanding and nothing depends on it: **whether llama-server accepts an
+empty prompt.** Generating at the root with no seed authored is reachable — `slice_at`
+clamps to `b''` and `slice_start` records as `null` — and would be unconditional sampling
+from the prior. The MVP requires a character in the seed, so nothing needs the answer; it is
+noted because "reachable but never run" is exactly the shape of the `CONTEXT` bug.
 
 Two limitations left deliberately unhandled, both recorded in `FORMAT.md` under "Settled by
 measurement" and both with the same root:
