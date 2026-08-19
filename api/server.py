@@ -41,11 +41,12 @@ endpoint. Creating a tree stays `loom.py new`.
 convenience: delete cascades, authoring creates, and carrying old text into an
 authoring box is the client's business.
 
-Nothing here guards against a *second process* writing the same directory.
+Nothing here yet guards against a *second process* writing the same directory.
 `Tree.save` rewrites the file whole, so `loom.py` run against a tree this
 process has open will clobber it and vice versa. One writer is what this
-process promises about itself, not what it enforces on the filesystem, and
-keeping a tree to one writer is a matter of protocol rather than of locking.
+process promises about itself, not what it enforces on the filesystem -- a
+directory lock in `core/` is scheduled early in the v1.0 cycle and will make
+it the latter.
 """
 from __future__ import annotations
 

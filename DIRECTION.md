@@ -178,13 +178,22 @@ Enough for someone else to run it and understand what they are looking at.
   know why a position is a pair. Its state paragraph is currently stale in both directions.
 - **Retire `ROADMAP.md` and `BEYOND-MVP.md`** once this file has absorbed what survives.
 
-**Two writers on one tree directory stay unguarded, and that is now a decision.** `Tree.save`
-rewrites the file whole, so `loom.py` and a running API clobber each other and a re-minted
-span id inherits the dead span's bulk rows. The fixes are known and cheap — a lock on the
-directory, and a validator check that no bulk row names a span the tree lacks — and neither
-is being built: the research thread keeps its own trees under `experiments/`, separate from
-anything the surface is pointed at, so keeping a tree to one writer is protocol rather than
-something the filesystem has to enforce.
+**The two-writer guard is built early, not deferred again.** It has been carried as a known
+gap across three phases and referenced from four files, which is itself the argument: it is
+cheap, it makes the ownership of a tree directory explicit rather than conventional, and
+carrying it costs more in re-explanation than building it does. It moves to the front of
+Phase 4.
+
+`Tree.save` rewrites the file whole, so `loom.py` and a running API clobber each other and a
+re-minted span id inherits the dead span's bulk rows — partly caught by validator check 6,
+though stale counterfactual ranks survive it. Both fixes are in `core/`:
+
+- **An exclusive lock on the tree directory**, taken by whoever opens it for writing, with the
+  other client refusing cleanly rather than tracebacking or silently winning. Reads are
+  unaffected — `GET /api/tree` under a running generation is load-bearing.
+- **A validator check that no bulk row names a span the tree lacks**, for which
+  `store.spans_with_tokens()` already exists. This is the half that catches damage already
+  done, where the lock only prevents new damage.
 
 ## Out of scope for v1.0
 
