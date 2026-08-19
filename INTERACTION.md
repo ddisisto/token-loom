@@ -183,6 +183,15 @@ adjacent cards sit partly outside the frame, more distant ones entirely outside.
 end of the strip — a request rather than an alternative, and it should not read as an empty
 card of text.
 
+**Height comes from the selected card, and the others are cut to it.** The band opens a gap
+in the path and the gap is as tall as the band, so a long alternative three places away would
+otherwise decide how far apart the text above and below the target sit — while the reader is
+looking at neither. A card cut short says so, with a fade and an ellipsis, because ending
+mid-word and leaving the reader to infer it is the same failure as a silent truncation
+anywhere else. The consequence to accept is that the text below the target moves as the
+selection moves: what follows the target genuinely depends on which alternative is selected,
+and it glides rather than jumping.
+
 **The cost is a reflow of two cards** whenever the selection moves: the one entering the
 column and the one leaving it. Accepted, and the exception rather than the rule — the path
 itself never reflows, which is the thing constraint 7 is actually about. What is reflowing is

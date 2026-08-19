@@ -146,6 +146,7 @@ export function place(parts, nodeIndex, { muted }) {
   // set before the band is measured because both change how tall it is.
   band.style.setProperty('--text', `${width}px`);
   band.style.setProperty('--indent', `${head.x}px`);
+  fit(band);
   slide(band, base.left);
 
   const bandHeight = band.getBoundingClientRect().height;
@@ -163,6 +164,33 @@ export function place(parts, nodeIndex, { muted }) {
     `${Math.max(head.lineBottom + bandHeight, height + shift)}px`;
 
   return shift;
+}
+
+/** Cut the alternatives to the height of the selected one, and say which were.
+ *
+ * The band opens a gap in the path and the gap is as tall as the band, so
+ * without this a long alternative three places away decides how far apart the
+ * text above and below the target sit -- while the reader is looking at
+ * neither. The selected card is what they are reading, so it is what the gap
+ * is for.
+ *
+ * Measured rather than declared, for the same reason as the width: how tall a
+ * card is depends on where the text wrapped. `.strip` is `align-items:
+ * flex-start` precisely so this measurement means something -- under the
+ * default stretch every card is already the height of the tallest, and asking
+ * the selected one how tall it is answers with its neighbour.
+ *
+ * `scrollHeight > clientHeight` decides which cards were cut, so the mark goes
+ * on the ones it is true of rather than on all of them. A pixel of slack,
+ * because both are integers and a fractional line height rounds up.
+ */
+function fit(band) {
+  const on = band.querySelector('.card.on');
+  if (!on) return;
+  band.style.setProperty('--tall', `${on.getBoundingClientRect().height}px`);
+  for (const card of band.querySelectorAll('.card:not(.on):not(.more)')) {
+    card.classList.toggle('cut', card.scrollHeight - card.clientHeight > 1);
+  }
 }
 
 /** Slide the strip so the selected card's *text* starts at the column.

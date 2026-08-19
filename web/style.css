@@ -260,20 +260,27 @@ body {
   --pad: 0.8rem;
   --text: var(--column);
   --indent: 0px;
+  --tall: auto;
 }
 
 /* The strip starts at the reading column and is then slid so the *text* of the
  * selected card lands there -- see `place`, which sets the transform from the
  * measured layout. A card count cannot do it any more: the cards are no longer
- * all one width. */
+ * all one width.
+ *
+ * `flex-start` rather than the default stretch, and it is what makes `--tall`
+ * measurable: under stretch every card is already as tall as the tallest one,
+ * so asking the selected card how tall it is answers with its neighbour. */
 .strip {
   display: flex;
+  align-items: flex-start;
   gap: var(--gap);
   padding-left: var(--origin);
   transition: transform 0.18s ease-out;
 }
 
 .card {
+  position: relative;
   flex: 0 0 var(--card);
   min-height: 4.5rem;
   padding: 0.6rem var(--pad);
@@ -282,6 +289,7 @@ body {
   background: var(--tint);
   cursor: pointer;
   opacity: 0.5;
+  overflow: hidden;
   transition: opacity 0.18s;
 }
 
@@ -302,6 +310,31 @@ body {
  * text to read on from. */
 .card.on .text { text-indent: var(--indent); }
 
+/* The band is as tall as the selected card and no taller: a long alternative
+ * three places away should not push the path apart, since the reader is not
+ * reading it. `--tall` is measured, so the shorter ones pad out to it and the
+ * longer ones are cut off at it. Not `max-height`, which would leave the strip
+ * ragged along the bottom. */
+.card:not(.on):not(.more) { height: var(--tall); }
+
+/* and a card that was cut says so, rather than ending mid-word and hoping the
+ * reader infers it. The gradient is what makes it read as continuing rather
+ * than as ending in an ellipsis the model wrote. */
+.card.cut::after {
+  content: '…';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0.6rem var(--pad) 0.2rem;
+  background: linear-gradient(to top, var(--tint) 60%, transparent);
+  color: var(--dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1;
+  text-align: right;
+}
+
 .card .text { white-space: pre-wrap; }
 
 .card .nothing, .card .waiting {
@@ -312,10 +345,9 @@ body {
 
 /* One line tall and only as wide as it needs to be, which is roughly square:
  * a request rather than an alternative, so it should not read as an empty card
- * of text. Top-aligned against the others, which stretch to the tallest. */
+ * of text. Top-aligned, like everything else in the strip. */
 .card.more {
   flex: 0 0 auto;
-  align-self: flex-start;
   min-height: 0;
 }
 
