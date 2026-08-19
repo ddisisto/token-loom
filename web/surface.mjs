@@ -110,7 +110,7 @@ export function renderFlow(host, tree) {
  * position in the text. Zero for all three is the right reading of it rather
  * than a fallback: the whole path lies at or below a target at the root.
  */
-export function place(parts, nodeIndex, { muted }) {
+export function place(parts, nodeIndex, { muted, at = null }) {
   const { stack, above, below, band } = parts;
 
   const base = stack.getBoundingClientRect();
@@ -147,7 +147,7 @@ export function place(parts, nodeIndex, { muted }) {
   band.style.setProperty('--text', `${width}px`);
   band.style.setProperty('--indent', `${head.x}px`);
   fit(band);
-  slide(band, base.left);
+  slide(band, base.left, at);
 
   const bandHeight = band.getBoundingClientRect().height;
   // below resumes directly under the band. Where the lifted section is taller
@@ -193,6 +193,16 @@ function fit(band) {
   }
 }
 
+/** Where the strip was last left, and at which fork.
+ *
+ * Layout state rather than decision state -- nothing above this file knows the
+ * strip is translated at all. It is held here because the obvious alternative,
+ * reading it off the outgoing strip, cannot work: `draw` has already replaced
+ * the strip by the time `place` runs.
+ */
+let slidAt = null;
+let slidX = 0;
+
 /** Slide the strip so the selected card's *text* starts at the column.
  *
  * Not a card count times a card width: the selected card is the width of the
@@ -200,20 +210,57 @@ function fit(band) {
  * multiply. What the layout already knows is where that card's text sits, and
  * the distance from there to the column is the whole of the answer.
  *
- * The transform is cleared before the measurement rather than reasoned about:
- * a rect is where the element is *painted*, so measuring one under the
- * transform being replaced would compound the two. `offsetLeft` avoids that
- * and is rounded to whole pixels, which drifts by one once a few half-width
- * cards have accumulated -- measured, at the third card in.
+ * **Measured under the outgoing transform rather than after clearing it.** The
+ * strip is a new element on every draw, so it has no transform of its own to
+ * transition from; clearing it to `none` and then measuring commits that
+ * `none` as the element's first computed style, and the transition then runs
+ * from the origin instead of from where the strip actually was. That is
+ * correct only when the selected card was already card 0, which is exactly why
+ * one step right from the leftmost card looked right and every other move
+ * jumped -- and why a poll during a generation re-ran the swing four times a
+ * second, underneath the card being read.
+ *
+ * So the previous translation goes back on first and the measurement is taken
+ * through it. A rect is where the element is *painted*, so the distance from
+ * there to the column is what to add, whatever the layout did in between: a
+ * resize, or a card changing width as the selection moved, is accounted for by
+ * construction rather than by arithmetic. `offsetLeft` would avoid the
+ * transform entirely and is rounded to whole pixels, which drifts by one once
+ * a few half-width cards have accumulated -- measured, at the third card in.
+ *
+ * A different fork is a different set of cards, so there is nothing to slide
+ * between and the strip is placed rather than moved. Suppressing the
+ * transition for that draw needs no restoring: the element is discarded on the
+ * next one.
  */
-function slide(band, origin) {
+function slide(band, origin, at) {
   const strip = band.querySelector('.strip');
   const on = band.querySelector('.card.on');
-  if (!strip || !on) return;
+  if (!strip || !on) {
+    slidAt = null;
+    return;
+  }
   const lead = on.firstElementChild || on;
-  strip.style.transform = 'none';
-  const at = lead.getBoundingClientRect().left;
-  strip.style.transform = `translateX(${origin - at}px)`;
+  const same = at !== null && at === slidAt;
+  const from = same ? slidX : 0;
+  // The measurement is taken with the transition off, and that is not
+  // belt-and-braces. Setting a transform on a strip inserted this same tick
+  // *starts* a transition rather than applying the value, so a rect read
+  // immediately after answers with the position at t=0 -- measured, and it is
+  // the whole reason the first attempt at this accumulated the offset on every
+  // draw instead of converging. Suppressed, the value is committed and the rect
+  // is the truth.
+  strip.style.transition = 'none';
+  strip.style.transform = `translateX(${from}px)`;
+  const painted = lead.getBoundingClientRect().left;
+  const x = from + (origin - painted);
+  // and restored before the target, so the move animates from what was just
+  // committed. Left off for a different fork, where there is nothing to move
+  // between; the element is discarded next draw, so neither needs undoing.
+  if (same) strip.style.transition = '';
+  strip.style.transform = `translateX(${x}px)`;
+  slidAt = at;
+  slidX = x;
 }
 
 /** Bring the target into view, and no further.

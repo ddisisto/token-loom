@@ -449,7 +449,10 @@ function draw(chase = true) {
 
   // the cross-section is behind the tip when the reader has come back to an
   // earlier fork, and what lies past it is dimmed rather than removed
-  const shift = place(dom, index < 0 ? -1 : nodeOf[index], { muted: !atTip });
+  // the fork's address, so the strip slides between cards of one fork and is
+  // placed outright when the reader steps to a different one
+  const shift = place(dom, index < 0 ? -1 : nodeOf[index],
+    { muted: !atTip, at: fork ? key(fork.at) : null });
   renderMargin(dom.margin, dom.above, points, index, shift);
   locate(fork, card);
   if (chase) follow(dom.band, LEAD);
