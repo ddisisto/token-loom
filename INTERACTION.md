@@ -239,35 +239,47 @@ to move through.
 
 | gesture | where | effect |
 | --- | --- | --- |
-| ← → | the target | move the selection across the siblings |
+| ← → | the target | move the selection across the siblings, which routes the path onto it |
 | ↑ | the target | move the target back one fork |
-| ↓ or Enter | at the tip | confirm the selected alternative |
-| ↓ or Enter | behind the tip | move the target forward one fork |
-| click | a card | select it, or confirm it if it is already selected |
+| ↓ or Enter | at the last fork | generate onward from the selected alternative |
+| ↓ or Enter | behind it | move the target forward one fork |
+| click | a card | select it, or carry on from it if it is already selected |
 | click | a margin chip | move the target to that fork |
 | click | a token in the path | open the token flyout |
 | drag | the chunk slider | set the size of the next chunk |
 
-Down does two things because at the tip there is something to confirm and behind it there is
-not — selecting is what re-routes at an earlier fork, and it has already happened by the time
-down is pressed. So down is always "towards the tip", and confirming is what that means when
-the tip is where you already are.
+**Selecting is choosing.** Moving the selection routes the path through it, at every fork
+including the last, and the card drawn as selected is always the one the prose follows.
 
-**Down at the last fork confirms, even where the path already runs through the selected
-card.** That state is ordinary rather than exotic: re-routing at an earlier fork onto a branch
-that ends without alternatives leaves the reader exactly there, and so does loading a tree
-authored from the command line. The cursor is already at the section's end, so the write is a
-no-op and what down does is the generation — which is "carry on from here", the one move the
-surface otherwise had no gesture for.
+*Dissolved after a session of use, 2026-08-19.* The two used to be held apart at the last
+fork alone: there the alternatives were "on offer", and it took a confirm to walk onto one.
+Behind the tip, selecting already re-routed — so one gesture had two rules, and the seam
+showed. Stepping up from the tip left the lower half of the page blank, because the card
+being read was not on the path and so nothing followed it, and the reader's expectation is
+the plain one: *up moves up, and where I was is now below where I land.* What the distinction
+bought at the price of that was the word "confirm", and the sequence below is what remains of
+it.
 
-The card drawn as selected is the one the prose actually follows, which is a separate matter
-and was separately wrong: reading the last fork as always being the tip drew card 0 as
-selected above a passage that was card 1, the surface contradicting itself on load.
+Down therefore always means "towards the tip", and at the tip — where there is nowhere
+further to go — it means generate. That is "carry on from here", the one move the surface
+otherwise had no gesture for.
+
+Two edges the rule needs, both about what a card is at the moment it is selected:
+
+- **A card still generating is selected but not walked onto.** Its run has no bytes yet, so
+  its end is byte 0, and recording that would say the path leaves the span where it starts —
+  untrue the moment the bytes land, and a `gen` from that cursor would branch at the wrong
+  end of it. Down on it once it lands is the reader saying they meant it.
+- **The default selection counts.** A batch arrives with the first card selected and nobody
+  having pressed anything; a permalink names a card; a tree written by `loom.py` opens with
+  its cursor wherever the command line left it. All three route, which is why this is not
+  something the arrow keys do but something the surface maintains — and why *opening* a tree
+  can move its cursor. The cursor is a bookmark, and the bookmark is where you are looking.
 
 The chunk slider never moves and is always available. Changing it applies to the next call
 and to nothing already made.
 
-## Confirming
+## Carrying on
 
 Down or Enter on the selected card, in this order:
 
@@ -275,7 +287,9 @@ Down or Enter on the selected card, in this order:
    cross-section becomes a stretch of prose continuous with what precedes it.
 2. A chip appears in the margin for the fork just left behind.
 3. The target clears and re-forms at the new tip.
-4. `PUT /api/cursor` records the new tip.
+4. `PUT /api/cursor` records the new tip — normally a no-op, since selecting the card already
+   recorded it, and not normally skipped either: a card selected while it was still in flight
+   was never routed onto, and this is where that is made good.
 5. `POST /api/generate {n: 2}` from it.
 
 **Returning to a fork is this run backwards**, and the two being inverses is the point rather
@@ -286,8 +300,8 @@ move along one of the two axes.
 The cursor is written before the generation rather than after, so a reload during a long call
 lands where the reader is and not where they were a step ago.
 
-Clicking a card selects it when it is not selected and confirms it when it is, so a mouse
-reader does in two clicks what arrow-then-down does from the keyboard.
+Clicking a card selects it when it is not selected and carries on from it when it is, so a
+mouse reader does in two clicks what arrow-then-down does from the keyboard.
 
 ## Returning to a fork
 
@@ -304,15 +318,19 @@ back and nothing happens.
 - Selecting the alternative already on the path does nothing at all.
 - Selecting another re-routes: the path from that fork onward becomes the chosen branch,
   followed forward to the deepest point previously visited down it. With no such memory it
-  stops at the fork and the slider stays open there.
+  stops at the end of the card, which is the floor the surface maintains everywhere; the
+  memory is what makes returning to a branch pick it up where it was left.
 
 Backing out undoes nothing and deletes nothing. The path stays routed as it was and every
 span stays where it was written; what moves is where the reader is standing.
 
 ## The token flyout
 
-On the path only, and never on a card. A card is an alternative not yet taken; the finer
-grain belongs to text the reader has committed to.
+On the path only, and never on a card — including the selected one, which is on the path and
+still has no addresses in it, because a card renders text and the prose renders pieces. The
+alternatives to either side are branches not taken and the question does not arise for them;
+for the selected card it is a gap rather than a rule, and the way to the tokens is to move
+past the fork so the section folds back into the prose.
 
 Click a token and a small flyout carries its own record — its text and its logprob — and the
 alternatives the model ranked and did not take, with theirs.
@@ -342,9 +360,14 @@ so its own outstanding request is the server's writer lock, and the client needs
 the server to know it.
 
 **One pending slot beside it.** A speculative call that has been decided on but not yet sent
-is discarded when a confirm arrives. So right-then-immediately-down costs a wait only in the
+is discarded when carrying on arrives. So right-then-immediately-down costs a wait only in the
 case where the speculative call had already started, which is the only case where nothing can
 be done about it.
+
+**And the routing write never takes that slot from a keypress.** Submitting replaces whatever
+is waiting, so the write that keeps the path under the selection stands aside whenever
+anything is queued behind what is running. It costs nothing to defer: every response is
+applied, and every application asks again.
 
 **Reads never queue.** `GET /api/tree` runs underneath a generation and is what fills the
 placeholders.

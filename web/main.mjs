@@ -76,9 +76,7 @@ const key = (pos) => (pos === null ? '.' : `${pos.span}+${pos.offset}`);
  */
 function slider() {
   const points = forks(state.tree);
-  if (!points.length) {
-    return { points, index: -1, fork: null, card: 0, chosen: false };
-  }
+  if (!points.length) return { points, index: -1, fork: null, card: 0 };
   let index = points.length - 1;
   if (state.sliderAt !== undefined) {
     const found = points.findIndex((f) => key(f.at) === key(state.sliderAt));
@@ -91,11 +89,6 @@ function slider() {
     index,
     fork,
     card: Math.max(0, Math.min(want, fork.children.length - 1)),
-    // whether the path continues past this fork. Normally false at the last
-    // fork, because generation attaches its alternatives at the tip -- but an
-    // authored tree, or one whose tip was deleted, ends past its last fork,
-    // and then there is nothing here to confirm.
-    chosen: fork.active >= 0,
   };
 }
 
@@ -184,6 +177,51 @@ function refused(e) {
 function apply(tree, chase = true) {
   state.tree = tree;
   draw(chase);
+  route();
+}
+
+/** The selection is the path: if the tree does not run through the selected
+ * card, make it.
+ *
+ * **This is the whole of what dissolving "selected" and "confirmed" means.**
+ * The surface used to hold the two apart at exactly one fork -- the last one,
+ * where alternatives were on offer rather than chosen -- and behind it
+ * selecting already re-routed. One gesture with two rules, and the seam showed:
+ * stepping up from the tip left the lower half of the page blank, because the
+ * card being read was not on the path and so nothing followed it.
+ *
+ * Called from `apply` rather than from the acts, because the default selection
+ * has to hold the invariant too. A batch of two arrives with card 0 selected
+ * and nobody having pressed anything; a permalink names a card; a tree written
+ * by `loom.py` opens with its cursor wherever the command line left it. All
+ * three are the same case and none of them is a keystroke.
+ *
+ * Three things keep it from running away:
+ *
+ * - **A card still in flight is not routed onto.** Its run has no bytes yet, so
+ *   its end is byte 0, and recording that would say the path leaves the span
+ *   where it starts -- which stops being true the moment the bytes land, and
+ *   `loom.py gen` from that cursor would branch at the wrong end of it.
+ * - **The stop condition is the position, not the index.** Once the cursor
+ *   equals the card's end there is nothing to write, so the response this write
+ *   provokes cannot provoke another.
+ * - **Never while something is queued.** `Writes.submit` replaces what is
+ *   waiting, and what is waiting is usually the reader's next keypress. The
+ *   write that is running will apply, and this runs again then.
+ */
+function route() {
+  if (writes.queued) return;
+  const { fork, card } = slider();
+  if (!fork || fork.active === card) return;
+  const node = fork.children[card];
+  if (!node || nodeState(state.tree, node) !== 'ready') return;
+  const to = endOf(node);
+  const at = state.tree.selected;
+  if (!to || (at && at.span === to.span && at.offset === to.offset)) return;
+  writes.submit(async () => {
+    apply(await api.cursor(to));
+    remember();
+  }, refused);
 }
 
 function settingsNow() {
@@ -192,13 +230,14 @@ function settingsNow() {
 
 // -- the acts --------------------------------------------------------------
 
-/** Confirm the selected card: it joins the path, and the tip moves onto it.
+/** Carry on from the selected card: generate from its end.
  *
- * Where the path already runs through the selected card -- which is where a
- * re-route at an earlier fork leaves the reader, when the branch they moved
- * onto ends without alternatives -- the cursor is already at its end and the
- * write is a no-op. What down does there is the generation, which is exactly
- * "carry on from here" and was the one move the surface had no gesture for.
+ * The cursor is normally already there -- `route` put it there when the card
+ * was selected -- so the write is a no-op and what down does is the
+ * generation. It is still written rather than assumed, because there is one
+ * case where it is not a no-op: a card selected while it was still in flight
+ * was not routed onto, and pressing down once it lands is the reader saying
+ * they meant it.
  */
 function confirm() {
   const { fork, card } = slider();
@@ -219,16 +258,28 @@ function confirm() {
   }, refused);
 }
 
-/** Move the selection. Behind the tip, moving *is* re-routing. */
+/** Move the selection, which *is* moving the path. Everywhere, now.
+ *
+ * `resumeInto` rather than the card's end, which is the one thing this does
+ * that `route` does not: a reader who went a long way down a branch and came
+ * back to compare should land where they were, not at the top of it again.
+ * `route` is the floor and this is the memory.
+ *
+ * The target is pinned to this fork before the write. Without that the cursor
+ * moving could take the target with it -- if the branch selected has been
+ * generated from before, the last fork on the path is suddenly deeper than the
+ * one the reader is standing at.
+ */
 function select(index) {
-  const { fork, chosen } = slider();
+  const { fork } = slider();
   if (!fork || index < 0 || index >= fork.children.length) return;
   state.card = index;
-  // nothing has been chosen at this fork yet, so selecting is only a pick
-  if (!chosen) return draw();
   if (index === fork.active) return draw();            // already on the path
+  const node = fork.children[index];
+  // a card still generating is selected but not walked onto; see `route`
+  if (nodeState(state.tree, node) !== 'ready') return draw();
 
-  const to = resumeInto(fork.children[index]);
+  const to = resumeInto(node);
   state.sliderAt = fork.at;
   writes.submit(async () => {
     apply(await api.cursor(to));
@@ -376,11 +427,14 @@ function draw(chase = true) {
   }
   dom.refuse.hidden = true;
 
-  const { points, index, fork, card, chosen } = slider();
+  const { points, index, fork, card } = slider();
   const atTip = index === points.length - 1;
 
+  // asking for one more belongs to the last fork and to its right-hand end.
+  // It used to be gated on nothing having been chosen there as well, which
+  // stopped meaning anything once selecting became choosing.
   const strip = cardStrip(state.tree, fork, card, {
-    growable: Boolean(fork) && atTip && !chosen && !state.readOnly
+    growable: Boolean(fork) && atTip && !state.readOnly
       && card === fork.children.length - 1
       && nodeState(state.tree, fork.children[card]) !== 'flight',
   });

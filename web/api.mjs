@@ -89,6 +89,17 @@ export class Writes {
     return this.running !== null;
   }
 
+  /** Is something waiting behind what is running?
+   *
+   * `busy` is true throughout a write, including while its response is being
+   * applied, so it cannot answer "will another write follow this one". This
+   * can, and `main.mjs:route` needs it: a write it submits mid-queue would
+   * *replace* whatever is waiting, which is a reader's keypress.
+   */
+  get queued() {
+    return this.pending !== null;
+  }
+
   /** Called whenever the queue starts or stops running something. */
   watch(fn) {
     this.watchers.add(fn);
