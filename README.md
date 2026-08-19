@@ -18,17 +18,18 @@ use are first-class, and anything that only works by clicking is half-built.
 
 | | |
 | --- | --- |
-| [PLAYBOOKS.md](PLAYBOOKS.md) | **start here** — five ways of using it, worked end to end against a real model |
+| [DIRECTION.md](DIRECTION.md) | **start here** — what this is, where it stands, and where it is going |
 | [RESEARCH.md](RESEARCH.md) | the questions, what is currently believed about each, and what to run next |
 | [experiments/](experiments/) | the record — one file per experiment, registered before the run and answered after |
-| [ROADMAP.md](ROADMAP.md) | the build path — where the interface is going, and what is out of scope |
 | [FRONTEND.md](FRONTEND.md) | the front end: what it is for, and the constraints that hold it to it |
 | [INTERACTION.md](INTERACTION.md) | the front end: what is on the screen and what each action does |
 | [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
-| [BEYOND-MVP.md](BEYOND-MVP.md) | wants that reach past the MVP, and the constraints they impose now |
+
+`ROADMAP.md` and `BEYOND-MVP.md` are the MVP's own documents, kept until `DIRECTION.md` has
+absorbed what survives of them.
 
 There are **two threads**: building the interface, and using the instrument. They share a
-core, a format and a set of conventions, and diverge only in direction — `ROADMAP.md` leads
+core, a format and a set of conventions, and diverge only in direction — `DIRECTION.md` leads
 one, `RESEARCH.md` the other.
 
 ## Running it

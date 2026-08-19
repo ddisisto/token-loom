@@ -301,8 +301,8 @@ The default moved off a number for a related reason. A recorded parameter with a
 default hands a framing decision to callers who never made one, and puts it on every span
 they produce. Sending the whole path is the choice that claims nothing; where it does not
 fit, the server refuses outright rather than quietly reading less than the reader can see.
-Narrowing the slice stays available and stays deliberate, which is what `PLAYBOOKS.md` asks
-of it. Trees written before this keep their recorded numbers and mean exactly what they
+Narrowing the slice stays available and stays deliberate, which is what studying framing as a
+change of basis asks of it. Trees written before this keep their recorded numbers and mean exactly what they
 always meant, which is what interning per span is for.
 
 ### 5. Bulk records are per token

@@ -1,8 +1,8 @@
 # Research
 
-The other thread. `ROADMAP.md` is the build path — an API and a front end, on top of a core
+The other thread. `DIRECTION.md` is the build path — the reading surface, on top of a core
 that is finished. This is the thread that *uses* the core, and its instrument already works:
-`loom.py`, `data/demo/` and `PLAYBOOKS.md` are a working research setup, not a preview of one.
+`loom.py` and `data/demo/` are a working research setup, not a preview of one.
 
 This is the **landing page**: the questions, what is currently believed about each, and what
 to run next. It has no end state and it is not a roadmap, but it does have a length budget —
@@ -10,8 +10,12 @@ when it stops being readable in one sitting it has stopped doing its job.
 
 - `experiments/` is the record. One file per experiment, pre-registration and results,
   written once and not tidied afterwards.
-- `PLAYBOOKS.md` is the *how*: five moves, with commands, against the committed `data/demo/`.
-- `BEYOND-MVP.md` holds what the instrument cannot do yet and what it would cost.
+- `DIRECTION.md` holds what the instrument cannot do yet and what it would cost.
+
+`PLAYBOOKS.md` was the *how* — five moves, with commands, against the committed `data/demo/`.
+It was retired at `f3118a3`, the last commit that holds it, because it quoted one generation's
+specifics line by line as though they were findings. `git show f3118a3:PLAYBOOKS.md` is the
+whole of it, and the commands it taught are in `loom.py --help`.
 
 ## How to read the findings
 
@@ -21,8 +25,8 @@ others are three samples read by eye — it over-hedges the first and launders t
 
 A finding tagged *(001)* points at an experiment file. A finding tagged *(playbook 2)* was a
 demonstration, not an experiment: it happened before pre-registration existed here, its
-transcript is in `PLAYBOOKS.md`, and it is an impression rather than a measurement. Where a
-finding has nothing after it, that is the tag.
+transcript is in `git show f3118a3:PLAYBOOKS.md`, and it is an impression rather than a
+measurement. Where a finding has nothing after it, that is the tag.
 
 ### What a finding may claim
 
@@ -206,7 +210,8 @@ a verdict nobody can check. Read one with `LOOM_TREE=experiments/NNN-name script
 
 The five playbooks and the original sibling-divergence table are **not** in here. They predate
 pre-registration, and giving them experiment files would imply a rigour they did not have.
-Their record is `PLAYBOOKS.md` and their conclusions are tagged as impressions above.
+Their record is `git show f3118a3:PLAYBOOKS.md` and their conclusions are tagged as
+impressions above.
 
 ---
 

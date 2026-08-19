@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-"""Build `data/demo/` -- the tree `PLAYBOOKS.md` walks through.
+"""Build `data/demo/` -- five ways of using the instrument, in one tree.
 
 Each playbook is one **root prompt** in a single tree, which is what the format
 permits and what keeps five independent experiments in one directory. Reading
 them back afterwards is the point: `loom.py show`, `batches` and `params` are
 how a recorded experiment becomes legible.
+
+`PLAYBOOKS.md` walked through the resulting tree line by line and was retired at
+`f3118a3` for exactly that -- quoting one generation's specifics as though they
+were findings. This file is the construction; the tree is the artefact.
 
 The tree is committed, so this is the record of how it was made rather than
 something a reader has to run. Rebuild it with:

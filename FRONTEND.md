@@ -363,6 +363,3 @@ In principle. None of it is detail yet.
 - **`CLAUDE.md`** — the stack note counts the clients on the core. The front end is a client
   of the API rather than of the core, which is a third shape and worth being exact about.
 - **`README.md`** — the state paragraph, and the table of where to start.
-- **`CLAUDE-HANDOVER.md`** — the two-writer thread is unchanged and stays deferred. The
-  reading surface is the only writer to its own tree, and the separation of `data/` from
-  `experiments/` is what keeps it away from anything that would hurt to lose.

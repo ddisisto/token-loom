@@ -105,7 +105,8 @@ class Session:
         path is the choice that makes no claim, and where it does not fit, the
         server refuses outright rather than quietly reading less than the
         reader can see. Narrowing the slice stays available and stays
-        deliberate, which is what `PLAYBOOKS.md` asks of it.
+        deliberate, which is what studying framing as a change of basis asks
+        of it.
         """
         if self.server is None:
             raise RuntimeError('no server attached to this session')
