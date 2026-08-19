@@ -153,9 +153,11 @@ under any layout:
   paddings below the line it continues. Lining it up means the band's vertical padding and
   the selected card's top and bottom borders go, and the left and right borders become
   vertical rules flanking the column — a mark that lands in the line rather than across it.
-- **The placeholder is a second object.** Asking for one more continuation makes the request
-  button vanish and a differently-sized box appear elsewhere. The request and its pending
-  state should be one thing: the slot holds a `+` or a generation in flight, never both.
+A third — **the placeholder being a second object**, where asking for one more continuation
+makes the request button vanish and a differently-sized box appear elsewhere — is deliberately
+*not* fixed. Its own fix is the column model: the slot that absorbs the request becomes the
+column that fills, so building the intermediate shape would be building it to throw away. The
+flicker that made it urgent was the strip, and that is fixed.
 
 Then the columns, and pruning as an ordinary gesture beside them.
 

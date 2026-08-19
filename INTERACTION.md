@@ -174,6 +174,19 @@ target is reading, rather than reading, stopping, and starting again in a differ
 Both numbers are measured from the rendered flow rather than declared in the stylesheet:
 the column is as wide as it wrapped to, and the indent is where the path's last line ended.
 
+*And it sits on the same line grid.* The card has no top or bottom border and no vertical
+padding, and the band has none either — those four were the whole of what held its first line
+a line and a half below the one it continues, which made a continuous measure and a
+continuous indent add up to prose that still visibly restarted. Removed, the card's first
+line falls exactly where the flow's next line would, and the band is an integer number of
+line boxes tall at every fork.
+
+**What marks the boundary is the left and right border**, which the top and bottom used to do
+badly. Two vertical rules flanking the column say "this stretch is a choice" without
+displacing a single glyph, and they fall in the card's own horizontal padding, inside the
+page's gutter — a mark *in* the line rather than across it. The unselected cards keep all
+four, because they are boxes to compare rather than a stretch of the path.
+
 *The unselected cards stay half the column, and are not indented.* They are alternatives to
 compare rather than prose to read, and the comparison wants more than one of them on screen.
 Moving the selection slides the strip so the selected card's text lands at the column;

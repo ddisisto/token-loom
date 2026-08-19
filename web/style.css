@@ -250,10 +250,14 @@ body {
  * `--indent`: where the reading column starts, how wide its text is, and how
  * far along the last line the path stopped. All three are properties of the
  * rendered flow rather than of the stylesheet, and the flow has already been
- * measured by the time the cards are placed. */
+ * measured by the time the cards are placed.
+ *
+ * The band has no padding of its own, and that is what lets the selected card
+ * begin exactly one line below where the path stopped: `place` sets the band's
+ * top to the *line box* bottom of the fork's mark, so anything between that
+ * edge and the card's first line is a gap in the middle of a sentence. */
 #band {
   position: absolute;
-  padding: 0.9rem 0;
   overflow: hidden;
   --card: calc(var(--column) / 2);
   --gap: 0.8rem;
@@ -298,11 +302,28 @@ body {
  * passes through the target. The unselected ones stay half-width and unindented
  * -- they are a stack of alternatives to compare, not prose to read, and the
  * reflow as one moves into and out of the column is the accepted cost of the
- * selected one reading as continuous. */
+ * selected one reading as continuous.
+ *
+ * **No top or bottom border, and no vertical padding.** Those, plus the band's
+ * own padding, were the whole of what held the card's first line off the line
+ * it continues. Without them the text lands on the prose line grid exactly --
+ * measured: the band's height is an integer number of line boxes at every fork,
+ * and the first glyph sits at `textLeft + --indent`, which is where the line
+ * above stopped.
+ *
+ * The left and right borders stay, and become the boundary marking that the top
+ * and bottom used to be. They are better at it: two vertical rules flanking the
+ * column say "this stretch is a choice" without displacing a glyph, and they
+ * fall in the card's horizontal padding, inside the page's own gutter. A mark
+ * in the line rather than across it. */
 .card.on {
   flex-basis: calc(var(--text) + 2 * var(--pad) + 2px);
-  opacity: 1;
+  min-height: 0;
+  padding: 0 var(--pad);
   border-color: var(--live);
+  border-top: none;
+  border-bottom: none;
+  opacity: 1;
 }
 
 /* the first line continues the line above it, so it starts where that one
@@ -314,8 +335,17 @@ body {
  * three places away should not push the path apart, since the reader is not
  * reading it. `--tall` is measured, so the shorter ones pad out to it and the
  * longer ones are cut off at it. Not `max-height`, which would leave the strip
- * ragged along the bottom. */
-.card:not(.on):not(.more) { height: var(--tall); }
+ * ragged along the bottom.
+ *
+ * `min-height: 0` because the floor on `.card` outranks a `height` and silently
+ * won: every neighbour sat at 4.5rem whatever `--tall` said, so the measurement
+ * only ever governed where the selected card happened to be taller than the
+ * floor. Invisible until the selected card lost its vertical padding and went
+ * under it. */
+.card:not(.on):not(.more) {
+  height: var(--tall);
+  min-height: 0;             /* or the floor on `.card` outranks the measurement */
+}
 
 /* and a card that was cut says so, rather than ending mid-word and hoping the
  * reader infers it. The gradient is what makes it read as continuing rather
