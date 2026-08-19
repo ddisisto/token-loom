@@ -494,7 +494,7 @@ the case byte anchoring exists to handle.
 
 ### What the validator checks
 
-Seven, of which four are structural and three need the bulk store. That is fewer than a
+Eight, of which four are structural and four need the bulk store. That is fewer than a
 validator over this data would usually need, for the reason given throughout: most of what a
 validator does is hold two representations to agreeing, and there is only one here.
 
@@ -522,6 +522,20 @@ With the store:
 7. **A complete sampled span has a terminator row.** Only a sampled span was ever in flight —
    given and counterfactual spans are complete the moment they are created — so only they
    have anything to terminate.
+8. **No bulk row names a span the tree lacks.** The one check that *does* hold two
+   representations to agreeing, and the one place there are two: the tree says which spans
+   exist and the store says which spans have rows, in different files, only one of which is
+   rewritten whole. That asymmetry is what two writers tear, so this is the check that finds
+   the damage a lost `tree.json` leaves behind. **A soft-deleted span is not damage** — delete
+   removes nothing from `spans`, so a deleted subtree's rows are still named, and an invariant
+   phrased as "reachable" instead of "present" would fire on every tree that has ever had a
+   delete.
+
+Checks 6 and 8 divide one accident and neither sees the other's half. When a re-minted id
+lands on the dead span's rows, 6 compares bytes and objects — but only where they differ, so
+stale counterfactual ranks at indices the new span also has slip past it. When the tree loses
+the span instead, 6 has nothing to walk and only 8 speaks. A tree failing one and not the
+other says which direction the write went.
 
 Check 6 earns its keep three times over: it is the only thing that would catch byte-fallback
 tokens being mishandled, it is what makes a `text` field and a `bytes` blob safe to hold the

@@ -5,62 +5,136 @@ This is where those meet: it owns the directory, and it owns the rule that the
 tree is saved *between* recording an intent and making the call. That ordering
 is not bookkeeping. It is what makes a crash mid-generation legible, and what
 guarantees no bulk row can name a span the tree has not heard of.
+
+Owning the directory is also what makes this the place the two-writer guard
+lives. A session opened for writing takes an exclusive lock on the directory
+and holds it until it closes; a session opened for reading takes none, writes
+nothing, and is refused by nothing. `core/lock.py` has the mechanism and the
+reasoning, including why the sqlite store cannot stand in for it.
+
+The split is a property of the *session*, not of each call. Nothing here
+serialises a read against a write within one process -- the API answers
+`GET /api/tree` under a running generation, and that stays true.
 """
 from __future__ import annotations
 
 import os
 
 from core.llama import Server
+from core.lock import DirectoryLock, Locked
 from core.ops import (author, begin_generation, branch_counterfactual, complete,
                       delete, recover, restore, slice_at)
 from core.store import BulkStore
 from core.tree import Position, Span, Tree, id_order
 from core.validate import Invalid, validate
 
+__all__ = ['Session', 'Locked', 'TREE_FILE', 'BULK_FILE']
+
 TREE_FILE = 'tree.json'
 BULK_FILE = 'bulk.sqlite'
 
 
 class Session:
+    """A tree directory held open, for reading or for writing.
+
+    `write` is the whole of the read/write distinction, and it is one flag
+    rather than two classes because everything it changes is a refusal:
+
+    - a writing session takes the directory lock and holds it until `close`
+    - a reading session takes no lock, so any number of them coexist with each
+      other and with the one writer
+    - a reading session refuses to `save`, which is the single choke point every
+      mutation here goes through -- there is no path that writes without it
+    - a reading session does not run in-flight recovery either, since closing a
+      span out as `aborted` is a write to both halves of the directory
+
+    Not running recovery is the one visible difference in what a reader sees: a
+    span another process is generating right now reads as in flight, which is
+    what it is. The validator has no objection to one -- its rows are still
+    arriving, and check 7 only asks a *complete* span for a terminator.
+    """
+
     def __init__(self, path: str, tree: Tree, store: BulkStore,
-                 server: Server | None = None):
+                 server: Server | None = None,
+                 lock: DirectoryLock | None = None):
         self.path = path
         self.tree = tree
         self.store = store
         self.server = server
+        self.lock = lock
 
     # -- lifecycle ---------------------------------------------------------
 
     @classmethod
     def create(cls, path: str, base_seed: int | None = None,
                server: Server | None = None) -> Session:
+        """A new tree directory, held for writing. There is no reading a tree
+        that does not exist yet, so there is no flag here."""
         if os.path.exists(os.path.join(path, TREE_FILE)):
             raise FileExistsError(f'{path} already holds a tree')
         os.makedirs(path, exist_ok=True)
-        session = cls(path, Tree.empty(base_seed),
-                      BulkStore(os.path.join(path, BULK_FILE)), server)
-        session.save()
+        lock = DirectoryLock(path)
+        lock.acquire()
+        try:
+            session = cls(path, Tree.empty(base_seed),
+                          BulkStore(os.path.join(path, BULK_FILE)), server, lock)
+            session.save()
+        except BaseException:
+            lock.release()
+            raise
         return session
 
     @classmethod
     def open(cls, path: str, server: Server | None = None,
-             strict: bool = True) -> Session:
-        tree = Tree.load(os.path.join(path, TREE_FILE))
-        store = BulkStore(os.path.join(path, BULK_FILE))
-        session = cls(path, tree, store, server)
-        if recover(tree, store):
-            session.save()
-        problems = validate(tree, store)
-        if problems and strict:
-            store.close()
-            raise Invalid(problems)
+             strict: bool = True, write: bool = True) -> Session:
+        """Open a tree directory. Writing by default, and locked if so.
+
+        The lock is taken *before* the file is read, so what is validated is
+        what no one else can be rewriting underneath. `Locked` propagates: the
+        callers that own a command line turn it into a message and an exit
+        code, because "someone else has this tree" is a fact about the world
+        rather than a fault in the caller.
+        """
+        lock = DirectoryLock(path) if write else None
+        if lock is not None:
+            lock.acquire()          # FileNotFoundError if there is no directory
+        try:
+            tree = Tree.load(os.path.join(path, TREE_FILE))
+            store = BulkStore(os.path.join(path, BULK_FILE))
+        except BaseException:
+            if lock is not None:
+                lock.release()
+            raise
+
+        session = cls(path, tree, store, server, lock)
+        try:
+            # recovery writes to both halves, so a reader leaves it for a writer
+            if write and recover(tree, store):
+                session.save()
+            problems = validate(tree, store)
+            if problems and strict:
+                raise Invalid(problems)
+        except BaseException:
+            session.close()
+            raise
         return session
 
     def save(self) -> None:
+        """The single choke point every mutation goes through.
+
+        Refusing here rather than on each operation is deliberate: a new
+        operation added to this class cannot forget to be refused, because the
+        thing it has to do to take effect is the thing that checks.
+        """
+        if self.lock is None:
+            raise Locked(f'{self.path} was opened for reading; a session that '
+                         f'holds no lock on the directory does not write to it')
         self.tree.save(os.path.join(self.path, TREE_FILE))
 
     def close(self) -> None:
         self.store.close()
+        if self.lock is not None:
+            self.lock.release()
 
     def __enter__(self) -> Session:
         return self

@@ -59,8 +59,8 @@ not here. A finding about what a model does is not here either.
   `data/demo/` survived only because `demo.py --force` could rebuild it — which an experiment
   tree can never do, since rebuilding it would destroy the record.
 
-  **The research thread keeps its own trees.** That is what makes the unguarded two-writer
-  case below a decision rather than a hazard.
+  **The research thread keeps its own trees.** Since the two-writer guard landed, the two
+  threads are also kept apart by the kernel rather than by protocol.
 
 Both are consumers of one substrate, which is why this file is not split: every fact in it is
 equally true on both sides. Two things follow:
@@ -227,13 +227,31 @@ no `PATCH`, which `api_test.py` asserts by its absence. Positions are `{"span", 
 bodies and `s3+9` in query parameters, the grammar `loom.py` parses. Every mutation answers
 with the whole tree. Text may arrive as `{"b64": …}` instead of a string.
 
-**Nothing yet guards two processes writing one tree directory.** `Tree.save` rewrites the
-file whole, so `loom.py` and a running API clobber each other, and re-minted span ids inherit
-the dead span's bulk rows — partly caught by validator check 6, though stale counterfactual
-ranks survive it. Two cheap fixes, both in `core/`, scheduled early in the v1.0 cycle: an
-exclusive lock on the tree directory taken by whoever opens it for writing, and a validator
-check that no bulk row names a span the tree lacks, for which `store.spans_with_tokens()`
-already exists. Until they land, keeping a tree to one writer is protocol.
+**One writer per tree directory, and the kernel enforces it.** `Tree.save` rewrites the file
+whole, so two writers do not interleave — the later save destroys the earlier one's spans, and
+a re-minted span id inherits the dead span's bulk rows. `core/lock.py` is `flock` on the
+directory's **own file descriptor**, taken by `Session` when it opens for writing and held for
+the life of the process. Four things about it are easy to get wrong:
+
+- **Reads take no lock at all**, not even a shared one, and a reading `Session` is refused by
+  nothing. `loom.py show` against a tree a server holds is the case it exists for; `loom.py`'s
+  `READS` set is what decides, and anything absent from it is treated as a writer.
+- **A reader also does not run in-flight recovery**, because closing a span out as `aborted`
+  writes to both halves of the directory. So a reader can see a span in flight that a writer
+  would have closed — which is what it is, and the validator has no objection to one.
+- **`Session.save` is where a reader is refused**, not each operation, so an operation added
+  later cannot forget. The consequence is that a refused mutation has already touched that
+  session's *in-memory* tree; nothing reaches the file, and the session's only exit is being
+  discarded.
+- **The sqlite store cannot stand in for the lock**, and this is settled: the file destroyed
+  is `tree.json`, which sqlite cannot see; `store.py` commits after every write and sqlite's
+  locks are per-transaction; and WAL exists precisely so readers and writers do not block.
+  `locking_mode = EXCLUSIVE` would block readers, which is the one thing that must not happen.
+
+The lock is per process, never per operation — `GET /api/tree` under a running generation is
+load-bearing and untouched. The half that catches damage *already* done is validator check 8:
+no bulk row may name a span the tree lacks. A soft-deleted span is still in `tree.spans`, so
+it is not one of them.
 
 `GET /api/settings` is the only route that needs the model server and 503s without one.
 Everything else, including authoring, works with nothing on 8081 — composing a prompt with no

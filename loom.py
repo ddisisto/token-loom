@@ -25,6 +25,11 @@ is `span` for that span's tip, `span+offset` for a byte offset within it, or
 `.` for the root -- the point before any span, where an initial prompt goes.
 With no position given, commands use the cursor, which `show` marks inline.
 
+A tree has **one writer at a time**. The commands that change something take an
+exclusive lock on the directory and refuse if a server or another `loom.py`
+already holds it; the commands that only look take no lock at all, so reading a
+tree an API is serving is always available and never waits.
+
 `gen` moves the cursor to the first span it made, which is what walking forward
 wants and the opposite of what sampling one position repeatedly wants; `--stay`
 is the second reading. Between them, `show <position> --depth n` and
@@ -47,12 +52,22 @@ import argparse
 import os
 import sys
 
-from core import Incomplete, Invalid, Position, Server, Truncated, validate
+from core import (Incomplete, Invalid, Locked, Position, Server, Truncated,
+                  validate)
 from core.ops import divergence, runs, token_offsets
 from core.session import Session
 from core.tree import id_order
 
 DEFAULT_DIR = os.environ.get('LOOM_TREE', 'data/tree')
+
+# Which commands only look. The list is here rather than derived from what a
+# handler happens to call, because "does this write" is a fact about the command
+# a person typed and has to be knowable before the tree is opened -- the lock is
+# taken at open time or not at all. Anything absent is treated as a writer,
+# which is the safe direction to be wrong in: a new command refuses to run
+# beside a server until someone decides it is a read.
+READS = frozenset({'show', 'read', 'tokens', 'batches', 'diverge', 'params',
+                   'slice'})
 
 
 # -- rendering -------------------------------------------------------------
@@ -530,6 +545,8 @@ def main(argv=None) -> int:
         try:
             session = Session.create(args.dir, base_seed=args.seed,
                                      server=server)
+        except Locked as e:
+            raise SystemExit(str(e))
         except FileExistsError:
             # refusing is right -- a tree is not overwritable and the bulk
             # store beside it would survive the tree file being replaced. Only
@@ -542,7 +559,12 @@ def main(argv=None) -> int:
         return 0
 
     try:
-        session = Session.open(args.dir, server=server)
+        session = Session.open(args.dir, server=server,
+                               write=args.command not in READS)
+    except Locked as e:
+        # the one refusal that is about the world rather than about the tree:
+        # nothing here is wrong, someone else simply has it
+        raise SystemExit(str(e))
     except FileNotFoundError:
         raise SystemExit(f'no tree at {args.dir}; `loom.py -d {args.dir} new` first')
     except Invalid as e:

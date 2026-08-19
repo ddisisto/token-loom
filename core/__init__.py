@@ -6,6 +6,11 @@
 Opening one runs the validator and applies the load-time rule for in-flight
 spans, which is what keeps "maybe still running" from being a state a span can
 sit in forever.
+
+The two functions here are the unlocked, lifetime-free way in: they hand back a
+tree and a store and nothing owns the directory afterwards. Anything that holds
+a directory over time -- both clients do -- goes through `core.session.Session`,
+which takes the two-writer lock. See `core/lock.py`.
 """
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ from core.ops import (address_at, author, begin_generation,
                       divergence, outline, recover, restore, runs, slice_at,
                       token_offsets)
 from core.llama import DEFAULT_BASE, Incomplete, Result, Server, Truncated
+from core.lock import DirectoryLock, Locked
 from core.store import (ABORTED, CONTEXT, EOS, LENGTH, STOP, BulkStore,
                         Counterfactual, Token, spelled)
 from core.tree import (COUNTERFACTUAL, FORMAT, GIVEN, SAMPLED, Position, Span,
@@ -38,6 +44,7 @@ __all__ = [
     'check', 'address_at', 'token_offsets', 'divergence', 'outline', 'runs',
     # files
     'open_tree', 'create_tree', 'save', 'validate', 'Invalid',
+    'DirectoryLock', 'Locked',
 ]
 
 

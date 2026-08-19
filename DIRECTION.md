@@ -178,22 +178,29 @@ Enough for someone else to run it and understand what they are looking at.
   know why a position is a pair. Its state paragraph is currently stale in both directions.
 - **Retire `ROADMAP.md` and `BEYOND-MVP.md`** once this file has absorbed what survives.
 
-**The two-writer guard is built early, not deferred again.** It has been carried as a known
-gap across three phases and referenced from four files, which is itself the argument: it is
-cheap, it makes the ownership of a tree directory explicit rather than conventional, and
-carrying it costs more in re-explanation than building it does. It moves to the front of
-Phase 4.
+✅ **The two-writer guard**, built at the front of Phase 4 rather than deferred a fourth
+time. It had been carried as a known gap across three phases and referenced from four files,
+which was itself the argument: cheap, and costing more in re-explanation than in construction.
+Both halves are in `core/` and `CLAUDE.md` has what is easy to get wrong about them.
 
-`Tree.save` rewrites the file whole, so `loom.py` and a running API clobber each other and a
-re-minted span id inherits the dead span's bulk rows — partly caught by validator check 6,
-though stale counterfactual ranks survive it. Both fixes are in `core/`:
+- **An exclusive lock on the tree directory** — `flock` on the directory's own file
+  descriptor, in `core/lock.py`, taken by `Session` when it opens for writing and held for the
+  process's life. Nothing is created, so nothing has to be gitignored and a committed
+  `experiments/` tree gains no stray file. The loser refuses cleanly with the directory named;
+  `loom.py` exits non-zero, the API refuses to start. Reads take no lock at all and never
+  wait, which is what makes `loom.py show` against a served tree work.
+- **Validator check 8: no bulk row names a span the tree lacks.** The half that catches damage
+  already done, where the lock only prevents new damage. A soft-deleted span is still in
+  `tree.spans` and is emphatically not damage.
 
-- **An exclusive lock on the tree directory**, taken by whoever opens it for writing, with the
-  other client refusing cleanly rather than tracebacking or silently winning. Reads are
-  unaffected — `GET /api/tree` under a running generation is load-bearing.
-- **A validator check that no bulk row names a span the tree lacks**, for which
-  `store.spans_with_tokens()` already exists. This is the half that catches damage already
-  done, where the lock only prevents new damage.
+The one real design decision was where the read/write line falls. It is per **session** rather
+than per operation: a `Session` is opened for reading or for writing and stays that way, so
+nothing serialises a read against a write inside one process. `loom.py` decides from the
+subcommand — a `READS` set, with anything absent treated as a writer — because the lock is
+taken at open time and "does this write" therefore has to be answerable before the tree is
+open. The alternatives rejected were a lock per operation, which would have serialised
+`GET /api/tree` against a running generation, and inferring read-ness from whether a handler
+happened to call `save`, which is only knowable too late.
 
 ## Out of scope for v1.0
 

@@ -61,7 +61,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from api import wire
-from core import Incomplete, Invalid, Server, Truncated
+from core import Incomplete, Invalid, Locked, Server, Truncated
 from core.session import Session
 
 app = FastAPI(title='token loom')
@@ -70,6 +70,11 @@ app = FastAPI(title='token loom')
 # the process serves exactly one tree -- there is nothing to key them by, and a
 # registry would be the session model creeping back in through the door marked
 # "just in case".
+#
+# `WRITING` is a *within*-process lock and has nothing to do with the directory
+# lock in `core/lock.py`. That one is taken once at startup and held until the
+# process exits; this one is taken per mutation, and reads take neither -- which
+# is what keeps `GET /api/tree` answering under a running generation.
 SESSION: Session | None = None
 WRITING = threading.Lock()
 
@@ -417,6 +422,12 @@ def open_tree(path: str, base: str | None = None, model: bool = True) -> Session
     `Session.open` before the first request is served, which is decision 8's
     load-time rule and is why "maybe still running" is not a state the API can
     report.
+
+    The session is a writing one -- the API exists to mutate -- so this takes
+    the exclusive directory lock and holds it for the life of the process. A
+    second server on the same tree, or a `loom.py` command that writes, is
+    refused at startup rather than left to clobber this one. `loom.py` reads
+    keep working throughout.
     """
     server = Server(base) if base else Server()
     return Session.open(path, server=server if model else None)
@@ -441,6 +452,11 @@ def main(argv=None) -> int:
 
     try:
         session = open_tree(args.dir, args.server, model=not args.no_model)
+    except Locked as e:
+        # refusing to start is the whole point: a server that served a tree
+        # another writer holds would be the two-writer case with a URL on it
+        print(e)
+        return 2
     except FileNotFoundError:
         print(f'{args.dir} holds no tree; `loom.py -d {args.dir} new` makes one')
         return 2

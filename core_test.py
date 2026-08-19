@@ -14,15 +14,21 @@ Usage: python core_test.py
 import json
 import os
 import shutil
+import signal
+import subprocess
 import sys
 import tempfile
+import time
 
-from core import (BulkStore, Position, Tree, address_at, author,
+from core import (BulkStore, Locked, Position, Tree, address_at, author,
                   begin_generation, branch_counterfactual, complete,
                   create_tree, delete, divergence, open_tree, restore, runs,
                   save, slice_at, token_offsets, validate)
+from core.session import Session
 from core.store import ABORTED, Counterfactual, LENGTH, Token
 from core.tree import Span
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 TS = '2026-08-12-10.00.00'
 
@@ -111,6 +117,26 @@ def expect_problem(name, mangle, matching, store=None):
     problems = validate(tree, store)
     check(name, any(matching in p for p in problems),
           f'got {problems or "no problems"}')
+
+
+def store_has_rows(store, span):
+    return bool(store.tokens(span))
+
+
+def expect_clean(name, mangle, store=None, then=None):
+    """Change the worked example one way that is *legal*, and confirm silence.
+
+    The counterpart to `expect_problem`, and it earns its place for exactly one
+    class of check: an invariant stated too broadly fires on ordinary trees, and
+    nothing else here would notice. `then` is an extra predicate over the
+    changed tree, so a clean result cannot pass by the change having done
+    nothing.
+    """
+    tree = worked_example()
+    mangle(tree)
+    problems = validate(tree, store)
+    ok = not problems and (then is None or then(tree))
+    check(name, ok, f'got {problems or "no problems"}')
 
 
 SETTINGS = {'temperature': 0.9, 'top_p': 1, 'top_n': 3, 'length': 4,
@@ -934,6 +960,134 @@ def _exits(run, *argv):
     return False
 
 
+HOLDER = """
+import sys, time
+sys.path.insert(0, {root!r})
+from core.session import Session
+session = Session.open({path!r}, write=True)
+sys.stdout.write('held\\n')
+sys.stdout.flush()
+time.sleep(120)
+"""
+
+
+def _refused(fn, *args, **kw):
+    """Did this raise `Locked`? Anything else propagates, on purpose.
+
+    A traceback from somewhere else is not a refusal, and a test that swallowed
+    it would report the guard working when what happened was a different bug.
+    """
+    try:
+        fn(*args, **kw)
+    except Locked:
+        return True
+    return False
+
+
+def two_writer_guard(workdir):
+    """One writer per directory, and readers never waiting on it.
+
+    The whole point of the guard is a *cross-process* fact, so most of this
+    runs a real second interpreter rather than asserting about flags.
+    """
+    print('\ntwo writers, one directory')
+    path = os.path.join(workdir, 'contested')
+    writer = Session.create(path, base_seed=11)
+    check('creating a tree takes the directory lock and holds it',
+          writer.lock is not None and writer.lock.held)
+
+    check('a second writer in this process is refused',
+          _refused(Session.open, path))
+    check('and so is a second writer in another process',
+          _held_elsewhere(path) is False)
+
+    reader = Session.open(path, write=False)
+    check('a reader is not refused, and holds no lock at all',
+          reader.lock is None)
+    check('and it reads what the writer wrote',
+          reader.tree.tree_id == writer.tree.tree_id)
+
+    # the invariant, not the value: a reader must be unable to write, and the
+    # bytes on disk are what says whether it did
+    # the invariant is about the bytes on disk, not about a flag. Refusing at
+    # `save` does let the operation touch the reader's *in-memory* tree first,
+    # which is a session that has just raised and whose only exit is being
+    # discarded -- so what has to be true is that nothing reached the file
+    before = open(os.path.join(path, 'tree.json'), 'rb').read()
+    check('a reader refuses to save', _refused(reader.save))
+    check('and refuses an operation that would have saved',
+          _refused(reader.author, None, b'not from a reader'))
+    after = open(os.path.join(path, 'tree.json'), 'rb').read()
+    check('leaving the file on disk byte for byte as it was', before == after)
+    check('so the refused span is in no tree anyone reloads',
+          b'not from a reader' not in after)
+    reader.close()
+
+    # the lock is per process, not per operation -- the same descriptor spans
+    # every mutation, so nothing here can serialise a read against a write
+    fd = writer.lock.fd
+    first = writer.author(None, b'The sea was')
+    writer.author(writer.tip(first.id), b' calm')
+    check('every save runs on the one descriptor taken at open',
+          writer.lock.fd == fd and writer.lock.held)
+    check('which `Tree.save` renaming a file into the directory does not drop',
+          _held_elsewhere(path) is False)
+
+    writer.close()
+    check('closing releases it, so the next writer gets it',
+          _held_elsewhere(path) is True)
+
+    print('\nand the kernel is what releases it')
+    holder = subprocess.Popen(
+        [sys.executable, '-c', HOLDER.format(root=ROOT, path=path)],
+        stdout=subprocess.PIPE, text=True, cwd=ROOT)
+    try:
+        check('another process can hold a tree this one has closed',
+              holder.stdout.readline().strip() == 'held')
+        check('while it does, a writer here is refused', _refused(Session.open, path))
+        opened = Session.open(path, write=False)
+        check('and a reader here is not', opened.lock is None)
+        opened.close()
+        holder.send_signal(signal.SIGKILL)
+        holder.wait()
+    finally:
+        if holder.poll() is None:
+            holder.kill()
+            holder.wait()
+    check('SIGKILL leaves no lock behind -- no cleanup handler ran, and none '
+          'had to', _wait_free(path))
+
+
+def _held_elsewhere(path):
+    """True if a *separate process* could take the lock on `path` right now.
+
+    A separate process rather than this one, because the question the guard
+    answers is about processes. Returns False if it was refused.
+    """
+    code = ('import sys\n'
+            f'sys.path.insert(0, {ROOT!r})\n'
+            'from core.lock import DirectoryLock, Locked\n'
+            f'lock = DirectoryLock({path!r})\n'
+            'try:\n'
+            '    lock.acquire()\n'
+            "    print('acquired')\n"
+            'except Locked:\n'
+            "    print('refused')\n")
+    out = subprocess.run([sys.executable, '-c', code], capture_output=True,
+                         text=True, cwd=ROOT)
+    return out.stdout.strip() == 'acquired'
+
+
+def _wait_free(path, seconds=5.0):
+    """Poll rather than sleep once: reaping is the kernel's business, not ours."""
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        if _held_elsewhere(path):
+            return True
+        time.sleep(0.02)
+    return False
+
+
 def main():
     workdir = tempfile.mkdtemp(prefix='token-loom-')
     path = os.path.join(workdir, 'example')
@@ -1238,6 +1392,44 @@ def main():
             '6. a given span carrying token rows',
             lambda t: setattr(t.spans['s2'], 'kind', 'given'),
             'given span has', example_store)
+        # 8, and the two halves of it. s4 is the span to lose: it holds token
+        # rows and nothing hangs off it, so dropping it leaves no dangling
+        # address for an earlier check to object to first
+        expect_problem(
+            '8. a bulk row naming a span the tree does not have',
+            lambda t: t.spans.pop('s4'),
+            'the tree has no such span', example_store)
+        expect_clean(
+            '8. but not one naming a span that was merely soft-deleted',
+            lambda t: delete(t, Position('s4', 0)), example_store,
+            # a clean result proves nothing unless the delete really happened:
+            # s4 out of reach, still in `spans`, and its rows still in the store
+            then=lambda t: ('s4' not in t.live() and 's4' in t.spans
+                            and store_has_rows(example_store, 's4')))
+        expect_clean(
+            '8. nor one for a span deleted along with its whole subtree',
+            lambda t: delete(t, Position('s3', 0)), example_store,
+            then=lambda t: 's3' not in t.live() and 's4' not in t.live())
+
+        # 6 and 8 divide one accident between them, and each is blind to the
+        # other's half. Stated as the *whole* of what the validator returns,
+        # because "check 8 also fired" is the failure a substring match hides
+        lost = worked_example()
+        lost.spans.pop('s4')
+        check('8 rather than 6. a lost span is not in the tree for check 6 to '
+              'walk, so only check 8 speaks',
+              [p.split(':')[0] for p in validate(lost, example_store)] == ['s4']
+              and 'no such span' in validate(lost, example_store)[0],
+              str(validate(lost, example_store)))
+        reminted = worked_example()
+        reminted.spans['s4'] = Span('s4', 'sampled', Position('s3', CUT),
+                                    b' elsewhere', TS, params='p1', seed=1,
+                                    batch='b3', index=0)
+        problems = validate(reminted, example_store)
+        check('6 rather than 8. a re-minted id inherits the rows, so the tree '
+              'still names s4 and only check 6 objects',
+              any('spell' in p for p in problems)
+              and not any('no such span' in p for p in problems), str(problems))
         example_store.db.execute("DELETE FROM terminators WHERE span = 's3'")
         example_store.db.commit()
         expect_problem(
@@ -1247,6 +1439,7 @@ def main():
 
         operations(workdir)
         driver(workdir)
+        two_writer_guard(workdir)
 
         print(f'\n{PASS} passed, {FAIL} failed')
         return 1 if FAIL else 0

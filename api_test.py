@@ -300,8 +300,16 @@ def routes(workdir):
     body = client.put('/api/cursor', json={'at': f'{made[0]}+4'}).json()
     check('a cursor set in one spelling reads back in the other',
           body['selected'] == {'span': made[0], 'offset': 4}, str(body['selected']))
+    # read-only, and it has to be: this process is the server and already
+    # holds the directory lock. A second writing open is the two-writer case,
+    # which is now refused rather than allowed to clobber -- so reopening to
+    # look at what was written is exactly what the read/write split is for
+    reopened = Session.open(path, write=False)
     check('and it survives a reopen, because it is in the tree file',
-          Session.open(path).tree.selected == Position(made[0], 4))
+          reopened.tree.selected == Position(made[0], 4))
+    check('a reader opens a tree this process holds for writing, and is not '
+          'refused', reopened.lock is None)
+    reopened.close()
 
     return session, client, root, made, branched
 
