@@ -68,9 +68,12 @@ So the card band becomes columns, and three things fall out of that:
    passes already chosen.
 2. **A standing location at the seam**, opening onto N potential paths — actualised or not,
    and each potentially containing its own multitudes already.
-3. **The below, as up to three columns side by side**, any number further out of view. A
-   column is not a preview of one generated span; it owns its column and fills to the bottom
-   with whatever the reader last navigated down that path, if anything.
+3. **The below, as more than one path at once**, laid out side by side with the rest further
+   out of view. A column is not a preview of one generated span; it owns its column and fills
+   to the bottom with whatever the reader last navigated down that path, if anything. How
+   many are visible, and whether what flanks the centre is a single neighbour or a stack, is
+   a design question and is left to the design — this document commits to *more than one*,
+   which is the part that changes what the surface is.
 
 What that buys is navigation across the what-if questions the reader actually holds. The
 deaths — end-of-text, the context wall — stop being terminal and become backtrackable
@@ -108,28 +111,64 @@ rather than shifted vertically, so there was never one flow to preserve.
 
 ### What it keeps
 
-The seam reading as continuous prose: same measure, first line resuming where the last one
-stopped. Every point in the rendered text resolving to a `(span, offset)`, which is
-`FRONTEND.md` constraint 7 and the one property a finished surface cannot be opened up to
-accept later. The flyout onto counterfactuals. The writer queue and its single pending slot.
-The viewport belonging to the reader.
+Every point in the rendered text resolving to a `(span, offset)`, which is `FRONTEND.md`
+constraint 7 and the one property a finished surface cannot be opened up to accept later. The
+flyout onto counterfactuals. The writer queue and its single pending slot. The viewport
+belonging to the reader.
+
+### The seam stops being marked at all
+
+The MVP's target section reads as continuous prose and is still *announced* — a tint, and two
+rules where a border used to be. In v1.0 it should not be announced, because it no longer has
+to be: **one column above and more than one below is the fork.** The geometry says it, so
+nothing needs to be drawn on top of the sentence to repeat it, and reading down through the
+centre is reading a paragraph rather than reading a paragraph with a labelled join in it.
+
+Two consequences the design has to carry, and they are the same one seen twice:
+
+- **The centre can join the text above directly, and the others cannot.** What lets the MVP
+  indent the selected card's first line into blank space is that the real text sits directly
+  above it at the same measure and the same x. Nothing sits above a flanking path, so it has
+  no line to resume — the seam that is free in the centre has to be paid for at the sides.
+- **The likeliest payment is a copy of the shared tail.** A flanking path opening with the
+  last words the reader just read is self-evidently resuming from there, which orients all the
+  paths against one another without a mark. It is the first place the surface would show one
+  byte in more than one location — no format consequence, since it is one `(span, offset)`
+  rendered more than once and a click means the same thing from anywhere, but whether the
+  repeated stretch is live or inert context is a real decision.
+
+**The space above the flanking paths is load-bearing, not slack.** The path above occupies
+one measure, so whatever flanks the centre has empty space over it whose height is however
+long the path is — and that is the gap the reader's eye crosses to get from what they have
+read to what they are comparing. How it is used is critical and unsettled. It is the strongest
+argument for the copy over a drawn connector: a connector has to span a distance that changes
+every time, and a repeated fragment does not care how far apart things are.
 
 ### Not yet decided
 
 Three questions the design has to answer, none of which has an obvious right answer:
 
-- **Measure against column count.** Three columns at the full reading measure is wider than
-  most windows. Either the columns are narrower than the measure and the seam stops reading
-  as continuous, or the centre keeps the measure and the neighbours are peripheral. The
-  second is probably right, and it means the surface's character changes with screen width in
-  a way the current one's does not.
+- **Measure against how many paths are visible.** Several columns at the MVP's 34rem measure
+  is wider than most windows, so either the measure narrows or what flanks the centre is
+  peripheral rather than fully readable. Both are viable and the choice is the design's. Worth
+  knowing before it is made: if flanking paths repeat a shared tail, the tails only orient
+  against each other when they wrap identically, which wants one measure across all of them —
+  and a page laid out on that grid throughout, with the path above sitting in the centre of
+  it, changes no width at the seam at all. On a 1280px window that puts the measure near 25rem
+  against the present 34rem, which is a better measure for prose rather than a compromised
+  one.
 - **What counts as "looked at", and whether it is durable.** *Has descendants* is a free
   approximation needing no new state — a branch generated from was the cursor at some point.
   It fails for the branch you read, considered and left, which is then indistinguishable from
   one you never opened; seeds being per-call, pruning it is not reversible by regenerating.
-- **What an out-of-view column says about itself.** Something is needed at the foot of a
+- **What an out-of-view path says about itself.** Something is needed at the foot of a
   column, or on a chip in its place, that says how much has been actualised beyond it —
   depth, breadth, whether it ends in a wall. Exact form open.
+- **How much shared tail, and what happens at a line start.** The natural unit is the line the
+  branch falls on, so every path opens with the same partial line and visibly diverges partway
+  through it. It degrades at exactly the case that has to work: where the branch point *is* a
+  line start, that tail is empty and there is nothing to orient against. A floor under it is a
+  token or character count, which is the arbitrariness the line unit was chosen to avoid.
 
 ## The way there
 
