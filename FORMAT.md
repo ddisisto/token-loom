@@ -730,6 +730,39 @@ that something went missing, not the ids or logprobs that went with it. The real
 matching stop conditions on tokens rather than on strings, which needs the token-replay path
 in `BEYOND-MVP.md`.
 
+### End-of-text is an ordinary token row, and it is zero width
+
+A generation that terminates on `eos` records the end-of-text token like any other: a row in
+`tokens` with its id, its logprob and its own `counterfactuals`. What it does not have is
+bytes. So the row is real and its byte extent is empty, and `token_offsets` gives it
+`begin == end`.
+
+Measured in `data/demo`, on a span that ended after four ordinary tokens:
+
+    idx 3  id=13      b'.'              logprob=-1.31
+    idx 4  id=151643  b''               logprob=-0.86    <- end-of-text
+        rank 0  id=151643  b''               -0.86
+        rank 1  id=22406   b' Additionally'  -2.34
+        rank 2  id=1752    b' For'           -2.82
+
+Three things follow, and the third is the one worth having.
+
+- **A span whose terminator is `eos` has one more token row than it has visible tokens.** Any
+  per-token statistic that assumes rows spell bytes has to account for it, the same way a
+  merged row has to be accounted for.
+- **The zero-width row is the *only* thing that distinguishes the two shapes of end-of-text.**
+  A span of no bytes at all is a single such row at `idx 0`; a span that ran on and then
+  stopped is the same row at the end. They are one case, not two, and the terminator says so
+  without any arithmetic over lengths.
+- **The model's alternatives to stopping are already recorded.** Branching onto rank 1 there is
+  an ordinary counterfactual branch — no generation, instant, and `branch_counterfactual`
+  places it correctly, since the token's offset is the span's end and the remainder after it is
+  empty, so the new span attaches as a continuation with no sibling. *What else, if not
+  end-of-text here* is a question this format already answers from the record.
+
+`CLAUDE.md` holds the half of this that is a fault rather than a fact: the reading surface has
+no way to click a thing with no glyph, so it cannot reach any of it.
+
 ---
 
 ## Why the adapter is new code, not a patched `inference.py`

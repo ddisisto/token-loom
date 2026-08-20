@@ -431,3 +431,19 @@ mid-character**, because llama-server emits bytes only once they decode. So `FOR
 `{"b64": …}` span serialisation is reachable from authoring and branching but never from
 generation — which is exactly the shape of the `CONTEXT` bug. Both live paths are now reached
 on purpose in `core_test.py`.
+
+**A zero-width token cannot be clicked, so the surface cannot reach what the record holds.**
+An `eos` terminator is an ordinary token row with no bytes — id, logprob and counterfactuals
+all present, `begin == end` — so the model's own ranked alternatives to stopping are stored on
+every span that ended that way. `web/flyout.mjs:tokenAt` resolves a click with
+`t.begin <= offset && offset < t.end`, strictly exclusive at `end`, so no offset can ever match
+one. Not an oversight in one branch: it is the only lookup the client has. `loom.py branch s32
+4 1` takes that alternative today and no gesture in the browser can. Nothing is wrong in the
+core or the format; `FORMAT.md` records the row itself under "Settled by measurement".
+
+**This is not the same gap as a multi-token character, and the difference decides the fix.**
+That case *is* reachable — the row has bytes, so it has a glyph — and the flyout says plainly
+that a character spelled by several tokens has no alternatives to offer, because llama-server's
+regrouping means the record genuinely has none. So one is a pointing problem with a client-side
+fix, and the other is a data limitation closed only by token replay. They look alike from the
+reader's seat and are opposites underneath.

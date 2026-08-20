@@ -271,6 +271,23 @@ a bottom edge; a column at the seam is an alternative with nothing under it yet.
 spine with alternatives hanging at every fork it passes, and it has one rule for what any of them
 holds.
 
+### End-of-text is not special
+
+A generation that stops on end-of-text is a span like any other, and the tip it leaves is a
+place to ask again from. End-of-text emits no bytes, so the path is unchanged by it and the
+next call from that tip sends a byte-identical prompt — asking again is a genuine second draw
+at the same position rather than a retry of a failure. The model may well answer the same way,
+and repeatedly; then that is the answer, and it is one worth being able to see.
+
+**The share of draws that come back as end-of-text is a property of the prior**, in the same
+family as everything `RESEARCH.md` asks about. Special-casing the tip to stop offering would
+spend that measurement to save a wait.
+
+What the surface owes the reader here is not a restriction but a mark: **why a span stopped,
+read off its recorded terminator and shown whenever that is not `length`.** Nothing is derived
+and nothing is counted — the reason is on the wire on every span already, and the same mark
+covers the case that matters more, a span cut short by the context wall.
+
 ### Deleting is ordinary, and always asked for
 
 Delete is a normal gesture beside the others rather than an exceptional one. **Nothing is
