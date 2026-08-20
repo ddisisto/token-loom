@@ -169,7 +169,8 @@ nothing. If it ever seems to need the core directly, that is the "stop and ask w
 
 **Four suites.** `core_test.py`, `api_test.py` and `node web/web_test.mjs` run with no model;
 `llama_test.py` needs the server on 8081. `api_test.py` needs the `web` dependency group —
-`uv run --group web python api_test.py`. `llama_test.py:context_limit` needs a *second*
+`uv run --group web python api_test.py` — because the floor is `requests` alone and fastapi,
+uvicorn and httpx are optional: a tree is usable without them. `llama_test.py:context_limit` needs a *second*
 server and skips rather than fails without one:
 
     CTX=512 PORT=8082 scripts/llama-server.sh --n-gpu-layers 0
@@ -313,19 +314,6 @@ scrollbar's arrival changes the width that decided the layout that summoned the 
 **All of this is what v1.0 replaces.** The band becomes columns and the two-copy apparatus
 retires with it; see `DIRECTION.md`. Until then it is what is on the screen.
 
-### What was removed, and why not to bring it back
-
-`inference.py`, `models.py`, `params.py`, `util/`, the old `web/`, `smoke_test.py` and
-`scripts/web.sh` went with Phase 2 — the OpenAI-compatible path, the capability table, the old
-node format and the browser UI that read it. The tag `pre-token-core` has all of it, and git
-history has every file that was ever tracked. Dependencies are down to `requests`; fastapi,
-uvicorn and httpx are the `web` group, because a tree is usable without them.
-
-**Do not reconstruct any of it from history to solve a new problem.** The capability table
-described how hosted providers differ, and the reason it went is upstream of its design: no
-hosted provider returns logprobs on a raw continuation, so none of them can feed the token
-core whatever shape it speaks.
-
 ## Method
 
 What has paid off here, and what it cost to skip.
@@ -353,7 +341,8 @@ What has paid off here, and what it cost to skip.
   throwaway script overturned in minutes: the native and OpenAI endpoints return an *identical*
   token payload; the sampled token is absent from its own top-3 about a third of the time at
   temperature 0.9; `n_probs: 0` drops per-token **bytes**; `🜁` is three tokens, none valid
-  UTF-8 alone. The general form — **absence of observation cannot settle a question about what
+  UTF-8 alone; a terminating end-of-text is an ordinary token row carrying its own ranked
+  alternatives, so *what else, if not stopping here* is answerable with no generation at all. The general form — **absence of observation cannot settle a question about what
   is possible.** Ask the vocabulary, not the samples.
 - **Test the invariant, not the value.** The test that earned its keep most asserted that an
   operation left a recorded *address* unchanged, not that some field equalled a particular
@@ -361,6 +350,16 @@ What has paid off here, and what it cost to skip.
 - **Arithmetic in a test is code, and nothing checks it.** Phase 1's mistakes were almost all
   in test assertions — miscounted byte lengths, one tautology that could never fail. Compute
   expected values; do not eyeball them.
+- **Keep what is wanted apart from what is done.** A document that tracks progress becomes a
+  record of progress, and stops being the thing you can lock and point at — which is how one
+  roadmap ended up holding the format's reasoning and needed an absorption pass rather than a
+  delete. One file carries status, holds no reasoning of its own, and is deleted when it is
+  done.
+- **A citation from a document you may not edit says the cited thing is in the wrong place.**
+  An experiment write-up is frozen after its results land, so its reference to a file about to
+  be retired could not be repointed — which is what showed that the prefix-merging rejection
+  was a format decision filed as future work, and moved it into `FORMAT.md` where nothing has
+  to cite it across a rename.
 - When a check fails, ask "is the test wrong or is the code wrong?" before fixing either.
   Twice the honest answer was "the test asks for something the design makes unreachable" —
   which is a finding, and belongs in the docstring.
