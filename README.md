@@ -25,8 +25,9 @@ use are first-class, and anything that only works by clicking is half-built.
 | [INTERACTION.md](INTERACTION.md) | the front end: what is on the screen and what each action does |
 | [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
 
-`ROADMAP.md` and `BEYOND-MVP.md` are the MVP's own documents, kept until `DIRECTION.md` has
-absorbed what survives of them.
+`LATER.md` holds what has been considered and set aside, kept so the thinking is not done
+twice. `ROADMAP.md` is the MVP's own document and is historical; treat anything in it as such
+unless `DIRECTION.md` repeats it.
 
 There are **two threads**: building the interface, and using the instrument. They share a
 core, a format and a set of conventions, and diverge only in direction — `DIRECTION.md` leads

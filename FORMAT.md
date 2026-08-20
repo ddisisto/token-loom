@@ -47,7 +47,7 @@ so naming the span names the path.
 Absolute offsets remain useful and are **derived**: sum the lengths along the parent chain.
 Nothing stores one. That also makes an exported subtree self-contained, which a
 root-relative offset is not — span addresses travel, and that matters for the
-comparison-across-trees work in `BEYOND-MVP.md`.
+comparison-across-trees work in `LATER.md`.
 
 ### 2. Nothing is editable in place
 
@@ -74,6 +74,31 @@ append-only. The alternative — deriving a sampled span's text from its token r
 span really is written in one shot — is cleaner and was rejected: it puts a bulk-store read
 in front of every render and every prompt assembly, and leaves given spans holding text
 while sampled ones do not.
+
+#### This is what puts prefix merging off the table
+
+Parallel continuations from one position share some prefix with each other, and the standing
+idea was to dedup that in storage and move the branch point to where they actually diverge.
+It is not deferred; it is unavailable for as long as this decision holds. **A span is the
+structure as well as the record, so merging two would mean opening one** — the single thing
+this decision forbids, and the thing every address recorded anywhere depends on not
+happening. Merge-on-insert would also need a join-on-delete to stay canonical, which is a
+structural mutation in a format that has none at all.
+
+Two measurements from the research thread say the same from the other side, and neither is
+what carries the argument. Sharing is small at the temperatures the instrument is used at.
+And there is no single branch point to move to: what exists among siblings is a nested trie
+rather than one shared stem, so even the display question is *render the sibling sub-trie*
+rather than *shift the fork down*. `RESEARCH.md` holds the numbers and the conditions they
+were taken at.
+
+**Bytes are content and spans are events.** Merging bytes is safe; merging events destroys
+multiplicity, and at short lengths multiplicity is the measurement — at length 1 a batch is
+N spans over a handful of distinct tokens, and the count is an empirical frequency to set
+against the logprobs stored beside it. A merged *view* over siblings stays available at any
+time, because it is a computation over data still held rather than a recovery of data thrown
+away. That read is built: `divergence` in `core/ops.py`, `loom.py diverge`, and
+`GET /api/batches/{batch}/divergence`.
 
 ### 3. Spans are the structure
 
@@ -671,8 +696,8 @@ that was used rather than the one that was asked for.
 
 What remains deliberately unhandled: a generation point placed inside a character. The
 prompt then genuinely has no string form, and the adapter raises rather than guessing.
-Fixing it properly means sending token ids instead of text — the token-replay path in
-`BEYOND-MVP.md` — which needs mixed-mode assembly, since given spans have no tokens. Not
+Fixing it properly means sending token ids instead of text — the token-replay path, whose
+ledger `CLAUDE.md` keeps — which needs mixed-mode assembly, since given spans have no tokens. Not
 worth pulling forward for a case that requires branching inside an emoji on purpose.
 
 ### `truncated` means the *generation* hit the wall, not the prompt
@@ -728,7 +753,7 @@ intermittent failure that depends on where the model lands, after the generation
 for. Recording the loss would mean a field for an edge case that could hold only the fact
 that something went missing, not the ids or logprobs that went with it. The real fix is
 matching stop conditions on tokens rather than on strings, which needs the token-replay path
-in `BEYOND-MVP.md`.
+whose ledger `CLAUDE.md` keeps.
 
 ### End-of-text is an ordinary token row, and it is zero width
 
@@ -866,5 +891,6 @@ streaming is.
 - Vacuum. Soft delete only; the append-only store makes it nearly free to defer.
 - Streaming, though the incomplete-span state it needs is here.
 - Editing, at any layer, ever.
-- Co-covering spans, prefix merging, embeddings. See `BEYOND-MVP.md` — the shapes above
-  leave room for them; nothing builds them.
+- Co-covering spans and embeddings. `LATER.md` has embeddings; the shapes above leave room
+  for both and nothing builds either. Prefix merging is not on this list: it is refused by
+  decision 2 rather than postponed.

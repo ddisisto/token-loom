@@ -76,15 +76,16 @@ is *not* at. **The cheapest measurement and the thing worth measuring are not th
 thing** — noticing that was worth more than either. It also sharpens what an embedding would
 be *for*: distance between sibling continuations is the natural handle on genre-level
 convergence, where token overlap is the handle on surface convergence, and the gap between
-them is the finding. See `BEYOND-MVP.md`.
+them is the finding. See `LATER.md`.
 
 **Divergence is nested and plural, not a single branch point.** At 0.3, eight continuations
 occupy two distinct paths for three tokens, then five, then seven — a trie among the siblings
 rather than one fork.
 
 Eight continuations of 32 tokens from one position, seeded distinctly. Run to settle whether
-prefix-merging was worth doing in storage; `BEYOND-MVP.md` cites these numbers and this is
-where they live, because a read about what the model does is not a fact about files.
+prefix-merging was worth doing in storage; `FORMAT.md` cites these numbers under decision 2
+and this is where they live, because a read about what the model does is not a fact about
+files.
 
 | temperature | common prefix, all 8 | distinct paths by depth | fully diverged | shared storage |
 | --- | --- | --- | --- | --- |
@@ -117,8 +118,9 @@ of the two on offer.
 **At low temperature, most of the samples are the same sample.** At 0.1, exact byte-identical
 duplicates out of 20: 15, 12 and 2 for the three prompts. Twenty generations on the most
 constrained prompt buy five distinct continuations.
-*(001; n=20, three prompts. Bears on the prefix-merging rejection in `BEYOND-MVP.md`, which
-was decided on shared-storage numbers from 0.3 and above and does not cover this case.)*
+*(001; n=20, three prompts. Bears on the prefix-merging rejection now in `FORMAT.md` under
+decision 2, whose shared-storage numbers come from 0.3 and above and do not cover this case.
+The rejection does not rest on them.)*
 
 ### 3. Framing as a change of basis — how much prior has to be visible?
 
@@ -223,7 +225,7 @@ experiment is waiting on it, not before.
 
 - **No genre-level measure.** Every finding under question 1 was read by eye, and `lock(k)` is
   explicitly the wrong level for it. This is the gap that matters most and the only one that
-  needs something the project does not have — see embeddings in `BEYOND-MVP.md`.
+  needs something the project does not have — see embeddings in `LATER.md`.
 - **No export.** Getting a tree into anything else means reading the sqlite directly. Fine for
   now; a blocker the moment there is a statistic worth plotting.
 
@@ -258,5 +260,5 @@ and llama-server in `CLAUDE.md` under *Inference*.
   perturbs the logits enough to occasionally flip a near-tie. The perturbation is unbiased
   floating-point noise from a different batch shape — the cache carries nothing from one
   request's *sampling* into the next — so a distribution is unaffected and only the particular
-  draw changes. This is the trade named under *What a finding may claim*, and
-  `BEYOND-MVP.md` holds the ways back to exactness.
+  draw changes. This is the trade named under *What a finding may claim*, and `CLAUDE.md`
+  holds why it is a trade rather than a loss.

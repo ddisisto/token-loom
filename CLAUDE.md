@@ -29,8 +29,10 @@ not here. A finding about what a model does is not here either.
   constraint gets fixed by softening the constraint in the same edit. They also rot at very
   different rates.
 - **`RESEARCH.md`** is the other thread's landing page; `experiments/` is its record.
-- `ROADMAP.md` and `BEYOND-MVP.md` are the MVP's own documents and are being retired into
-  `DIRECTION.md`. Treat anything in them as historical unless `DIRECTION.md` repeats it.
+- **`LATER.md`** is what has been considered and set aside — not planned, not scoped, kept
+  so the thinking is not done twice. It replaced `BEYOND-MVP.md`.
+- `ROADMAP.md` is the MVP's own document and is being retired into `DIRECTION.md`. Treat
+  anything in it as historical unless `DIRECTION.md` repeats it.
 
 ## Two threads, one substrate
 
@@ -424,7 +426,22 @@ Both are fixed properly by sending and matching on **token ids** rather than tex
 token-replay path, which needs mixed-mode assembly since given spans have no tokens. The UTF-8
 regrouping above is a third case with the same root — the server accounts in text, not tokens
 — and the first that silently corrupted records rather than merely refusing. Still not worth
-pulling token replay forward for, but that ledger now has three entries.
+pulling token replay forward for, but that ledger now has three entries, and this is where it
+is kept.
+
+**Token replay is a fidelity property, not an optimisation**, which is the reason the ledger
+is worth keeping at all. Concatenating stored token ids is not the same object as tokenising
+the concatenated text: BPE merges across the join, so re-tokenising can hand the model a
+sequence it never emitted. For an instrument built on iterating a model against itself,
+replay is arguably the correct path and re-tokenisation the artefact — so the two differ in
+result, and the choice is a condition of the run rather than a detail of the adapter.
+Assembly stays mixed-mode either way, since given spans carry no tokens by design.
+
+**What blocks it is believed to be an engine change, and that belief is worth checking before
+it decides anything.** The original framing assumed moving to transformers. Whether
+llama-server's `/completion` accepts a prompt as an array of token ids — and therefore whether
+this is an adapter change rather than an overhaul — is decidable by a throwaway script, and
+nobody has asked. That is the same shape as the empty-prompt probe above.
 
 One path is known to be unreachable rather than merely untested: **a sampled span cannot end
 mid-character**, because llama-server emits bytes only once they decode. So `FORMAT.md`'s

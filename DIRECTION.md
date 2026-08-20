@@ -5,8 +5,10 @@ wanted. It carries no status and no schedule — nothing here is ticked off, ord
 sequenced, because a document that tracks progress becomes a roadmap and stops being a thing
 that can be locked and pointed at. When an order of work is needed it gets its own document.
 
-`ROADMAP.md` was the road to the MVP and `BEYOND-MVP.md` was written before there was
-anything to use. Both are superseded, and stay only until whatever survives of them is here.
+`ROADMAP.md` was the road to the MVP and is superseded; it stays only until whatever survives
+of it is here. `LATER.md` is its companion in the other direction — what has been considered
+and set aside, kept so the thinking is not done twice, and named there rather than here
+because nothing in this cycle turns on any of it.
 
 Its companions outlive it and are not summarised here. `FORMAT.md` is the on-disk format and
 the reasoning behind it. `FRONTEND.md` holds the concept and the numbered constraints;
@@ -370,17 +372,3 @@ Recorded so they are not re-litigated, not because they are rejected.
   several processes; `core/session.py` writes after every mutation, so saving is not something a
   client does.
 - **Appending text after a generation.** Needs more thought first, and nothing is blocked on it.
-
-## Not yet absorbed
-
-`BEYOND-MVP.md` is deferred entire, to be read through once the above is locked, and then
-removed and recreated rather than edited. Its sections, so the review has a checklist: reads and
-annotation; the reading surface's next layer; generation control; the prompt cache and byte-exact
-replay; streaming; embeddings and distances; the generation controller; sibling divergence; token
-replay instead of re-tokenisation.
-
-Two of those have already come due in a form that document did not anticipate. The prompt cache
-argument was settled from the research thread and is recorded in `CLAUDE.md`. Token replay now has
-three entries on its ledger rather than one, the third being the UTF-8 regrouping that silently
-corrupted records rather than merely refusing them — still not worth pulling forward, but the
-ledger is what will eventually decide it.

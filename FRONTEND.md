@@ -317,7 +317,7 @@ The research thread got there first and from the other side, in `ca1373d`: the c
 pure function of the prompt tokens, no seed reaches it, so warm and cold are two draws from
 one distribution rather than one right answer and one wrong one. `cache_prompt` is on for
 everything, the research thread's findings are stated as distributional, and
-`BEYOND-MVP.md` now holds the routes back to byte-exact replay. So the front end inherits a
+`CLAUDE.md` holds why that is a trade rather than a loss. So the front end inherits a
 fast core and the question never reaches it.
 
 **Research trees and reading trees separate by path, not by label.** Committing an
@@ -359,7 +359,7 @@ In principle. None of it is detail yet.
 - **`ROADMAP.md`** — Phase 3 becomes a short high-level statement and a pointer here. Its
   current text describes changes to a front end that has since been removed, so it does not
   survive as a description of this one.
-- **`BEYOND-MVP.md`** — receives the list above.
+- **`LATER.md`** — receives whatever of the list above is not v1.0's.
 - **`CLAUDE.md`** — the stack note counts the clients on the core. The front end is a client
   of the API rather than of the core, which is a third shape and worth being exact about.
 - **`README.md`** — the state paragraph, and the table of where to start.
