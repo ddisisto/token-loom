@@ -1,9 +1,12 @@
 # token loom — direction
 
-**The living document for where this goes.** `ROADMAP.md` was the road to the MVP, and the
-MVP has landed; `BEYOND-MVP.md` was written before there was anything to use, and most of it
-has not survived contact with using it. This file replaces both. They stay until it has
-absorbed whatever of them is still true, and then they go together rather than one at a time.
+**The living document for where this goes, and the authority on it.** It describes what is
+wanted. It carries no status and no schedule — nothing here is ticked off, ordered or
+sequenced, because a document that tracks progress becomes a roadmap and stops being a thing
+that can be locked and pointed at. When an order of work is needed it gets its own document.
+
+`ROADMAP.md` was the road to the MVP and `BEYOND-MVP.md` was written before there was
+anything to use. Both are superseded, and stay only until whatever survives of them is here.
 
 Its companions outlive it and are not summarised here. `FORMAT.md` is the on-disk format and
 the reasoning behind it. `FRONTEND.md` holds the concept and the numbered constraints;
@@ -38,218 +41,251 @@ Two things pull on every decision below, and they are the same two that always d
   half-built. `loom.py` is the reference client and the floor for what the surface must be
   able to reach.
 
-## Where it stands
+## What exists now
 
-The MVP works and is in daily use. `core/` is the substrate — a trie over bytes with tokens
-as a per-span overlay, the bulk store beside it, the operations and the derived reads.
-`loom.py` drives it from the command line and `api/` serves it over HTTP; `web/` is a client
-of the API and reaches the core through nothing. Four executable checks: `core_test.py`,
-`api_test.py` and `node web/web_test.mjs` need no model, `llama_test.py` needs the server.
-Inference is local only, `llama-server` with Qwen2.5-7B base on the native `/completion`
-endpoint.
+The MVP, as one thing rather than the stages that built it. `core/` is the substrate — a trie
+over bytes with tokens as a per-span overlay, the bulk store beside it, the operations and the
+derived reads. `loom.py` drives it from the command line and `api/` serves it over HTTP; `web/`
+is a client of the API and reaches the core through nothing. Four executable checks:
+`core_test.py`, `api_test.py` and `node web/web_test.mjs` need no model, `llama_test.py` needs
+the server. Inference is local only, `llama-server` with Qwen2.5-7B base on the native
+`/completion` endpoint. One writer per tree directory, enforced by the kernel.
 
-Phases 0 through 3 — clear the ground, the token core, the API, the front end — are done. The
-record of what each settled is in `ROADMAP.md` until it goes, and in git afterwards. Nothing
-is open at the format level, which is what lets the surface change without the format moving.
+Its surface is a path read top to bottom with a horizontal band of cards inserted at the fork
+the reader is standing on: two continuations offered per move, one selected, the path above
+and below drawn as two clipped copies of a single layout so that nothing reflows when the band
+moves. It works and is in daily use.
+
+**Treat it as the baseline being replaced rather than a stage that was passed.** Everything
+below came out of reading through it for an hour, which is an instrument that planning and
+testing are not — the band was correct against its own document and wrong against the reading.
+
+Nothing is open at the format level. Nothing below opens one.
 
 ## v1.0 — the surface becomes a place
 
-The MVP proved the model. What it did not settle is what the surface *is*, and reading
-deeply through it answers that differently than designing it did.
-
 **The reader is not reading one path with alternatives at hand. They are reading across
 several paths that already exist.** A card is a preview — something you glance at and then
-commit to. A column is a place. The current surface is built on the first reading and the
-second one is what the instrument turned out to want.
+commit to. A column is a place.
 
-So the card band becomes columns, and three things fall out of that:
-
-1. **The path to the root, above.** Unchanged: one measure, continuous prose, every fork it
-   passes already chosen.
-2. **A standing location at the seam**, opening onto N potential paths — actualised or not,
-   and each potentially containing its own multitudes already.
-3. **The below, as more than one path at once**, laid out side by side with the rest further
-   out of view. A column is not a preview of one generated span; it owns its column and fills
-   to the bottom with whatever the reader last navigated down that path, if anything. How
-   many are visible, and whether what flanks the centre is a single neighbour or a stack, is
-   a design question and is left to the design — this document commits to *more than one*,
-   which is the part that changes what the surface is.
+**Reading one path straight through is the floor.** It has to work, and it has to look as good
+as any tool that does only that. It is not the reason to use this one. **Branching is what the
+design has to get right**: asking for an alternative at a point, holding several beside each
+other, and reading down whichever of them earn it. What a reader does with a branch afterwards
+— keep it, prune it, carry it a paragraph or a page — is theirs, and the tool holds no opinion
+about it.
 
 What that buys is navigation across the what-if questions the reader actually holds. The
-deaths — end-of-text, the context wall — stop being terminal and become backtrackable
-features of a landscape. Repeated short cycles and mantras become things you can hold beside
-each other and see as the same shape. Attention accumulates into paths worth re-reading.
+deaths — end-of-text, the context wall — stop being terminal and become backtrackable features
+of a landscape. Repeated short cycles and mantras become things you can hold beside each other
+and see as the same shape. Attention accumulates into paths worth re-reading.
 
-### Pruning is the other half of it
+### One act, one generation
 
-**Never selected and never viewed means pruned. Delete is normalised rather than
-exceptional.** If the reader *looks*, the branch becomes real and theirs to keep or discard;
-if they never did, it was never anything.
+**A navigation act that reaches past the tip produces one continuation.** Not two, and never a
+number chosen by the surface on the reader's behalf.
 
-This is what makes the column model tractable rather than merely wide. Depth down a branch
-exists *because* someone went down it, so an unvisited alternative has no path below it to
-choose between and the question of which continuation a column should show mostly dissolves.
-It only returns where a reader deliberately kept both halves of a fork, which is exactly the
-case where showing them a choice is right.
+The MVP generates two, so that the tip is a choice rather than an announcement. The cost of
+that is breadth nobody asked for: every move leaves a sibling behind, forks accumulate wherever
+the reader merely walked, and the tree stops being an account of what was wanted. With one, a
+reader who reads forward gets a single path however far they go, and every fork in the tree is
+one somebody asked for.
 
-**Soft delete is already the primitive this needs**, and it costs the other thread nothing:
-`tree.live` keeps every byte on disk and merely out of view, so `loom.py` still sees the whole
-record and an experiment tree stays complete. The tree becomes an account of attention
-without becoming a lossy one.
+Two consequences, both simplifications. *Asking for one more* and *carrying on* become the
+same request at different positions, rather than two shapes with different `n`. And "has every
+alternative here been seen" — a question `FRONTEND.md` keeps the path and token layers apart in
+order to keep answerable — stops being a question at all.
 
-### What retires
+One consequence that is a cost, and belongs to the design rather than to this document. The
+MVP's second continuation is what the reader had to look at while the first was still
+generating, and what sat ready beside a tip that died on end-of-text. Both of those mitigations
+go. Generation stays an ordinary blocking call, so what replaces them is the surface being
+honest about the wait and about the death.
 
-`#below` and the entire two-copy apparatus. It exists for exactly one reason — the band is a
-horizontal slice inserted mid-flow, so the path has to be cut in two and the lower half
-pushed past it — and under the column model the card becomes the column becomes the below.
-The clip polygons, the translate, `--tall`, `fit`, the cut marker and the `shift` arithmetic
-all go with it. This is a smaller surface than the one it replaces, not a larger one.
+**Breadth therefore has to be the most reachable thing on the surface.** Nothing produces it
+any more unless it is asked for, so if asking is even slightly buried, a reader drifts into
+linear use and never reaches what the instrument is for.
 
-The property those two copies bought — nothing reflows when the target moves — is given up
-knowingly. Each sibling has its own distinct below, replaced entire when the reader slides
-rather than shifted vertically, so there was never one flow to preserve.
+### The seam is a location without length
 
-### What it keeps
+The fork the reader is standing on is a **position**, not a section. Nothing is lifted out of
+the prose, nothing is drawn in two places, and no stretch of text belongs to a third region
+between above and below.
 
-Every point in the rendered text resolving to a `(span, offset)`, which is `FRONTEND.md`
-constraint 7 and the one property a finished surface cannot be opened up to accept later. The
-flyout onto counterfactuals. The writer queue and its single pending slot. The viewport
-belonging to the reader.
+The MVP's target *is* a section — the text leaving the fork, taken out of the flow and drawn in
+the band — and that single fact is the whole of its layout machinery. A horizontal band with
+height has to be inserted mid-flow, so the flow is cut in two and the lower half pushed past it:
+the clip polygons, the second copy of the path, the line-box measurement, the translate, the
+shift arithmetic. All of it is paid for the band's *extent*. A seam with no extent needs none of
+it, and two accepted costs go with it — a selection dragged across the target no longer picks
+up an invisible copy, and find-in-page no longer matches everything twice.
 
-### The seam stops being marked at all
+The address bar already speaks this model: `#s7+31/1` is a position and which of its children,
+and never a section. That grammar describes the seam better than it described the band.
 
-The MVP's target section reads as continuous prose and is still *announced* — a tint, and two
-rules where a border used to be. In v1.0 it should not be announced, because it no longer has
-to be: **one column above and more than one below is the fork.** The geometry says it, so
-nothing needs to be drawn on top of the sentence to repeat it, and reading down through the
-centre is reading a paragraph rather than reading a paragraph with a labelled join in it.
+### The seam is a station, and the text moves past it
 
-Two consequences the design has to carry, and they are the same one seen twice:
+The seam sits at a fixed place on the screen. The path moves through it.
 
-- **The centre can join the text above directly, and the others cannot.** What lets the MVP
-  indent the selected card's first line into blank space is that the real text sits directly
-  above it at the same measure and the same x. Nothing sits above a flanking path, so it has
-  no line to resume — the seam that is free in the centre has to be paid for at the sides.
-- **The likeliest payment is a copy of the shared tail.** A flanking path opening with the
-  last words the reader just read is self-evidently resuming from there, which orients all the
-  paths against one another without a mark. It is the first place the surface would show one
-  byte in more than one location — no format consequence, since it is one `(span, offset)`
-  rendered more than once and a click means the same thing from anywhere, but whether the
-  repeated stretch is live or inert context is a real decision.
+**Above it, one measure. Below it, more than one path, side by side.** A fork opens into columns
+as it arrives at the station, and retires into a mark as it passes above. Reading down through
+the centre is reading a paragraph — not a paragraph with a labelled join in it — because
+**flanking columns are the fork, and their absence is its absence.** Nothing has to be drawn on
+top of the sentence to say what the geometry already says.
 
-**The space above the flanking paths is load-bearing, not slack.** The path above occupies
-one measure, so whatever flanks the centre has empty space over it whose height is however
-long the path is — and that is the gap the reader's eye crosses to get from what they have
-read to what they are comparing. How it is used is critical and unsettled. It is the strongest
-argument for the copy over a drawn connector: a connector has to span a distance that changes
-every time, and a repeated fragment does not care how far apart things are.
+**The space above the flanking columns is load-bearing, not slack.** The path above occupies one
+measure, so whatever flanks the centre has empty space over it as tall as the path is long, and
+that is the gap the reader's eye crosses to get from what they have read to what they are
+comparing. How it is used is a design question and an important one.
 
-### Not yet decided
+The centre can join the text above directly, because the real text sits above it at the same
+measure and the same x. Nothing sits above a flanking column, so it has no line to resume.
+Since a branch point generally falls mid-line and often mid-word, the line holding it belongs
+to the **above**, and a flanking column starts flush at the next line box; the centre may
+complete that line as prose, since the centre is the path and the flanks are not. No byte is
+rendered in two places.
 
-Three questions the design has to answer, none of which has an obvious right answer:
+### One measure throughout
 
-- **Measure against how many paths are visible.** Several columns at the MVP's 34rem measure
-  is wider than most windows, so either the measure narrows or what flanks the centre is
-  peripheral rather than fully readable. Both are viable and the choice is the design's. Worth
-  knowing before it is made: if flanking paths repeat a shared tail, the tails only orient
-  against each other when they wrap identically, which wants one measure across all of them —
-  and a page laid out on that grid throughout, with the path above sitting in the centre of
-  it, changes no width at the seam at all. On a 1280px window that puts the measure near 25rem
-  against the present 34rem, which is a better measure for prose rather than a compromised
-  one.
-- **What counts as "looked at", and whether it is durable.** *Has descendants* is a free
-  approximation needing no new state — a branch generated from was the cursor at some point.
-  It fails for the branch you read, considered and left, which is then indistinguishable from
-  one you never opened; seeds being per-call, pruning it is not reversible by regenerating.
-- **What an out-of-view path says about itself.** Something is needed at the foot of a
-  column, or on a chip in its place, that says how much has been actualised beyond it —
-  depth, breadth, whether it ends in a wall. Exact form open.
-- **How much shared tail, and what happens at a line start.** The natural unit is the line the
-  branch falls on, so every path opens with the same partial line and visibly diverges partway
-  through it. It degrades at exactly the case that has to work: where the branch point *is* a
-  line start, that tail is empty and there is nothing to orient against. A floor under it is a
-  token or character count, which is the arbitrariness the line unit was chosen to avoid.
+The path above and every column below share a single measure, and the page is laid out on that
+grid throughout.
 
-## The way there
+This follows from the station rather than being chosen beside it: text crossing the seam must
+not re-wrap, and it re-wraps the moment the width above differs from the width below. On a
+1280px window that is somewhere near 25rem against the MVP's 34rem — a better measure for prose
+rather than a compromised one.
 
-### Phase 4 — the reading surface
+How many columns are visible, and whether what flanks the centre is fully readable or peripheral,
+is left to the design. This document commits to *more than one*.
 
-**The document first.** `INTERACTION.md` is rewritten for columns and checked against
-`FRONTEND.md`'s constraints before any of it is built; where a specific genuinely conflicts
-with a constraint, that is put as a question rather than fixed by editing the constraint in
-the same pass. This is the sequence that paid for itself in every phase so far, and this is
-the first change big enough to test the two-document split properly.
+### The viewport is the input
 
-Three faults found by reading are fixed regardless of the redesign, because they are wrong
-under any layout:
+**Up and down scroll the page, as they do in any document.** The cursor follows the viewport
+rather than the viewport following the cursor: as the reader scrolls, the cursor moves to the
+span end the seam has reached. Scrolling past the tip is what asks for more text.
 
-- **The strip animates from zero on every draw.** `surface.mjs:slide` clears the transform to
-  measure, which commits a computed value of `none`, so the CSS transition runs from the
-  origin rather than from where the strip was. Correct only when moving one step right from
-  the leftmost card, disorienting everywhere else, and re-triggered by every poll during a
-  generation.
-- **The seam does not line up.** The selected card's first line sits a border and two
-  paddings below the line it continues. Lining it up means the band's vertical padding and
-  the selected card's top and bottom borders go, and the left and right borders become
-  vertical rules flanking the column — a mark that lands in the line rather than across it.
-A third — **the placeholder being a second object**, where asking for one more continuation
-makes the request button vanish and a differently-sized box appear elsewhere — is deliberately
-*not* fixed. Its own fix is the column model: the slot that absorbs the request becomes the
-column that fills, so building the intermediate shape would be building it to throw away. The
-flicker that made it urgent was the strip, and that is fixed.
+This is `FRONTEND.md` constraint 6 carried to its end rather than a break with it. That
+constraint already conceded, after a session of use, that pressing up or down *is* the reader
+moving the viewport. Going the rest of the way lets the concession retire and promotes what it
+protects to be the whole of the constraint: **text arriving must never move the page.** Under a
+station that stays exactly true — the page grows below a stationary viewport, and nothing chases
+a target around.
 
-Then the columns, and pruning as an ordinary gesture beside them.
+Four things the design has to carry with it:
 
-### Phase 5 — the release
+- **Position sets the cursor; direction and rest trigger generation.** Keeping them apart is
+  what makes the cursor — and therefore the fragment, which is written on every draw — a pure
+  function of where the page is. A cursor that depended on which way the reader arrived would
+  differ between two readers at the same scroll offset.
+- **Generation triggers on the scroll coming to rest**, past a threshold, once per rest and
+  never queued. A keypress is discrete; a trackpad fling is inertial and overshoots. Every
+  generation spends real time on the GPU and writes durable spans, so a fling is too weak a
+  signal of intent to spend three of them — the same standard deletion is held to.
+- **The runway below the tip is a design object.** A page cannot be scrolled past its own
+  bottom, so reaching past the tip means there is manufactured empty extent there to reach into.
+  Tying its height to the chunk size makes that dial spatial: the gap below the tip is roughly
+  what the next chunk will fill, so the control that sets pacing also sets how far the reader
+  reaches for more. A token count is not a fixed number of lines, so the arriving text will
+  over- or under-fill it and nothing may depend on it landing flush.
+- **The cursor write coalesces rather than queues.** It moves continuously now rather than once
+  per keystroke, and `PUT /api/cursor` rewrites the tree file whole. The client's single pending
+  slot is the right mechanism, with the right behaviour for a stream of positions: drop all but
+  the last, and never stand ahead of a generation.
 
-Enough for someone else to run it and understand what they are looking at.
+### Across is the branch axis
 
-- ✅ **A licence.** MIT, as of this cycle.
-- ✅ **`PLAYBOOKS.md` retired**, at `f3118a3`, the last commit that holds it. It quoted the
-  demo tree line by line as though one generation's specifics were findings, and that quoting
-  was the *only* reason `data/demo/` could not be rebuilt. `demo.py` is the construction and
-  the tree is the artefact; `RESEARCH.md` points at the commit for the five impressions that
-  predate pre-registration.
-- ✅ **`CLAUDE-HANDOVER.md` retired.** It was a message between sessions and had outlived its
-  context entirely; every live item in it was settled, superseded, or the two-writer thread
-  below.
-- **Drop the fork relationship** in the repository metadata and the README, with the credit
-  above kept explicitly rather than implied by a fork badge. Detaching on GitHub is in hand.
-- **The README as a front door**, for a reader who has never seen the model and does not yet
-  know why a position is a pair. Its state paragraph is currently stale in both directions.
-- **Retire `ROADMAP.md` and `BEYOND-MVP.md`** once this file has absorbed what survives.
+Left and right move among the columns at the seam. Where there is only one — which is the
+ordinary state, since one act makes one generation — **left or right asks for an alternative at
+that point.**
 
-✅ **The two-writer guard**, built at the front of Phase 4 rather than deferred a fourth
-time. It had been carried as a known gap across three phases and referenced from four files,
-which was itself the argument: cheap, and costing more in re-explanation than in construction.
-Both halves are in `core/` and `CLAUDE.md` has what is easy to get wrong about them.
+That is the gesture the whole instrument turns on, and it is why it belongs on a key that is
+always live rather than on a control somewhere. The two axes now differ in kind as well as in
+direction: vertical is continuous and is the reader's viewport, horizontal is discrete and is
+the reader's choice.
 
-- **An exclusive lock on the tree directory** — `flock` on the directory's own file
-  descriptor, in `core/lock.py`, taken by `Session` when it opens for writing and held for the
-  process's life. Nothing is created, so nothing has to be gitignored and a committed
-  `experiments/` tree gains no stray file. The loser refuses cleanly with the directory named;
-  `loom.py` exits non-zero, the API refuses to start. Reads take no lock at all and never
-  wait, which is what makes `loom.py show` against a served tree work.
-- **Validator check 8: no bulk row names a span the tree lacks.** The half that catches damage
-  already done, where the lock only prevents new damage. A soft-deleted span is still in
-  `tree.spans` and is emphatically not damage.
+Selecting a column routes the path onto it, and the seam does not move while it happens: what
+changes is what lies below the station, not where the station is.
 
-The one real design decision was where the read/write line falls. It is per **session** rather
-than per operation: a `Session` is opened for reading or for writing and stays that way, so
-nothing serialises a read against a write inside one process. `loom.py` decides from the
-subcommand — a `READS` set, with anything absent treated as a writer — because the lock is
-taken at open time and "does this write" therefore has to be answerable before the tree is
-open. The alternatives rejected were a lock per operation, which would have serialised
-`GET /api/tree` against a running generation, and inferring read-ness from whether a handler
-happened to call `save`, which is only knowable too late.
+### What a column holds
+
+**Everything down to the next actualised branch point, and then a summary of what diverges
+there.** No branch is privileged over another. Where the reader has generated or kept only one
+path, that path simply shows in full.
+
+The centre differs in one way only: it continues past its branch points along **the path to the
+cursor**, so the reader's own path reads through to its end. The cursor is already durable, in
+the tree, so this records nothing new.
+
+That is the whole of it, and it is what makes the design cheap. There is no notion of a branch
+having been looked at, no per-branch memory of where the reader last was, and nothing anywhere
+that has to be written down to make a column show the right thing. A column shows what is
+actually there.
+
+What a column says about what lies beyond its own foot — how much has been actualised down
+there, in depth and in breadth, and whether it ends in a wall — is a real design question and
+needs no new read: the run tree the API already sends is the whole subtree, so the answer is a
+client-side derivation over data that is on hand.
+
+### Deleting is ordinary, and always asked for
+
+Delete is a normal gesture beside the others rather than an exceptional one. **Nothing is
+deleted on the reader's behalf** — not on a heuristic, not on inattention, not on a rule about
+what was never looked at.
+
+Soft delete is already the primitive: `tree.live` keeps every byte on disk and merely out of
+view, so `loom.py show -a` still sees the whole record and a committed experiment tree stays
+complete. The tree becomes an account of what the reader wanted without becoming a lossy one.
+
+### What the format is asked for
+
+Nothing. Positions stay the only durable handle, the cursor stays the only piece of reader state
+in the tree, and every derived thing above — runs, depth, breadth, what a column holds — is
+derived from what is already sent. That is what lets the surface be rebuilt without the format
+moving, and it is worth checking any later idea against.
+
+## What has to be proved
+
+Three things, none of which is settled by writing about them.
+
+- **A fork crossing the station upward.** More than one column has no counterpart above, so as
+  the fork passes the seam the columns have to become the one mark that says a fork was chosen
+  here. That motion is the surface working or not working, and it is the first thing to build.
+- **What marks a fork the path has already passed.** The MVP puts a chip in the margin, `⑂3/4`,
+  which does the job and is not obviously the right object under a station. Open, and worth
+  testing rather than reasoning about.
+- **The gap above the flanking columns.** Its height is however long the path above is, so
+  whatever occupies it cannot be a drawn connector spanning a distance that changes every time.
+
+The token flyout is deliberately not among these: it survives as the finer grain and is taken up
+on its own, once the layout it sits in exists.
+
+## What this asks of the code as it stands
+
+Noted so that the size of the change is known, not to design it here.
+
+- `web/main.mjs` has three `generate(at, 2, …)` calls and one `generate(at, 1, …)`. They become
+  one request shape.
+- There is no scroll listener in `web/` at all. `surface.mjs` only ever scrolls *to* follow a
+  target, and that following retires with the target it follows. The input path is new.
+- The band and its apparatus — the clip polygons, the second copy, `--tall`, `fit`, the shift
+  arithmetic in `surface.mjs`, and the band rules in `style.css` — retire whole.
+- The single pending slot in the client's request queue changes behaviour from queueing to
+  coalescing.
+- `GET /api/divergence` compares the siblings of one generation call. Under one act, one
+  generation, it will have nothing to say about a tree the surface made. That is correct rather
+  than broken — it is a research read, and the research thread keeps its own trees.
+- `INTERACTION.md` is rewritten against `FRONTEND.md`'s constraints. Where a specific conflicts
+  with a constraint, that is a question rather than a licence to edit the constraint in the same
+  pass — and constraint 6 is the one to watch, since the change above is meant to be it carried
+  through rather than set aside.
 
 ## Out of scope for v1.0
 
 Recorded so they are not re-litigated, not because they are rejected.
 
-- **The research thread**, parked deliberately. The instrument works; the questions are
-  getting better as the patterns become visible, and they are better asked after more use
-  than before it. `RESEARCH.md` and `experiments/` stay exactly as they are.
+- **The research thread**, parked deliberately. The instrument works; the questions are getting
+  better as the patterns become visible, and they are better asked after more use than before
+  it. `RESEARCH.md` and `experiments/` stay exactly as they are.
 - **Streaming.** The format support it needs — in-flight spans — is already in, so deferring
   costs nothing later. It would reintroduce asynchrony deliberately, and generation being an
   ordinary blocking call is worth keeping until something needs otherwise.
@@ -260,24 +296,23 @@ Recorded so they are not re-litigated, not because they are rejected.
   checks, each a script that prints what it asserted and why. The clean-break format with no
   migration is what makes that affordable, and it has found more than a fixture suite would
   have.
-- **Vacuum and compaction of the append-only store.** `FORMAT.md` holds the one hard
-  constraint it must satisfy when it lands.
+- **Vacuum and compaction of the append-only store.** `FORMAT.md` holds the one hard constraint
+  it must satisfy when it lands.
 - **Several trees in one process**, a session registry, or a save endpoint. Several trees are
-  several processes; `core/session.py` writes after every mutation, so saving is not something
-  a client does.
-- **Appending text after a generation.** Needs more thought first, and nothing is blocked on
-  it.
+  several processes; `core/session.py` writes after every mutation, so saving is not something a
+  client does.
+- **Appending text after a generation.** Needs more thought first, and nothing is blocked on it.
 
-## Pending fold-in from `BEYOND-MVP.md`
+## Not yet absorbed
 
-Deferred entire, to be reviewed once the v1.0 cycle above is locked in, and then removed and
-recreated rather than edited. Its sections, so the review has a checklist: reads and
-annotation; the reading surface's next layer; generation control; the prompt cache and
-byte-exact replay; streaming; embeddings and distances; the generation controller; sibling
-divergence; token replay instead of re-tokenisation.
+`BEYOND-MVP.md` is deferred entire, to be read through once the above is locked, and then
+removed and recreated rather than edited. Its sections, so the review has a checklist: reads and
+annotation; the reading surface's next layer; generation control; the prompt cache and byte-exact
+replay; streaming; embeddings and distances; the generation controller; sibling divergence; token
+replay instead of re-tokenisation.
 
-Two of those have already come due in a form that document did not anticipate. The prompt
-cache argument was settled from the research thread and is recorded in `CLAUDE.md`. Token
-replay now has three entries on its ledger rather than one, the third being the UTF-8
-regrouping that silently corrupted records rather than merely refusing them — still not worth
-pulling forward, but the ledger is what will eventually decide it.
+Two of those have already come due in a form that document did not anticipate. The prompt cache
+argument was settled from the research thread and is recorded in `CLAUDE.md`. Token replay now has
+three entries on its ledger rather than one, the third being the UTF-8 regrouping that silently
+corrupted records rather than merely refusing them — still not worth pulling forward, but the
+ledger is what will eventually decide it.

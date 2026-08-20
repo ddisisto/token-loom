@@ -84,8 +84,13 @@ anything survives repeated retransmission. Two things pull on the design:
   different object than a continuation of the prior. Where the two conflict, favour the raw
   continuation path.
 - **Headless and batch use are first-class.** Generation with recorded temperature/seed/length
-  metadata, per-token logprobs and structured export are what downstream analysis needs.
-  Anything that only works by clicking is half-built.
+  metadata and per-token logprobs is what downstream analysis needs. Anything that only works
+  by clicking is half-built.
+
+  **There is no export, and none is wanted.** The bulk store *is* the export — the only
+  consumer is the research thread, which shares the format and reads the sqlite directly,
+  building whatever tooling an experiment waits on. Naming export as an outstanding
+  requirement here read as a gap for a while, and it is not one.
 
 ## Inference
 
