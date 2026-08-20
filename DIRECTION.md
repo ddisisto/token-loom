@@ -3,7 +3,8 @@
 **The living document for where this goes, and the authority on it.** It describes what is
 wanted. It carries no status and no schedule — nothing here is ticked off, ordered or
 sequenced, because a document that tracks progress becomes a roadmap and stops being a thing
-that can be locked and pointed at. When an order of work is needed it gets its own document.
+that can be locked and pointed at. The order of work, and the only ticks anywhere, are in
+`ROADMAP-v1.0.md`, which is deleted when v1.0 lands.
 
 `ROADMAP.md` was the road to the MVP and is superseded; it stays only until whatever survives
 of it is here. `LATER.md` is its companion in the other direction — what has been considered
@@ -326,28 +327,6 @@ version early rather than a considered one late.
 
 The token flyout is deliberately not among these: it survives as the finer grain and is taken up
 on its own, once the layout it sits in exists.
-
-## What this asks of the code as it stands
-
-Noted so that the size of the change is known, not to design it here.
-
-- `web/main.mjs` has three `generate(at, 2, …)` calls and one `generate(at, 1, …)`. They become
-  one request shape.
-- There is no scroll listener in `web/` at all. `surface.mjs` only ever scrolls *to* follow a
-  target, and that following retires with the target it follows. The input path is new.
-- The band and its apparatus — the clip polygons, the second copy, `--tall`, `fit`, the shift
-  arithmetic in `surface.mjs`, and the band rules in `style.css` — retire whole.
-- The margin chips in `surface.mjs` retire with them, along with the displacement arithmetic that
-  keeps a chip past the target aligned with the copy that draws it.
-- The single pending slot in the client's request queue changes behaviour from queueing to
-  coalescing.
-- `GET /api/divergence` compares the siblings of one generation call. Under one act, one
-  generation, it will have nothing to say about a tree the surface made. That is correct rather
-  than broken — it is a research read, and the research thread keeps its own trees.
-- `INTERACTION.md` is rewritten against `FRONTEND.md`'s constraints. Where a specific conflicts
-  with a constraint, that is a question rather than a licence to edit the constraint in the same
-  pass — and constraint 6 is the one to watch, since the change above is meant to be it carried
-  through rather than set aside.
 
 ## Out of scope for v1.0
 

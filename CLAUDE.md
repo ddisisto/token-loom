@@ -16,9 +16,9 @@ not here. A finding about what a model does is not here either.
 
 ## The documents
 
-- **`DIRECTION.md`** is the living document: what this is, where it stands, what v1.0 means,
-  and what is deliberately out of scope. Read it first for anything about *where this is
-  going*.
+- **`DIRECTION.md`** is the living document: what this is, what exists now, what v1.0 means,
+  and what is deliberately out of scope. It carries no status — read it first for anything
+  about *where this is going*, and `ROADMAP-v1.0.md` for how far along it is.
 - **`FORMAT.md`** is the on-disk format and the reasoning behind it, meant to outlive the
   phases. Worth reading before proposing a change to it — including the one-line rejection
   that nearly kept the wrong answer.
@@ -31,8 +31,10 @@ not here. A finding about what a model does is not here either.
 - **`RESEARCH.md`** is the other thread's landing page; `experiments/` is its record.
 - **`LATER.md`** is what has been considered and set aside — not planned, not scoped, kept
   so the thinking is not done twice. It replaced `BEYOND-MVP.md`.
-- `ROADMAP.md` is the MVP's own document and is being retired into `DIRECTION.md`. Treat
-  anything in it as historical unless `DIRECTION.md` repeats it.
+- **`ROADMAP-v1.0.md`** is the order of the work and the **only** file that carries status;
+  it holds no reasoning, only pointers, and is deleted when v1.0 lands.
+- `ROADMAP.md` is the MVP's own document and is historical. Treat anything in it as such
+  unless a live document repeats it.
 
 ## Two threads, one substrate
 

@@ -18,16 +18,17 @@ use are first-class, and anything that only works by clicking is half-built.
 
 | | |
 | --- | --- |
-| [DIRECTION.md](DIRECTION.md) | **start here** — what this is, where it stands, and where it is going |
+| [DIRECTION.md](DIRECTION.md) | **start here** — what this is, what exists now, and where it is going |
 | [RESEARCH.md](RESEARCH.md) | the questions, what is currently believed about each, and what to run next |
 | [experiments/](experiments/) | the record — one file per experiment, registered before the run and answered after |
 | [FRONTEND.md](FRONTEND.md) | the front end: what it is for, and the constraints that hold it to it |
 | [INTERACTION.md](INTERACTION.md) | the front end: what is on the screen and what each action does |
 | [FORMAT.md](FORMAT.md) | the on-disk format, and the reasoning behind each choice |
+| [ROADMAP-v1.0.md](ROADMAP-v1.0.md) | the order of the work, and the only place anything is ticked off |
+| [LATER.md](LATER.md) | considered and set aside, kept so the thinking is not done twice |
 
-`LATER.md` holds what has been considered and set aside, kept so the thinking is not done
-twice. `ROADMAP.md` is the MVP's own document and is historical; treat anything in it as such
-unless `DIRECTION.md` repeats it.
+`ROADMAP.md` is the MVP's own document and is historical; treat anything in it as such unless
+a live document repeats it.
 
 There are **two threads**: building the interface, and using the instrument. They share a
 core, a format and a set of conventions, and diverge only in direction — `DIRECTION.md` leads

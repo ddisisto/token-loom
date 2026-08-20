@@ -1,5 +1,11 @@
 # token loom — roadmap to MVP
 
+> **Historical.** This is the road to the MVP, and the MVP landed. It is **not** the roadmap
+> to v1.0 — that is `ROADMAP-v1.0.md`, which holds the order and the status of the work now.
+> What survives of this file is in `DIRECTION.md`, `FORMAT.md`, `CLAUDE.md` and `LATER.md`;
+> treat anything here as historical unless one of those repeats it. Kept only until the
+> absorption is confirmed, then deleted rather than archived.
+
 A fork of [socketteer/loom](https://github.com/socketteer/loom), diverged far enough to
 need its own name. Loom wove text blocks; this weaves tokens.
 
