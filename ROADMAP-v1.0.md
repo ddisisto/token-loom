@@ -70,8 +70,6 @@ read, and the research thread keeps its own trees.
 
 Enough for someone else to run it and understand what they are looking at.
 
-- [ ] **Drop the fork relationship** in the repository metadata and the README, keeping the
-      credit explicitly rather than implied by a fork badge. `DIRECTION.md`, *What this is*.
 - [ ] **The README as a front door**, for a reader who has never seen the model and does not
       yet know why a position is a pair. Its state paragraph is stale in both directions.
 - [ ] **Retire `ROADMAP.md`**, once nothing live depends on it. `LATER.md` and `DIRECTION.md`

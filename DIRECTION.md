@@ -22,18 +22,22 @@ a finding rather than a licence to soften the constraint. `RESEARCH.md` is the o
 **A machine output research tool. Givens go in, generations come out, and the surface exists
 to read across them.**
 
-That is a different object from the writing instrument this began as. Upstream describes
-loom as a multiversal tree writing interface for human-AI collaboration; here nobody is
-collaborating with anything. The reader supplies a given and then reads what the model does
-when iterated against itself — attractors in the prior, how temperature gates access to them,
-how framing acts as a change of basis, what survives repeated retransmission. Authoring
-exists so that a given can exist, and stops there.
+That is a different object from the writing instrument this began as. socketteer's loom
+describes itself as a multiversal tree writing interface for human-AI collaboration; here
+nobody is collaborating with anything. The reader supplies a given and then reads what the
+model does when iterated against itself — attractors in the prior, how temperature gates
+access to them, how framing acts as a change of basis, what survives repeated retransmission.
+Authoring exists so that a given can exist, and stops there.
 
-**The fork relationship is conceptual, not structural.** No upstream code survives anywhere
-in the repository: core, inference, storage, API, surface and documents are all new. What
-does survive is a debt worth stating plainly — socketteer's loom demonstrated that other
-people think in these terms, and supplied a vocabulary and a running starting point that
-made the first hour of this possible. The name stays.
+**It began as a fork of socketteer/loom and is not one now, in any sense the word carries.**
+Not on GitHub, where the relationship is detached, and not in the repository, where no line of
+that code survives: core, inference, storage, API, surface and documents are all new.
+
+What does survive is a debt, and it is stated here rather than implied by a badge. That
+project showed that other people think in these terms, and gave a vocabulary and a running
+starting point that made the first hour of this possible. Some of that vocabulary is still in
+use and some of it was replaced once the object turned out to be different; both are the same
+kind of inheritance. The name stays.
 
 Two things pull on every decision below, and they are the same two that always did:
 

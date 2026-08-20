@@ -1,7 +1,11 @@
 # token loom
 
-A fork of [socketteer/loom](https://github.com/socketteer/loom), diverged far enough to need
-its own name. Loom wove text blocks; this weaves tokens.
+A machine output research tool. Givens go in, generations come out, and the surface exists to
+read across them.
+
+It began as a fork of [socketteer/loom](https://github.com/socketteer/loom) and shares no code
+with it now. The debt is real and [DIRECTION.md](DIRECTION.md) states it. Loom wove text
+blocks; this weaves tokens.
 
 The tree is a **trie over bytes**, with tokens as a per-span overlay. Branching is an
 operation on a *position* — `(span, byte offset)` — rather than on a node, so continuing from

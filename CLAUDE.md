@@ -391,7 +391,7 @@ What has paid off here, and what it cost to skip.
   now invalidates nothing but the tree's own identity.
 - **The archive is `../archive/`, a sibling of the repo and outside it.** It holds the
   old-format trees (`local.json`, `loom_demo.json` and the rest), `data/backups/`, the dead
-  `run.sh`/`screenshot.sh`, and upstream's README screenshots. Nothing there is needed to run
+  `run.sh`/`screenshot.sh`, and socketteer/loom's README screenshots. Nothing there is needed to run
   anything; it is kept because `local.json` in particular is not reproducible. It is
   deliberately not a path inside the repo, so no ignore rule has to defend it. Git history
   still has every file that was once tracked — untracking is not deletion.
