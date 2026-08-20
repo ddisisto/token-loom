@@ -127,23 +127,63 @@ and never a section. That grammar describes the seam better than it described th
 
 The seam sits at a fixed place on the screen. The path moves through it.
 
-**Above it, one measure. Below it, more than one path, side by side.** A fork opens into columns
-as it arrives at the station, and retires into a mark as it passes above. Reading down through
-the centre is reading a paragraph — not a paragraph with a labelled join in it — because
-**flanking columns are the fork, and their absence is its absence.** Nothing has to be drawn on
-top of the sentence to say what the geometry already says.
+**Above it the path runs alone at the centre. Below it, more than one path side by side.**
+Reading down through the centre is reading a paragraph — not a paragraph with a labelled join in
+it — because **flanking columns are the fork, and their absence is its absence.** Nothing has to
+be drawn on top of the sentence to say what the geometry already says.
 
-**The space above the flanking columns is load-bearing, not slack.** The path above occupies one
-measure, so whatever flanks the centre has empty space over it as tall as the path is long, and
-that is the gap the reader's eye crosses to get from what they have read to what they are
-comparing. How it is used is a design question and an important one.
-
-The centre can join the text above directly, because the real text sits above it at the same
-measure and the same x. Nothing sits above a flanking column, so it has no line to resume.
+The centre can join the text above directly, because the text it continues sits above it at the
+same measure and the same x. Nothing above a flanking column is the text *it* continues, so it
+has no line to resume.
 Since a branch point generally falls mid-line and often mid-word, the line holding it belongs
 to the **above**, and a flanking column starts flush at the next line box; the centre may
 complete that line as prose, since the centre is the path and the flanks are not. No byte is
 rendered in two places.
+
+### An alternative sits beside its own text
+
+The lanes flanking the path are not empty above the seam. **An alternative is drawn beside the
+fork it leaves, at that fork's own height**, and it stays there as the reader carries on past.
+
+So the page reads in two directions that mean different things. Down the centre is the path.
+Across, at any height, is what else was on offer at that point. A fork passed an hour ago still
+has its unchosen branches beside it, aligned with the prose that was chosen instead, and
+scanning up the page is scanning back through the choices that made it. That is the multiversal
+read, anchored to where the reader is rather than drawn as a diagram somewhere else.
+
+This asks for no new word and no new state. `FRONTEND.md` already defines an alternative as a
+continuation on offer at the tip **or one of the branches leaving a fork the path has already
+passed through** — the second half of that has simply never had a place on the screen. What one
+holds is derived exactly as a column's content is: its own text to its own next branch point,
+and then a summary. Nothing about what the reader happened to have on screen earlier is
+remembered, so the page survives a reload and two readers at one address see the same thing.
+
+**An alternative occupies the band between its own fork and the next fork on the path**, clipped
+there rather than flowing past it. Alternatives that pushed each other down would destroy the
+one thing vertical position means here, and clipping also puts the page's own rhythm in charge
+of how much is shown: a stretch the reader moved through quickly gives its alternatives a
+sliver, one they dwelt on gives them paragraphs.
+
+Two things follow, and both remove something rather than adding it.
+
+- **Nothing collapses at the station.** The alternatives at the current fork are not a different
+  object from the ones above them — they are the same object with no next fork below them yet,
+  which is why they run to the foot of the page. Scrolling past and generating onward is what
+  gives them a bottom edge. So there is no transformation to design at the seam and nothing that
+  has to animate into a mark as it crosses.
+- **A fork the path has passed needs no marker.** It is marked by there being something beside
+  it, and how many ways it went is legible as how many lanes are occupied. The MVP's margin chip,
+  `⑂3/4`, says that as a glyph; this says it as substance, and the glyph has no job left.
+
+**Reading one is going there.** An alternative on the page is a preview — glance at it, then
+commit — and committing is the operation the surface already has: the seam moves to that fork
+and selects that branch. Nothing gives a preview a scroll region of its own. The page's scroll
+is the reader's input and the trigger for generation, so a wheel event captured by an inner box
+is a navigation act that did not happen.
+
+**This stays sparse only because one act makes one generation.** Under two, every step of the
+path would leave an alternative behind and the lanes would be a wall of text from root to tip.
+The two decisions need each other.
 
 ### One measure throughout
 
@@ -226,6 +266,11 @@ there, in depth and in breadth, and whether it ends in a wall — is a real desi
 needs no new read: the run tree the API already sends is the whole subtree, so the answer is a
 client-side derivation over data that is on hand.
 
+**One rule, and it governs the lanes too.** An alternative beside a passed fork is a column with
+a bottom edge; a column at the seam is an alternative with nothing under it yet. The surface is a
+spine with alternatives hanging at every fork it passes, and it has one rule for what any of them
+holds.
+
 ### Deleting is ordinary, and always asked for
 
 Delete is a normal gesture beside the others rather than an exceptional one. **Nothing is
@@ -245,16 +290,20 @@ moving, and it is worth checking any later idea against.
 
 ## What has to be proved
 
-Three things, none of which is settled by writing about them.
+None of these is settled by writing about them, and the first is the reason to build a crude
+version early rather than a considered one late.
 
-- **A fork crossing the station upward.** More than one column has no counterpart above, so as
-  the fork passes the seam the columns have to become the one mark that says a fork was chosen
-  here. That motion is the surface working or not working, and it is the first thing to build.
-- **What marks a fork the path has already passed.** The MVP puts a chip in the margin, `⑂3/4`,
-  which does the job and is not obviously the right object under a station. Open, and worth
-  testing rather than reasoning about.
-- **The gap above the flanking columns.** Its height is however long the path above is, so
-  whatever occupies it cannot be a drawn connector spanning a distance that changes every time.
+- **That the single rule holds on a real page.** A spine with alternatives hanging at every fork
+  it passes is a large simplification if it survives contact and an over-generalisation if it
+  does not. It is cheap to find out and expensive to assume.
+- **Lane assignment where there are more alternatives than lanes.** The same problem the column
+  count has at the seam, but at a passed fork there is no room to be peripheral in, and stacking
+  them vertically makes it bite more often.
+- **An alternative that itself forks, in a band a few lines tall.** The rule says content and
+  then a summary; in a short band the summary is the whole of it. A band saying only *three ways
+  from here* may be the right degradation or may be noise, and only a real page tells which.
+- **What a lane does while a generation is running.** The alternatives at the seam are the thing
+  being generated and the ones above are static, so one lane holds two states at two heights.
 
 The token flyout is deliberately not among these: it survives as the finer grain and is taken up
 on its own, once the layout it sits in exists.
@@ -269,6 +318,8 @@ Noted so that the size of the change is known, not to design it here.
   target, and that following retires with the target it follows. The input path is new.
 - The band and its apparatus — the clip polygons, the second copy, `--tall`, `fit`, the shift
   arithmetic in `surface.mjs`, and the band rules in `style.css` — retire whole.
+- The margin chips in `surface.mjs` retire with them, along with the displacement arithmetic that
+  keeps a chip past the target aligned with the copy that draws it.
 - The single pending slot in the client's request queue changes behaviour from queueing to
   coalescing.
 - `GET /api/divergence` compares the siblings of one generation call. Under one act, one
