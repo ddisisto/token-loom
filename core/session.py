@@ -205,6 +205,15 @@ class Session:
 
         # no anchoring step, and nothing made first: the position is the position
         start, _, prompt = slice_at(self.tree, pos, settings['prompt_length'])
+        if not prompt:
+            # the adapter refuses this too, and says why. It is caught again
+            # here because the refusal has to land *before* the provenance is
+            # written: generating at the root with nothing authored is an
+            # ordinary slip, and one junk span left in flight per slip is a
+            # worse answer than the error
+            raise ValueError(
+                'the prompt is empty: there is nothing to continue from. '
+                'Author a given first')
 
         spans = begin_generation(self.tree, pos, settings, n)
         assert spans[0].slice_start == start, 'the prompt is not the recorded slice'

@@ -124,6 +124,29 @@ class Server:
             raise ValueError(
                 'top_n must be at least 1: llama-server returns per-token '
                 'bytes and logprobs only alongside counterfactuals')
+        if not prompt:
+            # reachable rather than hypothetical: `slice_at` clamps to b'' and
+            # records `slice_start` as null, so generating at the root with
+            # nothing authored arrives here. Measured against b10221, the
+            # server takes it -- HTTP 200 -- and generates nothing: no content,
+            # no tokens, no `completion_probabilities`, `tokens_evaluated: 0`,
+            # and a `stop_type` of `none` beside counters that never entered a
+            # generation loop (`tokens_predicted` non-zero against an empty
+            # token list, `predicted_ms` of about six days).
+            #
+            # Refused here rather than mapped in `_reason`, which would owe a
+            # fifth termination reason to a case that produced no span worth
+            # terminating. Nothing was aborted, and `ABORTED` -- which is what
+            # the fall-through silently gave it -- says something false about a
+            # record with no bytes in it.
+            #
+            # Sampling from the prior with no given is a real thing to want and
+            # this is not the way to it: an empty *string* is not the model's
+            # empty context. Seeding with the end-of-text token generates
+            # normally, one prompt token evaluated.
+            raise ValueError(
+                'the prompt is empty: llama-server accepts it and generates '
+                'nothing, so there is no span to record. Author a given first')
         try:
             text = prompt.decode('utf-8')
         except UnicodeDecodeError as e:

@@ -49,6 +49,28 @@ def main():
                                  server=server)
         settings = session.settings(length=8, top_n=3, temperature=0.9)
 
+        print('\ngenerating with nothing authored is refused, not recorded')
+        # reachable and, until it was run, never once run: `slice_at` clamps to
+        # b'' at the root. The server takes an empty prompt with HTTP 200 and
+        # generates nothing at all, reporting a `stop_type` the core has no
+        # reason for -- which used to fall through to a completed span marked
+        # `aborted`, saying something false about a record with no bytes in it
+        empty = Session.create(f'{workdir}/empty', base_seed=1, server=server)
+        try:
+            empty.generate(None, settings, n=1)
+            check('an empty prompt is refused', False, 'it generated instead')
+        except ValueError as e:
+            check('an empty prompt is refused', True)
+            print(f'  {e}')
+        check('and nothing was written for it', not empty.tree.spans,
+              f'{len(empty.tree.spans)} span(s) left behind')
+        try:
+            server.complete(b'', settings, seed=1)
+            check('the adapter refuses it too', False, 'it generated instead')
+        except ValueError:
+            check('the adapter refuses it too', True)
+        empty.close()
+
         print('\ngenerate two continuations from one prompt')
         prompt = session.author(None, b'The lighthouse keeper wrote:')
         spans = session.generate(session.tip(prompt.id), settings, n=2)
