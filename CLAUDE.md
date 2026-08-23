@@ -31,8 +31,14 @@ not here. A finding about what a model does is not here either.
 - **`RESEARCH.md`** is the other thread's landing page; `experiments/` is its record.
 - **`LATER.md`** is what has been considered and set aside — not planned, not scoped, kept
   so the thinking is not done twice. It replaced `BEYOND-MVP.md`.
-- **`ROADMAP-v1.0.md`** is the order of the work and the **only** file that carries status;
-  it holds no reasoning, only pointers, and is deleted when v1.0 lands.
+- **`CORE-PASS.md`** is the pass over the substrate and the repo that runs *before* the
+  surface is designed: three decided changes to `core/`, and the reordering of the tests and
+  of `FORMAT.md` around them. It carries both its reasoning and its order, which the rule
+  below otherwise forbids, because the act that absorbs the reasoning is one of its own items.
+  Deleted when the pass is done.
+- **`ROADMAP-v1.0.md`** is the order of the surface work and the only file carrying status
+  once `CORE-PASS.md` is gone; the two are sequential and never both live. It holds no
+  reasoning, only pointers, and is deleted when v1.0 lands.
 - `ROADMAP.md` is the MVP's own document and is historical. Treat anything in it as such
   unless a live document repeats it.
 
@@ -67,13 +73,21 @@ not here. A finding about what a model does is not here either.
   threads are also kept apart by the kernel rather than by protocol.
 
 Both are consumers of one substrate, which is why this file is not split: every fact in it is
-equally true on both sides. Two things follow:
+equally true on both sides. Three things follow:
 
 - **If the build thread finds itself changing `core/`, stop and ask why.** The API sits on
   the substrate; it does not reach into it. The CLI is the reference client and the floor for
   what the surface must be able to reach — if something is missing, it is usually missing
   from both, and it belongs in `core/ops.py` rather than in either client. Three times now
   that was the honest answer.
+- **While the surface is being designed, the core takes additions from the surface and from
+  nowhere else — and gives up nothing the other consumers use.** Two rules, and the second
+  carries the weight: *what the surface cannot reach is not thereby dead weight*. It cannot
+  click a zero-width token, and that row is where the model's own alternatives to stopping
+  live; it declines to draw a span with no string form, and that escape is the whole of
+  never disagreeing with what the model emitted. A core scoped to one client's reach would
+  drop both. So the moratorium is on **growth**, and it is there to stop every core question
+  costing four arguments at once while the surface is the thing being decided.
 - **A branch each.** The threads share `core/` and `loom.py` and will otherwise collide. The
   research thread lives on `research`; `main` is the trunk and the build thread's home. Merge
   `main` into `research` freely, and back when something lands that both want.

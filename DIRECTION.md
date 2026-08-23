@@ -295,6 +295,30 @@ read off its recorded terminator and shown whenever that is not `length`.** Noth
 and nothing is counted — the reason is on the wire on every span already, and the same mark
 covers the case that matters more, a span cut short by the context wall.
 
+### Every token the record holds is reachable
+
+A row in a span's token overlay is a place the reader can put the cursor, whether or not it has
+anything to draw. Two of them have nothing, and both are unreachable from the page today rather
+than deliberately withheld — the record answers questions the surface cannot ask it.
+
+**End-of-text gets a mark of its own, where its span ends.** The row is ordinary: an id, a
+logprob, and its own ranked alternatives. What it has not is bytes, so no offset resolves to it
+and no click can land on it. The mark is the target — it opens the flyout every other token
+opens, and what it offers is the model’s answer to *what else, if not stopping here*. The tree
+already holds that answer on every span that ended this way, and this is the gesture reaching it.
+
+**An alternative that is a fragment of a character is offered like any other.** Those are marked
+unselectable now because taking one made a span with no string form, and a page cannot draw one
+without decoding across a span boundary. Taking an alternative is a generation, so the fragment
+and the rest of its character arrive in the same span and the span decodes: the case the refusal
+was written for does not survive it. What is left is a span that genuinely has none — a fragment
+taken with nothing generated after it, or bytes authored that way — and it is drawn as a mark
+standing for its bytes, in place of the character it is half of, rather than as a refusal to
+render the tree it sits in.
+
+Both are the same decision seen twice. The flyout is the finest grain the surface has, and it is
+worth nothing at all if the interesting rows are the ones it cannot address.
+
 ### Deleting is ordinary, and always asked for
 
 Delete is a normal gesture beside the others rather than an exceptional one. **Nothing is

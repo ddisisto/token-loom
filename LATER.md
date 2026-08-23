@@ -77,3 +77,22 @@ should not be assumed to come along with the first.
 stays where it is, and a small embedding model runs beside it as a second adapter next to
 `core/llama.py`. Model-internal states are the exception, since they need the generating model
 itself, and that is the part with a cost attached.
+
+## Continuation past end-of-text
+
+*What does the prior hold after a stop* rather than only up to one. The model ranks
+alternatives to stopping and those are already recorded; this is the other half — taking
+end-of-text itself and asking what follows it.
+
+**It became askable rather than becoming interesting.** Under a text prompt the question could
+not be posed at all: end-of-text has no bytes, so a prompt that "included" it was byte-identical
+to one that did not, and the model was never told it had stopped. With `/completion` accepting
+a prompt as text plus token ids, the model is genuinely conditioned on having emitted it, and
+the answer means something.
+
+What it costs is the single-termination stance, which holds for now. A span would carry an
+end-of-text row in its middle, so *the terminator is the only place termination is written*
+gains a second shape to distinguish, and anything walking token rows stops being able to assume
+that such a row is the last one. Nothing in the format has to move for it. The reading surface
+cannot reach it either way, since a zero-width token has no glyph to click, so it arrives at
+`loom.py` first if it arrives.
