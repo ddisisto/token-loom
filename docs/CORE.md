@@ -69,7 +69,7 @@ Fields:
 | `kind` | all | the departure decision, above |
 | `parent` | all | a position, or `null` for a root |
 | `created` | all | timestamp, ISO 8601 |
-| `deleted` | all | present and `true` if soft-deleted; absent otherwise |
+| `deleted` | all | present and `true` if a delete named this span; absent otherwise |
 | `params` | generated | index into the interned parameter table |
 | `seed` | generated | the seed this call was made with |
 | `slice_start` | generated | position the prompt began at, or `null` for the whole path |
@@ -79,6 +79,11 @@ Fields:
 
 A `given` span has no fields of its own. Its bytes are its tokens' bytes, exactly as for
 every other kind.
+
+**`deleted` records an act, not a state.** It says a delete named *this* span; it does not
+say the span is hidden, and it is never written to a descendant. Whether a span is live is
+derived by walking its ancestry — section 13 — so a delete is one write and undoing it is one
+write, and a descendant deleted on its own account stays deleted when its parent comes back.
 
 ## 4. A given span is tokenised when it is created
 
@@ -328,7 +333,6 @@ A tree is valid when all of these hold.
 11. No row in any bulk table names a span the tree does not hold. A soft-deleted span is
     still held, so its rows are not orphans.
 12. A span's bytes are valid UTF-8. A span with no rows has no bytes and passes trivially.
-13. Every descendant of a deleted span is deleted.
 
 ## 12. Operations
 
@@ -337,7 +341,8 @@ A tree is valid when all of these hold.
 | `author(at, bytes)` | a `given` span and its token rows | tokenised against the tree's vocabulary; refuses if the round trip does not hold |
 | `generate(at, settings, n)` | `n` `sampled` spans | provenance first, then the rows |
 | `branch(span, index, rank, settings)` | one `counterfactual` span | row `0` pre-filled, the rest generated |
-| `delete(span)` | the `deleted` flag, on that span and every descendant | rows and ids untouched |
+| `delete(span)` | the `deleted` flag on that span alone | rows, ids and descendants untouched |
+| `undelete(span)` | clears that span's `deleted` flag | live again only if its ancestry is |
 
 **Generation is two writes, not one.** The span, its parameters and its seed are written and
 the tree is saved *before* the model is called; the token rows and the terminator are
@@ -360,6 +365,14 @@ as section 2 requires, so a branch at index `0` attaches to the origin span's ow
 there is nothing to ask for: the row is written, the span is completed with `length`, and the
 operation stays reachable with no server.
 
+**Nothing is created at a position that is not live.** `author`, `generate` and `branch`
+refuse a parent whose span is deleted or has a deleted ancestor, so no span is born already
+invisible.
+
+**Deleting what is already effectively deleted is legal.** The flag records that a delete
+named that span, which stays true whatever its ancestry is doing, and it is what makes the
+span stay gone when an ancestor is restored.
+
 ## 13. Derived reads
 
 Nothing here is stored.
@@ -372,5 +385,8 @@ Nothing here is stored.
   authoring check in section 4 compares against; for a `given` span it returns what was
   authored.
 - **Ancestry** — the chain of positions from a position back to its root.
+- **Whether a span is live** — it is, when neither it nor any span on its ancestry carries
+  `deleted`. A walk that already descends from the root carries the answer down with it and
+  costs nothing.
 - **Runs** — maximal stretches of path with nothing branching off them. Runs have no ids.
 - **Absolute index** — a position's distance from the root, in tokens.
