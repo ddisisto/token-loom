@@ -221,7 +221,6 @@ Three files in a directory.
   "created": "2026-08-24T11:56:00Z",
   "tokenizer": "qwen2.5-7b-base",
   "specials": {"151643": "<|endoftext|>"},
-  "cursor": {"span": "s2", "index": 3},
   "params": [
     {"temperature": 0.9, "top_p": 0.95, "top_k": 3, "top_n": 3, "length": 8,
      "model": "qwen2.5-7b-base", "n_ctx": 16384}
@@ -244,8 +243,8 @@ nothing to show. It is an excerpt of the vocabulary named above, written when su
 first stored, and it is what keeps a tree displayable from the store alone. A reader with no
 entry for an id shows the id.
 
-`cursor` is where the reader was last reading — a position, or `null`. It is the only field
-that changes without a tree operation, and nothing derives from it.
+Every field here is written by a tree operation. A client that wants to remember where
+someone was reading keeps that outside the store; it is not part of the record.
 
 **`bulk.sqlite`** — the rows. A new record type is a new table, not a new mechanism.
 
