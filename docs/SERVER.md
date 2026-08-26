@@ -23,10 +23,22 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   at least `k` alternatives makes it always present — 64/64 measured at `top_k == n_probs`,
   at temperature 0.9 and 1.5 alike — but still unmarked, so it is found by id and never by
   rank.
-- **The returned probabilities are not renormalised over the returned set.** They sum to
-  about 0.90 at `k = 3` and 0.96 at `k = 10`, so what is stored is the model's own
-  distribution and `top_k` shows up in the record as missing mass rather than as rescaled
-  numbers. Truncation is visible instead of being folded in.
+- **`completion_probabilities` is a window onto the raw distribution, and the whole sampler
+  chain is invisible to it.** The values are pre-temperature *and* pre-truncation: the full
+  softmax over the vocabulary. Measured at `top_k = n_probs = 10`, prompt `The capital of
+  France is`, seed 1234 — all forty rows bit-identical across `temperature ∈ {0.5, 1.0, 1.5,
+  2.0}`, same ids, same order, same logprobs to the last digit. Post-temperature scaling would
+  put `gap(0.5)/gap(2.0)` at 4.0; measured 1.0000. Temperature *is* being applied — the
+  sampled token flips between 1.0 and 1.5 — it just never reaches what is reported.
+  `top_k ∈ {3, 10, 40, 0}` and `top_p ∈ {0.9, 0.5, 0.1}` likewise change nothing: `top_k = 3`
+  returns the same ten rows, not three, and not ten with seven at `-inf`.
+
+  **The ten sum to 0.784, and the missing mass is the rest of the vocabulary, not truncation.**
+  The same sum appears at `top_k = 0`. Anything that reads a low sum as evidence of how the
+  sampler was configured is reading it wrong.
+
+  So a ranking recorded at temperature 1.5 is directly comparable to one recorded at 0.5, and
+  the recorded parameters describe only which token was drawn.
 - **`completion_probabilities` is not the sampled sequence.** It is that sequence regrouped
   onto character boundaries: the server accumulates generated text and emits a record only
   once the accumulation is valid UTF-8, so a character split across several tokens yields
@@ -75,6 +87,24 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   Tokenise/detokenise round-trips byte-exact on all thirteen cases measured, including
   astral-plane characters, zero-width joiners, combining marks and repeated whitespace. This
   is what lets an authored span be stored as tokens with nothing else kept beside them.
+- **`/detokenize` cannot return a token that does not decode alone.** A single fragment id
+  answers HTTP 200 with `{"content": "�"}` — the replacement character, not the bytes.
+  Measured on nine fragment ids from four scripts; the same ids come back exact from
+  `/tokenize` with `with_pieces`, and a whole group detokenises exactly. So **bytes cannot be
+  recovered by id through the server**, and the response is lossy rather than an error.
+- **The vocabulary is in the model file, and it is exact.** `tokenizer.ggml.tokens` in the
+  GGUF holds all 152064 entries in byte-level BPE encoding; applying the GPT-2 byte decoder
+  gives real bytes for every id, fragments included. Checked against `/tokenize` with
+  `with_pieces` on 48 ids across six scripts — 15 of them fragments — with zero mismatches,
+  and a generation containing multi-token characters reassembles **byte-exact** from the id
+  sequence alone. This is the route to per-token bytes; the server has none.
+- **A control token spells nothing when generated and spells its literal form everywhere
+  else.** `completion_probabilities` reports `{"id": 151643, "token": "", "bytes": []}` for
+  `<|endoftext|>`, whether it was sampled or merely ranked. The vocabulary disagrees three
+  independent ways: the GGUF entry is the 13 bytes `<|endoftext|>`, `/tokenize` returns that
+  literal as the piece, and `/detokenize` returns it **with and without `special: true`** —
+  the setting does not change the answer on this build. Taking the vocabulary's answer costs
+  nothing and round-trips: `a<|endoftext|>b` tokenises to three ids and back.
 - **`cache_prompt` is on, and a span is therefore not guaranteed to replay byte for byte.** A
   full cache hit evaluates no prompt tokens, which changes the reduction order enough to
   perturb the logits and occasionally flip a near-tie: the same slice, seed and parameters can
