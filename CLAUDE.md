@@ -45,18 +45,20 @@ re-tokenisation the artefact. This is why the format stores tokens and derives b
 than the reverse.
 
 It follows that **consistency comes from storage, not from re-derivation.** Tokenising two
-spans separately and concatenating will not generally equal tokenising their joined text —
+runs of text separately and concatenating will not generally equal tokenising their joined text —
 measured at 80% of cut points on ordinary English — and that is a property of the record
 rather than a fault to correct.
 
 ## The documents
 
-- **`docs/CORE.md`** is what the format *is* — position, span, kind, the token overlay, the
-  on-disk shape, the checks, the operations. It carries no arguments and is written against
+- **`docs/CORE.md`** is what the format *is* — node, edge, source, act, the adapter contract,
+  the on-disk shape, the checks, the operations. It carries no arguments and is written against
   one test: can someone implement a reader from it alone? It is meant to be locked early and
   then not move.
 - **`docs/SERVER.md`** is what llama.cpp actually does, measured. Read it before writing or
-  changing anything that talks to the server.
+  changing anything that talks to the server. **It is the llama.cpp adapter's notes, and the
+  core does not cite it.** What the core requires of any backend is the adapter contract in
+  `docs/CORE.md`; what one backend happens to do is here.
 
 Direction, the reading surface and its constraints get their own documents in `docs/` when
 there is something to say.
