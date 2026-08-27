@@ -109,6 +109,13 @@ a fact about that backend worth knowing, and a large one is evidence of somethin
 forbids — a ranking that is not actually a function of the path. What counts as large is a
 property of the backend, belongs in its notes, and is expected to move as it is measured.
 
+**Measured on llama.cpp over Vulkan, single slot: no disagreement at all.** Two requests differing
+in seed and in `top_n` returned bit-identical logprobs for every rank they shared, and repeating a
+request reproduced both the path and its values exactly. That is one backend on one machine with
+`--parallel 1`, so it is not a general result — but note that the core holds its lock across a
+whole act, so an adapter never sees its own requests batched together, which is where most of this
+class of nondeterminism comes from in the first place.
+
 ## Backends
 
 - **llama.cpp** — measured behaviour lives in `docs/SERVER.md`, which is that adapter's notes and
@@ -120,8 +127,11 @@ property of the backend, belongs in its notes, and is expected to move as it is 
 
 ## Status
 
-- **Written against no implementation.** Nothing here has been exercised against a running
-  backend, and the llama.cpp adapter does not exist.
+- **Written against no implementation.** The llama.cpp adapter does not exist. The obligations
+  have been probed against a running server — tokenisation, round-trip, ranking stability — but
+  nothing has exercised refusal, declination, or a generation that ends on `eos`.
+- **No `eos` draw has been observed.** End-of-text did not appear in the top 40 at any of three
+  document-ending prompts on this base model, so the `eos` terminator is specified but unwitnessed.
 - **`docs/SERVER.md` is unstructured**, still largely a dump from proof-of-concept work and some
   targeted probes. It is expected to be renamed and reorganised as the notes for this contract's
   first backend; the pointer above moves with it.

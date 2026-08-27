@@ -436,11 +436,12 @@ Nothing here is stored.
 
 ## Appendix — a worked example
 
-One tree, built in five stages. Every construct in this document appears in it, and the rows are
+One tree, built in six stages. Every construct in this document appears in it, and the rows are
 exact.
 
-**The token ids below are illustrative.** They are structurally right and numerically invented,
-and the example is to be regenerated against the real tokeniser before this document is locked.
+**The ids and logprobs below are real**, taken from `qwen2.5-7b-base` — `Qwen2.5-7B.i1-Q4_K_M`
+served by llama.cpp over Vulkan, 16k context. Logprobs are shown to four places; nothing else is
+rounded or invented.
 
 ### Sources
 
@@ -462,98 +463,118 @@ Act 1: `create`, source 1, `from` *null*, `to` 2.
 
 ### Stage 2 — `generate(at=2)`, `top_k` 5, `top_n` 5, `length` 3, seed 42
 
-Three positions are drawn and the third is end-of-text.
-
 | node | `parent` | `token_id` | bytes | `source` |
 | --- | --- | --- | --- | --- |
-| 3 | 2 | 374 | ` is` | 2 |
-| 4 | 3 | 6303 | ` blue` | 2 |
-| 5 | 4 | 151643 | `<\|endoftext\|>` | 2 |
+| 3 | 2 | 5023 | ` currently` | 2 |
+| 4 | 3 | 702 | ` has` | 2 |
+| 5 | 4 | 220 | ` ` | 2 |
 
-Act 2: `generate`, source 2, `from` 2, `to` 5, `params` 1, `seed` 42, `terminator` `eos`.
+Act 2: `generate`, source 2, `from` 2, `to` 5, `params` 1, `seed` 42, `terminator` `limit`.
 
 The ranking recorded at node 2 — the alternatives for the position that produced node 3:
 
 | `rank` | `token_id` | bytes | `logprob` |
 | --- | --- | --- | --- |
-| 0 | 264 | ` a` | −0.9 |
-| 1 | 374 | ` is` | −1.1 |
-| 2 | 572 | ` was` | −1.8 |
-| 3 | 6519 | ` turned` | −2.6 |
-| 4 | 3403 | ` above` | −3.1 |
+| 0 | 374 | ` is` | −1.3218 |
+| 1 | 702 | ` has` | −1.6666 |
+| 2 | 5023 | ` currently` | −2.0363 |
+| 3 | 572 | ` was` | −2.7138 |
+| 4 | 594 | `'s` | −3.7901 |
 
-**Rank 0 is not the token drawn**, which is ordinary. Rankings are recorded at nodes 3 and 4 the
-same way. **Node 5 has no ranking**: generation stopped there, so no distribution for a following
-position was ever computed. That is a tip with no ranking, not a declination.
-
-**End-of-text is a node like any other.** It spells the thirteen bytes `<|endoftext|>`, its path
-bytes decode, and it is therefore a boundary — an act may start there. A path read through it
-displays those bytes literally.
+**Rank 0 is not the token drawn.** ` currently` was, at rank 2. Rankings are recorded at nodes 3
+and 4 the same way. **Node 5 has no ranking**: generation stopped there, so no distribution for a
+following position was ever computed. That is a tip with no ranking, not a declination.
 
 ### Stage 3 — `generate(at=2)`, `top_k` 5, `top_n` 20, `length` 2, seed 99
 
-The first draw reproduces ` is` and merges into node 3. The second is new.
-
 | node | `parent` | `token_id` | bytes | `source` |
 | --- | --- | --- | --- | --- |
-| 6 | 3 | 20621 | ` grey` | 2 |
+| 6 | 2 | 702 | ` has` | 2 |
+| 7 | 6 | 6519 | ` turned` | 2 |
 
-Act 3: `generate`, source 2, `from` 2, `to` 6, `params` 2, `seed` 99, `terminator` `limit`.
-
-Three things this stage shows.
+Act 3: `generate`, source 2, `from` 2, `to` 7, `params` 2, `seed` 99, `terminator` `limit`.
 
 **The ranking at node 2 extends from five rows to twenty.** The five already stored keep their
-values; the fifteen tokens act 3 reported that were not already present are appended at ranks 5
-through 19. Nothing is rewritten, so node 3's logprob is −1.1 before the extension and −1.1
-after it.
+values — this generation reported them bit-identically, which is what obligation 5 in
+`docs/ADAPTER.md` asks of a backend — and the fifteen it reported below them are appended:
 
-**Stored rank is not the rank the act reported.** A token act 3 placed at its own rank 7 lands at
-stored rank 9 if two of the tokens above it were already recorded. This is what it means for rank
-to be the k-th alternative *recorded here* rather than the model's k-th choice.
+| `rank` | `token_id` | bytes | `logprob` | | `rank` | `token_id` | bytes | `logprob` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 | 1030 | ` had` | −4.3049 | | 13 | 748 | `’s` | −5.1507 |
+| 6 | 518 | ` at` | −4.3088 | | 14 | 646 | ` can` | −5.7753 |
+| 7 | 3685 | ` below` | −4.3841 | | 15 | 17167 | ` consists` | −5.8098 |
+| 8 | 3403 | ` above` | −4.3868 | | 16 | 5868 | ` looks` | −5.8294 |
+| 9 | 1431 | ` now` | −4.8847 | | 17 | 2669 | ` already` | −5.9023 |
+| 10 | 304 | ` in` | −4.9828 | | 18 | 4041 | ` comes` | −5.9496 |
+| 11 | 323 | ` and` | −5.0173 | | 19 | 1083 | ` also` | −5.9643 |
+| 12 | 686 | ` will` | −5.1101 | | | | | |
 
-**Node 6's covering edge already existed.** ` grey` was among the five recorded at node 3 in
-stage 2, so nothing needed adding for the taken token itself. Act 3's range covers nodes 3 and 6
-— node 3 is not new, and that overlap is what makes node 3's sampling frequency 2.
+Node 3's logprob is −2.0363 before the extension and −2.0363 after it.
 
-### Stage 4 — `realise(node 2, rank 2)`
+**Node 4 and node 6 are both ` has`, and they are different nodes.** One is a child of node 3 and
+one of node 2, so the merge key never brings them together. Node 2 now has two children and is a
+branch point.
 
-The unnamed user takes an alternative the model ranked and nothing had taken. No model is called.
+### Stage 4 — `generate(at=2)` again, identical to stage 2
+
+Same parameters and the same seed. The model reproduces the path exactly, so every node merges
+and nothing new is written but the act.
+
+Act 4: `generate`, source 2, `from` 2, `to` 5, `params` 1, `seed` 42, `terminator` `limit` —
+every field but the id identical to act 2.
+
+**An act that produces no new nodes still covers a non-empty range.** The range is reckoned before
+merge, so this act covers nodes 3, 4 and 5, and node 3's sampling frequency becomes 2. The
+rankings it reported were already recorded, so extension appends nothing.
+
+### Stage 5 — `realise(node 2, rank 0)`
+
+The unnamed user takes ` is` — the alternative the model ranked highest at node 2 and that neither
+generation drew. No model is called.
 
 | node | `parent` | `token_id` | bytes | `source` |
 | --- | --- | --- | --- | --- |
-| 7 | 2 | 572 | ` was` | 2 |
+| 8 | 2 | 374 | ` is` | 2 |
 
-Act 4: `realise`, source **1**, `from` 2, `to` 7, `rank` 2.
+Act 5: `realise`, source **1**, `from` 2, `to` 8, `rank` 0.
 
 **The act's source and the node's source differ.** A reader acted; the model is what ranked the
-edge, and the node carries the model. Node 7 has no ranking, because nothing has generated from
+edge, and the node carries the model. Node 8 has no ranking, because nothing has generated from
 it.
 
-### Stage 5 — `create(node 7, "🜁")`
+### Stage 6 — `create(node 8, "<|endoftext|>🜁")`
 
-Authored bytes `F0 9F 9C 81`, spelled by three tokens, none of them valid UTF-8 alone.
+Authored bytes: the thirteen characters `<|endoftext|>`, then `F0 9F 9C 81`.
 
 | node | `parent` | `token_id` | bytes | `source` | boundary |
 | --- | --- | --- | --- | --- | --- |
-| 8 | 7 | 9468 | `F0 9F` | 1 | no |
-| 9 | 8 | 156 | `9C` | 1 | no |
-| 10 | 9 | 22045 | `81` | 1 | yes |
+| 9 | 8 | 151643 | `<\|endoftext\|>` | 1 | yes |
+| 10 | 9 | 9284 | `F0 9F` | 1 | no |
+| 11 | 10 | 250 | `9C` | 1 | no |
+| 12 | 11 | 223 | `81` | 1 | yes |
 
-Act 5: `create`, source 1, `from` 7, `to` 10.
+Act 6: `create`, source 1, `from` 8, `to` 12.
 
-**Nodes 8 and 9 are not boundaries and are not leaves.** They have children, produced by the same
-act that produced them. What a non-boundary node cannot do is originate an act — and since only
-an act adds children, nodes 8 and 9 can never gain another one. Node 10 is a boundary and can be
-extended normally.
+**The special-token literal read as one token.** The tokeniser returned id 151643 for those
+thirteen characters, not thirteen characters' worth of ids. Either reading would have spelled the
+same bytes, and the stored id is what tells them apart — no field records which was meant.
+End-of-text is otherwise a node like any other: its path bytes decode, so it is a boundary and an
+act may start there.
+
+**Nodes 10 and 11 are not boundaries and are not leaves.** They have children, produced by the
+same act that produced them. What a non-boundary node cannot do is originate an act — and since
+only an act adds children, nodes 10 and 11 can never gain another one. Node 12 is a boundary and
+can be extended normally.
 
 ### Reading the finished tree
 
-- **Path bytes to node 5** — `The sky is blue<|endoftext|>`. Display shows the terminator
-  literally.
-- **Node 3's logprob** — −1.1, the edge at node 2 for source 2 carrying token 374. Stored once,
-  derived rather than duplicated.
-- **Unrealised edges at node 2** — ranks 0 and 3 through 19. Ranks 1 and 2 have children, nodes 3
-  and 7. This is the branchable set.
-- **Sampling frequency at node 3** — 2. Acts 2 and 3 both pass through it.
-- **Depth of node 10** — 5.
-- **Branch points** — node 2, with children 3 and 7; node 3, with children 4 and 6.
+- **Path bytes to node 5** — `The sky currently has `.
+- **Path bytes to node 12** — `The sky is<|endoftext|>🜁`. Display shows the terminator literally.
+- **Node 3's logprob** — −2.0363, the edge at node 2 for source 2 carrying token 5023. Stored
+  once, derived rather than duplicated.
+- **Unrealised edges at node 2** — ranks 3 through 19. Ranks 0, 1 and 2 have children: nodes 8, 6
+  and 3. This is the branchable set.
+- **Sampling frequency at node 3** — 2. Acts 2 and 4 both pass through it.
+- **Depth of node 12** — 6.
+- **Branch points** — node 2 alone, with children 3, 6 and 8.
+- **Agreement** — node 2 is reached by five acts and node 3 by two.

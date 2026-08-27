@@ -228,6 +228,8 @@ the worked example. Outstanding before the swap:
 
 - ~~**Small.** `limit` and context exhaustion.~~ Dissolved by C′ — exhaustion is a refusal, not
   a terminator, so there is nothing to distinguish.
-- **The appendix ids are invented.** Regenerate against the real tokeniser before locking.
-- **`docs/ADAPTER.md` does not exist yet.** `CORE.md` cites it three times, and the split is
-  not finished until it does.
+- ~~**The appendix ids are invented.**~~ Regenerated against the running server. Six stages, all
+  ids and logprobs real.
+- ~~**`docs/ADAPTER.md` does not exist yet.**~~ Written; the core's three citations resolve.
+- **A read-through remains**, on the settled document, which is the only thing left before the
+  draft replaces `docs/CORE.md`.
