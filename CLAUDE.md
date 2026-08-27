@@ -45,18 +45,28 @@ re-tokenisation the artefact. This is why the format stores tokens and derives b
 than the reverse.
 
 It follows that **consistency comes from storage, not from re-derivation.** Tokenising two
-spans separately and concatenating will not generally equal tokenising their joined text —
+runs of text separately and concatenating will not generally equal tokenising their joined text —
 measured at 80% of cut points on ordinary English — and that is a property of the record
 rather than a fault to correct.
 
 ## The documents
 
-- **`docs/CORE.md`** is what the format *is* — position, span, kind, the token overlay, the
-  on-disk shape, the checks, the operations. It carries no arguments and is written against
-  one test: can someone implement a reader from it alone? It is meant to be locked early and
-  then not move.
+- **`docs/CORE.md`** is what the format *is* — node, edge, source, ranking, act, the on-disk
+  shape, the invariants, the operations. It carries no arguments and is written against one test:
+  can someone implement a reader from it alone. **It is locked and does not move**; what is true
+  of it only for now is `docs/CORE-status.md`.
+- **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
+  obligations behind them, and what to do when one cannot be met. **It is deliberately not
+  locked**, and it moves as backends are met. It carries its own status inline.
 - **`docs/SERVER.md`** is what llama.cpp actually does, measured. Read it before writing or
-  changing anything that talks to the server.
+  changing anything that talks to the server. **It is the llama.cpp adapter's notes, and neither
+  the core nor the contract cites it.** What is required of any backend is `docs/ADAPTER.md`;
+  what one backend happens to do is here.
+
+**The core names no backend, and no backend's limitation may become a rule in it.** One did once —
+llama.cpp will not evaluate a prompt whose bytes end mid-character, which had become an invariant
+forbidding acts at fragment nodes, including ones that call no model. The core forms positions;
+an adapter decides which its backend will accept.
 
 Direction, the reading surface and its constraints get their own documents in `docs/` when
 there is something to say.
@@ -142,6 +152,7 @@ How decisions get made here — what has paid off, and what it cost to skip.
 
 ## State
 
-**Nothing is built.** `docs/CORE.md` is the format and it has not been implemented or tested
-against a running server. The first thing that exists should be the thing that proves the
-format can hold what the instrument produces.
+**Nothing is built.** The format is locked and has not been implemented or tested against a
+running server. The first thing that exists should be the thing that proves the format can hold
+what the instrument produces. `docs/CORE-status.md` is where that stands, and it is the file that
+moves — not this section, and not `docs/CORE.md`.
