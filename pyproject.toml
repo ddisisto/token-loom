@@ -28,6 +28,7 @@ module-root = "src"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["live: needs a running llama.cpp; skipped when there is none"]
 
 [tool.ruff]
 line-length = 100

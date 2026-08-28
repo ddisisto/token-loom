@@ -75,6 +75,14 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   `"The model produced output that does not match the expected Content-only format"` — with
   `n_probs: 0`, with `return_tokens: false`, and under streaming alike. Sending ids does not
   make a mid-character position reachable; only never forming one does.
+
+  **The refusal is about the tail alone, and not about whether the path decodes.** Measured
+  on seven id sequences: `The` + `F0 9F` and `The` + `F0 9F 9C` answer 500, while `The` +
+  `9C` + ` sky`, `The` + `F0 9F` + ` sky` and — the one that settles it — `The` + `9C` all
+  answer 200. A completed invalid sequence with valid bytes after it is accepted, and so is
+  a stray continuation byte in last position. So the predicate asks whether the bytes end
+  with an *under-filled* multi-byte sequence, which is narrower than asking whether they
+  decode end to end, and a path that does not decode is not thereby unreachable.
 - **An empty prompt is accepted and generates nothing.** HTTP 200, empty content, no tokens,
   no `completion_probabilities`, `tokens_evaluated: 0`, `stop_type: "none"` — beside counters
   that never entered a generation loop. An empty *string* is not the model's empty context:
@@ -109,6 +117,26 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   literal as the piece, and `/detokenize` returns it **with and without `special: true`** —
   the setting does not change the answer on this build. Taking the vocabulary's answer costs
   nothing and round-trips: `a<|endoftext|>b` tokenises to three ids and back.
+- **`n_probs` has no ceiling short of the vocabulary, and above it clamps in silence.**
+  Requests for 200, 1000, 5000 and 152064 all report exactly that many rows; 152065 and
+  200000 both report 152064, HTTP 200, with nothing in the response saying so. A cap on how
+  many alternatives can be recorded is therefore not a thing this build has — but a request
+  above the vocabulary is a parameter met approximately, which is the one thing an adapter
+  may not pass on.
+- **A generation that will not fit is truncated, and still reports `stop_type: limit`.**
+  With `n_ctx` 16384: a 16000-token prompt asking for 500 answers HTTP 200 with
+  `truncated: true`, 384 tokens drawn, and `stop_type: limit`. A 16380-token prompt asking
+  for 100 gives 4 tokens the same way. **This is the fault that most needs absorbing**: the
+  core's `limit` means *it drew the requested length*, so a pass-through adapter would
+  record a terminator that is a lie, and only `truncated` — a field nothing obliges a reader
+  to look at — distinguishes it. The prompt *alone* exceeding `n_ctx` is clean by contrast:
+  HTTP 400, `exceed_context_size_error`, naming both numbers.
+- **End-of-text is drawable and rankable on this base model**, contrary to the earlier note
+  that it did not appear in the top 40 at three document-ending prompts. It is a question of
+  the prompt: after ` The end.` (`[576, 835, 13]`) it is ranked at −1.364 and is drawn on 5
+  of 8 seeds at temperature 1.0, arriving with `stop_type: eos`, `tokens_predicted: 1` and
+  `tokens: [151643]`. It reaches `completion_probabilities` like any other token, with its
+  bytes empty and its ranking present.
 - **`cache_prompt` is on, and a generation is therefore not guaranteed to replay token for
   token.** A full cache hit evaluates no prompt tokens, which changes the reduction order
   enough to perturb the logits and occasionally flip a near-tie: the same path, seed and
@@ -119,3 +147,11 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   are two draws from the same distribution rather than one right and one wrong.
   Distributional statistics are unaffected; only exact replay of a *particular* generation is
   lost, and that was already conditional on the same build, GPU and quantisation.
+
+  **Measured, and it is not the last decimal places.** Prompt `The sky`, `top_k` = `n_probs`
+  = 5, temperature 0.9: cold against cold is bit-identical, warm against warm is
+  bit-identical, and **cold against warm differs by up to 0.056** across the five rows — the
+  gap between ranks 1 and 3 narrows by 0.107, which is enough to reorder a near-tie. Each
+  cache state is internally reproducible, so this is a second variable rather than noise: a
+  ranking recorded with the cache on is a function of the model, the path, *and* what was
+  generated before it.

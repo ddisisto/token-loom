@@ -10,11 +10,13 @@ invariant fires, not merely that something did.
 
 from __future__ import annotations
 
+import pathlib
+import re
 import sqlite3
 
 import pytest
 
-from tokenloom.core import Store, violations
+from tokenloom.core import Store, check, violations
 from tokenloom.core.check import Corrupt
 from tokenloom.core.schema import DDL
 
@@ -315,3 +317,18 @@ def test_a_writer_will_not_write_to_a_store_that_fails_an_invariant(tmp_path):
         Store.open(path, write=True)
     reader = Store.open(path)  # a reader still opens, and reports
     assert "INV-TREE-PARENT" in names(reader.conn)
+
+
+def test_every_invariant_the_locked_document_names_is_one_this_checker_can_report():
+    """`docs/CORE.md` is locked, so its list of invariants is fixed and the checker's must
+    match it exactly -- in both directions.
+
+    A missing name is a hole. An extra one is a rule the core does not have, which is
+    worse: it would make this implementation refuse stores the format permits.
+    """
+    core = pathlib.Path(__file__).resolve().parents[1] / "docs" / "CORE.md"
+    named = set(re.findall(r"INV-[A-Z-]+", core.read_text()))
+    reported = set(re.findall(r'"(INV-[A-Z-]+)"', pathlib.Path(check.__file__).read_text()))
+    assert named == reported, {"only in CORE.md": named - reported,
+                               "only in check.py": reported - named}
+    assert len(named) == 14

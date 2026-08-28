@@ -4,8 +4,9 @@
 # This is the only setup that returns raw continuation *and* logprobs at once;
 # every hosted provider forces a choice between the two.
 #
-# The --alias must match the 'model' field of the qwen2.5-7b-base entry in
-# DEFAULT_MODEL_CONFIG (model.py), since that is what the API is addressed by.
+# The --alias is what /props reports as model_alias, and the stack names a tree's
+# vocabulary by it. It is *not* the source name: that has to separate anything whose
+# draws must not factor together, so it defaults to the model file's stem instead.
 set -euo pipefail
 
 REPO=${REPO:-mradermacher/Qwen2.5-7B-i1-GGUF}

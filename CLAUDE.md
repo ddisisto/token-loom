@@ -115,6 +115,10 @@ touched, not after something disagrees.
 - Recurring commands go in `scripts/`, which is **committed**.
 - `data/` is disposable scratch and is gitignored.
 - Stage explicitly. Never `git add -A`.
+- The project is a `uv` one: `uv sync`, `uv run pytest`, `uv run tokenloom`. The package is
+  `src/tokenloom/`, so `core/` in this file means the module and not a top-level directory.
+- **`uv run pytest` needs no server.** The live tests skip without one; `-m live` runs only
+  those, and they are the ones that can tell you the docs have gone stale.
 
 ## Writing code and tests
 
@@ -152,7 +156,7 @@ How decisions get made here — what has paid off, and what it cost to skip.
 
 ## State
 
-**Nothing is built.** The format is locked and has not been implemented or tested against a
-running server. The first thing that exists should be the thing that proves the format can hold
-what the instrument produces. `docs/CORE-status.md` is where that stands, and it is the file that
-moves — not this section, and not `docs/CORE.md`.
+**The core, the llama.cpp adapter and the command line exist, and a tree has been built against
+a running server.** What that leaves open — and what building it found — is
+`docs/CORE-status.md` for the format and the Status section of `docs/ADAPTER.md` for the
+backend. Those are the files that move; not this section, and not `docs/CORE.md`.

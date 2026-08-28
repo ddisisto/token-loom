@@ -55,8 +55,10 @@ backend is most likely to fail quietly.
 
 **`top_n >= top_k > 0`.** `top_k` confines the draw to raw ranks `0…k−1`; `top_n` is how many
 ranked ids are reported. A drawn token is therefore always among the alternatives reported for
-its position, which is what makes the core's `INV-RANK-COVERS` hold in the ordinary case. An
-adapter that cannot report at least `top_k` refuses.
+its position, which is what makes a node's logprob derivable in the ordinary case. The core does
+not require it — *Rankings* provides for a node with no covering ranked edge and states that
+nothing records why one is missing — so this is an obligation here and not an invariant there.
+An adapter that cannot report at least `top_k` refuses.
 
 **The seed is honoured.** The core supplies one with every request, so there is no case where an
 adapter chooses. An adapter whose backend cannot seed its sampler refuses rather than recording a
@@ -87,8 +89,14 @@ parameters and seed it was asked for.
 
 Refuse when the prompt and requested length exceed the room available; when `top_n` exceeds what
 the backend will report; when the seed cannot be honoured; when the backend will not evaluate the
-path it was given; and whenever any parameter would otherwise have to be clamped, substituted or
-ignored.
+path it was given; when a parameter is named that the backend does not understand; and whenever
+any parameter would otherwise have to be clamped, substituted or ignored.
+
+**Refuse also when the backend would meet the request and misreport how.** The first two entries
+above are not hypothetical on llama.cpp: it clamps `n_probs` above the vocabulary size without
+saying so, and it truncates a generation that will not fit while still reporting the stop type
+the core reads as `limit`. Both come back HTTP 200. An adapter that only refuses what errors is
+not refusing the cases that matter.
 
 **The path is one of the things that can be refused.** The core forms nodes freely and holds no
 notion of a character boundary, so an adapter is handed paths its backend may decline — llama.cpp
@@ -156,12 +164,23 @@ a fact about that backend worth knowing, and a large one is evidence of somethin
 forbids — a ranking that is not actually a function of the path. What counts as large is a
 property of the backend, belongs in its notes, and is expected to move as it is measured.
 
-**Measured on llama.cpp over Vulkan, single slot: no disagreement at all.** Two requests differing
-in seed and in `top_n` returned bit-identical logprobs for every rank they shared, and repeating a
-request reproduced both the path and its values exactly. That is one backend on one machine with
-`--parallel 1`, so it is not a general result — but note that the core holds its lock across a
-whole act, so an adapter never sees its own requests batched together, which is where most of this
-class of nondeterminism comes from in the first place.
+**Measured on llama.cpp over Vulkan, single slot: no disagreement at all, at a fixed cache state.**
+Two requests differing in seed and in `top_n` returned bit-identical logprobs for every rank they
+shared, and repeating a request reproduced both the path and its values exactly. That is one
+backend on one machine with `--parallel 1`, so it is not a general result — but note that the core
+holds its lock across a whole act, so an adapter never sees its own requests batched together,
+which is where most of this class of nondeterminism comes from in the first place.
+
+**The cache is the variable that was being held still, and it is worth more than the last decimal
+places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
+against warm differs by up to 0.056 in logprob at the top of a five-row ranking — enough to
+reorder a near-tie. `docs/SERVER.md` has the numbers. Because each state is internally
+reproducible this is a *second variable* rather than noise, and a ranking recorded with the cache
+on is a function of the model, the path and what was generated before it. That is the thing
+obligation 5 asks a backend not to be, so **the llama.cpp adapter leaves `cache_prompt` off by
+default** and makes it an explicit choice. The format would survive either way — ranks are
+recorded in the order presented and nothing is ever rewritten — but what survives corruption is
+not the same as what is worth recording.
 
 ## Backends
 
@@ -174,27 +193,30 @@ class of nondeterminism comes from in the first place.
 
 ## Status
 
-- **Written against no implementation.** The llama.cpp adapter does not exist. The obligations
-  have been probed against a running server — tokenisation, round-trip, ranking stability — but
-  nothing has exercised refusal, declination, or a generation that ends on `eos`.
-- **No `eos` draw has been observed.** End-of-text did not appear in the top 40 at any of three
-  document-ending prompts on this base model, so the `eos` terminator is specified but unwitnessed.
-- **`docs/SERVER.md` is unstructured**, still largely a dump from proof-of-concept work and some
-  targeted probes. It is expected to be renamed and reorganised as the notes for this contract's
-  first backend; the pointer above moves with it.
-- **The refusal list is provisional.** It enumerates what is known to need refusing now. Meeting a
-  second backend is the thing most likely to lengthen it, and lengthening it costs nothing here.
-- **The shape of a refusal is unwritten** — reason code, message, or both. The core needs only the
-  terminator, so this can wait for a client that has to display one.
+- **The llama.cpp adapter exists**, in `src/tokenloom/adapters/llamacpp/`. It meets the three
+  operations, and it is exercised against a running server by `tests/test_live.py`, which skips
+  when there is none. Refusal, declination and a generation ending on `eos` have all now been run.
+- **The path predicate is settled, and it is narrower than either candidate.** llama.cpp refuses
+  a prompt whose bytes *end* with an under-filled multi-byte sequence, and accepts one carrying a
+  completed invalid sequence with valid bytes after it — including a stray continuation byte in
+  last position. So the question is about the tail alone and not about whether the path decodes
+  end to end. `docs/SERVER.md` records the seven sequences it was measured on.
+- **`eos` is witnessed.** The earlier note here — that end-of-text did not appear in the top 40 at
+  three document-ending prompts — was a fact about those prompts. After ` The end.` it ranks at
+  −1.364 and is drawn on most seeds.
+- **The special-token path is named.** `tokenize(text, special=True)`, never the default, and
+  `tokenloom create --special` on the command line. Nothing about the store changes between the
+  two readings; only which ids come back.
+- **The generatability query has a shape**: `will_evaluate(ids) -> bool`. It writes nothing and
+  stands in for no refusal, and a live test asserts it agrees with what `generate` actually does —
+  asking that disagreed with declining would be worse than not asking.
+- **`docs/SERVER.md` is still unstructured**, and is still expected to be reorganised as this
+  contract's first backend's notes.
+- **The refusal list is still provisional**, and has lengthened once already: meeting the running
+  server added two conditions that no amount of reading the API surface would have suggested.
+- **The shape of a refusal is half-settled.** The adapter returns a reason string alongside the
+  terminator and the core stores none of it; whether that becomes a code as well waits for a
+  client that has to display one.
 - **`cancelled` is unreachable** until `generate` can be interrupted. The core specifies the
-  terminator; nothing in the three-operation surface can produce it. This is the one open item that
-  a locked core is already waiting on.
-- **The special-token path is unnamed.** The plain-bytes default is settled; how a caller asks for
-  the other reading is not.
-- **The path predicate is measured at one end only.** `docs/SERVER.md` records that llama.cpp
-  refuses a prompt whose bytes *end* mid-character. Whether it also refuses one carrying a
-  completed invalid sequence with valid bytes after it — a stray continuation byte at depth 20 —
-  is unmeasured, and it is the difference between a predicate that asks whether a path holds an
-  incomplete character and one that asks whether it decodes end to end. Minutes of probing, and
-  nothing is locked behind it.
-- **The generatability query is unspecified.** Its shape waits for a client that has to draw one.
+  terminator; nothing in the three-operation surface can produce it. This remains the one open
+  item that a locked core is already waiting on, and it arrives with streaming.
