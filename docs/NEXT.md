@@ -12,21 +12,7 @@ that relation to the others is a bullet at the end rather than a number.
 
 ---
 
-## 1. `cache_prompt` becomes a required per-call parameter
-
-Small, and cheapest now. `docs/ADAPTER.md`'s *Determinism* says why: it changes the draw, so a
-`params` row that omits it does not describe the draw, and callers differ within one process —
-the command line sends `false` and a surface issuing chunked continuations sends `true`, against
-one adapter. It is constructor configuration today, which cannot serve both.
-
-The change is the adapter's `KNOWN` and `REQUIRED` sets, the `--cache-prompt` flag, and the params
-dicts in the live tests. No core change and no `marker` bump: the core reads `length` and interns
-the rest.
-
-**Before the API, because an API written against adapter-level configuration would have to grow a
-second way to set it**, and the second way is the one that gets used.
-
-## 2. `docs/SURFACE.md`, before the surface is built
+## 1. `docs/SURFACE.md`, before the surface is built
 
 Design and constraints in prose first. This is the method the project has already been paid by
 twice, and the reading surface is the largest thing that has not had it.
@@ -51,7 +37,7 @@ reader sees is a construct of the surface and not a unit of the record. Stopping
 issue the next chunk; a block can be refused part-way; and the lock is released between chunks, so
 a block is not atomic.
 
-## 3. The read layer
+## 2. The read layer
 
 Point reads are cheap and bulk reads are not. `scripts/scale.py` is what measured this and what
 re-measures it; at 20k nodes, 400k edges and depth 1401:

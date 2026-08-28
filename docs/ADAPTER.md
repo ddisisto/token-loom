@@ -289,7 +289,6 @@ one always could; a reader who wants to *select* on it now can, in the common ca
   streaming loses ids on this backend, so *Cancellation* settles the question the other way:
   stopping is declining to issue the next chunk. The core specifies the terminator and nothing
   produces it, which is now a decision with a reason rather than work outstanding.
-- **`cache_prompt` as a required per-call parameter is decided and not yet built.** It is adapter
-  configuration in the code today — a constructor argument and a `--cache-prompt` flag — and
-  *Determinism* says why it moves into `params`. The change is the adapter's `KNOWN` and
-  `REQUIRED` sets, the command line, and the params dicts in the live tests.
+- **`cache_prompt` is a required per-call parameter**, and the adapter refuses a request that
+  omits it or names a non-bool. *Determinism* says why. On the command line it is
+  `tokenloom generate --cache-prompt`, on that verb alone, since no other calls a model.

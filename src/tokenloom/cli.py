@@ -71,7 +71,6 @@ def adapter_for(args) -> object:
         Source("model", args.model or gguf.stem),
         GgufVocabulary.cached(gguf, props.model_alias or gguf.stem),
         client,
-        cache_prompt=getattr(args, "cache_prompt", False),
     )
 
 
@@ -108,6 +107,7 @@ def cmd_generate(args) -> int:
         "top_k": args.top_k,
         "top_n": args.top_n,
         "temperature": args.temperature,
+        "cache_prompt": args.cache_prompt,
     }
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
@@ -300,12 +300,6 @@ def build_parser() -> argparse.ArgumentParser:
                        help="source name; must separate anything whose draws must not "
                             "factor together. Defaults to the model file's stem.")
         p.add_argument("--user", default="", help="the acting user; empty is the unnamed user")
-        p.add_argument("--cache-prompt", action="store_true", dest="cache_prompt",
-                       help="let the server reuse its KV cache. Faster on long prompts, "
-                            "and measurably perturbs the logits it reports: cold and warm "
-                            "disagree by up to 0.056 on this build, enough to reorder "
-                            "near-ties. Off by default so a ranking depends on the path "
-                            "and nothing else.")
 
     p = sub.add_parser("init", help="make a tree")
     p.add_argument("tree", type=Path)
@@ -332,6 +326,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "token inside its own ranking.")
     p.add_argument("--temperature", type=float, default=1.0)
     p.add_argument("--seed", type=int, help="omit and the core supplies one")
+    p.add_argument("--cache-prompt", action="store_true", dest="cache_prompt",
+                   help="let the server reuse its KV cache. Faster on a long path, and it "
+                        "moves the logprobs recorded.")
     backend(p)
     p.set_defaults(fn=cmd_generate)
 

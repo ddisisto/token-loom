@@ -23,6 +23,9 @@ from tokenloom.core import reads as R
 SERVER = os.environ.get("TOKENLOOM_SERVER", "http://localhost:8081")
 pytestmark = pytest.mark.live
 
+#: A complete draw. A case below that varies one key is testing that key.
+DRAW = {"top_k": 5, "top_n": 5, "temperature": 1.0, "cache_prompt": False}
+
 
 @pytest.fixture(scope="session")
 def adapter():
@@ -101,13 +104,14 @@ def test_the_appendix_logprobs_are_what_this_backend_returns(adapter):
     """`docs/CORE.md`'s appendix says its ids and logprobs are real. This is that claim,
     checked -- the twenty rows at node 2, to four places, in the order they are printed.
 
-    It also pins `cache_prompt`: these values are the cold ones, and a warm cache moves
-    them by up to 0.056, which is why the adapter leaves the cache off.
+    These are the values with `cache_prompt` off; warm ones differ.
     """
     if not is_qwen(adapter):
         pytest.skip("the appendix's ids are Qwen2.5's")
     answer = adapter.generate(
-        [785, 12884], {"length": 1, "top_k": 20, "top_n": 20, "temperature": 0.9}, seed=99
+        [785, 12884],
+        {"length": 1, "top_k": 20, "top_n": 20, "temperature": 0.9, "cache_prompt": False},
+        seed=99,
     )
     assert answer.terminator == "limit"
     got = [(r.token_id, round(r.logprob, 4)) for r in answer.positions[0].ranking]
@@ -124,7 +128,9 @@ def test_top_n_at_least_top_k_keeps_the_drawn_token_in_its_own_ranking(adapter):
     `top_k == top_n` it is always there, which is what makes a node's logprob derivable."""
     for seed in range(12):
         answer = adapter.generate(
-            [785, 12884], {"length": 3, "top_k": 8, "top_n": 8, "temperature": 1.3}, seed=seed
+            [785, 12884],
+            {"length": 3, "top_k": 8, "top_n": 8, "temperature": 1.3, "cache_prompt": False},
+            seed=seed,
         )
         for position in answer.positions:
             assert position.ranking is not None
@@ -144,7 +150,7 @@ def test_a_path_that_ends_mid_character_is_refused_and_the_predicate_agrees(adap
         pytest.skip("the fragment ids are Qwen2.5's")
     mid = [785, 9284]  # 'The' + the first two bytes of 🜁
     assert adapter.will_evaluate(mid) is False
-    answer = adapter.generate(mid, {"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0}, 1)
+    answer = adapter.generate(mid, {**DRAW, "length": 2}, 1)
     assert answer.terminator == "refused"
     assert adapter.will_evaluate([785, 9284, 250, 223]) is True  # the complete character
 
@@ -152,12 +158,14 @@ def test_a_path_that_ends_mid_character_is_refused_and_the_predicate_agrees(adap
 @pytest.mark.parametrize(
     ("params", "why"),
     [
-        ({"length": 2, "top_k": 5, "top_n": 3, "temperature": 1.0}, "top_n >= top_k"),
-        ({"length": 2, "top_k": 0, "top_n": 5, "temperature": 1.0}, "positive integer"),
-        ({"length": 2, "top_k": 5, "top_n": 10**9, "temperature": 1.0}, "exceeds the vocabulary"),
-        ({"length": 2, "top_k": 5, "top_n": 5}, "required to describe the draw"),
-        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0, "mirostat": 2}, "understand"),
-        ({"length": 10**6, "top_k": 5, "top_n": 5, "temperature": 1.0}, "exceeds n_ctx"),
+        ({**DRAW, "length": 2, "top_n": 3}, "top_n >= top_k"),
+        ({**DRAW, "length": 2, "top_k": 0}, "positive integer"),
+        ({**DRAW, "length": 2, "top_n": 10**9}, "exceeds the vocabulary"),
+        ({"length": 2, "top_k": 5, "top_n": 5, "cache_prompt": False}, "['temperature']"),
+        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0}, "['cache_prompt']"),
+        ({**DRAW, "length": 2, "cache_prompt": "yes"}, "cache_prompt must be a bool"),
+        ({**DRAW, "length": 2, "mirostat": 2}, "understand"),
+        ({**DRAW, "length": 10**6}, "exceeds n_ctx"),
     ],
 )
 def test_the_refusal_list(adapter, params, why):
@@ -171,7 +179,7 @@ def test_the_refusal_list(adapter, params, why):
 
 
 def test_an_empty_prompt_is_refused_rather_than_generating_nothing(adapter):
-    answer = adapter.generate([], {"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0}, 1)
+    answer = adapter.generate([], {**DRAW, "length": 2}, 1)
     assert answer.terminator == "refused"
 
 
@@ -183,7 +191,7 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
     continue from it, author fragments below, refuse at one of them, delete, and check."""
     with Store.initialise(tmp_path / "live", vocabulary=adapter.name) as store:
         user = Source("user", "")
-        draw = {"top_k": 10, "top_n": 10, "temperature": 0.9}
+        draw = {"top_k": 10, "top_n": 10, "temperature": 0.9, "cache_prompt": False}
 
         store.create(None, "The sky", vocabulary=adapter, source=user)
         tip = R.roots(store.conn)[0].id + 1
@@ -220,7 +228,7 @@ def test_eos_is_drawable_and_is_a_node(adapter):
     for seed in range(12):
         answer = adapter.generate(
             [576, 835, 13],  # ' The end.'
-            {"length": 6, "top_k": 5, "top_n": 5, "temperature": 1.0}, seed,
+            {**DRAW, "length": 6}, seed,
         )
         if answer.terminator == "eos":
             assert answer.positions[-1].token_id == 151643

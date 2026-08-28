@@ -13,17 +13,6 @@ that is *quietly wrong* rather than an error:
 4. The server's default sampler chain applies whatever this adapter does not set, so a
    request naming `top_k` and `temperature` would also get `min_p`, `top_p` and repetition
    penalties nobody asked for. Every sampler not exposed is neutralised explicitly.
-
-**`cache_prompt` is off by default here, and that is a fidelity choice.** A full cache hit
-evaluates no prompt tokens, which changes the reduction order and perturbs the logits.
-Measured on this build: cold against cold is bit-identical, warm against warm is
-bit-identical, and cold against warm differs by up to **0.056** in logprob at the top of a
-five-row ranking -- enough to reorder near-ties. Each cache state is internally
-reproducible, so this is not noise; it is a second variable. Obligation 5 asks that a
-ranking depend on the model and the path and on nothing else, and leaving the cache on
-would quietly make it depend on what was generated before it. Turn it back on with
-`cache_prompt=True` where re-evaluating a long prompt costs more than the last two decimal
-places are worth.
 """
 
 from __future__ import annotations
@@ -36,11 +25,14 @@ from .vocab import GgufVocabulary
 
 #: What a caller may name. Anything else is refused rather than ignored: obligation 6
 #: forbids substituting a default for a parameter the backend does not understand.
-KNOWN = frozenset({"length", "top_k", "top_n", "temperature", "top_p", "min_p"})
+KNOWN = frozenset(
+    {"length", "top_k", "top_n", "temperature", "top_p", "min_p", "cache_prompt"}
+)
 
-#: All four are required, so that a recorded `params` row is a complete description of the
+#: All five are required, so that a recorded `params` row is a complete description of the
 #: draw. The core reads only `length`; the rest is what makes the act reproducible.
-REQUIRED = ("length", "top_k", "top_n", "temperature")
+#: `cache_prompt` is one of them: it moves the logprobs. `docs/ADAPTER.md`, *Determinism*.
+REQUIRED = ("length", "top_k", "top_n", "temperature", "cache_prompt")
 
 #: Every sampler this adapter does not expose, set to its identity. Without these the
 #: server's own defaults -- `min_p` 0.05, `top_p` 0.95, a repetition window of 64 -- would
@@ -75,13 +67,10 @@ class LlamaCppAdapter:
         source: Source,
         vocabulary: GgufVocabulary,
         client: LlamaCppClient,
-        *,
-        cache_prompt: bool = False,
     ) -> None:
         self.source = source
         self.vocabulary = vocabulary
         self.client = client
-        self.cache_prompt = cache_prompt
         self.n_ctx = client.props().n_ctx
 
     @classmethod
@@ -92,11 +81,10 @@ class LlamaCppAdapter:
         source_name: str,
         base_url: str = "http://localhost:8081",
         vocabulary_name: str | None = None,
-        cache_prompt: bool = False,
     ) -> LlamaCppAdapter:
         client = LlamaCppClient(base_url)
         vocabulary = GgufVocabulary.cached(gguf_path, vocabulary_name or source_name)
-        return cls(Source("model", source_name), vocabulary, client, cache_prompt=cache_prompt)
+        return cls(Source("model", source_name), vocabulary, client)
 
     @property
     def name(self) -> str:
@@ -165,6 +153,8 @@ class LlamaCppAdapter:
             raise Refused(f"parameters required to describe the draw: {missing}")
 
         length, top_k, top_n = params["length"], params["top_k"], params["top_n"]
+        if not isinstance(params["cache_prompt"], bool):
+            raise Refused(f"cache_prompt must be a bool, not {params['cache_prompt']!r}")
         if not isinstance(top_k, int) or top_k < 1:
             raise Refused(f"top_k must be a positive integer, not {top_k!r}")
         if not isinstance(top_n, int) or top_n < top_k:
@@ -199,7 +189,7 @@ class LlamaCppAdapter:
             "temperature": params["temperature"],
             **{k: params[k] for k in ("top_p", "min_p") if k in params},
             "seed": seed,
-            "cache_prompt": self.cache_prompt,
+            "cache_prompt": params["cache_prompt"],
         }
 
 
