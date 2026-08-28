@@ -135,8 +135,38 @@ not.
 generations means killing the writer, which the next writer records as `aborted`, and which loses
 every token the model produced — nodes land only in the core's second write.
 
-The interruptible form is the same operation with a way in and the same return: the ids drawn so
-far, their rankings, and `cancelled`. It arrives with streaming.
+**The interruptible form is not the same operation with a way in**, which is what measuring it
+settled. A streamed generation on the one backend that exists reports a multi-token character's
+final id and drops the ids before it — in no chunk, and on both of its endpoints; `docs/SERVER.md`
+has the sequences. The loss shows in the token counters and the ids are gone, and reading them
+back from the group's bytes is the artefact this format exists to avoid. So a streamed act would
+have to be declined, and a generation that could be stopped would be one that dies on an emoji.
+
+**So a caller who wants to stop asks for less at a time.** A long generation is issued as
+consecutive `generate` acts over a shorter `length`, each blocking, each complete, and stopping is
+declining to issue the next one. What the caller presents as one block of output is its own
+construct and is not the unit the record is in — the store already holds the boundaries, since
+every act names its `origin` and its `length`.
+
+**This trades a perturbed measurement for a faithful record**, and the trade is not close:
+chunking moves the logprobs recorded at a boundary, which *Determinism* is about and which the
+format absorbs by construction, while streaming loses ids, which nothing absorbs. Note also what chunking gives back
+— the lock is released between chunks, so a long generation stops blocking every other writer for
+its whole duration.
+
+Three consequences follow, and are easier written down than discovered:
+
+- **A block can be refused part-way.** Room is checked per act, so a caller may be met five times
+  and refused on the sixth. There is no way to check a block up front, because a block is not a
+  thing the adapter is ever asked for.
+- **Each act carries its own seed**, so a path is replayed act by act rather than from one triple.
+- **A block is not atomic.** The lock is released between chunks and another writer may interleave,
+  which is legal and merges by the usual key.
+
+**`cancelled` therefore stays unreached on this backend, and that is a decision rather than a gap.**
+It is specified, nothing produces it, and a `generate` short enough to be worth stopping is short
+enough to wait for. An adapter whose backend streams *without* losing ids may produce it, and the
+core is unchanged either way.
 
 ## Declination
 
@@ -177,10 +207,48 @@ against warm differs by up to 0.056 in logprob at the top of a five-row ranking 
 reorder a near-tie. `docs/SERVER.md` has the numbers. Because each state is internally
 reproducible this is a *second variable* rather than noise, and a ranking recorded with the cache
 on is a function of the model, the path and what was generated before it. That is the thing
-obligation 5 asks a backend not to be, so **the llama.cpp adapter leaves `cache_prompt` off by
-default** and makes it an explicit choice. The format would survive either way — ranks are
-recorded in the order presented and nothing is ever rewritten — but what survives corruption is
-not the same as what is worth recording.
+obligation 5 asks a backend not to be. The format would survive either way — ranks are recorded in
+the order presented and nothing is ever rewritten — but what survives corruption is not the same
+as what is worth recording.
+
+**It is not contamination between calls, which is why either setting is defensible.** The cache is
+a pure function of the prompt tokens and no seed reaches it, so warm and cold are two draws from
+one distribution rather than one right and one wrong. Distributional statistics are unaffected;
+what is lost is exact replay of a *particular* generation, which was already conditional on the
+same build, GPU and quantisation.
+
+**A chunk boundary is a third variable of the same size, and it is not the cache's doing.**
+Continuing inside one call and starting a fresh call at the same path disagree by up to 0.057 with
+the cache off and 0.036 with it on — warm is marginally the *closer* of the two — and both reorder
+ranks. It does not decay downstream, because a KV state that differs at all is inherited. Since
+*Cancellation* makes chunking how a stoppable generation is issued, this is a variable the record
+will carry in practice rather than in principle.
+
+**Which is bearable only because the disagreement is native to the instrument.** Branching is
+already a fresh call at a path first reached by continuing: `realise` then `generate` at an
+existing node extends a ranking whose earlier rows were measured mid-flight. A tree has always
+held rows from both regimes, and *the format's answer is the one above* — first value written
+wins, nothing rewritten. Chunking raises how often that happens; it introduces nothing new.
+
+**So the record names the boundary.** Every act stores its `origin` and its `length`, so a reader
+can see where a call started and how far it ran — which is more than the cache case offers, where
+nothing in the store says which state a row was measured in. That asymmetry is what settles the
+next paragraph.
+
+**`cache_prompt` is a per-call parameter, required, and defaults off.** It changes the draw, so by
+the same rule that makes `top_k` and `temperature` required — a recorded `params` row is a complete
+description of the draw — a row that omits it is not complete, and a default applied silently is
+the failure the neutralised-sampler list exists to prevent. It is a parameter and not adapter
+configuration because callers differ within one process: the command line asks for correctness and
+sends `false`, a reading surface issuing chunked continuations asks for tractable latency and sends
+`true`, and one adapter serves both. The core reads only `length` and interns the rest, so this
+costs a second `params` row and no change to any table.
+
+**What that buys a reader is per-act attribution and not per-row.** Where one act has ranked at a
+node, its `params` says which cache state those rows were measured in. Where several have, the
+first value written is the one kept and nothing records which act contributed it — so the answer
+narrows to a set rather than resolving. A reader who needs certainty assumes the worst case, as
+one always could; a reader who wants to *select* on it now can, in the common case.
 
 ## Backends
 
@@ -217,6 +285,11 @@ not the same as what is worth recording.
 - **The shape of a refusal is half-settled.** The adapter returns a reason string alongside the
   terminator and the core stores none of it; whether that becomes a code as well waits for a
   client that has to display one.
-- **`cancelled` is unreachable** until `generate` can be interrupted. The core specifies the
-  terminator; nothing in the three-operation surface can produce it. This remains the one open
-  item that a locked core is already waiting on, and it arrives with streaming.
+- **`cancelled` is unreached, and is no longer an open item.** Streaming was the route to it and
+  streaming loses ids on this backend, so *Cancellation* settles the question the other way:
+  stopping is declining to issue the next chunk. The core specifies the terminator and nothing
+  produces it, which is now a decision with a reason rather than work outstanding.
+- **`cache_prompt` as a required per-call parameter is decided and not yet built.** It is adapter
+  configuration in the code today — a constructor argument and a `--cache-prompt` flag — and
+  *Determinism* says why it moves into `params`. The change is the adapter's `KNOWN` and
+  `REQUIRED` sets, the command line, and the params dicts in the live tests.

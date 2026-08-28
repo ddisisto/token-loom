@@ -32,7 +32,8 @@ that only appear after the ranking is extended. A live test asserts it.
 
 ## Specified and unwitnessed
 
-Of the three constructs the lock left unwitnessed, one remains.
+Of the three constructs the lock left unwitnessed, one remains — and it is now expected to stay
+that way.
 
 - **`eos`** — witnessed. The earlier note that end-of-text did not appear in the top 40 at three
   document-ending prompts was a fact about those prompts; after ` The end.` it ranks at −1.364 and
@@ -40,14 +41,17 @@ Of the three constructs the lock left unwitnessed, one remains.
 - **`failed`** and **`aborted`** — witnessed. `failed` by a backend raised under a live act;
   `aborted` by killing a writer mid-call in a subprocess and letting the next writer sweep. Both
   are tests rather than anecdotes.
-- **`cancelled`** — still unreachable. It needs a `generate` that can be interrupted and that
-  returns what it drew, which nothing in the three-operation surface can be. This is the one open
-  item a locked core is already waiting on, it belongs to the adapter, and it arrives with
-  streaming.
+- **`cancelled`** — unreached, and deliberately. It needs a `generate` that can be interrupted and
+  that returns what it drew. Streaming was the route to that, and streaming on the one backend
+  that exists drops the interior ids of a multi-token character — so an interruptible generation
+  there would have to be declined rather than recorded. `docs/ADAPTER.md` settles it the other
+  way: a stoppable generation is issued as consecutive short acts, and stopping is declining to
+  issue the next one. **This is no longer an open item that a locked core is waiting on.** The
+  terminator stays specified and unproduced, on the same reasoning as the paragraph below.
 
-**A whole construct is unwitnessed too, and stays that way deliberately.** No tree has held two
-model sources. Source is in the merge key, so two models' draws never factor together and
-cross-source agreement is two nodes rather than one — but nothing has built such a tree, and the
+**A whole construct is unwitnessed too, and stays that way for the same kind of reason.** No tree
+has held two model sources. Source is in the merge key, so two models' draws never factor together
+and cross-source agreement is two nodes rather than one — but nothing has built such a tree, and the
 `cross_source` derived read has never seen real data. That is not an oversight to be closed: a
 tree is expected in practice to explore the paths one model presents, and correctness across
 models was kept in the format because it was cheap and might one day matter, not because it was

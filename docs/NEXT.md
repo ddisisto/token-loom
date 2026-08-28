@@ -12,23 +12,46 @@ that relation to the others is a bullet at the end rather than a number.
 
 ---
 
-## 1. Streaming and cancellation
+## 1. `cache_prompt` becomes a required per-call parameter
 
-`cancelled` is the one open item a locked core is already waiting on. `docs/CORE.md` specifies
-the terminator and nothing in the adapter's three-operation surface can produce it: reaching it
-needs a `generate` that can be interrupted and that returns what it drew, which the blocking
-form is not. `docs/ADAPTER.md` has the shape already — the same operation with a way in and the
-same return.
+Small, and cheapest now. `docs/ADAPTER.md`'s *Determinism* says why: it changes the draw, so a
+`params` row that omits it does not describe the draw, and callers differ within one process —
+the command line sends `false` and a surface issuing chunked continuations sends `true`, against
+one adapter. It is constructor configuration today, which cannot serve both.
 
-**This is adapter work, not surface work**, and it is what a reading surface needs before it can
-show tokens as they land or offer a stop. Built after the HTTP API, the API's shape changes
-under it: a blocking `generate` and a streaming one are not the same endpoint with a flag.
+The change is the adapter's `KNOWN` and `REQUIRED` sets, the `--cache-prompt` flag, and the params
+dicts in the live tests. No core change and no `marker` bump: the core reads `length` and interns
+the rest.
 
-Note what it does *not* need. The store already writes provenance before the model is called and
-nodes after it, so a cancelled generation lands in the same second write as any other. Only the
-adapter has to change.
+**Before the API, because an API written against adapter-level configuration would have to grow a
+second way to set it**, and the second way is the one that gets used.
 
-## 2. The read layer
+## 2. `docs/SURFACE.md`, before the surface is built
+
+Design and constraints in prose first. This is the method the project has already been paid by
+twice, and the reading surface is the largest thing that has not had it.
+
+**It comes before the read layer, not after.** It settles what the surface actually reads, and
+the read layer should be built against a known set of questions rather than a guessed one. The
+N+1 fix below is specified either way — `docs/CORE.md` already says what it is — but *which* bulk
+reads exist is decided here.
+
+It is also where **no capability may be surface-only** is enforced at design time rather than
+discovered late: every operation the surface offers has to be reachable from the command line
+already, and that is cheap to check against a document and expensive to retrofit.
+
+Open questions it will have to close, at least: what a run is on screen when the record has no run
+ids; how an unrealised edge is offered without implying the model recommends it; what is shown in
+place of bytes that do not decode, which `docs/CORE.md` leaves explicitly to the reader; and how a
+client shows that a write is blocked behind another writer's generation.
+
+**It carries one constraint it did not choose.** A long generation is issued as consecutive short
+`generate` acts — `docs/ADAPTER.md`'s *Cancellation* has the reasoning — so the block of output a
+reader sees is a construct of the surface and not a unit of the record. Stopping is declining to
+issue the next chunk; a block can be refused part-way; and the lock is released between chunks, so
+a block is not atomic.
+
+## 3. The read layer
 
 Point reads are cheap and bulk reads are not. `scripts/scale.py` is what measured this and what
 re-measures it; at 20k nodes, 400k edges and depth 1401:
@@ -52,19 +75,3 @@ written down.
 
 **Before the API, not after.** An API written against N+1 reads gets shaped around them, and the
 shape outlives the fix.
-
-## 3. `docs/SURFACE.md`, before the surface is built
-
-Design and constraints in prose first. This is the method the project has already been paid by
-twice, and the reading surface is the largest thing that has not had it.
-
-It settles what the surface actually reads, which is what decides the shape of 2 — the read
-layer should be built against a known set of questions rather than a guessed one. It is also
-where **no capability may be surface-only** is enforced at design time rather than discovered
-late: every operation the surface offers has to be reachable from the command line already, and
-that is cheap to check against a document and expensive to retrofit.
-
-Open questions it will have to close, at least: what a run is on screen when the record has no
-run ids; how an unrealised edge is offered without implying the model recommends it; what is
-shown in place of bytes that do not decode, which `docs/CORE.md` leaves explicitly to the
-reader; and how a client shows that a write is blocked behind another writer's generation.

@@ -55,7 +55,26 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   server accounting in text where the record is in tokens, and it is the reason the adapter
   must walk the two together: unchecked, the nodes it reports disagree with what the model
   emitted. The interior ids of a group have no ranking, which the core allows for; nothing
-  else about them is lost, because bytes never come from here.
+  else about them is lost, because bytes never come from here — and that last clause holds of
+  the blocking form alone, as the next item is about.
+- **Streaming reports a group's final id and drops the rest, on both endpoints.** The same
+  regrouping, and here it costs the ids themselves. Each SSE chunk carries its own `tokens`
+  and its own `completion_probabilities`, so the two can still be walked together per chunk —
+  but a chunk covering a multi-token character reports **one** id where the model emitted
+  several. Prompt `🜁 🜂 🜃 🜁 🜂 🜃 🜁 🜂`, `n_predict` 10, seed 5, `top_k` = `n_probs` = 5:
+  blocking returns `[11162, 250, 225, 271, 2, 11162, 241, 248, 576, 67176]`, streamed returns
+  `[225, 271, 2, 248, 576, 67176]`. Four ids the model emitted appear in no chunk at all.
+  `/v1/completions` streams the same six, so the compatible layer is not a way out.
+
+  **The loss is detectable and the ids are not recoverable.** Each chunk's `tokens_predicted`
+  advances by what was really drawn — by 3 where the chunk reported one id — so a reader can
+  see how many ids it is missing and never which. Reading them back by re-tokenising the
+  group's bytes is the artefact this whole format exists to avoid: more than one id sequence
+  can spell those bytes and end on the reported id, and nothing in the response says which was
+  sampled.
+
+  The terminal event carries `stop_type`, `truncated`, `timings` and an **empty** `tokens`, so
+  a stream closed early learns neither how it would have ended nor what it lost.
 - **A stop string that does not land on a token boundary loses bytes the model emitted.** The
   server matches the stop string on *text*, then erases trailing entries by its *token* count,
   so tokens generated before the match go with it. Undecidable from the response, and fixable
@@ -137,16 +156,11 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   of 8 seeds at temperature 1.0, arriving with `stop_type: eos`, `tokens_predicted: 1` and
   `tokens: [151643]`. It reaches `completion_probabilities` like any other token, with its
   bytes empty and its ranking present.
-- **`cache_prompt` is on, and a generation is therefore not guaranteed to replay token for
-  token.** A full cache hit evaluates no prompt tokens, which changes the reduction order
-  enough to perturb the logits and occasionally flip a near-tie: the same path, seed and
-  parameters can give a *different* continuation warm than cold.
-
-  **This is not contamination between calls, and the distinction is why it is acceptable.**
-  The cache is a pure function of the prompt tokens — no seed reaches it — so warm and cold
-  are two draws from the same distribution rather than one right and one wrong.
-  Distributional statistics are unaffected; only exact replay of a *particular* generation is
-  lost, and that was already conditional on the same build, GPU and quantisation.
+- **`cache_prompt` defaults on in the server, and a generation is therefore not guaranteed to
+  replay token for token.** A full cache hit evaluates no prompt tokens, which changes the
+  reduction order enough to perturb the logits and occasionally flip a near-tie: the same
+  path, seed and parameters can give a *different* continuation warm than cold. The cache is
+  a pure function of the prompt tokens — no seed reaches it.
 
   **Measured, and it is not the last decimal places.** Prompt `The sky`, `top_k` = `n_probs`
   = 5, temperature 0.9: cold against cold is bit-identical, warm against warm is
@@ -155,3 +169,26 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   cache state is internally reproducible, so this is a second variable rather than noise: a
   ranking recorded with the cache on is a function of the model, the path, *and* what was
   generated before it.
+- **Continuing inside one call and starting a fresh call at the same path are not the same
+  measurement**, and the cache does not decide it. Prompt `The sky`, `top_k` 1 so the path is
+  forced, `n_probs` 5, temperature 1.0: sixteen tokens drawn in one call, against the same
+  sixteen drawn as two calls of eight. All three runs drew an identical path, and repeating
+  any request reproduced its rows bit-for-bit — so what follows is signal.
+
+  | second chunk against the single call | max \|Δlogprob\| | rank order kept |
+  | --- | --- | --- |
+  | repeat of the same request | 0.000000 | 8 of 8 positions |
+  | `cache_prompt` off | 0.057154 | 7 of 8 |
+  | `cache_prompt` on | 0.036281 | 6 of 8 |
+
+  Warm lands marginally *closer* to the unchunked record than cold, so the cache is neither
+  the cause nor the cure. **The disagreement does not decay after the boundary either** — it
+  is 0.013 at the first position past it and 0.042 at the eighth, because a KV state that
+  differs at all is inherited by everything downstream. This is the same order of magnitude
+  as the cold/warm gap above, and it reorders ranks, which is what matters.
+
+  Cost of a boundary, warm: `prompt_n` 1 and `prompt_ms` 26, against 190 ms to draw the
+  chunk's eight tokens. Cold, the whole path is re-evaluated at each boundary.
+- **`/slots/0?action=erase` answers HTTP 501 on this build**, so the cache cannot be cleared
+  between requests from the client. Measurements that need a cache state control it by what
+  they send, not by resetting the server.
