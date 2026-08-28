@@ -201,6 +201,59 @@ def test_a_terminator_that_wrote_nothing_may_not_report_tokens(store):
         store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
 
 
+def test_an_answer_the_store_will_not_write_records_failed_and_is_not_left_in_flight(store):
+    """The writer is right here and knows, so it says so rather than leaving the act for
+    the next writer to sweep as `aborted` -- which would assert the writer was gone.
+
+    A vocabulary that disagrees at an id the store already holds is the way this happens
+    for real: it is what a wrong model file looks like from inside a generation.
+    """
+    tip = seeded(store)
+
+    class Wrong(ToyVocabulary):
+        def bytes_for(self, token_id):
+            return b"Xhe" if token_id == 100 else VOCAB[token_id]
+
+    adapter = ToyAdapter([drew((100, [(100, -0.5)]))])
+    adapter.bytes_for = Wrong().bytes_for
+    with pytest.raises(StoreError, match="vocabulary disagrees at id 100"):
+        store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+
+    assert store.conn.execute(
+        "SELECT tip, terminator FROM acts WHERE op = 'generate'"
+    ).fetchall() == [(None, "failed")]
+    # Nothing of the rejected answer landed, and the sweep has nothing to find.
+    assert store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 2
+    with Store.open(store.path, write=True) as later:
+        assert later.conn.execute(
+            "SELECT terminator FROM acts WHERE op = 'generate'"
+        ).fetchone() == ("failed",)
+    assert violations(store.conn) == []
+
+
+def test_an_interrupted_writer_is_left_for_the_sweep_and_not_called_failed(store):
+    """`docs/ADAPTER.md`: an adapter that cannot be interrupted never produces
+    `cancelled`, and stopping one of its generations means killing the writer, which the
+    next writer records as `aborted`.
+
+    So a `KeyboardInterrupt` must pass through untouched. Calling it `failed` would claim
+    the backend broke, and would also put the one terminator this backend cannot reach
+    within reach by the wrong route.
+    """
+    tip = seeded(store)
+    adapter = ToyAdapter([KeyboardInterrupt()])
+    with pytest.raises(KeyboardInterrupt):
+        store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+
+    assert store.conn.execute(
+        "SELECT terminator FROM acts WHERE op = 'generate'"
+    ).fetchone() == (None,)  # still in flight
+    with Store.open(store.path, write=True) as later:  # acquiring is what sweeps
+        assert later.conn.execute(
+            "SELECT tip, terminator FROM acts WHERE op = 'generate'"
+        ).fetchone() == (None, "aborted")
+
+
 def test_the_core_supplies_a_seed_when_a_caller_does_not(store):
     tip = seeded(store)
     store.generate(tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]))

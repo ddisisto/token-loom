@@ -354,16 +354,31 @@ class Store:
 
             try:
                 answer = adapter.generate(ids, params, seed)
-            except BaseException:
                 with self._writing():
-                    self.conn.execute(
-                        "UPDATE acts SET terminator = 'failed' WHERE id = ?", (act,)
-                    )
+                    self._land(act, answer, at, source_id, length, adapter)
+            except Exception:
+                # The landing is inside the guard, not after it. An answer the store will
+                # not write -- a vocabulary that disagrees at an id already held, a
+                # terminator that contradicts what came back -- is a generation that
+                # produced nothing, and the writer is right here and knows it. Left in
+                # flight it would instead be swept by the next writer as `aborted`, which
+                # asserts the writer was gone when it was not.
+                self._failed(act)
                 raise
-
-            with self._writing():
-                self._land(act, answer, at, source_id, length, adapter)
         return act, answer
+
+    def _failed(self, act: int) -> None:
+        """`failed` -- the call happened and nothing could be recorded from it.
+
+        Deliberately not `except BaseException`: a `KeyboardInterrupt` means this writer
+        is being stopped, not that the backend broke, and `docs/ADAPTER.md` is explicit
+        that stopping an uninterruptible generation means killing the writer and letting
+        the next one record `aborted`. So an interrupt is allowed past here to become
+        exactly that. `cancelled` stays out of reach until `generate` can be interrupted
+        and still return what it drew.
+        """
+        with self._writing():
+            self.conn.execute("UPDATE acts SET terminator = 'failed' WHERE id = ?", (act,))
 
     def _land(
         self,
