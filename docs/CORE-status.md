@@ -45,6 +45,16 @@ Of the three constructs the lock left unwitnessed, one remains.
   item a locked core is already waiting on, it belongs to the adapter, and it arrives with
   streaming.
 
+**A whole construct is unwitnessed too, and stays that way deliberately.** No tree has held two
+model sources. Source is in the merge key, so two models' draws never factor together and
+cross-source agreement is two nodes rather than one — but nothing has built such a tree, and the
+`cross_source` derived read has never seen real data. That is not an oversight to be closed: a
+tree is expected in practice to explore the paths one model presents, and correctness across
+models was kept in the format because it was cheap and might one day matter, not because it was
+going to be used. Recorded here so it is not mistaken for a gap and prioritised as one. The cost
+of it being wrong is bounded and late; the cost of it not being in the format at all would have
+been a marker bump.
+
 ## What building it found
 
 - **A generation that begins a root has nowhere to put its first ranking.** A ranking belongs to

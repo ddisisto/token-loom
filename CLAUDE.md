@@ -17,8 +17,8 @@ alternatives that were live along it — not just against its siblings. A branch
 at a token the model ranked and did not sample. That is the whole reason the tree is a trie
 over tokens rather than over text, and it is what the name is for.
 
-The tree is in `core/`, with two clients on it: a command line and an HTTP API, the latter
-also serving the reading surface.
+The tree is `src/tokenloom/core/`, with two clients on it: a command line and an HTTP API,
+the latter also serving the reading surface.
 
 Two things pull on the design:
 
@@ -62,6 +62,10 @@ rather than a fault to correct.
   changing anything that talks to the server. **It is the llama.cpp adapter's notes, and neither
   the core nor the contract cites it.** What is required of any backend is `docs/ADAPTER.md`;
   what one backend happens to do is here.
+- **`docs/NEXT.md`** is what gets built next and why in that order. **It is living**: items are
+  added as they come up and deleted once they close or fall out of scope, so it never
+  accumulates a history of itself. Nothing cites it, and nothing should — it is the one document
+  that is allowed to be wrong tomorrow.
 
 **The core names no backend, and no backend's limitation may become a rule in it.** One did once —
 llama.cpp will not evaluate a prompt whose bytes end mid-character, which had become an invariant
@@ -96,6 +100,13 @@ VRAM at 16k context on a GTX 1070, 122 tok/s prompt and 32 tok/s generation.
 `mradermacher/Qwen2.5-7B-i1-GGUF` is a genuine base GGUF in a catalogue that is otherwise
 almost all Instruct, and its imatrix quants beat the static ones at identical size.
 
+**The alias is the vocabulary's name and not the source's.** `qwen2.5-7b-base` is what
+`/props` reports and what a tree is created against; the source name defaults to the model
+file's stem, `Qwen2.5-7B.i1-Q4_K_M`, because it has to separate anything whose draws must not
+factor together and a different quantisation is a different model. **The core cannot check
+this** — naming is the enforcement, and two models served under one alias merge into one
+source silently, which is the exact failure the merge key exists to prevent.
+
 **Nothing here can reach a hosted model, and that is upstream of the endpoint choice.** The
 core needs per-token ids, bytes and logprobs on a *raw continuation*, and no OpenRouter
 provider returns logprobs there — including ones whose `/models/{id}/endpoints` claim
@@ -109,14 +120,15 @@ touched, not after something disagrees.
 
 ## Working conventions
 
-- Run bash commands **serially and un-bundled**. No `&&` chains, no shell redirects.
-- Multi-line `python -c` gets blocked by the command classifier — write a script into the
-  scratchpad and run it. The shell is zsh, so quote globs (`--include='*.py'`).
+- Run bash commands **serially and un-bundled**. No `&&` chains.
+- Multi-line `python -c` gets blocked by the command classifier. A `python3 - <<'PY'` heredoc
+  is not, and neither are ordinary redirects — both were used throughout the build without
+  trouble, so the constraint is narrower than it once read. The shell is zsh, so quote globs
+  (`--include='*.py'`).
 - Recurring commands go in `scripts/`, which is **committed**.
 - `data/` is disposable scratch and is gitignored.
 - Stage explicitly. Never `git add -A`.
-- The project is a `uv` one: `uv sync`, `uv run pytest`, `uv run tokenloom`. The package is
-  `src/tokenloom/`, so `core/` in this file means the module and not a top-level directory.
+- The project is a `uv` one: `uv sync`, `uv run pytest`, `uv run tokenloom`.
 - **`uv run pytest` needs no server.** The live tests skip without one; `-m live` runs only
   those, and they are the ones that can tell you the docs have gone stale.
 
@@ -159,4 +171,5 @@ How decisions get made here — what has paid off, and what it cost to skip.
 **The core, the llama.cpp adapter and the command line exist, and a tree has been built against
 a running server.** What that leaves open — and what building it found — is
 `docs/CORE-status.md` for the format and the Status section of `docs/ADAPTER.md` for the
-backend. Those are the files that move; not this section, and not `docs/CORE.md`.
+backend. **What gets built next is `docs/NEXT.md`.** Those three are the files that move; not
+this section, and not `docs/CORE.md`.
