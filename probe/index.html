@@ -1,0 +1,308 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>token loom — probe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #faf8f4; --ink: #17150f; --dim: #6d685c; --faint: #d8d2c4;
+    --rule: #e6e0d2; --accent: #9a4a1e; --accent-bg: #f0e2d6;
+    --panel: #fffdf9; --shadow: 0 6px 28px rgba(30,24,10,.13);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14130f; --ink: #eae5d8; --dim: #8f8878; --faint: #33302a;
+      --rule: #2a2721; --accent: #d98a55; --accent-bg: #33251b;
+      --panel: #1c1a15; --shadow: 0 6px 28px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font-family: var(--serif); -webkit-font-smoothing: antialiased; }
+
+  /* ---- chrome: deliberately quiet, so the floor case is a text reader ---- */
+  header { position: fixed; top: 0; left: 0; right: 0; height: 42px; display: flex;
+           align-items: center; gap: 18px; padding: 0 20px; z-index: 20;
+           font: 400 12px/1 var(--mono); color: var(--dim);
+           background: color-mix(in srgb, var(--bg) 88%, transparent);
+           backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+  header .grow { flex: 1; }
+  header b { color: var(--ink); font-weight: 500; }
+  button { font: inherit; color: var(--dim); background: none; cursor: pointer;
+           border: 1px solid var(--rule); border-radius: 4px; padding: 4px 9px; }
+  button:hover { color: var(--ink); border-color: var(--dim); }
+  button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+
+  /* ---- the reader ---- */
+  main { max-width: 34em; margin: 0 auto; padding: 96px 24px 45vh; }
+  #text { font-size: 21px; line-height: 1.75; letter-spacing: .002em;
+          white-space: pre-wrap; overflow-wrap: break-word; }
+  .seg { cursor: text; border-radius: 2px; transition: background-color .09s; }
+  .seg:hover { background: var(--faint); }
+  .seg.sel { background: var(--accent-bg); box-shadow: 0 0 0 1px var(--accent) inset; }
+  /* A fork the current path passed through. Toggleable: whether this earns its place
+     in the floor case is one of the things being probed. A left tick was tried first and
+     read as a text caret, which is the sort of thing only looking tells you. */
+  .seg.fork { text-decoration: underline dotted var(--accent);
+              text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  body[data-marks="off"] .seg.fork { box-shadow: none; }
+  /* Bytes that do not decode. The format leaves what to show here to the reader. */
+  .seg.frag { background: var(--accent-bg); color: var(--accent); }
+  .pending { opacity: 0; }
+
+  /* ---- the ranking: an overlay, so summoning it never moves the text ---- */
+  #panel { position: fixed; top: 62px; right: 20px; width: 310px; max-height: 78vh;
+           overflow: auto; background: var(--panel); border: 1px solid var(--rule);
+           border-radius: 8px; box-shadow: var(--shadow); padding: 14px 4px 14px;
+           font: 12px/1.45 var(--mono); z-index: 15; display: none; }
+  #panel.open { display: block; }
+  #panel h2 { margin: 0 12px 10px; font: 500 11px/1.4 var(--mono);
+              color: var(--dim); letter-spacing: .04em; text-transform: uppercase; }
+  #panel h2 em { display: block; text-transform: none; letter-spacing: 0;
+                 font-style: normal; color: var(--ink); font-size: 13px; margin-top: 3px; }
+  .row { display: grid; grid-template-columns: 2.1em 1fr 4.4em; gap: 8px; align-items: baseline;
+         padding: 3px 12px; border-radius: 4px; }
+  .row.can { cursor: pointer; }
+  .row.can:hover { background: var(--faint); }
+  .row .rk { color: var(--faint); text-align: right; }
+  .row .tk { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+  .row .lp { color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
+  .row.here { background: var(--accent-bg); }
+  .row.here .rk, .row.here .tk { color: var(--accent); }
+  .row.unrealised .tk { color: var(--dim); }
+  .row.unrealised .rk::after { content: "+"; color: var(--accent); }
+  #panel .note { margin: 8px 12px 2px; color: var(--dim); font-size: 11px; line-height: 1.5;
+                 border-top: 1px solid var(--rule); padding-top: 8px; }
+
+  /* ---- status: what the cursor is over, and nothing else ---- */
+  footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 7px 20px;
+           font: 11px/1.4 var(--mono); color: var(--dim); text-align: center;
+           background: color-mix(in srgb, var(--bg) 88%, transparent);
+           border-top: 1px solid var(--rule); min-height: 28px; }
+  .fake { color: var(--accent); border: 1px solid var(--accent); border-radius: 3px;
+          padding: 1px 5px; font-size: 10px; }
+</style>
+
+<header>
+  <b id="tree">—</b>
+  <span id="shape">—</span>
+  <span class="grow"></span>
+  <button id="fixture" title="swap between ordinary English and the small hard case">fixture</button>
+  <button id="marks" aria-pressed="true" title="show where the path passed a fork">forks</button>
+  <button id="paced" aria-pressed="false" title="reveal within a block, or a block at a time">paced</button>
+  <button id="replay" title="re-reveal this path at generation speed">replay</button>
+</header>
+
+<main><div id="text"></div></main>
+<div id="panel" hidden></div>
+<footer id="status">&nbsp;</footer>
+
+<script src="tree.js"></script>
+<script src="tree-appendix.js"></script>
+<script>
+"use strict";
+
+// ---- the record ---------------------------------------------------------------------
+// Two fixtures. `TREE` is 150 nodes of ordinary English, where a token is several
+// characters and nothing is ever a fragment. `TREE_APPENDIX` is the core's worked example:
+// twelve nodes, a control token, and one character spelled by three tokens that are not
+// valid UTF-8 alone. The second is the one that says whether the display unit is right.
+const FIXTURES = [window.TREE, window.TREE_APPENDIX].filter(Boolean);
+const strict = new TextDecoder("utf-8", { fatal: true });
+const loose = new TextDecoder("utf-8");
+
+let T, NODE, KIDS;
+function load(fixture) {
+  T = fixture;
+  NODE = new Map(T.nodes.map(n => [n.id, n]));
+  KIDS = new Map();
+  for (const n of T.nodes) {
+    if (!KIDS.has(n.parent)) KIDS.set(n.parent, []);
+    KIDS.get(n.parent).push(n.id);
+  }
+  path = descend(roots()[0]);
+  selected = null;
+  $panel.classList.remove("open");
+  document.getElementById("tree").textContent = `${T.tree.path}   ${T.tree.vocabulary}`;
+  render();
+}
+const roots = () => KIDS.get(null) || [];
+const bytesOf = tok => Uint8Array.from(atob(T.vocab[tok]), c => c.charCodeAt(0));
+const spell = tok => loose.decode(bytesOf(tok));
+const src = id => { const s = T.sources[id]; return s.name ? s.name : s.kind; };
+
+// ---- paths --------------------------------------------------------------------------
+// The current path is root -> leaf. Descending takes the first child, so switching a fork
+// replaces the suffix and re-descends: the reader always shows one complete path.
+function descend(id) {
+  // The longest live continuation. Taking the first child instead would open the appendix
+  // on its four-token branch and never show the character spelled by three tokens, which
+  // is the whole reason that fixture is here.
+  const kids = (KIDS.get(id) || []).filter(k => !NODE.get(k).deleted);
+  if (!kids.length) return [id];
+  let best = null;
+  for (const k of kids) {
+    const sub = descend(k);
+    if (best === null || sub.length > best.length) best = sub;
+  }
+  return [id, ...best];
+}
+let path = [];
+let selected = null;   // node id whose position's ranking is open
+
+// ---- segmentation -------------------------------------------------------------------
+// The display unit and the addressable unit are different objects. A token may spell many
+// characters and a character may span many tokens, so a segment is the shortest run of
+// nodes whose bytes decode: one node in ordinary English, several across an emoji. Nothing
+// smaller than a segment can be addressed, which is where the multi-token character bites.
+function segment(nodes) {
+  const segs = [];
+  let buf = [], held = [];
+  for (const id of nodes) {
+    held.push(id);
+    buf.push(...bytesOf(NODE.get(id).token));
+    const bytes = Uint8Array.from(buf);
+    try {
+      segs.push({ text: strict.decode(bytes), nodes: held, whole: true });
+      buf = []; held = [];
+    } catch { /* incomplete: keep accumulating */ }
+  }
+  // A path may end mid-character. It is a legal path and it has no string form.
+  if (held.length) segs.push({ text: loose.decode(Uint8Array.from(buf)), nodes: held, whole: false });
+  return segs;
+}
+
+// ---- rendering ----------------------------------------------------------------------
+const $text = document.getElementById("text");
+const $panel = document.getElementById("panel");
+const $status = document.getElementById("status");
+
+function forks(nodes) {
+  // A fork the path passed through: the node whose parent has more than one live child.
+  const set = new Set();
+  for (const id of nodes) {
+    const p = NODE.get(id).parent;
+    if (p === null) continue;
+    if ((KIDS.get(p) || []).filter(k => !NODE.get(k).deleted).length > 1) set.add(id);
+  }
+  return set;
+}
+
+function render() {
+  const segs = segment(path);
+  const forked = forks(path);
+  $text.replaceChildren(...segs.map(seg => {
+    const el = document.createElement("span");
+    el.className = "seg"
+      + (seg.whole ? "" : " frag")
+      + (seg.nodes.some(n => forked.has(n)) ? " fork" : "")
+      + (selected !== null && seg.nodes.includes(selected) ? " sel" : "");
+    el.textContent = seg.text;
+    el.dataset.node = seg.nodes[0];
+    el.title = seg.nodes.length > 1 ? `${seg.nodes.length} tokens spell this` : "";
+    return el;
+  }));
+  document.getElementById("shape").textContent =
+    `${path.length} tokens   ${forked.size} forks passed   ${T.nodes.length} nodes in tree`;
+}
+
+// ---- the ranking --------------------------------------------------------------------
+// Selecting a token asks what else was live *at that position* -- which is the ranking at
+// its parent, not at itself. The taken token is shown in place among the alternatives.
+function openRanking(node) {
+  const n = NODE.get(node);
+  const rows = (n.parent !== null && T.rankings[n.parent]) || [];
+  selected = node;
+  if (!rows.length) {
+    $panel.innerHTML = `<h2>no ranking here<em>${escape_(spell(n.token))}</em></h2>
+      <div class="note">Nothing generated at this position, or the source declined to rank
+      it. Nothing records which.</div>`;
+  } else {
+    const onPath = new Set(path);
+    $panel.innerHTML = `<h2>what else was live here<em>${escape_(spell(n.token))}</em></h2>`
+      + rows.map(r => {
+          const here = r.realised === node;
+          const can = r.realised !== null && !here;
+          return `<div class="row ${here ? "here" : ""} ${r.realised === null ? "unrealised" : ""} ${can ? "can" : ""}"
+                       data-go="${r.realised === null ? "" : r.realised}">
+            <span class="rk">${r.rank}</span>
+            <span class="tk">${escape_(spell(r.token))}</span>
+            <span class="lp">${r.logprob.toFixed(3)}</span></div>`;
+        }).join("")
+      + `<div class="note">${rows.filter(r => r.realised === null).length} of ${rows.length}
+         unrealised — marked <span style="color:var(--accent)">+</span>. Taking one needs a
+         <code>realise</code>, which this probe cannot write.
+         Ranked by ${escape_(src(rows[0].source))}.</div>`;
+  }
+  $panel.classList.add("open");
+  render();
+}
+function closeRanking() { selected = null; $panel.classList.remove("open"); render(); }
+const escape_ = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+// ---- gestures -----------------------------------------------------------------------
+$text.addEventListener("click", e => {
+  const el = e.target.closest(".seg");
+  if (!el) return closeRanking();
+  const node = Number(el.dataset.node);
+  node === selected ? closeRanking() : openRanking(node);
+});
+$text.addEventListener("mousemove", e => {
+  const el = e.target.closest(".seg");
+  if (!el) return;
+  const n = NODE.get(Number(el.dataset.node));
+  $status.textContent = `node ${n.id}   token ${n.token}   ${src(n.source)}`
+    + (n.logprob === null ? "   no covering edge" : `   logprob ${n.logprob.toFixed(4)}`);
+});
+$text.addEventListener("mouseleave", () => { $status.innerHTML = "&nbsp;"; });
+$panel.addEventListener("click", e => {
+  const row = e.target.closest(".row.can");
+  if (!row || !row.dataset.go) return;
+  // Switching a fork: keep everything above it, re-descend below.
+  const go = Number(row.dataset.go);
+  const cut = path.indexOf(NODE.get(go).parent);
+  path = path.slice(0, cut + 1).concat(descend(go));
+  openRanking(go);
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeRanking(); });
+
+// ---- cadence ------------------------------------------------------------------------
+// A generation arrives as consecutive acts, not as a stream. At 32 tok/s a 16-token act is
+// half a second. Whether a block lands whole or is paced out is the surface's choice, and
+// pacing invents a timing the record does not hold -- so it is labelled a fake here.
+const CHUNK = 16, TOK_PER_S = 32;
+let timer = null, paced = false;
+function replay() {
+  clearInterval(timer);
+  const spans = [...$text.querySelectorAll(".seg")];
+  spans.forEach(s => s.classList.add("pending"));
+  let i = 0;
+  const step = paced ? 1 : CHUNK;
+  const every = (1000 / TOK_PER_S) * step;
+  $status.innerHTML = `<span class="fake">fake</span> replaying at ${TOK_PER_S} tok/s, `
+    + `${paced ? "paced within a " + CHUNK + "-token act" : CHUNK + "-token act at a time"}`;
+  timer = setInterval(() => {
+    for (let k = 0; k < step && i < spans.length; k++, i++) spans[i].classList.remove("pending");
+    if (i >= spans.length) { clearInterval(timer); $status.innerHTML = "&nbsp;"; }
+  }, every);
+}
+
+// ---- chrome -------------------------------------------------------------------------
+document.body.dataset.marks = "on";
+let which = 0;
+document.getElementById("fixture").onclick = () => {
+  which = (which + 1) % FIXTURES.length;
+  load(FIXTURES[which]);
+};
+const toggle = (id, fn) => {
+  const b = document.getElementById(id);
+  b.onclick = () => { const on = b.getAttribute("aria-pressed") !== "true";
+                      b.setAttribute("aria-pressed", on); fn(on); };
+};
+toggle("marks", on => { document.body.dataset.marks = on ? "on" : "off"; });
+toggle("paced", on => { paced = on; replay(); });
+document.getElementById("replay").onclick = replay;
+
+load(FIXTURES[0]);
+</script>
