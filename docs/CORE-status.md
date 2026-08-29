@@ -78,3 +78,20 @@ been a marker bump.
 
 The adapter contract is `docs/ADAPTER.md` and is deliberately unlocked; its own open items are
 stated there and are not repeated here. The reading surface has no document yet.
+
+## Held for a possible future core
+
+Not defects in the locked document, and not work outstanding. Recorded so that a version
+which does move has the reasons to hand rather than rediscovering them.
+
+- **A write claim held across acts, separate from the per-act lock.** The `flock` is taken for
+  the whole of one act and released between them, which is what lets a chunked generation stop
+  blocking every other writer for its duration. It gives a client no way to say *this tree is
+  mine for the session*, and no way to find out that it is not: the lock is acquired blocking,
+  so a second writer waits rather than being told. A reading surface wants both — it is the sole
+  writer for any tree a user holds open through it, and a would-be second writer should discover
+  that immediately instead of hanging. **Discipline covers it for now**, because the assumption
+  is broken only by running the command line against a tree the surface has open, and the cost
+  of breaking it is a blocked call rather than a damaged store. It would need no table change,
+  so by the conformance rule it would not bump `marker`; what it costs is an edit to a document
+  that does not move, which is the whole of the reason it is here and not done.

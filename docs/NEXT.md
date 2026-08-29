@@ -31,11 +31,12 @@ ids; how an unrealised edge is offered without implying the model recommends it;
 place of bytes that do not decode, which `docs/CORE.md` leaves explicitly to the reader; and how a
 client shows that a write is blocked behind another writer's generation.
 
-**It carries one constraint it did not choose.** A long generation is issued as consecutive short
-`generate` acts — `docs/ADAPTER.md`'s *Cancellation* has the reasoning — so the block of output a
-reader sees is a construct of the surface and not a unit of the record. Stopping is declining to
-issue the next chunk; a block can be refused part-way; and the lock is released between chunks, so
-a block is not atomic.
+**It has one technique available to it that the record does not name.** A caller that wants to
+stop a long generation can issue it as consecutive short `generate` acts — `docs/ADAPTER.md`'s
+*Cancellation* has the reasoning — so a block of output a reader sees may be a construct of the
+surface rather than a unit of the record. Whether the surface works that way is its own decision;
+what follows if it does is the adapter's to state, and the bullet below says why that is not how
+the contract currently reads.
 
 ## 2. The read layer
 
@@ -61,3 +62,17 @@ written down.
 
 **Before the API, not after.** An API written against N+1 reads gets shaped around them, and the
 shape outlives the fix.
+
+---
+
+- **`docs/ADAPTER.md`'s *Cancellation* over-prescribes.** The finding it rests on stands and is
+  not in question: streaming loses ids on this backend, so an interruptible generation would have
+  to be declined, so `cancelled` is unreachable and stopping is declining to continue. What
+  over-reaches is what follows it. *A caller who wants to stop asks for less at a time*, and the
+  three consequences under it, are written as though every client inherits them — and they read
+  that way, which cost a round of confusion in surface design, where chunking arrived as a
+  constraint the surface had been handed rather than a technique it could pick up. The command
+  line has never chunked and has never needed to. The edit is contained: keep the measurement,
+  keep the terminator's fate, demote the prescription to a note that a client *may* issue a long
+  generation as consecutive acts, and keep the three consequences attached to that note rather
+  than standing free. Unnumbered because it is cheap at any point and nothing waits on it.
