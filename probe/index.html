@@ -34,22 +34,48 @@
   button:hover { color: var(--ink); border-color: var(--dim); }
   button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 
-  /* ---- the reader ---- */
-  main { max-width: 34em; margin: 0 auto; padding: 96px 24px 45vh; }
-  #text { font-size: 21px; line-height: 1.75; letter-spacing: .002em;
-          white-space: pre-wrap; overflow-wrap: break-word; }
+  /* ---- the reader ----
+     The container is twice the reading measure and the text occupies its left half. The
+     right half is empty in the floor case and is what branch previews expand into, so a
+     preview that starts late in a line still has a line's worth of room and the reading
+     column never has to move to make space. */
+  main { --col: min(34em, 44vw); box-sizing: content-box; width: calc(var(--col) * 2);
+         margin: 0 auto; padding: 96px 24px 45vh; }
+  #text { font-size: 21px; line-height: 1.75; letter-spacing: .002em; }
+  .flow { width: var(--col); white-space: pre-wrap; overflow-wrap: break-word; }
+  /* Below the split: still the current path, and still where it was horizontally. Dimmed
+     because opening a fork is asking what would replace it. */
+  .flow.after { color: var(--dim); }
+  .pad { display: inline-block; }
   .seg { cursor: text; border-radius: 2px; transition: background-color .09s; }
   .seg:hover { background: var(--faint); }
   .seg.sel { background: var(--accent-bg); box-shadow: 0 0 0 1px var(--accent) inset; }
-  /* A fork the current path passed through. Toggleable: whether this earns its place
-     in the floor case is one of the things being probed. A left tick was tried first and
-     read as a text caret, which is the sort of thing only looking tells you. */
+  /* A fork. A left tick was tried first and read as a text caret, which is the sort of
+     thing only looking tells you. */
   .seg.fork { text-decoration: underline dotted var(--accent);
-              text-underline-offset: 4px; text-decoration-thickness: 1px; }
-  body[data-marks="off"] .seg.fork { box-shadow: none; }
+              text-underline-offset: 4px; text-decoration-thickness: 1px;
+              cursor: pointer; }
+  .seg.fork.at { background: var(--accent-bg); }
+  body[data-marks="off"] .seg.fork { text-decoration: none; }
   /* Bytes that do not decode. The format leaves what to show here to the reader. */
   .seg.frag { background: var(--accent-bg); color: var(--accent); }
   .pending { opacity: 0; }
+
+  /* ---- the interlinear band ----
+     One line per divergence, offset to the column where that path parts from the one
+     above it. The indentation is *where they part*, not how deep in the tree they are,
+     which is the whole of the idea: shared prefix is shared screen position. */
+  .band { position: relative; margin: .35em 0; }
+  .pv { white-space: pre; overflow: hidden; text-overflow: ellipsis;
+        border-radius: 2px; cursor: pointer; }
+  .pv:hover { background: var(--faint); }
+  /* The path already being read. First, for reference, and selecting it is a cancel. */
+  .pv.here { color: var(--dim); cursor: default; }
+  .pv.here:hover { background: none; }
+  .pv .seg { cursor: inherit; }
+  .pv .seg:hover { background: none; }
+  .pv.dropped { color: var(--dim); font: 12px/2 var(--mono); cursor: default; }
+  .pv.dropped:hover { background: none; }
 
   /* ---- the ranking: an overlay, so summoning it never moves the text ---- */
   #panel { position: fixed; top: 62px; right: 20px; width: 310px; max-height: 78vh;
@@ -123,6 +149,7 @@ function load(fixture) {
   }
   path = descend(roots()[0]);
   selected = null;
+  branchAt = null;
   $panel.classList.remove("open");
   document.getElementById("tree").textContent = `${T.tree.path}   ${T.tree.vocabulary}`;
   render();
@@ -148,8 +175,20 @@ function descend(id) {
   }
   return [id, ...best];
 }
+function pathTo(id) {
+  const out = [];
+  for (let n = NODE.get(id); n; n = n.parent === null ? null : NODE.get(n.parent)) out.unshift(n.id);
+  return out;
+}
+const liveKids = id => (KIDS.get(id) || []).filter(k => !NODE.get(k).deleted);
+const isFork = id => {
+  const p = NODE.get(id).parent;
+  return p !== null && liveKids(p).length > 1;
+};
+
 let path = [];
 let selected = null;   // node id whose position's ranking is open
+let branchAt = null;   // node whose fork is open interlinearly
 
 // ---- segmentation -------------------------------------------------------------------
 // The display unit and the addressable unit are different objects. A token may spell many
@@ -178,34 +217,167 @@ const $text = document.getElementById("text");
 const $panel = document.getElementById("panel");
 const $status = document.getElementById("status");
 
-function forks(nodes) {
-  // A fork the path passed through: the node whose parent has more than one live child.
-  const set = new Set();
-  for (const id of nodes) {
-    const p = NODE.get(id).parent;
-    if (p === null) continue;
-    if ((KIDS.get(p) || []).filter(k => !NODE.get(k).deleted).length > 1) set.add(id);
-  }
-  return set;
+function spans(nodes, oneLine = false) {
+  // Segment spans, each tagged with the index of its first node so a fork's column can be
+  // measured off the rendered text rather than counted in characters.
+  let from = 0;
+  return segment(nodes).map(seg => {
+    const el = document.createElement("span");
+    el.className = "seg" + (seg.whole ? "" : " frag")
+      + (seg.nodes.some(isFork) ? " fork" : "")
+      + (seg.nodes.includes(branchAt) ? " at" : "")
+      + (selected !== null && seg.nodes.includes(selected) ? " sel" : "");
+    // A preview is one line by construction, and a model writes newlines. Shown rather
+    // than swallowed: where a path breaks a line is worth seeing, and a preview that
+    // actually broke would carry the rows below it out of alignment.
+    el.textContent = oneLine ? seg.text.replace(/\n/g, "⏎") : seg.text;
+    el.dataset.node = seg.nodes[0];
+    el.dataset.i = from;
+    from += seg.nodes.length;
+    el.title = seg.nodes.length > 1 ? `${seg.nodes.length} tokens spell this` : "";
+    return el;
+  });
+}
+
+function flow(nodes, cls) {
+  const div = document.createElement("div");
+  div.className = "flow " + cls;
+  div.append(...spans(nodes));
+  return div;
 }
 
 function render() {
-  const segs = segment(path);
-  const forked = forks(path);
-  $text.replaceChildren(...segs.map(seg => {
-    const el = document.createElement("span");
-    el.className = "seg"
-      + (seg.whole ? "" : " frag")
-      + (seg.nodes.some(n => forked.has(n)) ? " fork" : "")
-      + (selected !== null && seg.nodes.includes(selected) ? " sel" : "");
-    el.textContent = seg.text;
-    el.dataset.node = seg.nodes[0];
-    el.title = seg.nodes.length > 1 ? `${seg.nodes.length} tokens spell this` : "";
-    return el;
-  }));
+  const forked = path.filter(isFork);
+  if (branchAt === null || !path.includes(branchAt)) {
+    branchAt = null;
+    $text.replaceChildren(flow(path, "whole"));
+  } else {
+    renderSplit();
+  }
   document.getElementById("shape").textContent =
-    `${path.length} tokens   ${forked.size} forks passed   ${T.nodes.length} nodes in tree`;
+    `${path.length} tokens   ${forked.length} forks passed   ${T.nodes.length} nodes in tree`
+    + (branchAt === null ? "" : `   fork open at node ${branchAt}`);
 }
+
+// ---- the interlinear band ------------------------------------------------------------
+// A preview line follows the *same* descent the main view uses, so what it shows is a
+// truthful prefix of what selecting it produces. Every sibling not taken -- at the split
+// and at every fork inside the line's own span -- becomes a line of its own, offset to
+// the column where it parts.
+
+const BUDGET = 220;   // characters per preview line; CSS clips, this bounds the walk
+
+function previewLine(start, tail) {
+  const walk = tail || descend(start);
+  const nodes = [], forksIn = [];
+  let chars = 0;
+  for (let i = 0; i < walk.length && chars < BUDGET; i++) {
+    nodes.push(walk[i]);
+    chars += spell(NODE.get(walk[i]).token).length;
+    if (i + 1 < walk.length) {
+      const sibs = liveKids(walk[i]).filter(k => k !== walk[i + 1]);
+      // `at` is the index in `nodes` where a sibling's own text would begin.
+      if (sibs.length) forksIn.push({ at: nodes.length, siblings: sibs });
+    }
+  }
+  return { start, nodes, forksIn };
+}
+
+function bandRows() {
+  // Depth-first: a line, then the lines that part from it, in the order they part. The
+  // current path is first at the top level -- it is the reference the rest align to.
+  const cut = path.indexOf(branchAt);
+  const parent = NODE.get(branchAt).parent;
+  const rows = [];
+  const emit = (line, here, depth) => {
+    const row = { line, here, depth, kids: [] };
+    rows.push(row);
+    for (const f of line.forksIn)
+      for (const sib of f.siblings)
+        row.kids.push({ at: f.at, row: emit(previewLine(sib, null), false, depth + 1) });
+    return row;
+  };
+  emit(previewLine(branchAt, path.slice(cut)), true, 0);
+  for (const sib of liveKids(parent).filter(k => k !== branchAt))
+    emit(previewLine(sib, null), false, 0);
+  return rows;
+}
+
+function renderSplit() {
+  const cut = path.indexOf(branchAt);
+  // Measured on the unsplit render: a prefix wraps identically, so the column the fork
+  // occupies whole is the column the two halves must meet at.
+  $text.replaceChildren(flow(path, "whole"));
+  const marker = $text.querySelector(`.seg[data-node="${branchAt}"]`);
+  const base = $text.getBoundingClientRect();
+  const x = marker ? marker.getBoundingClientRect().left - base.left : 0;
+
+  const before = flow(path.slice(0, cut), "before");
+  const band = document.createElement("div");
+  band.className = "band";
+  const after = flow(path.slice(cut), "after");
+  // An inline spacer, so the first line resumes at the column it left and every line
+  // after it wraps at the measure like any other.
+  const pad = document.createElement("span");
+  pad.className = "pad";
+  pad.style.width = x + "px";
+  after.prepend(pad);
+  $text.replaceChildren(before, band, after);
+
+  layoutBand(band, bandRows(), x);
+}
+
+function layoutBand(band, rows, x0) {
+  const total = band.getBoundingClientRect().width;
+  const col = total / 2;
+  // Everything that parts at the split itself starts at the split column; everything
+  // deeper is placed by its parent, once that parent has been rendered and measured. A
+  // row nobody places is a row whose parent was dropped, and it goes with it.
+  const place = new Map(rows.filter(r => r.depth === 0).map(r => [r, x0]));
+  let dropped = 0;
+  for (const row of rows) {
+    if (!place.has(row)) { dropped++; continue; }
+    const x = place.get(row);
+    // Width is a reading measure, or whatever is left of the page -- which is what makes
+    // the band's size a function of the room it has rather than of the tree's shape.
+    const w = Math.min(col, total - x);
+    if (w < 60) { dropped++; continue; }        // nothing legible fits this far right
+    const el = document.createElement("div");
+    el.className = "pv" + (row.here ? " here" : "");
+    el.style.marginLeft = x + "px";
+    el.style.width = w + "px";
+    el.dataset.go = row.line.start;
+    el.append(...spans(row.line.nodes, true));
+    band.append(el);
+    row.el = el;
+    // Children align to the column their first token occupies *in this line*, which can
+    // only be read off the rendered text.
+    const left = el.getBoundingClientRect().left;
+    for (const kid of row.kids) {
+      const anchor = el.querySelector(`.seg[data-i="${kid.at}"]`);
+      if (!anchor) continue;                    // parts inside a multi-token character
+      const dx = anchor.getBoundingClientRect().left - left;
+      if (dx >= w) continue;                    // parts past this line's clip
+      place.set(kid.row, x + dx);
+    }
+  }
+  // Silent truncation would read as "that is all of them", so it says so.
+  if (dropped) {
+    const note = document.createElement("div");
+    note.className = "pv dropped";
+    note.style.marginLeft = x0 + "px";
+    note.textContent = `+${dropped} more, parting past the room this line has`;
+    band.append(note);
+  }
+}
+
+function openBranch(node) {
+  branchAt = node;
+  selected = null;
+  $panel.classList.remove("open");
+  render();
+}
+function closeBranch() { branchAt = null; render(); }
 
 // ---- the ranking --------------------------------------------------------------------
 // Selecting a token asks what else was live *at that position* -- which is the ranking at
@@ -243,9 +415,20 @@ const escape_ = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">":
 
 // ---- gestures -----------------------------------------------------------------------
 $text.addEventListener("click", e => {
+  // A preview line: take it. The one already being read is a cancel.
+  const pv = e.target.closest(".pv");
+  if (pv) {
+    if (pv.classList.contains("here") || !pv.dataset.go) return closeBranch();
+    const go = Number(pv.dataset.go);
+    path = pathTo(go).concat(descend(go).slice(1));
+    return closeBranch();
+  }
   const el = e.target.closest(".seg");
-  if (!el) return closeRanking();
+  if (!el) return branchAt !== null ? closeBranch() : closeRanking();
   const node = Number(el.dataset.node);
+  // A fork opens interlinearly; anything else asks what else was ranked there.
+  if (el.classList.contains("fork") && document.body.dataset.marks === "on")
+    return node === branchAt ? closeBranch() : openBranch(node);
   node === selected ? closeRanking() : openRanking(node);
 });
 $text.addEventListener("mousemove", e => {
@@ -265,7 +448,13 @@ $panel.addEventListener("click", e => {
   path = path.slice(0, cut + 1).concat(descend(go));
   openRanking(go);
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeRanking(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  branchAt !== null ? closeBranch() : closeRanking();
+});
+// The band is laid out from measured geometry, so it has to be laid out again when the
+// geometry changes. Nothing about it can be expressed in CSS flow alone.
+addEventListener("resize", () => { if (branchAt !== null) render(); });
 
 // ---- cadence ------------------------------------------------------------------------
 // A generation arrives as consecutive acts, not as a stream. At 32 tok/s a 16-token act is
