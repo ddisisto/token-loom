@@ -1,9 +1,4 @@
-"""The command line: the reference client, and the floor.
-
-**No capability may be surface-only.** If a thing can be done at all it can be done here,
-without the reading surface. That is not a use case -- it is a check on where capability
-is allowed to live, since anything reachable only by clicking has put itself somewhere the
-record cannot follow.
+"""The command line: the reference client, and every write the record admits.
 
 Reads take no lock and need no server. `realise` and `delete` need neither a server nor a
 tokeniser; `create` needs a tokeniser; only `generate` calls a model.

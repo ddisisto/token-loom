@@ -92,14 +92,6 @@ armchair would be the one-line rejection the method warns about.
 4. Whether block-arrival reads as alive or as stutter, and whether pacing within a block — which
    invents a timing the record does not hold — is worth it.
 
-## Still owed to the floor
-
-**No capability may be surface-only**, which is checked against a document cheaply and retrofitted
-expensively.
-
-- `will_evaluate` has no command-line verb, though `docs/ADAPTER.md` says explicitly that the
-  command line should be able to answer the same question a surface asks.
-
 ## Prior art
 
 **mikupad** is the closest thing that exists: one self-contained HTML file, raw completion rather

@@ -3,9 +3,7 @@
 **What the surface is.** What it shows, what it lets a reader do, what it reads to do it, and
 what it deliberately leaves undecided.
 
-**The test it is written against: could someone build this from it alone, and is every
-capability in it reachable without it?** The second question is the one this document exists to
-make cheap — checking it against prose costs a reading, and retrofitting it costs a rewrite.
+**The test it is written against: could someone build this from it alone?**
 
 Sections are cited by name, never by position. What the record is, is `docs/CORE.md`; what a
 backend must do to produce it is `docs/ADAPTER.md`. No fact about either is restated here, and
@@ -243,26 +241,17 @@ parts at. The band is laid out from this and from measurement, and from nothing 
 
 Point reads — a node, a tree's roots, the act list — are already cheap and need nothing.
 
-## Nothing is only here
+## Nothing written is only here
 
-**No capability may be surface-only.** The command line is the reference client and the floor: if
-a thing can be done at all it can be done without the surface. Checked operation by operation:
+**No write may be surface-only**, and the surface satisfies this by construction. Everything it
+writes is one of the five writes `docs/CORE.md` defines — the acts `create`, `generate` and
+`realise`, and the state edits `delete` and `undelete` — and each has a verb of its own name,
+`undelete` being `tokenloom delete --undo`. A long generation stopped by declining to issue the
+next act is consecutive `tokenloom generate`, so it too is nothing new.
 
-| the surface offers | reachable as |
-| --- | --- |
-| author text at a position | `tokenloom create` |
-| draw from the model | `tokenloom generate` |
-| a long generation, stoppable | consecutive `tokenloom generate`, stopped by not issuing the next |
-| take a ranked alternative | `tokenloom realise` |
-| delete, undelete | `tokenloom delete` |
-| read a path | `tokenloom path` |
-| a node's ranking and branchable set | `tokenloom show` |
-| the shape below a node | `tokenloom tree` |
-| what was done | `tokenloom acts` |
-| **ask whether a path will be evaluated** | **nothing — see Status** |
-
-Selecting which path to read is view state and not a capability; there is nothing to record and
-nothing for a second client to reach.
+Everything else this document describes is a way of looking. The reading column, the band, a
+ranking on demand, moving between forks, and whatever comparison across branches turns out to be
+are the surface's own, record nothing, and are owed no counterpart.
 
 ## What is not decided here
 
@@ -301,17 +290,6 @@ before its own inner fork and the alternatives have nowhere to hang.
 **Nothing else here is built.** There is no read layer, no API and no surface. What exists is the
 core, the llama.cpp adapter, the command line, and a throwaway probe that reads a static
 projection of a tree and cannot write.
-
-**Open against the command line**, which is what checking Nothing is only here turned up:
-
-- `will_evaluate` has no verb, though `docs/ADAPTER.md` says the command line should answer the
-  same question a surface asks. It is the only row in that table with nothing under it, and Writing
-  now gives the surface a use for it.
-- `tokenloom show` prints a node's children and its unrealised edges as two lists, so **the rank
-  the taken token sat at is derivable but not printed**. What the surface reads asks for one
-  annotated ranking, and the command line answers it in two halves. Not a missing capability —
-  everything needed is on screen — but the two clients will describe one position differently, and
-  the reference client is the one that should not be harder to read.
 
 **Superseded by this document:** `docs/surface-sketch/`, and all of `docs/surface-notes.md` but its
 last section. Both are in history, and a note that outlives the document it fed is the second home

@@ -114,8 +114,8 @@ written. A second way to decline a request gives a caller two paths leaving two 
 and the caller cannot tell which it will get. `generate` is where a request is declined.
 
 **Asking is not declining.** A client that wants to know whether a node can be generated from —
-so a reading surface can say so, and so the command line can answer the same question — may ask
-the adapter, and the answer writes nothing and stands in for no refusal. The real request still
+so a reading surface can say so before offering the act — may ask the adapter, and the answer
+writes nothing and stands in for no refusal. The real request still
 goes through `generate` and still records `refused`. The shape of that query is not settled here.
 
 **Refusal, failure and abandonment are three outcomes.** `refused` never called the model;

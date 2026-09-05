@@ -25,10 +25,13 @@ Two things pull on the design:
 - **Base-model behaviour matters more than chat quality.** A chat-templated reply is a
   different object than a continuation of the prior. Where the two conflict, favour the raw
   continuation path.
-- **No capability may be surface-only.** The command line is the reference client and the
-  floor: if a thing can be done at all, it can be done without the reading surface. This is
-  not a use case, it is a check on where capability is allowed to live — anything reachable
-  only by clicking has put itself somewhere the record cannot follow.
+- **No write may be surface-only.** Every write the surface can make, the command line can
+  make. Reads, views and navigation are the surface's own. What this protects is the record
+  and not a second client: a mutation reachable only by clicking has put itself somewhere
+  the record cannot follow, while a way of looking records nothing and costs nothing. It is
+  close to self-enforcing, since `docs/CORE.md` closes the set of writes — three acts and
+  two state edits — and each already has a verb. A surface write with no verb would be a
+  new kind of write, which is a core change and gets read as one.
 
 Controlled research — attractors in the prior, how temperature gates access to them, framing
 as a change of basis, what survives repeated retransmission — is where this points, and the

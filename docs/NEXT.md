@@ -33,10 +33,6 @@ the read layer should be built against a known set of questions rather than a gu
 N+1 fix below is specified either way — `docs/CORE.md` already says what it is — but *which* bulk
 reads exist is decided here.
 
-It is also where **no capability may be surface-only** is enforced at design time rather than
-discovered late: every operation the surface offers has to be reachable from the command line
-already, and that is cheap to check against a document and expensive to retrofit.
-
 **It is drafted, and it is not accepted.** The four questions this item once listed as open are
 answered in the draft, and one of them — what a run is on screen — stops being a question at all
 once item 0 lands. What it waits on is item 0, and one thing it does not yet say: whether a
