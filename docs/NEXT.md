@@ -12,6 +12,17 @@ that relation to the others is a bullet at the end rather than a number.
 
 ---
 
+## 0. `docs/CORE.md`, reopened once
+
+The locked document moves once: a session lock in place of the per-act one, `Runs` removed, and a
+clause keeping the appendix's parameters from reading as a recommendation. `marker` does not
+change. **The list, the sentences it touches and the knock-ons outside the core are
+`docs/CORE-status.md`'s *Held for a possible future core*, and are not repeated here.**
+
+**First, because what follows is written against it.** `docs/SURFACE.md` already carries two
+paragraphs the lock change deletes, and `docs/ADAPTER.md` carries two the same change makes moot
+and false. Every week it waits is a week more written against a lock that is going to move.
+
 ## 1. `docs/SURFACE.md`, before the surface is built
 
 Design and constraints in prose first. This is the method the project has already been paid by
@@ -26,10 +37,12 @@ It is also where **no capability may be surface-only** is enforced at design tim
 discovered late: every operation the surface offers has to be reachable from the command line
 already, and that is cheap to check against a document and expensive to retrofit.
 
-Open questions it will have to close, at least: what a run is on screen when the record has no run
-ids; how an unrealised edge is offered without implying the model recommends it; what is shown in
-place of bytes that do not decode, which `docs/CORE.md` leaves explicitly to the reader; and how a
-client shows that a write is blocked behind another writer's generation.
+**It is drafted, and it is not accepted.** The four questions this item once listed as open are
+answered in the draft, and one of them — what a run is on screen — stops being a question at all
+once item 0 lands. What it waits on is item 0, and one thing it does not yet say: whether a
+first-pass generation is greedy rather than sampled, and what a surface shows of a distribution
+whose mass sits in three of twenty recorded alternatives. `docs/surface-notes.md` holds that
+argument until the core has moved.
 
 **It has one technique available to it that the record does not name.** A caller that wants to
 stop a long generation can issue it as consecutive short `generate` acts — `docs/ADAPTER.md`'s

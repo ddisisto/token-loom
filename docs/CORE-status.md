@@ -81,17 +81,89 @@ stated there and are not repeated here. The reading surface has no document yet.
 
 ## Held for a possible future core
 
-Not defects in the locked document, and not work outstanding. Recorded so that a version
-which does move has the reasons to hand rather than rediscovering them.
+**Not defects, and not work outstanding.** What follows is what a reopening would carry, kept as
+one list rather than a queue. The worth of a document that does not move is that citing it is safe,
+and that worth is spent the first time it moves — so it is spent once, on everything at once, or
+not at all. Anything that arrives after the edit waits for a next one, and there is not expected to
+be a next one.
 
-- **A write claim held across acts, separate from the per-act lock.** The `flock` is taken for
-  the whole of one act and released between them, which is what lets a chunked generation stop
-  blocking every other writer for its duration. It gives a client no way to say *this tree is
-  mine for the session*, and no way to find out that it is not: the lock is acquired blocking,
-  so a second writer waits rather than being told. A reading surface wants both — it is the sole
-  writer for any tree a user holds open through it, and a would-be second writer should discover
-  that immediately instead of hanging. **Discipline covers it for now**, because the assumption
-  is broken only by running the command line against a tree the surface has open, and the cost
-  of breaking it is a blocked call rather than a damaged store. It would need no table change,
-  so by the conformance rule it would not bump `marker`; what it costs is an edit to a document
-  that does not move, which is the whole of the reason it is here and not done.
+**`marker` stays at `token-loom/nodes-1`.** Nothing below changes what a table means, which is the
+only circumstance *Conformance and extension* says bumps it. A reader written against the current
+document stays correct; what changes is what a **writer** must do about the lock.
+
+### 1. The lock becomes a session claim
+
+**Held for a session, acquired without blocking, and replacing the per-act lock rather than joining
+it.**
+
+As written, `flock` is taken for the whole of one act and released between acts. Two things follow
+that are wrong for a client holding a tree open: there is no way to say *this tree is mine until I
+am done*, and no way to be told that it is not — the acquire blocks, so a writer that cannot have
+it waits with nothing to report.
+
+A claim is the same `flock` on the same file, taken when a store is opened for writing, held until
+it is closed or the process dies, and acquired non-blocking so a second writer is refused at once
+and can say so. **The per-act lock then has nothing left to serialise** — one claim is one writer —
+so `On disk` loses a paragraph rather than gaining one. That is the whole reason this is worth
+doing as a change to the format rather than a convention on top of it.
+
+What moves:
+
+- **`lock`, in `On disk`.** *Held with `flock` for the whole of an act, the model call included*,
+  and with it the sentences about a long generation blocking every other write and about a stale
+  lock blocking. A stale claim does not block — `flock` is released when the holding process dies.
+- **The WAL paragraph, in `On disk`.** *The `flock` is what is held across the call, so the
+  write-ahead log does not grow for the duration of a generation* stops being the reason for
+  anything. What actually keeps the log short is the sentence before it — an act's first write
+  commits and the transaction closes — which is unaffected.
+- **In flight, in `Acts`.** *The lock makes it decidable: a writer holds the lock for the whole of
+  an act, so acquiring it means no other writer is live.* The reasoning survives exactly and
+  reattaches to the claim. Sweeping abandoned acts moves with it, from the first write of every act
+  to the first write of a session, and **opening a tree for writing can modify it** stays true for
+  the same reason it was true before.
+
+### 2. Runs goes
+
+**A derived read nothing derives.** *Runs — maximal chains where each node has exactly one live
+child* is one line in `Derived reads`, and it is the only entry there with no caller: counted
+across the implementation, the command line and the tests, every other derived read has at least
+one and this has none. It is not the start of a cull — the nearest thing to it, `agreement`, has a
+test pinning what the appendix states, so it earns its place differently but it earns it.
+
+It also **dissolves a question instead of answering one.** A reading surface has to say what a run
+looks like on screen only because this document names the concept; with the concept gone there is
+nothing for it to say.
+
+### 3. The appendix's parameters are marked illustrative
+
+**`top_k` 5, and `top_n` 5, 20 and 200, were chosen to make the stages legible.** They have been
+read as a recommendation instead — `top_n` 20 became a de-facto default for no reason but that the
+worked example prints it, and a flat list of twenty alternatives misrepresents a position whose
+mass sits in the top three. That is the worked example leaking into design, and it is the method's
+own warning running backwards: not a one-line rejection deciding something for a year, but a
+one-line illustration doing it.
+
+One clause is enough. The appendix already says what its numbers **are** — real values off a named
+quantisation, copied rather than recomputed — and wants a sentence saying what they are not. **No
+stance on sampling belongs in this document**; what belongs is the absence of an accidental one.
+
+### Knock-ons outside the core
+
+Reasons the edit is larger than it looks. This document does not own any of them.
+
+- **`docs/ADAPTER.md`'s *Cancellation* is wrong in two places, and they fail differently.** *What
+  chunking gives back — the lock is released between chunks, so a long generation stops blocking
+  every other writer for its whole duration* becomes **moot**: there are no other writers to stop
+  blocking. *A block is not atomic. The lock is released between chunks and another writer may
+  interleave* becomes **false**: under a claim no other writer can interleave, so a block held by
+  one session is atomic against every other process, and what can still interleave with it is
+  nothing. The first is a lost benefit and the second is a retracted statement, which is worth
+  keeping apart — a second and independent reason that passage over-reaches, on top of the one
+  already recorded against it.
+- **`docs/SURFACE.md` loses a paragraph rather than amending one.** Its answer to how a client shows
+  a write blocked behind another writer becomes *it is told immediately, and by whom*. What it says
+  about runs goes with item 2.
+- **The command line changes behaviour.** Writing to a tree another process holds fails at once
+  instead of waiting. Better for an instrument, since a hang reports nothing — but a visible change
+  to a shipped client and not only an internal one.
+- **`run_from` is deleted from the implementation** with item 2, and it is the only read that goes.
