@@ -87,9 +87,11 @@ and that worth is spent the first time it moves — so it is spent once, on ever
 not at all. Anything that arrives after the edit waits for a next one, and there is not expected to
 be a next one.
 
-**`marker` stays at `token-loom/nodes-1`.** Nothing below changes what a table means, which is the
-only circumstance *Conformance and extension* says bumps it. A reader written against the current
-document stays correct; what changes is what a **writer** must do about the lock.
+**`marker` bumps to `token-loom/nodes-2`, and item 4 is the only reason.** Items 1 to 3 change
+nothing a table means, which is the only circumstance *Conformance and extension* says bumps it —
+against those alone a reader written to the current document stays correct, and only a **writer**
+changes what it does about the lock. Item 4 adds a kind of act, and that makes the same reader
+wrong rather than merely incomplete.
 
 ### 1. The lock becomes a session claim
 
@@ -146,6 +148,66 @@ one-line illustration doing it.
 One clause is enough. The appendix already says what its numbers **are** — real values off a named
 quantisation, copied rather than recomputed — and wants a sentence saying what they are not. **No
 stance on sampling belongs in this document**; what belongs is the absence of an accidental one.
+
+### 4. Deleting is an act
+
+**Recorded in `acts` with the others; the `deleted` flag stays exactly as it is.** What changes is
+that the two writes leave a trace, not how liveness is derived.
+
+`acts` is where a reader goes to find what was done, and it does not hold the mutation with the
+largest effect on what a reader sees. A deleted sibling hides a fork, so the shape of the tree a
+client draws is a function of what is deleted — and that is the one change with no history, no
+time and no actor. `realise` already establishes that an act's source is *who acted* rather than
+what the node carries. Deletion is that same shape, with no node produced at all.
+
+**Additive, and not a replacement.** *Whether a node is live* stays derived from `deleted` by
+walking ancestry. Deriving liveness from an act log instead would cost more than the read it
+replaced, and making that read cheap is work outstanding elsewhere. **The flag is the state; the
+act is the record of the state changing**, and both are needed.
+
+What moves:
+
+- **`op`, in `acts`.** `'create' | 'generate' | 'realise'` gains `'delete'` and `'undelete'`.
+- **`INV-ACT-PATH`.** *Only a `generate` may have a null `tip`* stops being true: a delete produces
+  no nodes, so `origin` names the node acted on and `tip` is null.
+- **A new `INV-ACT-DELETE`.** `origin` is non-null, and `tip`, `params`, `seed`, `terminator` and
+  `rank` are all null.
+- **`INV-ACT-SOURCE`.** Gains a third case: for `delete` and `undelete` the source is the actor,
+  and no node carries it.
+- **Nothing in `Delete`.** *A delete names one node*, the ancestry walk, and *deleting what is
+  already effectively deleted is legal* are all unaffected. A repeated delete now records an act
+  that changed no state, and the precedent is already in `Acts`: *an act whose every node already
+  existed is legal and records that the path was taken again*.
+- **`Conformance and extension`.** Its two extension clauses are made disjoint — see below.
+
+**This item is what bumps `marker`.** An older reader reads `acts` as the whole of what was done.
+That is true today and false after, which is *wrong rather than merely incomplete* — the one
+circumstance *Conformance and extension* names.
+
+**It also settles an ambiguity in that section, and the edit must settle it either way.** *Adding
+a record type does not change `marker`* and *`marker` changes only when an existing table changes
+meaning* both reach a new `op` value in an existing table, and they give opposite answers. The
+second governs, because the test it states is whether an older reader becomes **wrong** rather
+than incomplete, and a reader that takes `acts` for the whole of what was done becomes wrong.
+
+**The two are made disjoint rather than adjudicated case by case**, which is what keeps the next
+one from having to be argued at all:
+
+> A new **table** is a record type, and adding one does not change `marker`. A new **value in an
+> existing column** changes what that column means, and does.
+
+This costs nothing that the extension rule was for. A reader still ignores tables and columns it
+does not know, so a record type added later is still free — the clause keeps its whole purpose,
+and only stops reaching a case it was never about. Left unresolved, the question is decided by
+whichever second reader is written first, and by then `docs/CORE.md` is locked again.
+
+**Rejected: a separate `edits` table.** It is unambiguously a new record type, so `marker` would
+not move and an older reader would ignore it by rule. It is cheaper on that one axis and worse on
+every other: what was done would live in two tables, every reader of the history would union them,
+and the command line would have to explain why. The marker exists to say that a format changed,
+and declining to use it so that a number can stay still is a compromise bought with the format's
+consistency. **It is also bought with nothing**: the bump is only expensive where stores exist
+that predate it, and here the only ones are validation data on the machine that made them.
 
 ### Knock-ons outside the core
 

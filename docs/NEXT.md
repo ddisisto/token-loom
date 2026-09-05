@@ -14,10 +14,11 @@ that relation to the others is a bullet at the end rather than a number.
 
 ## 0. `docs/CORE.md`, reopened once
 
-The locked document moves once: a session lock in place of the per-act one, `Runs` removed, and a
-clause keeping the appendix's parameters from reading as a recommendation. `marker` does not
-change. **The list, the sentences it touches and the knock-ons outside the core are
-`docs/CORE-status.md`'s *Held for a possible future core*, and are not repeated here.**
+The locked document moves once: a session lock in place of the per-act one, `Runs` removed, a
+clause keeping the appendix's parameters from reading as a recommendation, and deleting recorded
+as an act. The last of those bumps `marker`. **The list, the sentences it touches and the
+knock-ons outside the core are `docs/CORE-status.md`'s *Held for a possible future core*, and are
+not repeated here.**
 
 **First, because what follows is written against it.** `docs/SURFACE.md` already carries two
 paragraphs the lock change deletes, and `docs/ADAPTER.md` carries two the same change makes moot
