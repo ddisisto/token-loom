@@ -262,21 +262,6 @@ def branch_points(conn: sqlite3.Connection) -> list[int]:
     ]
 
 
-def run_from(conn: sqlite3.Connection, node: int) -> list[int]:
-    """A maximal chain onward from `node` while each node has exactly one live child.
-
-    Runs have no ids, so this returns the nodes rather than a handle on them.
-    """
-    chain = [node]
-    seen = {node}
-    while True:
-        live = [c for c in children(conn, chain[-1]) if not c.deleted]
-        if len(live) != 1 or live[0].id in seen:
-            return chain
-        chain.append(live[0].id)
-        seen.add(live[0].id)
-
-
 def agreement(conn: sqlite3.Connection) -> dict[str, list]:
     """Nodes produced by more than one act, and siblings carrying one token from
     different sources.

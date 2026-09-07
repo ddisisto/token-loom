@@ -87,11 +87,11 @@ and that worth is spent the first time it moves — so it is spent once, on ever
 not at all. Anything that arrives after the edit waits for a next one, and there is not expected to
 be a next one.
 
-**`marker` bumps to `token-loom/nodes-2`, and item 4 is the only reason.** Items 1 and 2 change
-nothing a table means, which is the only circumstance *Conformance and extension* says bumps it —
-against those alone a reader written to the current document stays correct, and only a **writer**
-changes what it does about the lock. Item 4 adds a kind of act, and that makes the same reader
-wrong rather than merely incomplete.
+**`marker` bumps to `token-loom/nodes-2`, and item 4 is the only reason.** Item 1 changes nothing
+a table means, which is the only circumstance *Conformance and extension* says bumps it — against
+it alone a reader written to the current document stays correct, and only a **writer** changes
+what it does about the lock. Item 4 adds a kind of act, and that makes the same reader wrong
+rather than merely incomplete.
 
 ### 1. The lock becomes a session claim
 
@@ -123,18 +123,6 @@ What moves:
   reattaches to the claim. Sweeping abandoned acts moves with it, from the first write of every act
   to the first write of a session, and **opening a tree for writing can modify it** stays true for
   the same reason it was true before.
-
-### 2. Runs goes
-
-**A derived read nothing derives.** *Runs — maximal chains where each node has exactly one live
-child* is one line in `Derived reads`, and it is the only entry there with no caller: counted
-across the implementation, the command line and the tests, every other derived read has at least
-one and this has none. It is not the start of a cull — the nearest thing to it, `agreement`, has a
-test pinning what the appendix states, so it earns its place differently but it earns it.
-
-It also **dissolves a question instead of answering one.** A reading surface has to say what a run
-looks like on screen only because this document names the concept; with the concept gone there is
-nothing for it to say.
 
 ### 4. Deleting is an act
 
@@ -210,9 +198,7 @@ Reasons the edit is larger than it looks. This document does not own any of them
   keeping apart — a second and independent reason that passage over-reaches, on top of the one
   already recorded against it.
 - **`docs/SURFACE.md` loses a paragraph rather than amending one.** Its answer to how a client shows
-  a write blocked behind another writer becomes *it is told immediately, and by whom*. What it says
-  about runs goes with item 2.
+  a write blocked behind another writer becomes *it is told immediately, and by whom*.
 - **The command line changes behaviour.** Writing to a tree another process holds fails at once
   instead of waiting. Better for an instrument, since a hang reports nothing — but a visible change
   to a shipped client and not only an internal one.
-- **`run_from` is deleted from the implementation** with item 2, and it is the only read that goes.

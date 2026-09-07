@@ -68,11 +68,8 @@ alternative and generates five tokens onto it would be thrown back onto the two-
 branch they just left, because that branch is still the longest descent from the root. **The path
 follows the act.** What an act produced is what the reader is looking at when it lands.
 
-**A run is not shown.** `docs/CORE.md` derives runs — maximal chains with one live child — and the
-surface never draws one, because a run is exactly the stretch where nothing is offered and
-therefore the stretch that should look like prose. The visible object is the fork. This is what
-answers *what a run is on screen when the record has no run ids*: nothing, and it needs no id
-because nothing points at it.
+**Between forks, nothing is drawn.** A stretch where nothing is offered is a stretch that should
+look like prose, so the visible object is the fork and the reading column is otherwise text.
 
 ## Forks and the band
 

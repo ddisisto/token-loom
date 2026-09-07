@@ -424,8 +424,7 @@ Neither is an act, and neither is recorded in `acts`.
 **A delete names one node.** Whether a node is live is derived by walking its ancestry: it is
 live when neither it nor any ancestor is deleted. So a delete is one write, undoing it is one
 write, and a descendant deleted on its own account stays deleted when its ancestor comes back.
-Deleting what is already effectively deleted is legal, and is what makes that work. Because a
-node is one token, a delete lands anywhere — there is no such thing as deleting mid-run.
+Deleting what is already effectively deleted is legal, and is what makes that work.
 
 ## Derived reads
 
@@ -439,7 +438,6 @@ Nothing here is stored.
 - **An act's tokens** — the path from `origin` to `tip`.
 - **Whether a node is live** — neither it nor any ancestor carries `deleted`. A descent from the
   root carries the answer down and costs nothing.
-- **Runs** — maximal chains where each node has exactly one live child. Runs have no ids.
 - **Branch points** — nodes with more than one child.
 - **Unrealised edges** — ranked edges at a node with no matching child. This is the branchable
   set, and it is a `LEFT JOIN`.
