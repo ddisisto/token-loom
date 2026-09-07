@@ -7,19 +7,17 @@ it lives here instead of in it.
 
 ## Locked
 
-`docs/CORE.md` is locked at `marker` `token-loom/nodes-1`, on branch `core-design-lock`.
+`docs/CORE.md` is locked at `marker` `token-loom/nodes-2`.
 
-It was written as a plan, transcribed whole, reviewed against itself and its adapter contract,
-and amended once. The terminator set was closed at lock rather than deferred, because adding one
-later changes the meaning of an existing column and is the one event the conformance rule says
-bumps `marker`.
+The terminator set is closed rather than deferred, because adding one changes the meaning of an
+existing column and is the kind of event the conformance rule says bumps `marker`.
 
 ## Built
 
-**The format is implemented and holds.** `src/tokenloom/core/` is the store — the three acts, the
-two state edits, the derived reads and a checker for every named invariant. The command line on
-top of it is `src/tokenloom/cli.py`. No implementation detail belongs in this section; what
-belongs here is that the document has a reader now, and what that reader found.
+**The format is implemented and holds.** `src/tokenloom/core/` is the store — the five acts, the
+derived reads and a checker for every named invariant. The command line on top of it is
+`src/tokenloom/cli.py`. No implementation detail belongs in this section; what belongs here is
+that the document has a reader now, and what that reader found.
 
 **The appendix has been replayed against the implementation, stage by stage, and matches.** Its
 node numbering comes out 1 through 12 and its source numbering 1 and 2, which is the part worth
@@ -77,89 +75,4 @@ been a marker bump.
 ## What the lock does not cover
 
 The adapter contract is `docs/ADAPTER.md` and is deliberately unlocked; its own open items are
-stated there and are not repeated here. The reading surface has no document yet.
-
-## Held for a possible future core
-
-**Not defects, and not work outstanding.** What follows is what a reopening would carry, kept as
-one list rather than a queue. The worth of a document that does not move is that citing it is safe,
-and that worth is spent the first time it moves — so it is spent once, on everything at once, or
-not at all. Anything that arrives after the edit waits for a next one, and there is not expected to
-be a next one.
-
-**`marker` is already `token-loom/nodes-2`**, so the item below moves it no further. It would
-have bumped it on its own account: adding a kind of act makes a reader that takes `acts` for the
-whole of what was done wrong rather than merely incomplete.
-
-### Deleting is an act
-
-**Recorded in `acts` with the others; the `deleted` flag stays exactly as it is.** What changes is
-that the two writes leave a trace, not how liveness is derived.
-
-`acts` is where a reader goes to find what was done, and it does not hold the mutation with the
-largest effect on what a reader sees. A deleted sibling hides a fork, so the shape of the tree a
-client draws is a function of what is deleted — and that is the one change with no history, no
-time and no actor. `Acts` already separates who acted from who produced a token, and deletion is
-the case where there is nothing produced at all.
-
-**Additive, and not a replacement.** *Whether a node is live* stays derived from `deleted` by
-walking ancestry. Deriving liveness from an act log instead would cost more than the read it
-replaced, and making that read cheap is work outstanding elsewhere. **The flag is the state; the
-act is the record of the state changing**, and both are needed.
-
-What moves:
-
-- **`op`, in `acts`.** `'create' | 'generate' | 'realise'` gains `'delete'` and `'undelete'`.
-- **`INV-ACT-PATH`.** *Only a `generate` may have a null `tip`* stops being true: a delete produces
-  no nodes, so `origin` names the node acted on and `tip` is null.
-- **A new `INV-ACT-DELETE`.** `origin` is non-null, and `tip`, `model`, `params`, `seed`,
-  `terminator` and `rank` are all null.
-- **Nothing in `INV-ACT-SOURCE`.** It says where the source of a node an act produced comes from,
-  and these produce none.
-- **`Acts`' in-flight paragraph.** *Only `generate` can be; the other two are one write each* has
-  to count five ops rather than three.
-- **The `Operations` sections.** `State edits` opens *Neither is an act, and neither is recorded in
-  `acts`*, and `Acts` says *an act begins at a live node* — which an `undelete` never does, and a
-  repeated `delete` need not. Both are stated where they are now false.
-- **Nothing in `Delete`.** *A delete names one node*, the ancestry walk, and *deleting what is
-  already effectively deleted is legal* are all unaffected. A repeated delete now records an act
-  that changed no state, and the precedent is already in `Acts`: *an act whose every node already
-  existed is legal and records that the path was taken again*.
-- **`Conformance and extension`.** Its two extension clauses are made disjoint — see below.
-
-**It settles an ambiguity in `Conformance and extension`, and the edit must settle it either
-way.** *Adding a record type does not change `marker`* and *`marker` changes only when an existing
-table changes meaning* both reach a new `op` value in an existing table, and they give opposite
-answers. The
-second governs, because the test it states is whether an older reader becomes **wrong** rather
-than incomplete, and a reader that takes `acts` for the whole of what was done becomes wrong.
-
-**The two are made disjoint rather than adjudicated case by case**, which is what keeps the next
-one from having to be argued at all:
-
-> A new **table** is a record type, and adding one does not change `marker`. A new **value in an
-> existing column** changes what that column means, and does.
-
-This costs nothing that the extension rule was for. A reader still ignores tables and columns it
-does not know, so a record type added later is still free — the clause keeps its whole purpose,
-and only stops reaching a case it was never about. Left unresolved, the question is decided by
-whichever second reader is written first, and by then `docs/CORE.md` is locked again.
-
-**Rejected: a separate `edits` table.** It is unambiguously a new record type, so `marker` would
-not move and an older reader would ignore it by rule. It is cheaper on that one axis and worse on
-every other: what was done would live in two tables, every reader of the history would union them,
-and the command line would have to explain why. The marker exists to say that a format changed,
-and declining to use it so that a number can stay still is a compromise bought with the format's
-consistency. **It is also bought with nothing**: the bump is only expensive where stores exist
-that predate it, and here the only ones are validation data on the machine that made them.
-
-### Knock-ons outside the core
-
-- **`docs/SURFACE.md`'s *Nothing written is only here*** names *the acts `create`, `generate` and
-  `realise`, and the state edits `delete` and `undelete`*. The five writes stay five; how they
-  divide changes.
-- **`CLAUDE.md`** says the same thing in the same shape — *three acts and two state edits* — where
-  it argues that the write floor is close to self-enforcing.
-- **The command line** gains `--user` on `delete`, which is the only verb that acts without
-  already naming an actor.
-
+stated there and are not repeated here. The reading surface is `docs/SURFACE.md`.

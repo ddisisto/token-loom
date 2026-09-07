@@ -134,12 +134,12 @@ vocabulary that was not recorded.
 
 ## Acts
 
-**What was done**, recorded once. An act starts at one node and extends the tree from it, or
-records that it did not.
+**What was done**, recorded once. An act starts at one node and either extends the tree from it,
+changes whether it is live, or records that it did neither.
 
 | field | on | meaning |
 | --- | --- | --- |
-| `op` | all | `create`, `generate` or `realise` |
+| `op` | all | `create`, `generate`, `realise`, `delete` or `undelete` |
 | `actor` | all | **who acted** |
 | `origin` | all | the node it started from, or `null` if it began a root |
 | `tip` | all | the last node it produced, or `null` if it produced none |
@@ -160,8 +160,8 @@ overlap is the sampling frequency, and it costs nothing to keep.
 
 **Only `generate` calls a model.** `create` tokenises text someone wrote, which needs the
 vocabulary but not the model. `realise` turns a ranked edge that is already recorded into a node,
-and needs neither: it is reachable with nothing running at all, and `create` with a tokeniser
-alone.
+and `delete` and `undelete` change one flag — all three are reachable with nothing running at
+all, and `create` with a tokeniser alone.
 
 **An act records who acted; a node records who produced its token.** These are different
 questions. Authoring text, asking a model to continue and taking a ranked edge are all things a
@@ -174,7 +174,8 @@ produced elsewhere is recorded as that model's, with the act naming whoever ente
 cannot check such a claim, and Sources has already said that naming is the enforcement.
 
 `origin` may be null for `create` and for `generate`, each of which then begins a root. It may not
-be null for `realise`, which needs an existing edge to take.
+be null for `realise`, which needs an existing edge to take, nor for `delete` and `undelete`, which
+name in `origin` the node whose flag they change and produce no nodes at all.
 
 | terminator | means |
 | --- | --- |
@@ -217,7 +218,7 @@ one request intern to one row. The seed keeps a column of its own, because it is
 per call and interning it would mint a row each time; the core supplies one when a caller does
 not, so that it too is part of the request.
 
-**A `generate` act with a null `terminator` is in flight.** Only `generate` can be; the other two
+**A `generate` act with a null `terminator` is in flight.** Only `generate` can be; the others
 are one write each. The claim makes it decidable: one claim is one writer, so an act still in
 flight when a claim is taken is one whose writer is gone, and is recorded `aborted`.
 
@@ -259,7 +260,7 @@ entirely in SQL.
 
 ```json
 {
-  "marker": "token-loom/nodes-1",
+  "marker": "token-loom/nodes-2",
   "created": "2026-08-25T11:56:00Z",
   "vocabulary": "qwen2.5-7b-base"
 }
@@ -306,6 +307,7 @@ CREATE TABLE params (
 CREATE TABLE acts (
   id      INTEGER PRIMARY KEY,
   op      TEXT NOT NULL,                   -- 'create' | 'generate' | 'realise'
+                                           --   | 'delete' | 'undelete'
   actor   INTEGER NOT NULL,                -- who acted; a source of kind 'user'
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
@@ -353,9 +355,9 @@ modify it.** A reader takes no lock.
   still held, so its rows are not orphans.
 - **`INV-RANK-DENSE`** — ranks within a `(node, source)` are distinct and contiguous from `0`.
 - **`INV-RANK-UNIQUE`** — a `token_id` appears at most once within a `(node, source)`.
-- **`INV-ACT-PATH`** — an act with a non-null `tip` names a node that exists, descends from
-  `origin` — or from a root, if `origin` is null — and the range from `origin` exclusive to `tip`
-  inclusive is non-empty. Only a `generate` may have a null `tip`.
+- **`INV-ACT-PATH`** — an act's non-null `origin` and non-null `tip` each name a node that
+  exists; a `tip` descends from `origin` — or from a root, if `origin` is null — and the range
+  from `origin` exclusive to `tip` inclusive is non-empty.
 - **`INV-ACT-ACTOR`** — an act's `actor` is a source of kind `user`. A `model` is what produces
   tokens, and acting is not producing.
 - **`INV-ACT-SOURCE`** — every node an act produced carries one source: for `generate` the act's
@@ -369,14 +371,14 @@ modify it.** A reader takes no lock.
 - **`INV-ACT-REALISE`** — a `realise` act has `rank` and a non-null `origin` and `tip`, and no
   `model`, `params`, `seed` or `terminator`; `tip` is a child of `origin`; and the edge
   `(origin, tip.source, rank)` exists and carries `tip.token_id`.
+- **`INV-ACT-DELETE`** — a `delete` or `undelete` act has a non-null `origin`, and no `tip`,
+  `model`, `params`, `seed`, `terminator` or `rank`.
 
 Descending logprob within a ranking is **not** an invariant. Rankings says why.
 
 ## Operations
 
-### Acts
-
-Each is recorded in `acts`, and each extends the tree or records that it did not.
+### Producing nodes
 
 | operation | writes | leaves |
 | --- | --- | --- |
@@ -416,24 +418,29 @@ generate.
 **Merging is checked, not assumed.** Every node an act produces is looked up by
 `(parent, token_id, source)` first and reused if it exists.
 
-**Liveness constrains where an act starts, not what it produces.** An act begins at a live node.
-What it produces may pass into ground that is not: a generation whose path merges into a deleted
-node extends below it, and those nodes are recorded and are not live — the same answer `delete`
-gives for every descendant.
+**Liveness constrains where an act starts, not what it produces.** The acts that produce nodes
+begin at a live node. What they produce may pass into ground that is not: a generation whose path
+merges into a deleted node extends below it, and those nodes are recorded and are not live — the
+same answer `delete` gives for every descendant.
 
-### State edits
-
-Neither is an act, and neither is recorded in `acts`.
+### Changing liveness
 
 | operation | writes | leaves |
 | --- | --- | --- |
-| `delete(node)` | `deleted` on that node alone | descendants untouched |
-| `undelete(node)` | clears it | live again only if its ancestry is |
+| `delete(node)` | one act, and `deleted` on that node alone | descendants untouched |
+| `undelete(node)` | one act, and the flag cleared | live again only if its ancestry is |
+
+**These two begin anywhere.** Liveness is what they change, so requiring a live node would put
+`undelete` out of reach.
 
 **A delete names one node.** Whether a node is live is derived by walking its ancestry: it is
-live when neither it nor any ancestor is deleted. So a delete is one write, undoing it is one
-write, and a descendant deleted on its own account stays deleted when its ancestor comes back.
-Deleting what is already effectively deleted is legal, and is what makes that work.
+live when neither it nor any ancestor is deleted. So a delete touches one node, undoing it touches
+one, and a descendant deleted on its own account stays deleted when its ancestor comes back.
+
+**The flag is the state; the act is the record of it changing.** Liveness comes from `deleted` and
+never from `acts`. Deleting what is already effectively deleted is legal — it is what makes the
+paragraph above work — and records an act that changed nothing, exactly as an act whose every node
+already existed does.
 
 ## Derived reads
 
@@ -459,10 +466,11 @@ Nothing here is stored.
 ## Conformance and extension
 
 - A reader that does not recognise `marker` stops.
-- **A reader ignores tables and columns it does not know**, and adding a record type does not
-  change `marker`. This is what allows the format to grow without invalidating a reader.
-- **`marker` changes only when an existing table changes meaning** — the one circumstance that
-  makes an older reader wrong rather than merely incomplete.
+- **A reader ignores tables and columns it does not know**, and adding a new table does not change
+  `marker`. This is what allows the format to grow without invalidating a reader.
+- **A new value in an existing column changes what that column means, and does change `marker`**,
+  as does any other change to what an existing table means — the one circumstance that makes an
+  older reader wrong rather than merely incomplete.
 - A store that fails an invariant is not repaired silently. A reader reports it; a writer will not
   write.
 
@@ -485,8 +493,10 @@ Nothing here is stored.
 ## Appendix — a worked example
 
 One tree, built in seven stages. The rows are exact. Every construct in this document appears in
-it but four terminators — `eos`, `cancelled`, `failed` and `aborted` — and a `create` attributed
-to a source that did not act. None of those shapes a row differently from one that is here.
+it but four terminators — `eos`, `cancelled`, `failed` and `aborted` — a `create` attributed to a
+source that did not act, and `delete` and `undelete`. None of those shapes a row differently from
+one that is here: a delete is an act with an `origin`, no `tip` and nothing else, and its effect
+is one flag.
 
 **The ids and logprobs below are real**, taken from `Qwen2.5-7B.i1-Q4_K_M` served by llama.cpp
 over Vulkan, 16k context. Logprobs are shown to four places; nothing else is rounded or invented.

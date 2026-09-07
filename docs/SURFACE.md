@@ -155,8 +155,8 @@ None is shown until a position is asked about.
 
 ## Writing
 
-The surface offers the three acts and the two state edits, and nothing else. What each one is, is
-`docs/CORE.md`; what it costs is here.
+The surface offers the five acts and nothing else. What each one is, is `docs/CORE.md`; what it
+costs is here.
 
 | operation | needs | can fail as |
 | --- | --- | --- |
@@ -239,9 +239,8 @@ Point reads — a node, a tree's roots, the act list — are already cheap and n
 ## Nothing written is only here
 
 **No write may be surface-only**, and the surface satisfies this by construction. Everything it
-writes is one of the five writes `docs/CORE.md` defines — the acts `create`, `generate` and
-`realise`, and the state edits `delete` and `undelete` — and each has a verb of its own name,
-`undelete` being `tokenloom delete --undo`. A long generation stopped by declining to issue the
+writes is one of the five acts `docs/CORE.md` defines — `create`, `generate`, `realise`, `delete`
+and `undelete` — and each has a verb of its own name, `undelete` being `tokenloom delete --undo`. A long generation stopped by declining to issue the
 next act is consecutive `tokenloom generate`, so it too is nothing new.
 
 Everything else this document describes is a way of looking. The reading column, the band, a

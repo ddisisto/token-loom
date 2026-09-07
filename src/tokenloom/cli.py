@@ -1,7 +1,7 @@
 """The command line: the reference client, and every write the record admits.
 
-Reads take no lock and need no server. `realise` and `delete` need neither a server nor a
-tokeniser; `create` needs a tokeniser; only `generate` calls a model.
+Reads take no lock and need no server. `realise`, `delete` and `undelete` need neither a
+server nor a tokeniser; `create` needs a tokeniser; only `generate` calls a model.
 """
 
 from __future__ import annotations
@@ -166,7 +166,8 @@ def _edge_source(store: Store, node: int, named: str | None) -> Source:
 
 def cmd_delete(args) -> int:
     with Store.open(args.tree, write=True) as store:
-        store.undelete(args.node) if args.undo else store.delete(args.node)
+        write = store.undelete if args.undo else store.delete
+        print(f"act {write(args.node, actor=actor(args))}")
         print(f"node {args.node}  {'live' if R.is_live(store.conn, args.node) else 'not live'}")
     return 0
 
@@ -365,6 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("delete", help="mark a node deleted; liveness is derived")
     p.add_argument("tree", type=Path)
     p.add_argument("node", type=int)
+    p.add_argument("--user", default="", help="the acting user; empty is the unnamed user")
     p.add_argument("--undo", action="store_true", help="clear it; live again only if its "
                                                        "ancestry is")
     p.set_defaults(fn=cmd_delete)

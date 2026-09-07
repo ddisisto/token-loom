@@ -29,8 +29,8 @@ Two things pull on the design:
   make. Reads, views and navigation are the surface's own. What this protects is the record
   and not a second client: a mutation reachable only by clicking has put itself somewhere
   the record cannot follow, while a way of looking records nothing and costs nothing. It is
-  close to self-enforcing, since `docs/CORE.md` closes the set of writes — three acts and
-  two state edits — and each already has a verb. A surface write with no verb would be a
+  close to self-enforcing, since `docs/CORE.md` closes the set of writes — five acts — and
+  each already has a verb. A surface write with no verb would be a
   new kind of write, which is a core change and gets read as one.
 
 Controlled research — attractors in the prior, how temperature gates access to them, framing

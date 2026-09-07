@@ -47,6 +47,7 @@ CREATE TABLE params (
 CREATE TABLE acts (
   id      INTEGER PRIMARY KEY,
   op      TEXT NOT NULL,                   -- 'create' | 'generate' | 'realise'
+                                           --   | 'delete' | 'undelete'
   actor   INTEGER NOT NULL,                -- who acted; a source of kind 'user'
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
@@ -55,7 +56,7 @@ CREATE TABLE acts (
   rank    INTEGER);                                                -- 'realise' only
 """
 
-OPS = ("create", "generate", "realise")
+OPS = ("create", "generate", "realise", "delete", "undelete")
 
 TERMINATORS = ("eos", "limit", "cancelled", "failed", "aborted", "refused")
 

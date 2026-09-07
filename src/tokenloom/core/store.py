@@ -1,4 +1,4 @@
-"""The store: the three acts, the two state edits, and everything that writes.
+"""The store: the five acts, and everything that writes.
 
 Reading is `reads.py`; checking is `check.py`. What is enforced here is what the core
 *rejects* -- and a rejection leaves no trace, so it must happen before anything is written.
@@ -271,7 +271,7 @@ class Store:
         if not reads.is_live(self.conn, node):
             raise Rejected(f"node {node} is not live; an act begins at a live node")
 
-    # ---- the acts ------------------------------------------------------------------
+    # ---- producing nodes -----------------------------------------------------------
 
     def create(
         self,
@@ -455,25 +455,29 @@ class Store:
             (cur if answer.positions else None, answer.terminator, act),
         )
 
-    # ---- state edits ---------------------------------------------------------------
+    # ---- changing liveness ---------------------------------------------------------
 
-    def delete(self, node: int) -> None:
-        """One write, on that node alone. Descendants are untouched; liveness is derived
-        by walking the ancestry. Deleting what is already effectively deleted is legal,
-        and is what makes undelete work. Not an act, and not recorded in `acts`."""
-        self._set_deleted(node, 1)
+    def delete(self, node: int, *, actor: Source) -> int:
+        """The flag on that node alone, and an act. Descendants are untouched; liveness is
+        derived by walking the ancestry. Deleting what is already effectively deleted is
+        legal, and is what makes undelete work."""
+        return self._set_deleted("delete", node, 1, actor)
 
-    def undelete(self, node: int) -> None:
-        """Clears it. Live again only if its ancestry is. Not an act."""
-        self._set_deleted(node, None)
+    def undelete(self, node: int, *, actor: Source) -> int:
+        """Clears it. Live again only if its ancestry is."""
+        return self._set_deleted("undelete", node, None, actor)
 
-    def _set_deleted(self, node: int, value: int | None) -> None:
+    def _set_deleted(self, op: str, node: int, value: int | None, actor: Source) -> int:
+        """No liveness precondition: liveness is what these change, so requiring a live
+        node would put `undelete` out of reach."""
         with self._writing():
+            actor_id = self._actor_id(actor)
             if not reads.node_exists(self.conn, node):
                 raise Rejected(f"no node {node}")
             self.conn.execute("UPDATE nodes SET deleted = ? WHERE id = ?", (value, node))
+            return self._write_act(op, actor_id, origin=node, tip=None)
 
-    # ---- acts ----------------------------------------------------------------------
+    # ---- writing an act ------------------------------------------------------------
 
     def _write_act(
         self,

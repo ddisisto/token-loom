@@ -229,15 +229,16 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                 Violation("INV-ACT-ACTOR", f"{where}: actor {actor} is a {sources[actor][0]}")
             )
 
-        # INV-ACT-PATH -- a non-null tip names an existing node, descends from origin, and
-        # the range from origin exclusive to tip inclusive is non-empty.
+        # INV-ACT-PATH -- a non-null origin names an existing node, and a non-null tip names
+        # an existing node, descends from origin, and covers a non-empty range. The descent
+        # is what would otherwise be the only witness that origin exists, and it does not run
+        # when the tip is null.
+        if origin is not None and origin not in nodes:
+            bad.append(Violation("INV-ACT-PATH", f"{where}: origin {origin} does not exist"))
         path: list[int] = []
-        if tip is None:
-            if op != "generate":
-                bad.append(Violation("INV-ACT-PATH", f"{where}: only a generate may have no tip"))
-        elif tip not in nodes:
+        if tip is not None and tip not in nodes:
             bad.append(Violation("INV-ACT-PATH", f"{where}: tip {tip} does not exist"))
-        else:
+        elif tip is not None:
             cur: int | None = tip
             guard = len(nodes) + 1
             while cur is not None and cur != origin and guard:
@@ -356,4 +357,23 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                             f"token {row[0]}, but tip {tip} carries {token_id}",
                         )
                     )
+
+        elif op in ("delete", "undelete"):
+            # INV-ACT-DELETE
+            if origin is None:
+                bad.append(Violation("INV-ACT-DELETE", f"{where}: names no node"))
+            extra = [
+                n
+                for n, v in (
+                    ("tip", tip),
+                    ("model", model),
+                    ("params", params),
+                    ("seed", seed),
+                    ("terminator", terminator),
+                    ("rank", rank),
+                )
+                if v is not None
+            ]
+            if extra:
+                bad.append(Violation("INV-ACT-DELETE", f"{where}: carries {extra}"))
     return bad

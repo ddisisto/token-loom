@@ -211,11 +211,32 @@ def test_descending_logprob_is_not_an_invariant():
 # ---- acts ---------------------------------------------------------------------------
 
 
-def test_inv_act_path_only_a_generate_may_have_no_tip():
+def test_inv_act_path_closes_origin_on_an_act_with_no_tip():
+    """The descent from tip to origin is what witnesses that origin exists, and an act
+    that produced no nodes has no descent to run. Reached on purpose because ordinary use
+    cannot: a store only ever writes an origin it has just looked up."""
     conn = bare()
     node(conn, 1, None)
-    act(conn, 1, "create", tip=None)
+    act(conn, 1, "delete", origin=9999)
     assert "INV-ACT-PATH" in names(conn)
+
+
+def test_inv_act_delete_names_a_node_and_carries_nothing_else():
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "delete", origin=None)
+    act(conn, 2, "undelete", origin=1, rank=0)
+    assert names(conn) == {"INV-ACT-DELETE"}
+
+
+def test_a_delete_produces_no_nodes_and_is_not_asked_for_a_source():
+    """INV-ACT-SOURCE says where the source of a node an act produced comes from, and
+    these produce none -- so the store's only model-less act must not trip it."""
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "delete", origin=1)
+    act(conn, 2, "undelete", origin=1)
+    assert violations(conn) == []
 
 
 def test_inv_act_path_tip_must_descend_from_origin():
@@ -267,11 +288,12 @@ def test_inv_act_generate_wants_a_model_that_is_one():
     assert "INV-ACT-GENERATE" in names(conn)
 
 
-def test_inv_act_create_carries_no_generate_or_realise_fields():
+def test_inv_act_create_names_a_tip_and_carries_nothing_else():
     conn = bare()
     node(conn, 1, None)
     act(conn, 1, "create", tip=1, seed=5)
-    assert "INV-ACT-CREATE" in names(conn)
+    act(conn, 2, "create", tip=None)
+    assert names(conn) == {"INV-ACT-CREATE"}
 
 
 def test_inv_act_generate_needs_params_and_seed():
@@ -364,4 +386,4 @@ def test_every_invariant_the_locked_document_names_is_one_this_checker_can_repor
     reported = set(re.findall(r'"(INV-[A-Z-]+)"', pathlib.Path(check.__file__).read_text()))
     assert named == reported, {"only in CORE.md": named - reported,
                                "only in check.py": reported - named}
-    assert len(named) == 15
+    assert len(named) == 16

@@ -103,11 +103,17 @@ def test_the_source_a_create_names_defaults_to_the_actor(store):
 
 def test_an_actor_is_a_user_and_a_model_acting_is_rejected(store):
     """Acting is not producing. A caller that drives the tree by itself is a named user,
-    which keeps `sources` honest: a model in there is something that produced tokens."""
+    which keeps `sources` honest: a model in there is something that produced tokens.
+
+    Every act below names a node that does not exist, and each is refused for its actor
+    rather than its node -- the actor is a precondition of the act and is checked first.
+    """
     for act in (
         lambda: store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=MODEL),
         lambda: store.generate(None, {"length": 1}, adapter=ToyAdapter([]), actor=MODEL, seed=1),
         lambda: store.realise(1, MODEL, 0, actor=MODEL),
+        lambda: store.delete(1, actor=MODEL),
+        lambda: store.undelete(1, actor=MODEL),
     ):
         with pytest.raises(Rejected, match="actor is a user"):
             act()
@@ -118,10 +124,11 @@ def test_an_actor_is_a_user_and_a_model_acting_is_rejected(store):
 
 
 def test_a_delete_names_one_node_and_descendants_are_untouched(store):
-    """Whether a node is live is derived by walking the ancestry, so a delete is one write."""
+    """Whether a node is live is derived by walking the ancestry, so a delete touches one
+    node however many it takes out of the live tree."""
     tip = seeded(store)
     root = R.roots(store.conn)[0].id
-    store.delete(root)
+    store.delete(root, actor=USER)
     assert R.get_node(store.conn, tip).deleted is False  # the row is untouched
     assert not R.is_live(store.conn, tip)  # but it is not live
     assert not R.is_live(store.conn, root)
@@ -131,16 +138,63 @@ def test_a_descendant_deleted_on_its_own_account_stays_deleted(store):
     """Deleting what is already effectively deleted is legal, and is what makes that work."""
     tip = seeded(store)
     root = R.roots(store.conn)[0].id
-    store.delete(root)
-    store.delete(tip)  # already effectively deleted; legal, and recorded on its own account
-    store.undelete(root)
+    store.delete(root, actor=USER)
+    store.delete(tip, actor=USER)  # already effectively deleted; legal, and on its own account
+    store.undelete(root, actor=USER)
     assert R.is_live(store.conn, root)
     assert not R.is_live(store.conn, tip)
 
 
-def test_an_act_begins_at_a_live_node(store):
+def test_deleting_and_undeleting_are_recorded_in_acts(store):
+    """`acts` is where a reader goes to find what was done, and these are the writes with
+    the largest effect on what a reader sees."""
     tip = seeded(store)
-    store.delete(tip)
+    before = store.conn.execute("SELECT COUNT(*) FROM acts").fetchone()[0]
+    first = store.delete(tip, actor=USER)
+    second = store.undelete(tip, actor=USER)
+
+    rows = store.conn.execute(
+        "SELECT id, op, origin, tip FROM acts WHERE id > ? ORDER BY id", (before,)
+    ).fetchall()
+    assert rows == [(first, "delete", tip, None), (second, "undelete", tip, None)]
+
+
+def test_the_flag_is_the_state_and_the_act_is_the_record_of_it_changing(store):
+    """Liveness comes from `deleted` and never from `acts`, so a delete that changed no
+    state is legal and records an act that a reader of liveness never consults."""
+    tip = seeded(store)
+    store.delete(tip, actor=USER)
+    again = store.delete(tip, actor=USER)  # changed nothing, and is recorded anyway
+    recorded = store.conn.execute("SELECT op FROM acts WHERE id = ?", (again,)).fetchone()
+    assert recorded == ("delete",)
+    assert not R.is_live(store.conn, tip)
+    store.undelete(tip, actor=USER)
+    assert R.is_live(store.conn, tip)
+
+
+def test_changing_liveness_begins_anywhere(store):
+    """Liveness is what these change, so requiring a live node would put `undelete` out of
+    reach. Here the node is not live when it is undeleted and is not live after, because
+    the flag it clears was never the one keeping it out."""
+    tip = seeded(store)
+    root = R.roots(store.conn)[0].id
+    store.delete(tip, actor=USER)
+    store.delete(root, actor=USER)
+    store.undelete(tip, actor=USER)
+    assert R.get_node(store.conn, tip).deleted is False  # the act did what it says
+    assert not R.is_live(store.conn, tip)  # and the ancestor still governs
+
+
+def test_changing_liveness_still_names_a_node_that_exists(store):
+    seeded(store)
+    for act in (lambda: store.delete(9999, actor=USER), lambda: store.undelete(9999, actor=USER)):
+        with pytest.raises(Rejected, match="no node 9999"):
+            act()
+
+
+def test_the_acts_that_produce_nodes_begin_at_a_live_node(store):
+    tip = seeded(store)
+    store.delete(tip, actor=USER)
     for act in (
         lambda: store.create(tip, " is", vocabulary=ToyVocabulary(), actor=USER),
         lambda: store.generate(tip, {"length": 1}, adapter=ToyAdapter([]), actor=USER, seed=1),
@@ -161,7 +215,7 @@ def test_liveness_constrains_where_an_act_starts_not_what_it_produces(store):
     ])
     store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
     dead = R.children(store.conn, tip)[0].id
-    store.delete(dead)
+    store.delete(dead, actor=USER)
 
     # The act starts at `tip`, which is live. Its path passes through `dead`, which is not.
     _, answer = store.generate(tip, {"length": 2}, adapter=adapter, actor=USER, seed=2)
@@ -491,7 +545,7 @@ def test_a_reader_takes_no_lock_and_will_not_write(tmp_path):
     reader = Store.open(path)
     assert R.path_bytes(reader.conn, 2) == b"The sky"
     with pytest.raises(StoreError, match="opened for reading"):
-        reader.delete(1)
+        reader.delete(1, actor=USER)
 
 
 def test_a_reader_that_does_not_recognise_marker_stops(tmp_path):

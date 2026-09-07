@@ -219,7 +219,7 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
         )
         assert refusal.terminator == "refused"
 
-        store.delete(tip)
+        store.delete(tip, actor=user)
         assert not R.is_live(store.conn, taken)
         assert violations(store.conn) == []
 
