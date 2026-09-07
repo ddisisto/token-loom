@@ -5,7 +5,7 @@ indices beyond the keys the document states. Closure is checked by `check.py` ra
 declared, because a checker that trusts the schema checks nothing.
 """
 
-MARKER = "token-loom/nodes-1"
+MARKER = "token-loom/nodes-2"
 
 TREE_FILE = "tree.json"
 BULK_FILE = "bulk.sqlite"
@@ -47,12 +47,12 @@ CREATE TABLE params (
 CREATE TABLE acts (
   id      INTEGER PRIMARY KEY,
   op      TEXT NOT NULL,                   -- 'create' | 'generate' | 'realise'
-  source  INTEGER NOT NULL,
+  actor   INTEGER NOT NULL,                -- who acted; a source of kind 'user'
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
-  params  INTEGER, seed INTEGER, terminator TEXT,   -- 'generate' only
-  rank    INTEGER);                                 -- 'realise' only
+  model   INTEGER, params INTEGER, seed INTEGER, terminator TEXT,  -- 'generate' only
+  rank    INTEGER);                                                -- 'realise' only
 """
 
 OPS = ("create", "generate", "realise")

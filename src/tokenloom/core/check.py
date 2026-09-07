@@ -49,7 +49,7 @@ def violations(conn: sqlite3.Connection) -> list[Violation]:
     bad += _source_named(sources)
     bad += _rank_anchored(conn, nodes)
     bad += _rank_dense_and_unique(conn)
-    bad += _acts(conn, nodes)
+    bad += _acts(conn, nodes, sources)
     return bad
 
 
@@ -133,17 +133,21 @@ def _vocab_closed(conn: sqlite3.Connection, nodes: dict, vocab: set[int]) -> lis
 
 
 def _source_closed(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violation]:
-    """INV-SOURCE-CLOSED -- every `source` in `nodes`, `edges` and `acts` is in `sources`."""
+    """INV-SOURCE-CLOSED -- every source named in `nodes`, `edges` and `acts` is in
+    `sources`. An act names two of them, and `model` is null on all but a generate."""
     bad = [
         Violation("INV-SOURCE-CLOSED", f"node {nid} names source {src}, which does not exist")
         for nid, (_, _, src, _) in nodes.items()
         if src not in sources
     ]
-    for table in ("edges", "acts"):
+    for table, column in (("edges", "source"), ("acts", "actor"), ("acts", "model")):
         bad += [
-            Violation("INV-SOURCE-CLOSED", f"{table} row names source {r[0]}, which does not exist")
-            for r in conn.execute(f"SELECT DISTINCT source FROM {table}")
-            if r[0] not in sources
+            Violation(
+                "INV-SOURCE-CLOSED",
+                f"{table}.{column} names source {r[0]}, which does not exist",
+            )
+            for r in conn.execute(f"SELECT DISTINCT {column} FROM {table}")
+            if r[0] is not None and r[0] not in sources
         ]
     return bad
 
@@ -208,15 +212,22 @@ def _rank_dense_and_unique(conn: sqlite3.Connection) -> list[Violation]:
 # ---- acts --------------------------------------------------------------------------
 
 
-def _acts(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
+def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violation]:
     bad = []
-    for act, op, source, origin, tip, params, seed, terminator, rank in conn.execute(
-        "SELECT id, op, source, origin, tip, params, seed, terminator, rank FROM acts ORDER BY id"
+    for act, op, actor, origin, tip, model, params, seed, terminator, rank in conn.execute(
+        "SELECT id, op, actor, origin, tip, model, params, seed, terminator, rank "
+        "FROM acts ORDER BY id"
     ):
         where = f"act {act} ({op})"
         if op not in OPS:
             bad.append(Violation("INV-ACT-PATH", f"{where}: unknown op"))
             continue
+
+        # INV-ACT-ACTOR -- acting is not producing, so an actor is a user.
+        if actor in sources and sources[actor][0] != "user":
+            bad.append(
+                Violation("INV-ACT-ACTOR", f"{where}: actor {actor} is a {sources[actor][0]}")
+            )
 
         # INV-ACT-PATH -- a non-null tip names an existing node, descends from origin, and
         # the range from origin exclusive to tip inclusive is non-empty.
@@ -240,14 +251,20 @@ def _acts(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
             elif not path:
                 bad.append(Violation("INV-ACT-PATH", f"{where}: empty range"))
 
-        # INV-ACT-SOURCE
-        if op in ("create", "generate"):
-            off = [n for n in path if nodes[n][2] != source]
+        # INV-ACT-SOURCE -- every node an act produced carries one source: for `generate`
+        # the act's `model`, for `create` one source along the whole path, and for
+        # `realise` the edge's, which INV-ACT-REALISE is what pins.
+        if op == "generate":
+            off = [n for n in path if nodes[n][2] != model]
             if off:
                 bad.append(
-                    Violation(
-                        "INV-ACT-SOURCE", f"{where}: nodes {off} do not carry source {source}"
-                    )
+                    Violation("INV-ACT-SOURCE", f"{where}: nodes {off} do not carry model {model}")
+                )
+        elif op == "create":
+            carried = {nodes[n][2] for n in path}
+            if len(carried) > 1:
+                bad.append(
+                    Violation("INV-ACT-SOURCE", f"{where}: path carries sources {sorted(carried)}")
                 )
         elif op == "realise" and tip is not None and tip in nodes and len(path) != 1:
             bad.append(Violation("INV-ACT-SOURCE", f"{where}: realise covers {len(path)} nodes"))
@@ -262,6 +279,7 @@ def _acts(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
             extra = [
                 n
                 for n, v in (
+                    ("model", model),
                     ("params", params),
                     ("seed", seed),
                     ("terminator", terminator),
@@ -274,8 +292,12 @@ def _acts(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
 
         elif op == "generate":
             # INV-ACT-GENERATE
-            if params is None or seed is None:
-                bad.append(Violation("INV-ACT-GENERATE", f"{where}: needs params and seed"))
+            if model is None or params is None or seed is None:
+                bad.append(Violation("INV-ACT-GENERATE", f"{where}: needs model, params and seed"))
+            elif model in sources and sources[model][0] != "model":
+                bad.append(
+                    Violation("INV-ACT-GENERATE", f"{where}: model {model} is not a model")
+                )
             if rank is not None:
                 bad.append(Violation("INV-ACT-GENERATE", f"{where}: carries a rank"))
             if tip is None and terminator not in (
@@ -297,7 +319,12 @@ def _acts(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
                 bad.append(Violation("INV-ACT-REALISE", f"{where}: needs rank, origin and tip"))
             extra = [
                 n
-                for n, v in (("params", params), ("seed", seed), ("terminator", terminator))
+                for n, v in (
+                    ("model", model),
+                    ("params", params),
+                    ("seed", seed),
+                    ("terminator", terminator),
+                )
                 if v is not None
             ]
             if extra:

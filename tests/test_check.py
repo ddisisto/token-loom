@@ -31,9 +31,9 @@ CREATE TABLE nodes  (id INTEGER, parent INTEGER, token_id INTEGER NOT NULL,
 CREATE TABLE edges  (node INTEGER NOT NULL, source INTEGER NOT NULL, rank INTEGER NOT NULL,
                      token_id INTEGER NOT NULL, logprob REAL NOT NULL);
 CREATE TABLE params (id INTEGER, json TEXT NOT NULL);
-CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, source INTEGER NOT NULL, origin INTEGER,
-                     tip INTEGER, created TEXT NOT NULL, params INTEGER, seed INTEGER,
-                     terminator TEXT, rank INTEGER);
+CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, actor INTEGER NOT NULL, origin INTEGER,
+                     tip INTEGER, created TEXT NOT NULL, model INTEGER, params INTEGER,
+                     seed INTEGER, terminator TEXT, rank INTEGER);
 """
 
 
@@ -67,12 +67,12 @@ def node(conn, nid, parent, token=10, source=1, deleted=None):
     )
 
 
-def act(conn, aid, op, source=1, origin=None, tip=None, params=None, seed=None,
+def act(conn, aid, op, actor=1, origin=None, tip=None, model=None, params=None, seed=None,
         terminator=None, rank=None):
     conn.execute(
-        "INSERT INTO acts (id, op, source, origin, tip, created, params, seed, terminator, rank) "
-        "VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?)",
-        (aid, op, source, origin, tip, params, seed, terminator, rank),
+        "INSERT INTO acts (id, op, actor, origin, tip, created, model, params, seed, "
+        "terminator, rank) VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?, ?)",
+        (aid, op, actor, origin, tip, model, params, seed, terminator, rank),
     )
 
 
@@ -234,12 +234,37 @@ def test_inv_act_path_range_is_non_empty():
     assert "INV-ACT-PATH" in names(conn)
 
 
-def test_inv_act_source():
+def test_inv_act_actor():
+    """A `model` is what produces tokens, and acting is not producing."""
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "create", actor=2, tip=1)  # source 2 is a model
+    assert "INV-ACT-ACTOR" in names(conn)
+
+
+def test_inv_act_source_on_a_create_wants_one_source_along_the_path():
     conn = bare()
     node(conn, 1, None, source=1)
     node(conn, 2, 1, token=11, source=2)
-    act(conn, 1, "create", source=1, origin=None, tip=2)
+    act(conn, 1, "create", origin=None, tip=2)
     assert "INV-ACT-SOURCE" in names(conn)
+
+
+def test_inv_act_source_on_a_generate_wants_the_acts_model():
+    """A `create` may attribute its nodes to anyone; a `generate` may not, because the
+    model that drew them is recorded and the nodes have to agree with it."""
+    conn = bare()
+    node(conn, 1, None, source=2)
+    node(conn, 2, 1, token=11, source=1)  # not the model the act names
+    act(conn, 1, "generate", model=2, origin=1, tip=2, params=1, seed=1, terminator="limit")
+    assert "INV-ACT-SOURCE" in names(conn)
+
+
+def test_inv_act_generate_wants_a_model_that_is_one():
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "generate", model=1, tip=1, params=1, seed=1, terminator="limit")
+    assert "INV-ACT-GENERATE" in names(conn)
 
 
 def test_inv_act_create_carries_no_generate_or_realise_fields():
@@ -252,20 +277,20 @@ def test_inv_act_create_carries_no_generate_or_realise_fields():
 def test_inv_act_generate_needs_params_and_seed():
     conn = bare()
     node(conn, 1, None, source=2)
-    act(conn, 1, "generate", source=2, tip=1)
+    act(conn, 1, "generate", model=2, tip=1)
     assert "INV-ACT-GENERATE" in names(conn)
 
 
 def test_inv_act_generate_null_tip_needs_a_terminator_that_allows_one():
     conn = bare()
-    act(conn, 1, "generate", source=2, params=1, seed=1, terminator="limit", tip=None)
+    act(conn, 1, "generate", model=2, params=1, seed=1, terminator="limit", tip=None)
     assert "INV-ACT-GENERATE" in names(conn)
 
 
 @pytest.mark.parametrize("terminator", ["cancelled", "failed", "aborted", "refused", None])
 def test_inv_act_generate_allows_a_null_tip_under_these(terminator):
     conn = bare()
-    act(conn, 1, "generate", source=2, params=1, seed=1, terminator=terminator, tip=None)
+    act(conn, 1, "generate", model=2, params=1, seed=1, terminator=terminator, tip=None)
     assert "INV-ACT-GENERATE" not in names(conn)
 
 
@@ -273,7 +298,7 @@ def test_inv_act_realise_needs_the_edge_it_names():
     conn = bare()
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
-    act(conn, 1, "realise", source=1, origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2, rank=0)
     assert "INV-ACT-REALISE" in names(conn)
 
 
@@ -282,7 +307,7 @@ def test_inv_act_realise_edge_must_carry_the_tips_token():
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
     conn.execute("INSERT INTO edges VALUES (1, 2, 0, 12, -1.0)")  # a different token
-    act(conn, 1, "realise", source=1, origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2, rank=0)
     assert "INV-ACT-REALISE" in names(conn)
 
 
@@ -291,13 +316,13 @@ def test_a_well_formed_realise_is_clean():
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
     conn.execute("INSERT INTO edges VALUES (1, 2, 0, 11, -1.0)")
-    act(conn, 1, "realise", source=1, origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2, rank=0)
     assert violations(conn) == []
 
 
 def test_an_unknown_terminator_is_caught():
     conn = bare()
-    act(conn, 1, "generate", source=2, params=1, seed=1, terminator="stop")
+    act(conn, 1, "generate", model=2, params=1, seed=1, terminator="stop")
     assert "INV-ACT-GENERATE" in names(conn)
 
 
@@ -339,4 +364,4 @@ def test_every_invariant_the_locked_document_names_is_one_this_checker_can_repor
     reported = set(re.findall(r'"(INV-[A-Z-]+)"', pathlib.Path(check.__file__).read_text()))
     assert named == reported, {"only in CORE.md": named - reported,
                                "only in check.py": reported - named}
-    assert len(named) == 14
+    assert len(named) == 15

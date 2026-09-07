@@ -73,6 +73,18 @@ def actor(args) -> Source:
     return Source("user", getattr(args, "user", "") or "")
 
 
+def attributed(args) -> Source | None:
+    """`--attribute KIND:NAME`: who produced the text, where that is not the actor."""
+    named = getattr(args, "attribute", None)
+    if not named:
+        return None
+    kind, _, name = named.partition(":")
+    try:
+        return Source(kind, name)
+    except ValueError as why:
+        raise SystemExit(f"--attribute: {why}") from why
+
+
 # ---- commands ------------------------------------------------------------------------
 
 
@@ -85,12 +97,15 @@ def cmd_init(args) -> int:
 def cmd_create(args) -> int:
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
+        source = attributed(args)
         act = store.create(
-            args.at, args.text, vocabulary=adapter, source=actor(args), special=args.special
+            args.at, args.text, vocabulary=adapter,
+            actor=actor(args), source=source, special=args.special,
         )
         tip = store.conn.execute("SELECT tip FROM acts WHERE id = ?", (act,)).fetchone()[0]
         nodes = R.act_tokens(store.conn, act)
-        print(f"act {act}  create  {len(nodes)} tokens  tip {tip}")
+        attribution = f"  source {source}" if source else ""
+        print(f"act {act}  create  {len(nodes)} tokens  tip {tip}{attribution}")
         for node in nodes:
             print(f"  {node.id:>6}  {node.token_id:>7}  {token_repr(store, node)}")
     return 0
@@ -106,7 +121,9 @@ def cmd_generate(args) -> int:
     }
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
-        act, answer = store.generate(args.at, params, adapter=adapter, seed=args.seed)
+        act, answer = store.generate(
+            args.at, params, adapter=adapter, actor=actor(args), seed=args.seed
+        )
         seed = store.conn.execute("SELECT seed FROM acts WHERE id = ?", (act,)).fetchone()[0]
         print(f"act {act}  generate  {answer.terminator}  seed {seed}")
         if answer.reason:
@@ -230,11 +247,18 @@ def cmd_acts(args) -> int:
     with Store.open(args.tree) as store:
         rows = store.conn.execute(
             "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, a.rank, "
-            "a.seed, p.json, a.source FROM acts a LEFT JOIN params p ON p.id = a.params "
+            "a.seed, p.json, a.actor, a.model FROM acts a LEFT JOIN params p ON p.id = a.params "
             "ORDER BY a.id"
         ).fetchall()
-        for act, op, origin, tip, created, terminator, rank, seed, params, source in rows:
-            bits = [f"{act:>4}", f"{op:<8}", created, f"{source_name(store, source):<24}",
+        for act, op, origin, tip, created, terminator, rank, seed, params, act_or, model in rows:
+            who = source_name(store, act_or)
+            if model is not None:
+                who += f" asked {source_name(store, model)}"
+            elif op == "create" and R.get_node(store.conn, tip).source != act_or:
+                # A create names the source its nodes carry, and it need not be the actor.
+                # The act stores no column for it, so it is read off the tip.
+                who += f" attributing {source_name(store, R.get_node(store.conn, tip).source)}"
+            bits = [f"{act:>4}", f"{op:<8}", created, f"{who:<40}",
                     f"origin {origin}", f"tip {tip}"]
             if terminator:
                 bits.append(terminator)
@@ -308,6 +332,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--special", action="store_true",
                    help="read control-token literals as control tokens. Never the default: "
                         "authored text is plain bytes, and quoting one does not inject it.")
+    p.add_argument("--attribute", metavar="KIND:NAME",
+                   help="who produced the text, where that is not the acting user -- "
+                        "`model:NAME` for a transcript from elsewhere")
     backend(p)
     p.set_defaults(fn=cmd_create)
 

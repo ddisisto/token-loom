@@ -25,7 +25,7 @@ def store(tmp_path):
 
 def seeded(store) -> int:
     """`The sky` authored by the unnamed user. Returns the tip."""
-    store.create(None, "The sky", vocabulary=ToyVocabulary(), source=USER)
+    store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=USER)
     return R.roots(store.conn)[0].id + 1
 
 
@@ -44,26 +44,26 @@ def test_create_rejects_text_that_does_not_round_trip(store):
             return super().tokenize(text)[:-1]  # drops the last token
 
     with pytest.raises(Rejected, match="round trip"):
-        store.create(None, "The sky", vocabulary=Lossy(), source=USER)
+        store.create(None, "The sky", vocabulary=Lossy(), actor=USER)
     assert R.roots(store.conn) == []  # a rejection leaves no trace
 
 
 def test_create_rejects_bytes_that_are_not_utf8(store):
     with pytest.raises(Rejected, match="valid UTF-8"):
-        store.create(None, b"\xc3", vocabulary=ToyVocabulary(), source=USER)
+        store.create(None, b"\xc3", vocabulary=ToyVocabulary(), actor=USER)
 
 
 def test_create_that_would_add_no_tokens_is_rejected(store):
     with pytest.raises(Rejected):
-        store.create(None, "", vocabulary=ToyVocabulary(), source=USER)
+        store.create(None, "", vocabulary=ToyVocabulary(), actor=USER)
     assert store.conn.execute("SELECT COUNT(*) FROM acts").fetchone()[0] == 0
 
 
 def test_roots_do_not_merge(store):
     """A root has no parent, so the merge key does not reach it: two roots with the same
     token and source stay distinct, and each begins its own trie."""
-    a = store.create(None, "The sky", vocabulary=ToyVocabulary(), source=USER)
-    b = store.create(None, "The sky", vocabulary=ToyVocabulary(), source=USER)
+    a = store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=USER)
+    b = store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=USER)
     assert a != b
     roots = R.roots(store.conn)
     assert len(roots) == 2
@@ -75,11 +75,43 @@ def test_authored_text_never_collapses_into_a_model_draw_that_matches(store):
     """Source is part of the merge key, so the split is visible in the tree."""
     tip = seeded(store)
     adapter = ToyAdapter([drew((102, [(102, -0.5)]))])  # ` is`
-    store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
-    store.create(tip, " is", vocabulary=ToyVocabulary(), source=USER)
+    store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
+    store.create(tip, " is", vocabulary=ToyVocabulary(), actor=USER)
     kids = R.children(store.conn, tip)
     assert [k.token_id for k in kids] == [102, 102]
     assert kids[0].source != kids[1].source
+
+
+def test_authored_text_may_be_attributed_to_a_source_that_did_not_act(store):
+    """Text a model produced elsewhere is recorded as that model's, with the act naming
+    whoever entered it. The two questions an act and a node answer come apart here."""
+    alice = Source("user", "alice")
+    act = store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=alice, source=MODEL)
+
+    assert store.conn.execute(
+        "SELECT actor FROM acts WHERE id = ?", (act,)
+    ).fetchone()[0] == store.find_source(alice)
+    assert {n.source for n in R.act_tokens(store.conn, act)} == {store.find_source(MODEL)}
+    assert violations(store.conn) == []
+
+
+def test_the_source_a_create_names_defaults_to_the_actor(store):
+    alice = Source("user", "alice")
+    act = store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=alice)
+    assert {n.source for n in R.act_tokens(store.conn, act)} == {store.find_source(alice)}
+
+
+def test_an_actor_is_a_user_and_a_model_acting_is_rejected(store):
+    """Acting is not producing. A caller that drives the tree by itself is a named user,
+    which keeps `sources` honest: a model in there is something that produced tokens."""
+    for act in (
+        lambda: store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=MODEL),
+        lambda: store.generate(None, {"length": 1}, adapter=ToyAdapter([]), actor=MODEL, seed=1),
+        lambda: store.realise(1, MODEL, 0, actor=MODEL),
+    ):
+        with pytest.raises(Rejected, match="actor is a user"):
+            act()
+    assert store.conn.execute("SELECT COUNT(*) FROM acts").fetchone()[0] == 0
 
 
 # ---- liveness -----------------------------------------------------------------------
@@ -110,8 +142,8 @@ def test_an_act_begins_at_a_live_node(store):
     tip = seeded(store)
     store.delete(tip)
     for act in (
-        lambda: store.create(tip, " is", vocabulary=ToyVocabulary(), source=USER),
-        lambda: store.generate(tip, {"length": 1}, adapter=ToyAdapter([]), seed=1),
+        lambda: store.create(tip, " is", vocabulary=ToyVocabulary(), actor=USER),
+        lambda: store.generate(tip, {"length": 1}, adapter=ToyAdapter([]), actor=USER, seed=1),
         lambda: store.realise(tip, MODEL, 0, actor=USER),
     ):
         with pytest.raises(Rejected, match="not live"):
@@ -127,12 +159,12 @@ def test_liveness_constrains_where_an_act_starts_not_what_it_produces(store):
         drew((102, [(102, -0.5)])),                     # ` is`   -> a node we then delete
         drew((102, [(102, -0.5)]), (103, [(103, -0.7)])),  # ` is`, ` blue`
     ])
-    store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+    store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
     dead = R.children(store.conn, tip)[0].id
     store.delete(dead)
 
     # The act starts at `tip`, which is live. Its path passes through `dead`, which is not.
-    _, answer = store.generate(tip, {"length": 2}, adapter=adapter, seed=2)
+    _, answer = store.generate(tip, {"length": 2}, adapter=adapter, actor=USER, seed=2)
     assert answer.terminator == "limit"
     below = R.children(store.conn, dead)
     assert len(below) == 1
@@ -159,7 +191,7 @@ def test_generate_writes_provenance_before_the_nodes(store):
         seen["nodes"] = store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
         return drew((102, [(102, -0.5)]))
 
-    store.generate(tip, {"length": 1}, adapter=ToyAdapter([peek]), seed=1)
+    store.generate(tip, {"length": 1}, adapter=ToyAdapter([peek]), actor=USER, seed=1)
     assert seen["acts"] == [(2, "generate", None, None)]  # committed, in flight, no tip
     assert seen["nodes"] == 2  # only what `create` wrote
 
@@ -168,7 +200,7 @@ def test_a_backend_that_breaks_mid_call_records_failed(store):
     tip = seeded(store)
     adapter = ToyAdapter([RuntimeError("the backend broke under it")])
     with pytest.raises(RuntimeError):
-        store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+        store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
     assert store.conn.execute(
         "SELECT tip, terminator FROM acts WHERE op = 'generate'"
     ).fetchone() == (None, "failed")
@@ -181,7 +213,7 @@ def test_length_must_be_a_positive_integer_and_is_rejected_not_refused(store):
     tip = seeded(store)
     for bad in (0, -1, 1.5, None, True, "3"):
         with pytest.raises(Rejected, match="length"):
-            store.generate(tip, {"length": bad}, adapter=ToyAdapter([]), seed=1)
+            store.generate(tip, {"length": bad}, adapter=ToyAdapter([]), actor=USER, seed=1)
     assert store.conn.execute("SELECT COUNT(*) FROM acts WHERE op = 'generate'").fetchone()[0] == 0
 
 
@@ -190,7 +222,7 @@ def test_limit_means_it_drew_the_requested_length(store):
     tip = seeded(store)
     adapter = ToyAdapter([drew((102, [(102, -0.5)]))])
     with pytest.raises(StoreError, match="drew 1 of 3"):
-        store.generate(tip, {"length": 3}, adapter=adapter, seed=1)
+        store.generate(tip, {"length": 3}, adapter=adapter, actor=USER, seed=1)
 
 
 def test_a_terminator_that_wrote_nothing_may_not_report_tokens(store):
@@ -198,7 +230,7 @@ def test_a_terminator_that_wrote_nothing_may_not_report_tokens(store):
     reported = drew((102, [(102, -0.5)])).positions
     adapter = ToyAdapter([Generation("refused", reported)])
     with pytest.raises(StoreError, match="wrote nothing"):
-        store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+        store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
 
 
 def test_an_answer_the_store_will_not_write_records_failed_and_is_not_left_in_flight(store):
@@ -217,7 +249,7 @@ def test_an_answer_the_store_will_not_write_records_failed_and_is_not_left_in_fl
     adapter = ToyAdapter([drew((100, [(100, -0.5)]))])
     adapter.bytes_for = Wrong().bytes_for
     with pytest.raises(StoreError, match="vocabulary disagrees at id 100"):
-        store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+        store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
 
     assert store.conn.execute(
         "SELECT tip, terminator FROM acts WHERE op = 'generate'"
@@ -244,7 +276,7 @@ def test_an_interrupted_writer_is_left_for_the_sweep_and_not_called_failed(store
     tip = seeded(store)
     adapter = ToyAdapter([KeyboardInterrupt()])
     with pytest.raises(KeyboardInterrupt):
-        store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+        store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
 
     assert store.conn.execute(
         "SELECT terminator FROM acts WHERE op = 'generate'"
@@ -258,7 +290,9 @@ def test_an_interrupted_writer_is_left_for_the_sweep_and_not_called_failed(store
 
 def test_the_core_supplies_a_seed_when_a_caller_does_not(store):
     tip = seeded(store)
-    store.generate(tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]))
+    store.generate(
+        tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), actor=USER
+    )
     seed = store.conn.execute("SELECT seed FROM acts WHERE op = 'generate'").fetchone()[0]
     assert isinstance(seed, int) and 0 <= seed < 2**31
 
@@ -277,8 +311,8 @@ def test_a_ranking_extends_and_is_never_rewritten(store):
         drew((103, [(103, -1.0), (104, -2.0)])),                 # two rows at `tip`
         drew((105, [(102, -0.1), (103, -1.0), (105, -3.0)])),    # 102 outranks both
     ])
-    store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
-    store.generate(tip, {"length": 1}, adapter=adapter, seed=2)
+    store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
+    store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=2)
 
     rows = R.ranking(store.conn, tip)
     assert [(e.rank, e.token_id, e.logprob) for e in rows] == [
@@ -298,12 +332,12 @@ def test_a_declined_position_records_no_covering_edge(store):
         drew((102, None)),                     # declined
         drew((102, [(102, -0.42), (103, -1.0)])),
     ])
-    store.generate(tip, {"length": 1}, adapter=adapter, seed=1)
+    store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=1)
     node = R.children(store.conn, tip)[0].id
     assert R.ranking(store.conn, tip) == []
     assert R.node_logprob(store.conn, node) is None
 
-    store.generate(tip, {"length": 1}, adapter=adapter, seed=2)
+    store.generate(tip, {"length": 1}, adapter=adapter, actor=USER, seed=2)
     assert R.node_logprob(store.conn, node) == pytest.approx(-0.42)
     assert violations(store.conn) == []
 
@@ -311,10 +345,12 @@ def test_a_declined_position_records_no_covering_edge(store):
 def test_a_ranking_belongs_to_the_node_not_to_the_generation(store):
     """Two sources ranking at one node are two rankings; a rank alone names nothing."""
     tip = seeded(store)
-    store.generate(tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), seed=1)
+    store.generate(
+        tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), actor=USER, seed=1
+    )
     store.generate(
         tip, {"length": 1},
-        adapter=ToyAdapter([drew((103, [(103, -0.9)]))], source=OTHER), seed=2,
+        adapter=ToyAdapter([drew((103, [(103, -0.9)]))], source=OTHER), actor=USER, seed=2,
     )
     rows = R.ranking(store.conn, tip)
     assert len(rows) == 2
@@ -329,16 +365,16 @@ def test_realise_takes_an_edge_and_calls_no_model(store):
     tip = seeded(store)
     store.generate(
         tip, {"length": 1},
-        adapter=ToyAdapter([drew((102, [(103, -0.2), (102, -0.5)]))]), seed=1,
+        adapter=ToyAdapter([drew((102, [(103, -0.2), (102, -0.5)]))]), actor=USER, seed=1,
     )
     act = store.realise(tip, MODEL, 0, actor=USER)  # rank 0 is 103, which nothing drew
     node = [n for n in R.children(store.conn, tip) if n.token_id == 103][0]
-    # The act's source is who acted; the node carries the source of the model that ranked
-    # the edge. Both are looked up rather than assumed -- source ids are opaque.
+    # The act names the actor; the node carries the model that ranked the edge, and the
+    # act stores no model of its own. All looked up rather than assumed -- ids are opaque.
     assert node.source == store.find_source(MODEL)
     assert store.conn.execute(
-        "SELECT source FROM acts WHERE id = ?", (act,)
-    ).fetchone()[0] == store.find_source(USER)
+        "SELECT actor, model FROM acts WHERE id = ?", (act,)
+    ).fetchone() == (store.find_source(USER), None)
     assert node.source != store.find_source(USER)
     assert violations(store.conn) == []
 
@@ -346,7 +382,9 @@ def test_realise_takes_an_edge_and_calls_no_model(store):
 def test_realising_a_realised_edge_writes_only_the_act(store):
     """If the node already exists the merge key finds it, and only the act is written."""
     tip = seeded(store)
-    store.generate(tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), seed=1)
+    store.generate(
+        tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), actor=USER, seed=1
+    )
     before = store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
     store.realise(tip, MODEL, 0, actor=USER)
     assert store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == before
@@ -376,7 +414,7 @@ def test_vocab_writes_verify(store):
     with pytest.raises(StoreError, match="vocabulary disagrees at id 100"):
         store.generate(
             tip, {"length": 1},
-            adapter=_with(Disagreeing(), [drew((100, [(100, -0.5)]))]), seed=1,
+            adapter=_with(Disagreeing(), [drew((100, [(100, -0.5)]))]), actor=USER, seed=1,
         )
 
 
@@ -436,20 +474,20 @@ from tokenloom.core import Store
 from toy import USER, ToyAdapter, ToyVocabulary
 
 store = Store.initialise({path!r}, vocabulary="toy")
-store.create(None, "The sky", vocabulary=ToyVocabulary(), source=USER)
+store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=USER)
 tip = 2
 
 def die(ids, params, seed):
     os._exit(9)  # the writer is gone, mid-call, with the act committed and in flight
 
-store.generate(tip, {{"length": 1}}, adapter=ToyAdapter([die]), seed=1)
+store.generate(tip, {{"length": 1}}, adapter=ToyAdapter([die]), actor=USER, seed=1)
 """
 
 
 def test_a_reader_takes_no_lock_and_will_not_write(tmp_path):
     path = tmp_path / "t"
     with Store.initialise(path, vocabulary="toy") as w:
-        w.create(None, "The sky", vocabulary=ToyVocabulary(), source=USER)
+        w.create(None, "The sky", vocabulary=ToyVocabulary(), actor=USER)
     reader = Store.open(path)
     assert R.path_bytes(reader.conn, 2) == b"The sky"
     with pytest.raises(StoreError, match="opened for reading"):

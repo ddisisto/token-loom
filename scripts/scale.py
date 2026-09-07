@@ -61,8 +61,8 @@ def build(path: Path, nodes: int, top_n: int, seed: int) -> Store:
     conn.executemany("INSERT INTO edges VALUES (?,?,?,?,?)", edges)
 
     conn.executemany(
-        "INSERT INTO acts (op, source, origin, tip, created, params, seed, terminator) "
-        "VALUES ('generate', 2, ?, ?, '2026-01-01T00:00:00Z', 1, 1, 'limit')",
+        "INSERT INTO acts (op, actor, model, origin, tip, created, params, seed, terminator) "
+        "VALUES ('generate', 1, 2, ?, ?, '2026-01-01T00:00:00Z', 1, 1, 'limit')",
         [(row[1], row[0]) for row in rows[::8]],
     )
     conn.commit()

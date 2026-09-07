@@ -255,6 +255,13 @@ class Store:
             )
             next_rank += 1
 
+    def _actor_id(self, actor: Source) -> int:
+        """INV-ACT-ACTOR. A `model` is what produces tokens, and acting is not producing,
+        so an automated caller is a named user like any other."""
+        if actor.kind != "user":
+            raise Rejected(f"an act's actor is a user, not a {actor.kind}")
+        return self.source_id(actor)
+
     def _require_live(self, node: int | None) -> None:
         """Liveness constrains where an act starts, not what it produces."""
         if node is None:
@@ -272,7 +279,8 @@ class Store:
         text: bytes | str,
         *,
         vocabulary: Vocabulary,
-        source: Source,
+        actor: Source,
+        source: Source | None = None,
         special: bool = False,
     ) -> int:
         """Bytes in, tokens out. One act, and nodes for the tokens.
@@ -280,6 +288,9 @@ class Store:
         The text is tokenised, the resulting nodes are reassembled exactly as a derived
         read will reassemble them, and the result is compared against what was authored.
         A mismatch rejects the act -- and so does a `create` that would add no tokens.
+
+        `source` is what the nodes carry and defaults to the actor. Naming another is how
+        text a model produced elsewhere is recorded as that model's.
         """
         if isinstance(text, str):
             text = text.encode("utf-8")
@@ -304,13 +315,14 @@ class Store:
             )
 
         with self._writing():
+            actor_id = self._actor_id(actor)
             self._require_live(at)
-            source_id = self.source_id(source)
+            source_id = self.source_id(source if source is not None else actor)
             cur = at
             for token, data in zip(tokens, spelled, strict=True):
                 self.put_token(token.id, data)
                 cur = self._merge_node(cur, token.id, source_id)
-            return self._write_act("create", source_id, origin=at, tip=cur)
+            return self._write_act("create", actor_id, origin=at, tip=cur)
 
     def realise(self, node: int, source: Source, rank: int, *, actor: Source) -> int:
         """The ranked edge at `(node, source, rank)`, taken. One write and no call.
@@ -319,6 +331,7 @@ class Store:
         ranked the edge, which is why the act needs no column for the edge's source.
         """
         with self._writing():
+            actor_id = self._actor_id(actor)
             self._require_live(node)
             edge_source = self.find_source(source)
             if edge_source is None:
@@ -330,9 +343,7 @@ class Store:
             if row is None:
                 raise Rejected(f"no ranked edge at node {node}, source {source}, rank {rank}")
             tip = self._merge_node(node, row[0], edge_source)
-            return self._write_act(
-                "realise", self.source_id(actor), origin=node, tip=tip, rank=rank
-            )
+            return self._write_act("realise", actor_id, origin=node, tip=tip, rank=rank)
 
     def generate(
         self,
@@ -340,6 +351,7 @@ class Store:
         params: Mapping,
         *,
         adapter: Adapter,
+        actor: Source,
         seed: int | None = None,
     ) -> tuple[int, Generation]:
         """Two writes, and the model call between them.
@@ -360,11 +372,12 @@ class Store:
             seed = secrets.randbelow(2**31)
 
         with self._writing():
+            actor_id = self._actor_id(actor)
             self._require_live(at)
             source_id = self.source_id(adapter.source)
             ids = reads.path_token_ids(self.conn, at) if at is not None else []
             act = self._write_act(
-                "generate", source_id, origin=at, tip=None,
+                "generate", actor_id, origin=at, tip=None, model=source_id,
                 params=self.params_id(params), seed=seed,
             )
         # provenance is committed; the transaction is closed across the model call
@@ -465,19 +478,20 @@ class Store:
     def _write_act(
         self,
         op: str,
-        source_id: int,
+        actor_id: int,
         *,
         origin: int | None,
         tip: int | None,
+        model: int | None = None,
         params: int | None = None,
         seed: int | None = None,
         rank: int | None = None,
         terminator: str | None = None,
     ) -> int:
         return self.conn.execute(
-            "INSERT INTO acts (op, source, origin, tip, created, params, seed, terminator, rank) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (op, source_id, origin, tip, _now(), params, seed, terminator, rank),
+            "INSERT INTO acts (op, actor, origin, tip, created, model, params, seed, "
+            "terminator, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (op, actor_id, origin, tip, _now(), model, params, seed, terminator, rank),
         ).lastrowid
 
 

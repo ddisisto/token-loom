@@ -32,22 +32,28 @@ def tree(tmp_path):
         assert not found, f"stage {stage}: {[str(v) for v in found]}"
 
     # Stage 1 -- create(null, "The sky"). Authored by the unnamed user; begins a root.
-    acts[1] = store.create(None, "The sky", vocabulary=adapter, source=USER)
+    acts[1] = store.create(None, "The sky", vocabulary=adapter, actor=USER)
     clean(1)
 
     # Stage 2 -- generate(at=2), top_k 5, top_n 5, length 3, seed 42.
-    acts[2], _ = store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, seed=42)
+    acts[2], _ = store.generate(
+        2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42
+    )
     clean(2)
 
     # The ranking at node 2 stands at five rows, and node 3's logprob is read off it.
     before = R.node_logprob(store.conn, 3)
 
     # Stage 3 -- generate(at=2), top_k 5, top_n 20, length 2, seed 99.
-    acts[3], _ = store.generate(2, {"top_k": 5, "top_n": 20, "length": 2}, adapter=adapter, seed=99)
+    acts[3], _ = store.generate(
+        2, {"top_k": 5, "top_n": 20, "length": 2}, adapter=adapter, actor=USER, seed=99
+    )
     clean(3)
 
     # Stage 4 -- identical to stage 2. Same parameters and the same seed.
-    acts[4], _ = store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, seed=42)
+    acts[4], _ = store.generate(
+        2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42
+    )
     clean(4)
 
     # Stage 5 -- realise(node 2, source 2, rank 0). The unnamed user takes ` is`.
@@ -56,12 +62,12 @@ def tree(tmp_path):
 
     # Stage 6 -- create(node 8, "<|endoftext|>🜁"), through the special-token path.
     acts[6] = store.create(8, "<|endoftext|>\U0001f701", vocabulary=adapter,
-                           source=USER, special=True)
+                           actor=USER, special=True)
     clean(6)
 
     # Stage 7 -- generate(at=12), top_n 200. Refused; no model is called.
     acts[7], answer = store.generate(12, {"top_k": 5, "top_n": 200, "length": 4},
-                                     adapter=adapter, seed=7)
+                                     adapter=adapter, actor=USER, seed=7)
     clean(7)
 
     return store, acts, before, answer
@@ -146,19 +152,20 @@ def test_node_5_and_node_8_have_no_ranking(tree):
 def test_stage_4_writes_an_act_and_no_nodes(tree):
     """Every field but the id identical to act 2 -- and the node count does not move."""
     store, acts, _, _ = tree
-    fields = "op, source, origin, tip, params, seed, terminator"
+    fields = "op, actor, model, origin, tip, params, seed, terminator"
     two = store.conn.execute(f"SELECT {fields} FROM acts WHERE id = ?", (acts[2],)).fetchone()
     four = store.conn.execute(f"SELECT {fields} FROM acts WHERE id = ?", (acts[4],)).fetchone()
-    assert two == four == ("generate", 2, 2, 5, 1, 42, "limit")
+    assert two == four == ("generate", 1, 2, 2, 5, 1, 42, "limit")
 
 
-def test_the_act_source_and_the_node_source_differ_on_realise(tree):
-    """A reader acted; the model is what ranked the edge, and the node carries the model."""
+def test_a_realise_names_no_source_and_its_node_carries_the_models(tree):
+    """The node's source comes from the edge rather than from anything the act stores, so
+    a `realise` names an actor and nothing else about provenance."""
     store, acts, _, _ = tree
-    op, source, origin, tip, rank = store.conn.execute(
-        "SELECT op, source, origin, tip, rank FROM acts WHERE id = ?", (acts[5],)
+    op, actor, model, origin, tip, rank = store.conn.execute(
+        "SELECT op, actor, model, origin, tip, rank FROM acts WHERE id = ?", (acts[5],)
     ).fetchone()
-    assert (op, source, origin, tip, rank) == ("realise", 1, 2, 8, 0)
+    assert (op, actor, model, origin, tip, rank) == ("realise", 1, None, 2, 8, 0)
     assert R.get_node(store.conn, 8).source == 2
 
 
@@ -168,9 +175,9 @@ def test_stage_7_is_an_act_with_no_tip(tree):
     store, acts, _, answer = tree
     assert answer.terminator == "refused"
     assert store.conn.execute(
-        "SELECT op, source, origin, tip, params, seed, terminator FROM acts WHERE id = ?",
+        "SELECT op, actor, model, origin, tip, params, seed, terminator FROM acts WHERE id = ?",
         (acts[7],),
-    ).fetchone() == ("generate", 2, 12, None, 3, 7, "refused")
+    ).fetchone() == ("generate", 1, 2, 12, None, 3, 7, "refused")
     assert store.conn.execute("SELECT json FROM params WHERE id = 3").fetchone()[0] == (
         '{"length":4,"top_k":5,"top_n":200}'
     )

@@ -140,10 +140,11 @@ records that it did not.
 | field | on | meaning |
 | --- | --- | --- |
 | `op` | all | `create`, `generate` or `realise` |
-| `source` | all | **who acted** — not necessarily who produced the tokens |
+| `actor` | all | **who acted** |
 | `origin` | all | the node it started from, or `null` if it began a root |
 | `tip` | all | the last node it produced, or `null` if it produced none |
 | `created` | all | timestamp, ISO 8601, UTC |
+| `model` | `generate` | the model it asked |
 | `params` | `generate` | index into the interned parameter table |
 | `seed` | `generate` | the seed the call was made with |
 | `terminator` | `generate` | its outcome; `null` while in flight |
@@ -162,9 +163,15 @@ vocabulary but not the model. `realise` turns a ranked edge that is already reco
 and needs neither: it is reachable with nothing running at all, and `create` with a tokeniser
 alone.
 
-**An act's source is who acted.** For `create` and `generate` that is also the source of the
-nodes it produced. For `realise` it is not: a reader acts, and the node carries the source of the
-model that ranked the edge.
+**An act records who acted; a node records who produced its token.** These are different
+questions. Authoring text, asking a model to continue and taking a ranked edge are all things a
+reader does, so `actor` is a user in every case. What a node carries is whoever produced it: the
+model a `generate` asked, the model that ranked the edge a `realise` took, or the source a
+`create` names.
+
+**A `create` names the source its nodes carry, and it need not be the actor.** Text a model
+produced elsewhere is recorded as that model's, with the act naming whoever entered it. The core
+cannot check such a claim, and Sources has already said that naming is the enforcement.
 
 `origin` may be null for `create` and for `generate`, each of which then begins a root. It may not
 be null for `realise`, which needs an existing edge to take.
@@ -299,12 +306,12 @@ CREATE TABLE params (
 CREATE TABLE acts (
   id      INTEGER PRIMARY KEY,
   op      TEXT NOT NULL,                   -- 'create' | 'generate' | 'realise'
-  source  INTEGER NOT NULL,
+  actor   INTEGER NOT NULL,                -- who acted; a source of kind 'user'
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
-  params  INTEGER, seed INTEGER, terminator TEXT,   -- 'generate' only
-  rank    INTEGER);                                 -- 'realise' only
+  model   INTEGER, params INTEGER, seed INTEGER, terminator TEXT,  -- 'generate' only
+  rank    INTEGER);                                                -- 'realise' only
 ```
 
 `bytes` is a BLOB, so no escape is needed anywhere in the store. It lives in `vocab` rather than
@@ -339,7 +346,7 @@ modify it.** A reader takes no lock.
 - **`INV-TREE-ROOTED`** — following `parent` from any node reaches a root; there are no cycles.
 - **`INV-MERGE-KEY`** — `(parent, token_id, source)` is unique.
 - **`INV-VOCAB-CLOSED`** — every `token_id` in `nodes` and `edges` is in `vocab`.
-- **`INV-SOURCE-CLOSED`** — every `source` in `nodes`, `edges` and `acts` is in `sources`.
+- **`INV-SOURCE-CLOSED`** — every source named in `nodes`, `edges` and `acts` is in `sources`.
 - **`INV-SOURCE-NAMED`** — a source of kind `model` has a non-empty `name`. The empty name is
   the unnamed user and belongs to nothing else.
 - **`INV-RANK-ANCHORED`** — no `edges` row names a node that does not exist. A deleted node is
@@ -349,15 +356,18 @@ modify it.** A reader takes no lock.
 - **`INV-ACT-PATH`** — an act with a non-null `tip` names a node that exists, descends from
   `origin` — or from a root, if `origin` is null — and the range from `origin` exclusive to `tip`
   inclusive is non-empty. Only a `generate` may have a null `tip`.
-- **`INV-ACT-SOURCE`** — for `create` and `generate`, every node on that path carries the act's
-  source; for `realise`, the one node carries the source of the edge it took.
-- **`INV-ACT-CREATE`** — a `create` act has a non-null `tip`, and no `params`, `seed`,
+- **`INV-ACT-ACTOR`** — an act's `actor` is a source of kind `user`. A `model` is what produces
+  tokens, and acting is not producing.
+- **`INV-ACT-SOURCE`** — every node an act produced carries one source: for `generate` the act's
+  `model`, for `realise` the source of the edge it took, and for `create` one source along the
+  whole path.
+- **`INV-ACT-CREATE`** — a `create` act has a non-null `tip`, and no `model`, `params`, `seed`,
   `terminator` or `rank`.
-- **`INV-ACT-GENERATE`** — a `generate` act has `params` and `seed` and no `rank`. A null
+- **`INV-ACT-GENERATE`** — a `generate` act has `model`, `params` and `seed`, and no `rank`. A null
   `terminator` means in flight. A null `tip` requires a `terminator` of `cancelled`, `failed`,
   `aborted` or `refused`, or none at all.
 - **`INV-ACT-REALISE`** — a `realise` act has `rank` and a non-null `origin` and `tip`, and no
-  `params`, `seed` or `terminator`; `tip` is a child of `origin`; and the edge
+  `model`, `params`, `seed` or `terminator`; `tip` is a child of `origin`; and the edge
   `(origin, tip.source, rank)` exists and carries `tip.token_id`.
 
 Descending logprob within a ranking is **not** an invariant. Rankings says why.
@@ -370,7 +380,7 @@ Each is recorded in `acts`, and each extends the tree or records that it did not
 
 | operation | writes | leaves |
 | --- | --- | --- |
-| `create(at, bytes)` | one act, and nodes for the tokens | tokenised against the tree's vocabulary; rejected if the round trip does not hold |
+| `create(at, bytes, source)` | one act, and nodes for the tokens | tokenised against the tree's vocabulary; rejected if the round trip does not hold |
 | `generate(at, params)` | one act, and nodes for what was drawn | provenance first, then the nodes |
 | `realise(node, source, rank)` | one act and one node | the ranked edge, taken; no model call |
 
@@ -475,8 +485,8 @@ Nothing here is stored.
 ## Appendix — a worked example
 
 One tree, built in seven stages. The rows are exact. Every construct in this document appears in
-it but four terminators: `eos`, `cancelled`, `failed` and `aborted`, none of which shapes a row
-differently from the two that do.
+it but four terminators — `eos`, `cancelled`, `failed` and `aborted` — and a `create` attributed
+to a source that did not act. None of those shapes a row differently from one that is here.
 
 **The ids and logprobs below are real**, taken from `Qwen2.5-7B.i1-Q4_K_M` served by llama.cpp
 over Vulkan, 16k context. Logprobs are shown to four places; nothing else is rounded or invented.
@@ -502,7 +512,7 @@ Authored by the unnamed user. Tokenises to two ids, and begins a root because `o
 | 1 | *null* | 785 | `The` | 1 |
 | 2 | 1 | 12884 | ` sky` | 1 |
 
-Act 1: `create`, source 1, `origin` *null*, `tip` 2.
+Act 1: `create`, actor 1, `origin` *null*, `tip` 2.
 
 ### Stage 2 — `generate(at=2)`, `top_k` 5, `top_n` 5, `length` 3, seed 42
 
@@ -512,7 +522,8 @@ Act 1: `create`, source 1, `origin` *null*, `tip` 2.
 | 4 | 3 | 702 | ` has` | 2 |
 | 5 | 4 | 220 | ` ` | 2 |
 
-Act 2: `generate`, source 2, `origin` 2, `tip` 5, `params` 1, `seed` 42, `terminator` `limit`.
+Act 2: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1, `seed` 42,
+`terminator` `limit`.
 
 The ranking recorded at node 2 — the alternatives for the position that produced node 3:
 
@@ -535,7 +546,8 @@ following position was ever computed. That is a tip with no ranking, not a decli
 | 6 | 2 | 702 | ` has` | 2 |
 | 7 | 6 | 6519 | ` turned` | 2 |
 
-Act 3: `generate`, source 2, `origin` 2, `tip` 7, `params` 2, `seed` 99, `terminator` `limit`.
+Act 3: `generate`, actor 1, `model` 2, `origin` 2, `tip` 7, `params` 2, `seed` 99,
+`terminator` `limit`.
 
 **The ranking at node 2 extends from five rows to twenty.** The five already stored keep their
 values — this generation reported them bit-identically, which is what obligation 5 in
@@ -563,7 +575,8 @@ branch point.
 Same parameters and the same seed. The model reproduces the path exactly, so every node merges
 and nothing new is written but the act.
 
-Act 4: `generate`, source 2, `origin` 2, `tip` 5, `params` 1, `seed` 42, `terminator` `limit` —
+Act 4: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1, `seed` 42,
+`terminator` `limit` —
 every field but the id identical to act 2.
 
 **An act that produces no new nodes still covers a non-empty range.** The range is reckoned before
@@ -579,11 +592,11 @@ generation drew. No model is called.
 | --- | --- | --- | --- | --- |
 | 8 | 2 | 374 | ` is` | 2 |
 
-Act 5: `realise`, source **1**, `origin` 2, `tip` 8, `rank` 0.
+Act 5: `realise`, actor 1, `origin` 2, `tip` 8, `rank` 0.
 
-**The act's source and the node's source differ.** A reader acted; the model is what ranked the
-edge, and the node carries the model. Node 8 has no ranking, because nothing has generated from
-it.
+**The node carries the model, and no act named it.** A `realise` takes an edge the model ranked,
+so the node's source comes from the edge rather than from anything the act stores. Node 8 has no
+ranking, because nothing has generated from it.
 
 ### Stage 6 — `create(node 8, "<|endoftext|>🜁")`
 
@@ -596,7 +609,7 @@ Authored bytes: the thirteen characters `<|endoftext|>`, then `F0 9F 9C 81`.
 | 11 | 10 | 250 | `9C` | 1 |
 | 12 | 11 | 223 | `81` | 1 |
 
-Act 6: `create`, source 1, `origin` 8, `tip` 12.
+Act 6: `create`, actor 1, `origin` 8, `tip` 12.
 
 **The special-token literal read as one token.** This `create` went through the adapter's
 special-token path, so the tokeniser returned id 151643 for those thirteen characters rather than
@@ -615,13 +628,13 @@ takeable. Whether a backend will evaluate the path ending at one of them is a qu
 The adapter will not report two hundred ranked ids, and reducing the request is not open to it, so
 it refuses. No model is called.
 
-Act 7: `generate`, source 2, `origin` 12, `tip` *null*, `params` 3, `seed` 7, `terminator`
-`refused`.
+Act 7: `generate`, actor 1, `model` 2, `origin` 12, `tip` *null*, `params` 3, `seed` 7,
+`terminator` `refused`.
 
-**An act with no tip.** Nothing was drawn and no node exists to name, which the invariants permit
-for a `generate` under this terminator and no other op at all. Params row 3 holds the request that
-was refused and stays there — a parameter set is written before the answer comes back, so the
-store keeps what was asked for whether or not it was met.
+**An act with no tip, and the one place `model` is the only record of who was asked.** Nothing was
+drawn, so no node carries the model and the act's own column is what says which one refused. Params
+row 3 holds the request and stays there — a parameter set is written before the answer comes back,
+so the store keeps what was asked for whether or not it was met.
 
 ### Reading the finished tree
 

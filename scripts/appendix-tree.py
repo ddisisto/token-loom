@@ -29,13 +29,13 @@ def build(path: Path) -> Store:
     """The seven stages, in the appendix's order. Node ids come out 1 through 12."""
     store = Store.initialise(path, vocabulary="qwen2.5-7b-base")
     adapter = ScriptedAdapter()
-    store.create(None, "The sky", vocabulary=adapter, source=USER)
-    store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, seed=42)
-    store.generate(2, {"top_k": 5, "top_n": 20, "length": 2}, adapter=adapter, seed=99)
-    store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, seed=42)
+    store.create(None, "The sky", vocabulary=adapter, actor=USER)
+    store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42)
+    store.generate(2, {"top_k": 5, "top_n": 20, "length": 2}, adapter=adapter, actor=USER, seed=99)
+    store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42)
     store.realise(2, MODEL, 0, actor=USER)
-    store.create(8, "<|endoftext|>\U0001f701", vocabulary=adapter, source=USER, special=True)
-    store.generate(12, {"top_k": 5, "top_n": 200, "length": 4}, adapter=adapter, seed=7)
+    store.create(8, "<|endoftext|>\U0001f701", vocabulary=adapter, actor=USER, special=True)
+    store.generate(12, {"top_k": 5, "top_n": 200, "length": 4}, adapter=adapter, actor=USER, seed=7)
     return store
 
 

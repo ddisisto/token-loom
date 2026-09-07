@@ -193,9 +193,9 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
         user = Source("user", "")
         draw = {"top_k": 10, "top_n": 10, "temperature": 0.9, "cache_prompt": False}
 
-        store.create(None, "The sky", vocabulary=adapter, source=user)
+        store.create(None, "The sky", vocabulary=adapter, actor=user)
         tip = R.roots(store.conn)[0].id + 1
-        store.generate(tip, {"length": 4, **draw}, adapter=adapter, seed=42)
+        store.generate(tip, {"length": 4, **draw}, adapter=adapter, actor=user, seed=42)
 
         # Branch at a ranked edge nothing took. This is the operation the format exists for.
         unrealised = R.unrealised_edges(store.conn, tip)
@@ -206,13 +206,17 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
         ).fetchone()[0]
         assert R.node_logprob(store.conn, taken) == pytest.approx(unrealised[0].logprob)
 
-        _, answer = store.generate(taken, {"length": 6, **draw}, adapter=adapter, seed=7)
+        _, answer = store.generate(
+            taken, {"length": 6, **draw}, adapter=adapter, actor=user, seed=7
+        )
         assert answer.terminator in ("limit", "eos")
 
-        store.create(taken, "🜁", vocabulary=adapter, source=user)
+        store.create(taken, "🜁", vocabulary=adapter, actor=user)
         fragment = R.children(store.conn, taken)[-1].id
         # A fragment node is a node like any other, and the adapter is what declines it.
-        _, refusal = store.generate(fragment, {"length": 2, **draw}, adapter=adapter, seed=1)
+        _, refusal = store.generate(
+            fragment, {"length": 2, **draw}, adapter=adapter, actor=user, seed=1
+        )
         assert refusal.terminator == "refused"
 
         store.delete(tip)
