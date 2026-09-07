@@ -44,9 +44,9 @@ that way.
 - **`cancelled`** — unreached, and deliberately. It needs a `generate` that can be interrupted and
   that returns what it drew. Streaming was the route to that, and streaming on the one backend
   that exists drops the interior ids of a multi-token character — so an interruptible generation
-  there would have to be declined rather than recorded. `docs/ADAPTER.md` settles it the other
-  way: a stoppable generation is issued as consecutive short acts, and stopping is declining to
-  issue the next one. **This is no longer an open item that a locked core is waiting on.** The
+  there would have to be declined rather than recorded. `docs/ADAPTER.md` has what a client that
+  wants to stop a long generation does instead. **This is no longer an open item that a locked core
+  is waiting on.** The
   terminator stays specified and unproduced, on the same reasoning as the paragraph below.
 
 **A whole construct is unwitnessed too, and stays that way for the same kind of reason.** No tree
@@ -87,44 +87,11 @@ and that worth is spent the first time it moves — so it is spent once, on ever
 not at all. Anything that arrives after the edit waits for a next one, and there is not expected to
 be a next one.
 
-**`marker` bumps to `token-loom/nodes-2`, and item 4 is the only reason.** Item 1 changes nothing
-a table means, which is the only circumstance *Conformance and extension* says bumps it — against
-it alone a reader written to the current document stays correct, and only a **writer** changes
-what it does about the lock. Item 4 adds a kind of act, and that makes the same reader wrong
-rather than merely incomplete.
+**`marker` bumps to `token-loom/nodes-2`.** The item below adds a kind of act, which makes a
+reader written to the current document wrong rather than merely incomplete — the one circumstance
+*Conformance and extension* says bumps it.
 
-### 1. The lock becomes a session claim
-
-**Held for a session, acquired without blocking, and replacing the per-act lock rather than joining
-it.**
-
-As written, `flock` is taken for the whole of one act and released between acts. Two things follow
-that are wrong for a client holding a tree open: there is no way to say *this tree is mine until I
-am done*, and no way to be told that it is not — the acquire blocks, so a writer that cannot have
-it waits with nothing to report.
-
-A claim is the same `flock` on the same file, taken when a store is opened for writing, held until
-it is closed or the process dies, and acquired non-blocking so a second writer is refused at once
-and can say so. **The per-act lock then has nothing left to serialise** — one claim is one writer —
-so `On disk` loses a paragraph rather than gaining one. That is the whole reason this is worth
-doing as a change to the format rather than a convention on top of it.
-
-What moves:
-
-- **`lock`, in `On disk`.** *Held with `flock` for the whole of an act, the model call included*,
-  and with it the sentences about a long generation blocking every other write and about a stale
-  lock blocking. A stale claim does not block — `flock` is released when the holding process dies.
-- **The WAL paragraph, in `On disk`.** *The `flock` is what is held across the call, so the
-  write-ahead log does not grow for the duration of a generation* stops being the reason for
-  anything. What actually keeps the log short is the sentence before it — an act's first write
-  commits and the transaction closes — which is unaffected.
-- **In flight, in `Acts`.** *The lock makes it decidable: a writer holds the lock for the whole of
-  an act, so acquiring it means no other writer is live.* The reasoning survives exactly and
-  reattaches to the claim. Sweeping abandoned acts moves with it, from the first write of every act
-  to the first write of a session, and **opening a tree for writing can modify it** stays true for
-  the same reason it was true before.
-
-### 4. Deleting is an act
+### Deleting is an act
 
 **Recorded in `acts` with the others; the `deleted` flag stays exactly as it is.** What changes is
 that the two writes leave a trace, not how liveness is derived.
@@ -184,21 +151,3 @@ and declining to use it so that a number can stay still is a compromise bought w
 consistency. **It is also bought with nothing**: the bump is only expensive where stores exist
 that predate it, and here the only ones are validation data on the machine that made them.
 
-### Knock-ons outside the core
-
-Reasons the edit is larger than it looks. This document does not own any of them.
-
-- **`docs/ADAPTER.md`'s *Cancellation* is wrong in two places, and they fail differently.** *What
-  chunking gives back — the lock is released between chunks, so a long generation stops blocking
-  every other writer for its whole duration* becomes **moot**: there are no other writers to stop
-  blocking. *A block is not atomic. The lock is released between chunks and another writer may
-  interleave* becomes **false**: under a claim no other writer can interleave, so a block held by
-  one session is atomic against every other process, and what can still interleave with it is
-  nothing. The first is a lost benefit and the second is a retracted statement, which is worth
-  keeping apart — a second and independent reason that passage over-reaches, on top of the one
-  already recorded against it.
-- **`docs/SURFACE.md` loses a paragraph rather than amending one.** Its answer to how a client shows
-  a write blocked behind another writer becomes *it is told immediately, and by whom*.
-- **The command line changes behaviour.** Writing to a tree another process holds fails at once
-  instead of waiting. Better for an instrument, since a hang reports nothing — but a visible change
-  to a shipped client and not only an internal one.

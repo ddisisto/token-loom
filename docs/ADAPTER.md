@@ -142,31 +142,26 @@ has the sequences. The loss shows in the token counters and the ids are gone, an
 back from the group's bytes is the artefact this format exists to avoid. So a streamed act would
 have to be declined, and a generation that could be stopped would be one that dies on an emoji.
 
-**So a caller who wants to stop asks for less at a time.** A long generation is issued as
-consecutive `generate` acts over a shorter `length`, each blocking, each complete, and stopping is
-declining to issue the next one. What the caller presents as one block of output is its own
-construct and is not the unit the record is in — the store already holds the boundaries, since
-every act names its `origin` and its `length`.
+**`cancelled` therefore stays unreached on this backend, and that is a decision rather than a gap.**
+It is specified, nothing produces it, and a `generate` short enough to be worth stopping is short
+enough to wait for. An adapter whose backend streams *without* losing ids may produce it, and the
+core is unchanged either way.
 
-**This trades a perturbed measurement for a faithful record**, and the trade is not close:
-chunking moves the logprobs recorded at a boundary, which *Determinism* is about and which the
-format absorbs by construction, while streaming loses ids, which nothing absorbs. Note also what chunking gives back
-— the lock is released between chunks, so a long generation stops blocking every other writer for
-its whole duration.
-
-Three consequences follow, and are easier written down than discovered:
+**A client that wants a long generation it can stop may issue it as consecutive acts** over a
+shorter `length`, each blocking and each complete, so that stopping is declining to issue the next
+one. This is a technique available to a client, not an obligation on one: the command line does
+not use it, and what a client that does use it presents as a block of output is its own construct
+rather than a unit of the record. Two things follow for such a client, and are easier written down
+than discovered:
 
 - **A block can be refused part-way.** Room is checked per act, so a caller may be met five times
   and refused on the sixth. There is no way to check a block up front, because a block is not a
   thing the adapter is ever asked for.
 - **Each act carries its own seed**, so a path is replayed act by act rather than from one triple.
-- **A block is not atomic.** The lock is released between chunks and another writer may interleave,
-  which is legal and merges by the usual key.
 
-**`cancelled` therefore stays unreached on this backend, and that is a decision rather than a gap.**
-It is specified, nothing produces it, and a `generate` short enough to be worth stopping is short
-enough to wait for. An adapter whose backend streams *without* losing ids may produce it, and the
-core is unchanged either way.
+**It trades a perturbed measurement for a faithful record**, and the trade is not close: acts of a
+shorter `length` move the logprobs recorded at a boundary, which *Determinism* is about and which
+the format absorbs by construction, while streaming loses ids, which nothing absorbs.
 
 ## Declination
 
@@ -197,9 +192,9 @@ property of the backend, belongs in its notes, and is expected to move as it is 
 **Measured on llama.cpp over Vulkan, single slot: no disagreement at all, at a fixed cache state.**
 Two requests differing in seed and in `top_n` returned bit-identical logprobs for every rank they
 shared, and repeating a request reproduced both the path and its values exactly. That is one
-backend on one machine with `--parallel 1`, so it is not a general result — but note that the core
-holds its lock across a whole act, so an adapter never sees its own requests batched together,
-which is where most of this class of nondeterminism comes from in the first place.
+backend on one machine with `--parallel 1`, so it is not a general result — but note that a tree
+has one writer at a time, so an adapter never sees its own requests batched together, which is
+where most of this class of nondeterminism comes from in the first place.
 
 **The cache is the variable that was being held still, and it is worth more than the last decimal
 places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
@@ -220,9 +215,9 @@ same build, GPU and quantisation.
 **A chunk boundary is a third variable of the same size, and it is not the cache's doing.**
 Continuing inside one call and starting a fresh call at the same path disagree by up to 0.057 with
 the cache off and 0.036 with it on — warm is marginally the *closer* of the two — and both reorder
-ranks. It does not decay downstream, because a KV state that differs at all is inherited. Since
-*Cancellation* makes chunking how a stoppable generation is issued, this is a variable the record
-will carry in practice rather than in principle.
+ranks. It does not decay downstream, because a KV state that differs at all is inherited. Any
+client that issues a long generation as consecutive acts — *Cancellation* has the one reason to —
+carries this variable in practice rather than in principle.
 
 **Which is bearable only because the disagreement is native to the instrument.** Branching is
 already a fresh call at a path first reached by continuing: `realise` then `generate` at an
@@ -286,9 +281,9 @@ one always could; a reader who wants to *select* on it now can, in the common ca
   terminator and the core stores none of it; whether that becomes a code as well waits for a
   client that has to display one.
 - **`cancelled` is unreached, and is no longer an open item.** Streaming was the route to it and
-  streaming loses ids on this backend, so *Cancellation* settles the question the other way:
-  stopping is declining to issue the next chunk. The core specifies the terminator and nothing
-  produces it, which is now a decision with a reason rather than work outstanding.
+  streaming loses ids on this backend, so the terminator is specified and nothing produces it — a
+  decision with a reason rather than work outstanding. *Cancellation* has what a client that wants
+  to stop a long generation does instead.
 - **`cache_prompt` is a required per-call parameter**, and the adapter refuses a request that
   omits it or names a non-bool. *Determinism* says why. On the command line it is
   `tokenloom generate --cache-prompt`, on that verb alone, since no other calls a model.

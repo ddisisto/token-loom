@@ -318,6 +318,14 @@ def test_a_writer_will_not_write_to_a_store_that_fails_an_invariant(tmp_path):
     reader = Store.open(path)  # a reader still opens, and reports
     assert "INV-TREE-PARENT" in names(reader.conn)
 
+    # The claim is taken before the store is verified, so the refused open is the one
+    # path that could leave a tree claimed by nobody. Repaired, it opens for writing.
+    conn = sqlite3.connect(path / "bulk.sqlite")
+    conn.execute("DELETE FROM nodes WHERE id = 1")
+    conn.commit()
+    conn.close()
+    Store.open(path, write=True).close()
+
 
 def test_every_invariant_the_locked_document_names_is_one_this_checker_can_report():
     """`docs/CORE.md` is locked, so its list of invariants is fixed and the checker's must

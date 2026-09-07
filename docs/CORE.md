@@ -211,9 +211,8 @@ per call and interning it would mint a row each time; the core supplies one when
 not, so that it too is part of the request.
 
 **A `generate` act with a null `terminator` is in flight.** Only `generate` can be; the other two
-are one write each. The lock makes it decidable: a writer holds the lock for the whole of an act,
-so acquiring it means no other writer is live, and every such act is abandoned and is recorded
-`aborted`.
+are one write each. The claim makes it decidable: one claim is one writer, so an act still in
+flight when a claim is taken is one whose writer is gone, and is recorded `aborted`.
 
 ## What the record requires of a backend
 
@@ -323,16 +322,16 @@ way.
 
 **The database runs in WAL journal mode**, which is what lets a reader take no lock and not be
 blocked by a writer. The SQLite transaction is not what spans a model call: an act's first write
-commits and the transaction closes. The `flock` is what is held across the call, so the write-ahead
-log does not grow for the duration of a generation.
+commits and the transaction closes.
 
 Timestamps everywhere in this format are ISO 8601 in UTC, ending `Z`.
 
-**`lock`** — held with `flock` for the whole of an act, **the model call included**. Writes are
-serialised and nothing generates concurrently, so a long generation blocks every other write,
-`create` and `realise` among them. A stale lock blocks and nothing breaks it. Recording abandoned
-acts is the first write after acquisition, so **opening a tree for writing can modify it.** A
-reader takes no lock.
+**`lock`** — a writer's claim on the tree. One `flock`, taken when a store is opened for writing,
+held until it is closed or the process dies, and acquired without blocking so that a second writer
+is refused at once. **One claim is one writer**, so nothing generates concurrently and a claim is
+what a client holds to say a tree is its own until it is done. A claim dies with its holder.
+Recording abandoned acts is the first write after claiming, so **opening a tree for writing can
+modify it.** A reader takes no lock.
 
 ## The invariants
 
@@ -465,7 +464,7 @@ Nothing here is stored.
 - Sampling parameters and what they mean, beyond the length limit the core imposes.
 - Any reading surface — layout, navigation, selection, or what a client chooses to show, bytes
   that do not decode included.
-- Concurrency beyond the lock: no protocol across machines, and no lock breaking.
+- Concurrency beyond the claim: no protocol across machines.
 - Import, export, and conversion between vocabularies, beyond the statement that a tree in a
   second vocabulary is a second tree.
 - Performance, indexing beyond the keys stated here, and reclaiming space.

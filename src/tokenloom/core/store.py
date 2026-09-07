@@ -14,6 +14,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import IO
 
 from . import check, reads
 from .ports import Adapter, Generation, Source, Vocabulary
@@ -56,16 +57,25 @@ def canonical(params: Mapping) -> str:
 class Store:
     """One tree, in one directory.
 
-    A reader takes no lock. A writer takes the `flock` for the whole of an act, the model
-    call included, and its first write after acquiring records abandoned acts -- so
-    opening a tree for writing can modify it.
+    A reader takes no lock. A writer claims the tree when it opens it and holds the claim
+    until it closes, so one claim is one writer. Its first write after claiming records
+    abandoned acts, so opening a tree for writing can modify it.
     """
 
-    def __init__(self, path: Path, conn: sqlite3.Connection, tree: dict, *, write: bool) -> None:
+    def __init__(
+        self,
+        path: Path,
+        conn: sqlite3.Connection,
+        tree: dict,
+        *,
+        write: bool,
+        claim: IO[bytes] | None = None,
+    ) -> None:
         self.path = path
         self.conn = conn
         self.tree = tree
         self.writable = write
+        self._claim = claim
 
     # ---- opening -------------------------------------------------------------------
 
@@ -93,19 +103,40 @@ class Store:
         # A reader that does not recognise `marker` stops.
         if tree.get("marker") != MARKER:
             raise StoreError(f"unrecognised marker {tree.get('marker')!r}; this reader stops")
-        store = cls(path, _connect(path / BULK_FILE), tree, write=write)
+        # The claim is taken before the store is read, so what is verified is a tree no
+        # other writer can still be changing.
+        claim = cls._take_claim(path) if write else None
+        store = cls(path, _connect(path / BULK_FILE), tree, write=write, claim=claim)
         if write:
-            # A store that fails an invariant is not repaired silently: a reader reports
-            # it, and a writer will not write.
-            if verify:
-                check.verify(store.conn)
-            (path / LOCK_FILE).touch()
-            with store._locked():
-                pass  # acquiring is what sweeps
+            try:
+                # A store that fails an invariant is not repaired silently: a reader
+                # reports it, and a writer will not write.
+                if verify:
+                    check.verify(store.conn)
+                store._sweep()
+            except BaseException:
+                store.close()  # an open that does not return leaves the tree unclaimed
+                raise
         return store
+
+    @staticmethod
+    def _take_claim(path: Path) -> IO[bytes]:
+        """One `flock`, acquired without blocking, held until the store is closed or the
+        process dies. A second writer is refused at once and can say so."""
+        (path / LOCK_FILE).touch()
+        fd = (path / LOCK_FILE).open("a+b")
+        try:
+            fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            fd.close()
+            raise StoreError(f"another writer holds {path}") from exc
+        return fd
 
     def close(self) -> None:
         self.conn.close()
+        if self._claim is not None:
+            self._claim.close()  # closing the descriptor releases the claim
+            self._claim = None
 
     def __enter__(self) -> Store:
         return self
@@ -117,26 +148,13 @@ class Store:
     def vocabulary(self) -> str:
         return self.tree["vocabulary"]
 
-    # ---- the lock ------------------------------------------------------------------
-
-    @contextmanager
-    def _locked(self) -> Iterator[None]:
-        """Held for the whole of an act, the model call included. A stale lock blocks and
-        nothing breaks it."""
-        if not self.writable:
-            raise StoreError("this store was opened for reading")
-        fd = (self.path / LOCK_FILE).open("a+")
-        try:
-            fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
-            self._sweep()
-            yield
-        finally:
-            fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
-            fd.close()
+    # ---- writing ---------------------------------------------------------------------
 
     @contextmanager
     def _writing(self) -> Iterator[None]:
         """One transaction. Anything that raises leaves the store as it was."""
+        if not self.writable:
+            raise StoreError("this store was opened for reading")
         try:
             yield
             self.conn.commit()
@@ -145,8 +163,8 @@ class Store:
             raise
 
     def _sweep(self) -> None:
-        """Record abandoned acts. Acquiring the lock means no other writer is live, so
-        every generation still in flight is one whose writer is gone."""
+        """Record abandoned acts. The claim is exclusive, so a generation still in flight
+        when it is taken is one whose writer is gone."""
         with self._writing():
             self.conn.execute(
                 "UPDATE acts SET terminator = 'aborted' "
@@ -285,7 +303,7 @@ class Store:
                 f"{[t.id for t in tokens]}, which spells {b''.join(spelled)!r}"
             )
 
-        with self._locked(), self._writing():
+        with self._writing():
             self._require_live(at)
             source_id = self.source_id(source)
             cur = at
@@ -300,7 +318,7 @@ class Store:
         The act's source is who acted; the node carries the source of the model that
         ranked the edge, which is why the act needs no column for the edge's source.
         """
-        with self._locked(), self._writing():
+        with self._writing():
             self._require_live(node)
             edge_source = self.find_source(source)
             if edge_source is None:
@@ -341,30 +359,29 @@ class Store:
             # mints a seed a backend would read as a sentinel.
             seed = secrets.randbelow(2**31)
 
-        with self._locked():
-            with self._writing():
-                self._require_live(at)
-                source_id = self.source_id(adapter.source)
-                ids = reads.path_token_ids(self.conn, at) if at is not None else []
-                act = self._write_act(
-                    "generate", source_id, origin=at, tip=None,
-                    params=self.params_id(params), seed=seed,
-                )
-            # provenance is committed; the transaction is closed across the model call
+        with self._writing():
+            self._require_live(at)
+            source_id = self.source_id(adapter.source)
+            ids = reads.path_token_ids(self.conn, at) if at is not None else []
+            act = self._write_act(
+                "generate", source_id, origin=at, tip=None,
+                params=self.params_id(params), seed=seed,
+            )
+        # provenance is committed; the transaction is closed across the model call
 
-            try:
-                answer = adapter.generate(ids, params, seed)
-                with self._writing():
-                    self._land(act, answer, at, source_id, length, adapter)
-            except Exception:
-                # The landing is inside the guard, not after it. An answer the store will
-                # not write -- a vocabulary that disagrees at an id already held, a
-                # terminator that contradicts what came back -- is a generation that
-                # produced nothing, and the writer is right here and knows it. Left in
-                # flight it would instead be swept by the next writer as `aborted`, which
-                # asserts the writer was gone when it was not.
-                self._failed(act)
-                raise
+        try:
+            answer = adapter.generate(ids, params, seed)
+            with self._writing():
+                self._land(act, answer, at, source_id, length, adapter)
+        except Exception:
+            # The landing is inside the guard, not after it. An answer the store will not
+            # write -- a vocabulary that disagrees at an id already held, a terminator
+            # that contradicts what came back -- is a generation that produced nothing,
+            # and the writer is right here and knows it. Left in flight it would instead
+            # be swept by the next writer as `aborted`, which asserts the writer was gone
+            # when it was not.
+            self._failed(act)
+            raise
         return act, answer
 
     def _failed(self, act: int) -> None:
@@ -438,7 +455,7 @@ class Store:
         self._set_deleted(node, None)
 
     def _set_deleted(self, node: int, value: int | None) -> None:
-        with self._locked(), self._writing():
+        with self._writing():
             if not reads.node_exists(self.conn, node):
                 raise Rejected(f"no node {node}")
             self.conn.execute("UPDATE nodes SET deleted = ? WHERE id = ?", (value, node))

@@ -224,11 +224,12 @@ def test_an_answer_the_store_will_not_write_records_failed_and_is_not_left_in_fl
     ).fetchall() == [(None, "failed")]
     # Nothing of the rejected answer landed, and the sweep has nothing to find.
     assert store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 2
+    assert violations(store.conn) == []
+    store.close()  # the next writer needs the claim, so this one has to let go of it
     with Store.open(store.path, write=True) as later:
         assert later.conn.execute(
             "SELECT terminator FROM acts WHERE op = 'generate'"
         ).fetchone() == ("failed",)
-    assert violations(store.conn) == []
 
 
 def test_an_interrupted_writer_is_left_for_the_sweep_and_not_called_failed(store):
@@ -248,7 +249,8 @@ def test_an_interrupted_writer_is_left_for_the_sweep_and_not_called_failed(store
     assert store.conn.execute(
         "SELECT terminator FROM acts WHERE op = 'generate'"
     ).fetchone() == (None,)  # still in flight
-    with Store.open(store.path, write=True) as later:  # acquiring is what sweeps
+    store.close()
+    with Store.open(store.path, write=True) as later:  # claiming is what sweeps
         assert later.conn.execute(
             "SELECT tip, terminator FROM acts WHERE op = 'generate'"
         ).fetchone() == (None, "aborted")
@@ -384,22 +386,41 @@ def _with(vocabulary, answers):
     return adapter
 
 
-# ---- the lock and the sweep ---------------------------------------------------------
+# ---- the claim and the sweep --------------------------------------------------------
+
+
+def test_a_second_writer_is_refused_rather_than_left_waiting(store):
+    """The claim is what a client holds to say *this tree is mine until I am done*, and
+    refusing without blocking is what lets the one turned away report it.
+
+    A writer that waited would report nothing, which is the whole reason the claim is
+    taken this way rather than blocking.
+    """
+    with pytest.raises(StoreError, match="another writer holds"):
+        Store.open(store.path, write=True)
+
+    reader = Store.open(store.path)  # a reader is not a writer and is never refused
+    assert R.roots(reader.conn) == R.roots(store.conn)
+
+    store.close()
+    with Store.open(store.path, write=True):  # and the claim is released by closing
+        pass
 
 
 def test_an_abandoned_generation_is_recorded_aborted(tmp_path):
-    """A writer holds the lock for the whole of an act, so acquiring it means no other
-    writer is live -- and every act still in flight is one whose writer is gone.
+    """One claim is one writer, so a generation still in flight when a claim is taken is
+    one whose writer is gone.
 
     The writer is killed for real, mid-call, in a subprocess. Nothing else reaches
-    `aborted`.
+    `aborted`. That the open below succeeds at all is the second thing this witnesses: a
+    claim dies with the process holding it, so an abandoned one never has to be broken.
     """
     path = tmp_path / "t"
     src = _ABANDON_SCRIPT.format(path=str(path), tests=_TESTS_DIR)
     proc = subprocess.run([sys.executable, "-c", src], capture_output=True, text=True, timeout=30)
     assert proc.returncode != 0, proc.stdout + proc.stderr
 
-    with Store.open(path, write=True) as store:  # acquiring is what sweeps
+    with Store.open(path, write=True) as store:  # claiming is what sweeps
         assert store.conn.execute(
             "SELECT tip, terminator FROM acts WHERE op = 'generate'"
         ).fetchall() == [(None, "aborted")]

@@ -196,20 +196,18 @@ request itself, so what they offer is an edit rather than a retry — repeating 
 gets the same answer, and a button promising otherwise would be lying about a decision the backend
 or the core already made.
 
-**A blocked write is indistinguishable from a slow one.** The lock is acquired blocking and
-without a timeout, so a writer that cannot have it waits with nothing to report. Sole writer is a
-discipline and not an enforcement: if a command line holds the lock against a tree the surface has
-open, the surface's placeholder simply stays up. This is the visible consequence of a gap
-`docs/CORE-status.md` records — a write claim held across acts, which the locked core has no way
-to express — and it is the answer to *how a client shows that a write is blocked behind another
-writer's generation*: it does not, and it cannot, and what it would take is written down.
+**The tree is claimed when the surface opens it and held until it closes.** The surface is
+therefore the only writer for as long as it runs, and the one thing that can fail is the opening: a
+tree another process holds is refused at once, which the surface reports naming the tree rather
+than starting and showing a page that never resolves.
 
 **The tree is opened for writing once and verified once**, for the life of the process, rather
-than per request. Sole writer is what makes this the fair reading of *a writer will not write* to a
-store that fails an invariant, and it takes a whole-tree verification off every interaction.
+than per request. The claim is what makes that sound rather than merely economical — no other
+writer can change the store while it is held — and it takes a whole-tree verification off every
+interaction.
 
-**Opening for writing can change the tree, and that is the surface's first write.** Acquiring the
-lock is what records abandoned generations as `aborted`, so a tree left in flight by a writer that
+**Opening for writing can change the tree, and that is the surface's first write.** Claiming the
+tree is what records abandoned generations as `aborted`, so a tree left in flight by a writer that
 died — a killed command line, most likely — is swept the moment the surface opens it. That
 terminator is therefore something the surface *finds*, never something its own request becomes:
 the surface is the writer, and a request it loses it loses along with the process holding it.
