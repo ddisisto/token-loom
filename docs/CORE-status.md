@@ -87,7 +87,7 @@ and that worth is spent the first time it moves — so it is spent once, on ever
 not at all. Anything that arrives after the edit waits for a next one, and there is not expected to
 be a next one.
 
-**`marker` bumps to `token-loom/nodes-2`, and item 4 is the only reason.** Items 1 to 3 change
+**`marker` bumps to `token-loom/nodes-2`, and item 4 is the only reason.** Items 1 and 2 change
 nothing a table means, which is the only circumstance *Conformance and extension* says bumps it —
 against those alone a reader written to the current document stays correct, and only a **writer**
 changes what it does about the lock. Item 4 adds a kind of act, and that makes the same reader
@@ -135,19 +135,6 @@ test pinning what the appendix states, so it earns its place differently but it 
 It also **dissolves a question instead of answering one.** A reading surface has to say what a run
 looks like on screen only because this document names the concept; with the concept gone there is
 nothing for it to say.
-
-### 3. The appendix's parameters are marked illustrative
-
-**`top_k` 5, and `top_n` 5, 20 and 200, were chosen to make the stages legible.** They have been
-read as a recommendation instead — `top_n` 20 became a de-facto default for no reason but that the
-worked example prints it, and a flat list of twenty alternatives misrepresents a position whose
-mass sits in the top three. That is the worked example leaking into design, and it is the method's
-own warning running backwards: not a one-line rejection deciding something for a year, but a
-one-line illustration doing it.
-
-One clause is enough. The appendix already says what its numbers **are** — real values off a named
-quantisation, copied rather than recomputed — and wants a sentence saying what they are not. **No
-stance on sampling belongs in this document**; what belongs is the absence of an accidental one.
 
 ### 4. Deleting is an act
 

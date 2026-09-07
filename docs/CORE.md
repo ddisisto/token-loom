@@ -483,6 +483,8 @@ differently from the two that do.
 
 **The ids and logprobs below are real**, taken from `Qwen2.5-7B.i1-Q4_K_M` served by llama.cpp
 over Vulkan, 16k context. Logprobs are shown to four places; nothing else is rounded or invented.
+The parameters are chosen to make each stage legible, and are neither defaults nor
+recommendations.
 
 ### Sources
 
