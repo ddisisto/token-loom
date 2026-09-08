@@ -52,17 +52,19 @@ class ToyAdapter(ToyVocabulary):
         self.answers = list(answers)
         self.source = source
         self.prompts: list[list[int]] = []
+        self.params: list[dict] = []
 
     def will_evaluate(self, ids: list[int]) -> bool:
         return True
 
-    def generate(self, ids: list[int], params: dict, seed: int) -> Generation:
+    def generate(self, ids: list[int], params: dict) -> Generation:
         self.prompts.append(list(ids))
+        self.params.append(dict(params))
         answer = self.answers.pop(0)
         if isinstance(answer, BaseException):
             raise answer
         if callable(answer):
-            return answer(ids, params, seed)
+            return answer(ids, params)
         return answer
 
 

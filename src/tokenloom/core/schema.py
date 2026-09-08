@@ -52,8 +52,8 @@ CREATE TABLE acts (
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
-  model   INTEGER, params INTEGER, seed INTEGER, terminator TEXT,  -- 'generate' only
-  rank    INTEGER);                                                -- 'realise' only
+  model   INTEGER, params INTEGER, terminator TEXT,  -- 'generate' only
+  rank    INTEGER);                                  -- 'realise' only
 """
 
 OPS = ("create", "generate", "realise", "delete", "undelete")

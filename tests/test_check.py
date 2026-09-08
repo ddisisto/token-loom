@@ -33,7 +33,7 @@ CREATE TABLE edges  (node INTEGER NOT NULL, source INTEGER NOT NULL, rank INTEGE
 CREATE TABLE params (id INTEGER, json TEXT NOT NULL);
 CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, actor INTEGER NOT NULL, origin INTEGER,
                      tip INTEGER, created TEXT NOT NULL, model INTEGER, params INTEGER,
-                     seed INTEGER, terminator TEXT, rank INTEGER);
+                     terminator TEXT, rank INTEGER);
 """
 
 
@@ -67,12 +67,12 @@ def node(conn, nid, parent, token=10, source=1, deleted=None):
     )
 
 
-def act(conn, aid, op, actor=1, origin=None, tip=None, model=None, params=None, seed=None,
+def act(conn, aid, op, actor=1, origin=None, tip=None, model=None, params=None,
         terminator=None, rank=None):
     conn.execute(
-        "INSERT INTO acts (id, op, actor, origin, tip, created, model, params, seed, "
-        "terminator, rank) VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?, ?)",
-        (aid, op, actor, origin, tip, model, params, seed, terminator, rank),
+        "INSERT INTO acts (id, op, actor, origin, tip, created, model, params, "
+        "terminator, rank) VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?)",
+        (aid, op, actor, origin, tip, model, params, terminator, rank),
     )
 
 
@@ -277,42 +277,77 @@ def test_inv_act_source_on_a_generate_wants_the_acts_model():
     conn = bare()
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=1)  # not the model the act names
-    act(conn, 1, "generate", model=2, origin=1, tip=2, params=1, seed=1, terminator="limit")
+    act(conn, 1, "generate", model=2, origin=1, tip=2, params=1, terminator="limit")
     assert "INV-ACT-SOURCE" in names(conn)
 
 
 def test_inv_act_generate_wants_a_model_that_is_one():
     conn = bare()
     node(conn, 1, None)
-    act(conn, 1, "generate", model=1, tip=1, params=1, seed=1, terminator="limit")
+    act(conn, 1, "generate", model=1, tip=1, params=1, terminator="limit")
     assert "INV-ACT-GENERATE" in names(conn)
 
 
 def test_inv_act_create_names_a_tip_and_carries_nothing_else():
     conn = bare()
     node(conn, 1, None)
-    act(conn, 1, "create", tip=1, seed=5)
+    act(conn, 1, "create", tip=1)
     act(conn, 2, "create", tip=None)
     assert names(conn) == {"INV-ACT-CREATE"}
 
 
-def test_inv_act_generate_needs_params_and_seed():
+def test_inv_act_generate_needs_a_model_and_params():
     conn = bare()
     node(conn, 1, None, source=2)
     act(conn, 1, "generate", model=2, tip=1)
     assert "INV-ACT-GENERATE" in names(conn)
 
 
+def test_inv_act_limit_wants_the_length_its_params_name():
+    """`limit` means it drew the requested length. The writer holds an answer to that and
+    a checker could not, which left the one terminator with a checkable meaning uncheckable
+    on a store some other writer produced."""
+    conn = bare()
+    conn.execute("""INSERT INTO params VALUES (1, '{"length":3}')""")
+    node(conn, 1, None)
+    node(conn, 2, 1, token=11)
+    act(conn, 1, "generate", model=2, origin=1, tip=2, params=1, terminator="limit")
+    assert "INV-ACT-LIMIT" in names(conn)  # covers one node, asked for three
+
+
+def test_inv_act_limit_holds_a_limit_whose_params_name_no_length():
+    """Unreadable is not a pass. A `limit` the record cannot be held to is the fault the
+    invariant is for, so params with no usable `length` fail rather than being skipped."""
+    conn = bare()
+    conn.execute("""INSERT INTO params VALUES (1, '{"top_k":5}')""")
+    conn.execute("""INSERT INTO params VALUES (2, '{"length":"three"}')""")
+    node(conn, 1, None, source=2)
+    node(conn, 2, 1, token=11, source=2)
+    for aid, params in ((1, 1), (2, 2)):
+        act(conn, aid, "generate", model=2, origin=1, tip=2, params=params, terminator="limit")
+    assert names(conn) == {"INV-ACT-LIMIT"}
+
+
+def test_a_limit_that_covers_exactly_its_length_is_clean():
+    conn = bare()
+    conn.execute("""INSERT INTO params VALUES (1, '{"length":2}')""")
+    node(conn, 1, None, source=2)
+    node(conn, 2, 1, token=11, source=2)
+    node(conn, 3, 2, token=12, source=2)
+    act(conn, 1, "generate", model=2, origin=1, tip=3, params=1, terminator="limit")
+    assert violations(conn) == []
+
+
 def test_inv_act_generate_null_tip_needs_a_terminator_that_allows_one():
     conn = bare()
-    act(conn, 1, "generate", model=2, params=1, seed=1, terminator="limit", tip=None)
+    act(conn, 1, "generate", model=2, params=1, terminator="limit", tip=None)
     assert "INV-ACT-GENERATE" in names(conn)
 
 
 @pytest.mark.parametrize("terminator", ["cancelled", "failed", "aborted", "refused", None])
 def test_inv_act_generate_allows_a_null_tip_under_these(terminator):
     conn = bare()
-    act(conn, 1, "generate", model=2, params=1, seed=1, terminator=terminator, tip=None)
+    act(conn, 1, "generate", model=2, params=1, terminator=terminator, tip=None)
     assert "INV-ACT-GENERATE" not in names(conn)
 
 
@@ -344,7 +379,7 @@ def test_a_well_formed_realise_is_clean():
 
 def test_an_unknown_terminator_is_caught():
     conn = bare()
-    act(conn, 1, "generate", model=2, params=1, seed=1, terminator="stop")
+    act(conn, 1, "generate", model=2, params=1, terminator="stop")
     assert "INV-ACT-GENERATE" in names(conn)
 
 
@@ -386,4 +421,4 @@ def test_every_invariant_the_locked_document_names_is_one_this_checker_can_repor
     reported = set(re.findall(r'"(INV-[A-Z-]+)"', pathlib.Path(check.__file__).read_text()))
     assert named == reported, {"only in CORE.md": named - reported,
                                "only in check.py": reported - named}
-    assert len(named) == 16
+    assert len(named) == 17

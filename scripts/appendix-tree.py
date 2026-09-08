@@ -30,12 +30,20 @@ def build(path: Path) -> Store:
     store = Store.initialise(path, vocabulary="qwen2.5-7b-base")
     adapter = ScriptedAdapter()
     store.create(None, "The sky", vocabulary=adapter, actor=USER)
-    store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42)
-    store.generate(2, {"top_k": 5, "top_n": 20, "length": 2}, adapter=adapter, actor=USER, seed=99)
-    store.generate(2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42)
+    store.generate(
+        2, {"top_k": 5, "top_n": 5, "length": 3, "seed": 42}, adapter=adapter, actor=USER
+    )
+    store.generate(
+        2, {"top_k": 5, "top_n": 20, "length": 2, "seed": 99}, adapter=adapter, actor=USER
+    )
+    store.generate(
+        2, {"top_k": 5, "top_n": 5, "length": 3, "seed": 42}, adapter=adapter, actor=USER
+    )
     store.realise(2, MODEL, 0, actor=USER)
     store.create(8, "<|endoftext|>\U0001f701", vocabulary=adapter, actor=USER, special=True)
-    store.generate(12, {"top_k": 5, "top_n": 200, "length": 4}, adapter=adapter, actor=USER, seed=7)
+    store.generate(
+        12, {"top_k": 5, "top_n": 200, "length": 4, "seed": 7}, adapter=adapter, actor=USER
+    )
     return store
 
 

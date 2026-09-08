@@ -10,6 +10,7 @@ for writing refuses.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 
@@ -212,10 +213,28 @@ def _rank_dense_and_unique(conn: sqlite3.Connection) -> list[Violation]:
 # ---- acts --------------------------------------------------------------------------
 
 
+def _lengths(conn: sqlite3.Connection) -> dict[int, int]:
+    """`length` out of each interned parameter set, where it is one the core could read.
+
+    Parameters are otherwise opaque here -- `length` is the single field the core
+    interprets, which is what makes it the single field this may look at.
+    """
+    found = {}
+    for pid, text in conn.execute("SELECT id, json FROM params"):
+        try:
+            length = json.loads(text).get("length")
+        except (ValueError, AttributeError):
+            continue
+        if isinstance(length, int) and not isinstance(length, bool):
+            found[pid] = length
+    return found
+
+
 def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violation]:
     bad = []
-    for act, op, actor, origin, tip, model, params, seed, terminator, rank in conn.execute(
-        "SELECT id, op, actor, origin, tip, model, params, seed, terminator, rank "
+    lengths = _lengths(conn)
+    for act, op, actor, origin, tip, model, params, terminator, rank in conn.execute(
+        "SELECT id, op, actor, origin, tip, model, params, terminator, rank "
         "FROM acts ORDER BY id"
     ):
         where = f"act {act} ({op})"
@@ -282,7 +301,6 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                 for n, v in (
                     ("model", model),
                     ("params", params),
-                    ("seed", seed),
                     ("terminator", terminator),
                     ("rank", rank),
                 )
@@ -293,14 +311,22 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
 
         elif op == "generate":
             # INV-ACT-GENERATE
-            if model is None or params is None or seed is None:
-                bad.append(Violation("INV-ACT-GENERATE", f"{where}: needs model, params and seed"))
+            if model is None or params is None:
+                bad.append(Violation("INV-ACT-GENERATE", f"{where}: needs a model and params"))
             elif model in sources and sources[model][0] != "model":
                 bad.append(
                     Violation("INV-ACT-GENERATE", f"{where}: model {model} is not a model")
                 )
             if rank is not None:
                 bad.append(Violation("INV-ACT-GENERATE", f"{where}: carries a rank"))
+            # INV-ACT-LIMIT -- `limit` means it drew the requested length, and this is
+            # the only terminator whose meaning the record can be held to after the fact.
+            want = lengths.get(params)
+            if terminator == "limit" and len(path) != want:
+                asked = "no readable length" if want is None else f"a length of {want}"
+                bad.append(
+                    Violation("INV-ACT-LIMIT", f"{where}: covers {len(path)} nodes for {asked}")
+                )
             if tip is None and terminator not in (
                 None,
                 "cancelled",
@@ -323,7 +349,6 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                 for n, v in (
                     ("model", model),
                     ("params", params),
-                    ("seed", seed),
                     ("terminator", terminator),
                 )
                 if v is not None
@@ -368,7 +393,6 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                     ("tip", tip),
                     ("model", model),
                     ("params", params),
-                    ("seed", seed),
                     ("terminator", terminator),
                     ("rank", rank),
                 )

@@ -33,8 +33,7 @@ order. Nothing addresses a byte, and no offset here is a byte offset.
 
 One point in the tree has exactly one name, and that name is the node. Nodes are never split,
 merged after the fact, or renumbered, so no name is ever invalidated and no canonicalisation is
-needed. Node ids are opaque and local to a store; nothing outside a store may treat them as
-stable.
+needed.
 
 A token's bytes may be a fragment of a character — Qwen2.5 spells `🜁` as three tokens, none of
 them valid UTF-8 alone. Such a token is a node like any other, and so is a node whose path bytes
@@ -127,10 +126,10 @@ The store does not require the covering edge.
 **Nothing records why an edge is missing.** A declination is not distinguished from a position
 nothing has generated at; in both the absence is the whole record.
 
-Confining a draw to alternatives that are recorded is an obligation on an adapter, so in the
-ordinary case a drawn token is among its parent's ranked edges and rank `0` is frequently not
-the token drawn. Values are the model's own and sum to less than one, by the mass of the
-vocabulary that was not recorded.
+**A drawn token is ordinarily among its parent's ranked edges**, which is what makes a node's
+logprob derivable in the ordinary case, and rank `0` is frequently not the one drawn: the draw is
+a sample from the distribution rather than its maximum. Values are the model's own and sum to
+less than one, by the mass of the vocabulary that was not recorded.
 
 ## Acts
 
@@ -146,7 +145,6 @@ changes whether it is live, or records that it did neither.
 | `created` | all | timestamp, ISO 8601, UTC |
 | `model` | `generate` | the model it asked |
 | `params` | `generate` | index into the interned parameter table |
-| `seed` | `generate` | the seed the call was made with |
 | `terminator` | `generate` | its outcome; `null` while in flight |
 | `rank` | `realise` | the rank of the edge that was taken |
 
@@ -195,10 +193,10 @@ drawing. `eos` and `limit` always name a tip.
 may arrive with no covering ranked edge, which Rankings provides for.
 
 **Refusal is the adapter's answer and is recorded; rejection is the core's and is not.** A
-generation the adapter declines is an act with terminator `refused`, holding the parameters and
-the seed it was asked for. A `create` whose round trip fails, and one that would add no tokens,
-are rejected before anything is written and leave no trace. Only a `generate` has a terminator, so
-only a `generate` can record its own undoing.
+generation the adapter declines is an act with terminator `refused`, holding the parameters it was
+asked for. A `create` whose round trip fails, and one that would add no tokens, are rejected before
+anything is written and leave no trace. Only a `generate` has a terminator, so only a `generate`
+can record its own undoing.
 
 **Parameters are what was asked for.** The core records the request, and reads one field of it.
 There is no effective parameter set and no second version to reconcile: an adapter either meets a
@@ -214,9 +212,7 @@ running out of context is not a way for a generation to end. That is why `limit`
 
 Every distinct parameter set is written once and referenced by index. Distinctness is on a
 canonical serialisation — object keys sorted, no insignificant whitespace — so two spellings of
-one request intern to one row. The seed keeps a column of its own, because it is designed to vary
-per call and interning it would mint a row each time; the core supplies one when a caller does
-not, so that it too is part of the request.
+one request intern to one row.
 
 **A `generate` act with a null `terminator` is in flight.** Only `generate` can be; the others
 are one write each. The claim makes it decidable: one claim is one writer, so an act still in
@@ -312,8 +308,8 @@ CREATE TABLE acts (
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
-  model   INTEGER, params INTEGER, seed INTEGER, terminator TEXT,  -- 'generate' only
-  rank    INTEGER);                                                -- 'realise' only
+  model   INTEGER, params INTEGER, terminator TEXT,  -- 'generate' only
+  rank    INTEGER);                                  -- 'realise' only
 ```
 
 `bytes` is a BLOB, so no escape is needed anywhere in the store. It lives in `vocab` rather than
@@ -363,16 +359,18 @@ modify it.** A reader takes no lock.
 - **`INV-ACT-SOURCE`** — every node an act produced carries one source: for `generate` the act's
   `model`, for `realise` the source of the edge it took, and for `create` one source along the
   whole path.
-- **`INV-ACT-CREATE`** — a `create` act has a non-null `tip`, and no `model`, `params`, `seed`,
+- **`INV-ACT-CREATE`** — a `create` act has a non-null `tip`, and no `model`, `params`,
   `terminator` or `rank`.
-- **`INV-ACT-GENERATE`** — a `generate` act has `model`, `params` and `seed`, and no `rank`. A null
+- **`INV-ACT-GENERATE`** — a `generate` act has `model` and `params`, and no `rank`. A null
   `terminator` means in flight. A null `tip` requires a `terminator` of `cancelled`, `failed`,
   `aborted` or `refused`, or none at all.
+- **`INV-ACT-LIMIT`** — a `generate` act with terminator `limit` covers exactly the `length` its
+  parameters name. It is the one terminator whose meaning the record can be held to.
 - **`INV-ACT-REALISE`** — a `realise` act has `rank` and a non-null `origin` and `tip`, and no
-  `model`, `params`, `seed` or `terminator`; `tip` is a child of `origin`; and the edge
+  `model`, `params` or `terminator`; `tip` is a child of `origin`; and the edge
   `(origin, tip.source, rank)` exists and carries `tip.token_id`.
 - **`INV-ACT-DELETE`** — a `delete` or `undelete` act has a non-null `origin`, and no `tip`,
-  `model`, `params`, `seed`, `terminator` or `rank`.
+  `model`, `params`, `terminator` or `rank`.
 
 Descending logprob within a ranking is **not** an invariant. Rankings says why.
 
@@ -396,8 +394,8 @@ This also settles what the bytes cannot: a special-token literal may be read as 
 its characters, the two spell the same bytes either way, and the stored ids tell them apart with
 no field to record it.
 
-**Generation is two writes.** The act, its parameters and its seed are written and committed
-*before* the model is called; the nodes, the ranked edges and the terminator when it answers. An
+**Generation is two writes.** The act and its parameters are written and committed *before* the
+model is called; the nodes, the ranked edges and the terminator when it answers. An
 act with no terminator is therefore a generation in flight, and no node can ever belong to an act
 the store has not heard of. A refusal comes back on the same path as an answer, and lands in the
 same second write.
@@ -451,7 +449,7 @@ Nothing here is stored.
 - **Display text** — a path's bytes, decoded. Bytes that do not decode have no string form, and
   what a reader shows in their place is the reader's to choose.
 - **A node's logprob** — the ranked edge at its parent, for its source, with its `token_id`.
-- **An act's tokens** — the path from `origin` to `tip`.
+- **An act's tokens** — the path from `origin` exclusive to `tip` inclusive.
 - **Whether a node is live** — neither it nor any ancestor carries `deleted`. A descent from the
   root carries the answer down and costs nothing.
 - **Branch points** — nodes with more than one child.
@@ -524,7 +522,7 @@ Authored by the unnamed user. Tokenises to two ids, and begins a root because `o
 
 Act 1: `create`, actor 1, `origin` *null*, `tip` 2.
 
-### Stage 2 — `generate(at=2)`, `top_k` 5, `top_n` 5, `length` 3, seed 42
+### Stage 2 — `generate(at=2)`, `top_k` 5, `top_n` 5, `length` 3, `seed` 42
 
 | node | `parent` | `token_id` | bytes | `source` |
 | --- | --- | --- | --- | --- |
@@ -532,7 +530,7 @@ Act 1: `create`, actor 1, `origin` *null*, `tip` 2.
 | 4 | 3 | 702 | ` has` | 2 |
 | 5 | 4 | 220 | ` ` | 2 |
 
-Act 2: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1, `seed` 42,
+Act 2: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1,
 `terminator` `limit`.
 
 The ranking recorded at node 2 — the alternatives for the position that produced node 3:
@@ -549,14 +547,14 @@ The ranking recorded at node 2 — the alternatives for the position that produc
 and 4 the same way. **Node 5 has no ranking**: generation stopped there, so no distribution for a
 following position was ever computed. That is a tip with no ranking, not a declination.
 
-### Stage 3 — `generate(at=2)`, `top_k` 5, `top_n` 20, `length` 2, seed 99
+### Stage 3 — `generate(at=2)`, `top_k` 5, `top_n` 20, `length` 2, `seed` 99
 
 | node | `parent` | `token_id` | bytes | `source` |
 | --- | --- | --- | --- | --- |
 | 6 | 2 | 702 | ` has` | 2 |
 | 7 | 6 | 6519 | ` turned` | 2 |
 
-Act 3: `generate`, actor 1, `model` 2, `origin` 2, `tip` 7, `params` 2, `seed` 99,
+Act 3: `generate`, actor 1, `model` 2, `origin` 2, `tip` 7, `params` 2,
 `terminator` `limit`.
 
 **The ranking at node 2 extends from five rows to twenty.** The five already stored keep their
@@ -582,10 +580,10 @@ branch point.
 
 ### Stage 4 — `generate(at=2)` again, identical to stage 2
 
-Same parameters and the same seed. The model reproduces the path exactly, so every node merges
+The same parameters, seed included. The model reproduces the path exactly, so every node merges
 and nothing new is written but the act.
 
-Act 4: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1, `seed` 42,
+Act 4: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1,
 `terminator` `limit` —
 every field but the id identical to act 2.
 
@@ -633,12 +631,12 @@ children, they could be given more, and their ranked edges — had a generation 
 takeable. Whether a backend will evaluate the path ending at one of them is a question for
 `docs/ADAPTER.md` and never for these rows.
 
-### Stage 7 — `generate(at=12)`, `top_k` 5, `top_n` 200, `length` 4, seed 7
+### Stage 7 — `generate(at=12)`, `top_k` 5, `top_n` 200, `length` 4, `seed` 7
 
 The adapter will not report two hundred ranked ids, and reducing the request is not open to it, so
 it refuses. No model is called.
 
-Act 7: `generate`, actor 1, `model` 2, `origin` 12, `tip` *null*, `params` 3, `seed` 7,
+Act 7: `generate`, actor 1, `model` 2, `origin` 12, `tip` *null*, `params` 3,
 `terminator` `refused`.
 
 **An act with no tip, and the one place `model` is the only record of who was asked.** Nothing was

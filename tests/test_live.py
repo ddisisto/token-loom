@@ -24,7 +24,7 @@ SERVER = os.environ.get("TOKENLOOM_SERVER", "http://localhost:8081")
 pytestmark = pytest.mark.live
 
 #: A complete draw. A case below that varies one key is testing that key.
-DRAW = {"top_k": 5, "top_n": 5, "temperature": 1.0, "cache_prompt": False}
+DRAW = {"top_k": 5, "top_n": 5, "temperature": 1.0, "cache_prompt": False, "seed": 1}
 
 
 @pytest.fixture(scope="session")
@@ -110,8 +110,8 @@ def test_the_appendix_logprobs_are_what_this_backend_returns(adapter):
         pytest.skip("the appendix's ids are Qwen2.5's")
     answer = adapter.generate(
         [785, 12884],
-        {"length": 1, "top_k": 20, "top_n": 20, "temperature": 0.9, "cache_prompt": False},
-        seed=99,
+        {"length": 1, "top_k": 20, "top_n": 20, "temperature": 0.9,
+         "cache_prompt": False, "seed": 99},
     )
     assert answer.terminator == "limit"
     got = [(r.token_id, round(r.logprob, 4)) for r in answer.positions[0].ranking]
@@ -129,8 +129,8 @@ def test_top_n_at_least_top_k_keeps_the_drawn_token_in_its_own_ranking(adapter):
     for seed in range(12):
         answer = adapter.generate(
             [785, 12884],
-            {"length": 3, "top_k": 8, "top_n": 8, "temperature": 1.3, "cache_prompt": False},
-            seed=seed,
+            {"length": 3, "top_k": 8, "top_n": 8, "temperature": 1.3,
+             "cache_prompt": False, "seed": seed},
         )
         for position in answer.positions:
             assert position.ranking is not None
@@ -150,7 +150,7 @@ def test_a_path_that_ends_mid_character_is_refused_and_the_predicate_agrees(adap
         pytest.skip("the fragment ids are Qwen2.5's")
     mid = [785, 9284]  # 'The' + the first two bytes of 🜁
     assert adapter.will_evaluate(mid) is False
-    answer = adapter.generate(mid, {**DRAW, "length": 2}, 1)
+    answer = adapter.generate(mid, {**DRAW, "length": 2})
     assert answer.terminator == "refused"
     assert adapter.will_evaluate([785, 9284, 250, 223]) is True  # the complete character
 
@@ -161,8 +161,13 @@ def test_a_path_that_ends_mid_character_is_refused_and_the_predicate_agrees(adap
         ({**DRAW, "length": 2, "top_n": 3}, "top_n >= top_k"),
         ({**DRAW, "length": 2, "top_k": 0}, "positive integer"),
         ({**DRAW, "length": 2, "top_n": 10**9}, "exceeds the vocabulary"),
-        ({"length": 2, "top_k": 5, "top_n": 5, "cache_prompt": False}, "['temperature']"),
-        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0}, "['cache_prompt']"),
+        ({"length": 2, "top_k": 5, "top_n": 5, "cache_prompt": False, "seed": 1},
+         "['temperature']"),
+        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0, "seed": 1},
+         "['cache_prompt']"),
+        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0, "cache_prompt": False},
+         "['seed']"),
+        ({**DRAW, "length": 2, "seed": 2**32}, "seed must be an integer"),
         ({**DRAW, "length": 2, "cache_prompt": "yes"}, "cache_prompt must be a bool"),
         ({**DRAW, "length": 2, "mirostat": 2}, "understand"),
         ({**DRAW, "length": 10**6}, "exceeds n_ctx"),
@@ -173,13 +178,13 @@ def test_the_refusal_list(adapter, params, why):
     request the server would otherwise meet approximately: it clamps `n_probs` above the
     vocabulary, and it truncates a generation that will not fit while still reporting
     `stop_type: limit`."""
-    answer = adapter.generate([785, 12884], params, 1)
+    answer = adapter.generate([785, 12884], params)
     assert answer.terminator == "refused"
     assert why in answer.reason
 
 
 def test_an_empty_prompt_is_refused_rather_than_generating_nothing(adapter):
-    answer = adapter.generate([], {**DRAW, "length": 2}, 1)
+    answer = adapter.generate([], {**DRAW, "length": 2})
     assert answer.terminator == "refused"
 
 
@@ -195,7 +200,7 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
 
         store.create(None, "The sky", vocabulary=adapter, actor=user)
         tip = R.roots(store.conn)[0].id + 1
-        store.generate(tip, {"length": 4, **draw}, adapter=adapter, actor=user, seed=42)
+        store.generate(tip, {**draw, "length": 4, "seed": 42}, adapter=adapter, actor=user)
 
         # Branch at a ranked edge nothing took. This is the operation the format exists for.
         unrealised = R.unrealised_edges(store.conn, tip)
@@ -207,7 +212,7 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
         assert R.node_logprob(store.conn, taken) == pytest.approx(unrealised[0].logprob)
 
         _, answer = store.generate(
-            taken, {"length": 6, **draw}, adapter=adapter, actor=user, seed=7
+            taken, {**draw, "length": 6, "seed": 7}, adapter=adapter, actor=user
         )
         assert answer.terminator in ("limit", "eos")
 
@@ -215,7 +220,7 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
         fragment = R.children(store.conn, taken)[-1].id
         # A fragment node is a node like any other, and the adapter is what declines it.
         _, refusal = store.generate(
-            fragment, {"length": 2, **draw}, adapter=adapter, actor=user, seed=1
+            fragment, {**draw, "length": 2, "seed": 1}, adapter=adapter, actor=user
         )
         assert refusal.terminator == "refused"
 
@@ -232,7 +237,7 @@ def test_eos_is_drawable_and_is_a_node(adapter):
     for seed in range(12):
         answer = adapter.generate(
             [576, 835, 13],  # ' The end.'
-            {**DRAW, "length": 6}, seed,
+            {**DRAW, "length": 6, "seed": seed},
         )
         if answer.terminator == "eos":
             assert answer.positions[-1].token_id == 151643

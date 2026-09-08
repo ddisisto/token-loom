@@ -37,7 +37,7 @@ def tree(tmp_path):
 
     # Stage 2 -- generate(at=2), top_k 5, top_n 5, length 3, seed 42.
     acts[2], _ = store.generate(
-        2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42
+        2, {"top_k": 5, "top_n": 5, "length": 3, "seed": 42}, adapter=adapter, actor=USER
     )
     clean(2)
 
@@ -46,13 +46,13 @@ def tree(tmp_path):
 
     # Stage 3 -- generate(at=2), top_k 5, top_n 20, length 2, seed 99.
     acts[3], _ = store.generate(
-        2, {"top_k": 5, "top_n": 20, "length": 2}, adapter=adapter, actor=USER, seed=99
+        2, {"top_k": 5, "top_n": 20, "length": 2, "seed": 99}, adapter=adapter, actor=USER
     )
     clean(3)
 
-    # Stage 4 -- identical to stage 2. Same parameters and the same seed.
+    # Stage 4 -- identical to stage 2. The same parameters, seed included.
     acts[4], _ = store.generate(
-        2, {"top_k": 5, "top_n": 5, "length": 3}, adapter=adapter, actor=USER, seed=42
+        2, {"top_k": 5, "top_n": 5, "length": 3, "seed": 42}, adapter=adapter, actor=USER
     )
     clean(4)
 
@@ -66,8 +66,8 @@ def tree(tmp_path):
     clean(6)
 
     # Stage 7 -- generate(at=12), top_n 200. Refused; no model is called.
-    acts[7], answer = store.generate(12, {"top_k": 5, "top_n": 200, "length": 4},
-                                     adapter=adapter, actor=USER, seed=7)
+    acts[7], answer = store.generate(12, {"top_k": 5, "top_n": 200, "length": 4, "seed": 7},
+                                     adapter=adapter, actor=USER)
     clean(7)
 
     return store, acts, before, answer
@@ -152,10 +152,10 @@ def test_node_5_and_node_8_have_no_ranking(tree):
 def test_stage_4_writes_an_act_and_no_nodes(tree):
     """Every field but the id identical to act 2 -- and the node count does not move."""
     store, acts, _, _ = tree
-    fields = "op, actor, model, origin, tip, params, seed, terminator"
+    fields = "op, actor, model, origin, tip, params, terminator"
     two = store.conn.execute(f"SELECT {fields} FROM acts WHERE id = ?", (acts[2],)).fetchone()
     four = store.conn.execute(f"SELECT {fields} FROM acts WHERE id = ?", (acts[4],)).fetchone()
-    assert two == four == ("generate", 1, 2, 2, 5, 1, 42, "limit")
+    assert two == four == ("generate", 1, 2, 2, 5, 1, "limit")
 
 
 def test_a_realise_names_no_source_and_its_node_carries_the_models(tree):
@@ -175,11 +175,11 @@ def test_stage_7_is_an_act_with_no_tip(tree):
     store, acts, _, answer = tree
     assert answer.terminator == "refused"
     assert store.conn.execute(
-        "SELECT op, actor, model, origin, tip, params, seed, terminator FROM acts WHERE id = ?",
+        "SELECT op, actor, model, origin, tip, params, terminator FROM acts WHERE id = ?",
         (acts[7],),
-    ).fetchone() == ("generate", 1, 2, 12, None, 3, 7, "refused")
+    ).fetchone() == ("generate", 1, 2, 12, None, 3, "refused")
     assert store.conn.execute("SELECT json FROM params WHERE id = 3").fetchone()[0] == (
-        '{"length":4,"top_k":5,"top_n":200}'
+        '{"length":4,"seed":7,"top_k":5,"top_n":200}'
     )
 
 

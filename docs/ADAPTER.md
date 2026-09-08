@@ -26,7 +26,7 @@ no facility for it and no way to tell that it was needed.
 | --- | --- |
 | `tokenize(bytes)` | the ids that spell those bytes, in order, each with its own bytes |
 | `bytes_for(id)` | what that id spells, exactly, for every id the adapter can emit |
-| `generate(ids, params, seed)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
+| `generate(ids, params)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
 
 ## The obligations
 
@@ -60,9 +60,11 @@ not require it — *Rankings* provides for a node with no covering ranked edge a
 nothing records why one is missing — so this is an obligation here and not an invariant there.
 An adapter that cannot report at least `top_k` refuses.
 
-**The seed is honoured.** The core supplies one with every request, so there is no case where an
-adapter chooses. An adapter whose backend cannot seed its sampler refuses rather than recording a
-seed that did nothing.
+**A parameter the backend needs to describe its own draw is one it requires.** The core reads
+`length` and passes the rest through, so what a complete request looks like is the adapter's to
+declare and to refuse without. A backend that samples stochastically requires whatever makes the
+draw reproducible — a seed, on the ones that exist — and refuses a request that omits it rather
+than choosing on the caller's behalf.
 
 **Room is checked before starting.** The prompt and the requested length together must fit. This
 is why running out of context is not a way for a generation to end, and why the core's `limit`
@@ -85,12 +87,13 @@ Nothing about the store changes between the two — only which ids come back.
 
 **An adapter refuses rather than adjusting.** A refusal is a `generate` that returns without
 calling the model, and it is recorded: the act stands with terminator `refused`, no tip, and the
-parameters and seed it was asked for.
+parameters it was asked for.
 
 Refuse when the prompt and requested length exceed the room available; when `top_n` exceeds what
-the backend will report; when the seed cannot be honoured; when the backend will not evaluate the
-path it was given; when a parameter is named that the backend does not understand; and whenever
-any parameter would otherwise have to be clamped, substituted or ignored.
+the backend will report; when a parameter the backend requires is missing or cannot be honoured;
+when the backend will not evaluate the path it was given; when a parameter is named that the
+backend does not understand; and whenever any parameter would otherwise have to be clamped,
+substituted or ignored.
 
 **Refuse also when the backend would meet the request and misreport how.** The first two entries
 above are not hypothetical on llama.cpp: it clamps `n_probs` above the vocabulary size without
@@ -157,7 +160,8 @@ than discovered:
 - **A block can be refused part-way.** Room is checked per act, so a caller may be met five times
   and refused on the sixth. There is no way to check a block up front, because a block is not a
   thing the adapter is ever asked for.
-- **Each act carries its own seed**, so a path is replayed act by act rather than from one triple.
+- **Each act carries its own parameters**, so a path is replayed act by act rather than from one
+  request.
 
 **It trades a perturbed measurement for a faithful record**, and the trade is not close: acts of a
 shorter `length` move the logprobs recorded at a boundary, which *Determinism* is about and which

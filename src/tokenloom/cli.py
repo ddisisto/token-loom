@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -112,20 +113,22 @@ def cmd_create(args) -> int:
 
 
 def cmd_generate(args) -> int:
+    from .adapters.llamacpp.adapter import MAX_SEED
+
     params = {
         "length": args.length,
         "top_k": args.top_k,
         "top_n": args.top_n,
         "temperature": args.temperature,
         "cache_prompt": args.cache_prompt,
+        # This backend samples, so it requires a seed and refuses without one. Drawing it
+        # here is what makes the recorded parameters a complete description of the draw.
+        "seed": args.seed if args.seed is not None else secrets.randbelow(MAX_SEED + 1),
     }
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
-        act, answer = store.generate(
-            args.at, params, adapter=adapter, actor=actor(args), seed=args.seed
-        )
-        seed = store.conn.execute("SELECT seed FROM acts WHERE id = ?", (act,)).fetchone()[0]
-        print(f"act {act}  generate  {answer.terminator}  seed {seed}")
+        act, answer = store.generate(args.at, params, adapter=adapter, actor=actor(args))
+        print(f"act {act}  generate  {answer.terminator}  seed {params['seed']}")
         if answer.reason:
             print(f"  reason: {answer.reason}")
         for node in R.act_tokens(store.conn, act):
@@ -248,10 +251,10 @@ def cmd_acts(args) -> int:
     with Store.open(args.tree) as store:
         rows = store.conn.execute(
             "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, a.rank, "
-            "a.seed, p.json, a.actor, a.model FROM acts a LEFT JOIN params p ON p.id = a.params "
+            "p.json, a.actor, a.model FROM acts a LEFT JOIN params p ON p.id = a.params "
             "ORDER BY a.id"
         ).fetchall()
-        for act, op, origin, tip, created, terminator, rank, seed, params, act_or, model in rows:
+        for act, op, origin, tip, created, terminator, rank, params, act_or, model in rows:
             who = source_name(store, act_or)
             if model is not None:
                 who += f" asked {source_name(store, model)}"
@@ -266,7 +269,7 @@ def cmd_acts(args) -> int:
             if rank is not None:
                 bits.append(f"rank {rank}")
             if params:
-                bits.append(f"{params} seed {seed}")
+                bits.append(params)
             print("  ".join(bits))
     return 0
 
@@ -348,7 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="how many alternatives to record. top_n >= top_k keeps the drawn "
                         "token inside its own ranking.")
     p.add_argument("--temperature", type=float, default=1.0)
-    p.add_argument("--seed", type=int, help="omit and the core supplies one")
+    p.add_argument("--seed", type=int, help="omit and one is drawn for you")
     p.add_argument("--cache-prompt", action="store_true", dest="cache_prompt",
                    help="let the server reuse its KV cache. Faster on a long path, and it "
                         "moves the logprobs recorded.")

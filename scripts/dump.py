@@ -105,16 +105,16 @@ def rankings(store: Store) -> dict[str, list[dict]]:
 
 def acts(store: Store) -> list[dict]:
     out = []
-    for act, op, actor, model, origin, tip, created, params, seed, terminator, rank in (
+    for act, op, actor, model, origin, tip, created, params, terminator, rank in (
         store.conn.execute(
-            "SELECT a.id, a.op, a.actor, a.model, a.origin, a.tip, a.created, p.json, a.seed, "
+            "SELECT a.id, a.op, a.actor, a.model, a.origin, a.tip, a.created, p.json, "
             "a.terminator, a.rank FROM acts a LEFT JOIN params p ON p.id = a.params ORDER BY a.id"
         )
     ):
         out.append({
             "id": act, "op": op, "actor": actor, "model": model, "origin": origin, "tip": tip,
             "created": created, "params": json.loads(params) if params else None,
-            "seed": seed, "terminator": terminator, "rank": rank,
+            "terminator": terminator, "rank": rank,
             "nodes": [n.id for n in R.act_tokens(store.conn, act)],
         })
     return out

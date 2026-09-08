@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import fcntl
 import json
-import secrets
 import sqlite3
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -352,13 +351,12 @@ class Store:
         *,
         adapter: Adapter,
         actor: Source,
-        seed: int | None = None,
     ) -> tuple[int, Generation]:
         """Two writes, and the model call between them.
 
-        The act, its parameters and its seed are committed *before* the model is called,
-        so no node can ever belong to an act the store has not heard of, and an act with
-        no terminator is a generation in flight. The nodes, the ranked edges and the
+        The act and its parameters are committed *before* the model is called, so no node
+        can ever belong to an act the store has not heard of, and an act with no
+        terminator is a generation in flight. The nodes, the ranked edges and the
         terminator land in the second write -- and a refusal comes back on the same path
         as an answer, into that same second write.
         """
@@ -366,10 +364,6 @@ class Store:
         if not isinstance(length, int) or isinstance(length, bool) or length <= 0:
             raise Rejected(f"`length` must be a positive integer, not {length!r}")
         params = dict(params)
-        if seed is None:
-            # Conservatively inside every plausible backend's range, so the core never
-            # mints a seed a backend would read as a sentinel.
-            seed = secrets.randbelow(2**31)
 
         with self._writing():
             actor_id = self._actor_id(actor)
@@ -378,12 +372,12 @@ class Store:
             ids = reads.path_token_ids(self.conn, at) if at is not None else []
             act = self._write_act(
                 "generate", actor_id, origin=at, tip=None, model=source_id,
-                params=self.params_id(params), seed=seed,
+                params=self.params_id(params),
             )
         # provenance is committed; the transaction is closed across the model call
 
         try:
-            answer = adapter.generate(ids, params, seed)
+            answer = adapter.generate(ids, params)
             with self._writing():
                 self._land(act, answer, at, source_id, length, adapter)
         except Exception:
@@ -488,14 +482,13 @@ class Store:
         tip: int | None,
         model: int | None = None,
         params: int | None = None,
-        seed: int | None = None,
         rank: int | None = None,
         terminator: str | None = None,
     ) -> int:
         return self.conn.execute(
-            "INSERT INTO acts (op, actor, origin, tip, created, model, params, seed, "
-            "terminator, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (op, actor_id, origin, tip, _now(), model, params, seed, terminator, rank),
+            "INSERT INTO acts (op, actor, origin, tip, created, model, params, "
+            "terminator, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (op, actor_id, origin, tip, _now(), model, params, terminator, rank),
         ).lastrowid
 
 

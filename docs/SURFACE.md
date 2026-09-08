@@ -184,7 +184,7 @@ optimistic text: the act is the record, and the surface does not draw nodes that
 was, because the record does.
 
 - **A refusal is in the record.** The adapter declined, no model was called, and the act stands
-  with the parameters and the seed it was asked for and terminator `refused`. The error names that
+  with the parameters it was asked for and terminator `refused`. The error names that
   act.
 - **A rejection is not.** The core declined before writing anything and left no trace. The error
   says so.

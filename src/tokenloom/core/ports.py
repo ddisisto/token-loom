@@ -108,7 +108,7 @@ class Adapter(Vocabulary, Protocol):
     def source(self) -> Source:
         """The model whose draws these are. Must separate anything that must not merge."""
 
-    def generate(self, ids: list[int], params: dict, seed: int) -> Generation:
+    def generate(self, ids: list[int], params: dict) -> Generation:
         """Draw from the path `ids`, or refuse. Met or refused, never adjusted."""
 
     def will_evaluate(self, ids: list[int]) -> bool:
