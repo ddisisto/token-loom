@@ -26,13 +26,14 @@ from .vocab import GgufVocabulary
 #: What a caller may name. Anything else is refused rather than ignored: obligation 6
 #: forbids substituting a default for a parameter the backend does not understand.
 KNOWN = frozenset(
-    {"length", "top_k", "top_n", "temperature", "top_p", "min_p", "cache_prompt"}
+    {"length", "top_k", "top_n", "temperature", "top_p", "min_p", "cache_prompt", "seed"}
 )
 
-#: All five are required, so that a recorded `params` row is a complete description of the
+#: All six are required, so that a recorded `params` row is a complete description of the
 #: draw. The core reads only `length`; the rest is what makes the act reproducible.
 #: `cache_prompt` is one of them: it moves the logprobs. `docs/ADAPTER.md`, *Determinism*.
-REQUIRED = ("length", "top_k", "top_n", "temperature", "cache_prompt")
+#: So is `seed`: this backend samples, and a draw it cannot reproduce is not described.
+REQUIRED = ("length", "top_k", "top_n", "temperature", "cache_prompt", "seed")
 
 #: Every sampler this adapter does not expose, set to its identity. Without these the
 #: server's own defaults -- `min_p` 0.05, `top_p` 0.95, a repetition window of 64 -- would
@@ -115,10 +116,10 @@ class LlamaCppAdapter:
 
     # ---- generate ------------------------------------------------------------------
 
-    def generate(self, ids: list[int], params: dict, seed: int) -> Generation:
+    def generate(self, ids: list[int], params: dict) -> Generation:
         """Draw from `ids`, or refuse. Met or refused, never adjusted."""
         try:
-            payload = self._request(ids, params, seed)
+            payload = self._request(ids, params)
         except Refused as why:
             return Generation("refused", (), reason=str(why))
 
@@ -142,7 +143,7 @@ class LlamaCppAdapter:
         positions = walk(answer["tokens"], answer["completion_probabilities"], self.vocabulary)
         return Generation(terminator_for(answer["stop_type"]), tuple(positions))
 
-    def _request(self, ids: list[int], params: dict, seed: int) -> dict:
+    def _request(self, ids: list[int], params: dict) -> dict:
         """Every refusal, in one place. Each is decidable from the request and this
         adapter's own configuration, which is why there is no second way to decline."""
         unknown = set(params) - KNOWN
@@ -153,6 +154,7 @@ class LlamaCppAdapter:
             raise Refused(f"parameters required to describe the draw: {missing}")
 
         length, top_k, top_n = params["length"], params["top_k"], params["top_n"]
+        seed = params["seed"]
         if not isinstance(params["cache_prompt"], bool):
             raise Refused(f"cache_prompt must be a bool, not {params['cache_prompt']!r}")
         if not isinstance(top_k, int) or top_k < 1:
@@ -166,8 +168,8 @@ class LlamaCppAdapter:
                 f"top_n {top_n} exceeds the vocabulary ({len(self.vocabulary)}); "
                 "the server would clamp it silently"
             )
-        if not 0 <= seed <= MAX_SEED:
-            raise Refused(f"seed must be in 0..{MAX_SEED}; {seed} cannot be honoured")
+        if not isinstance(seed, int) or isinstance(seed, bool) or not 0 <= seed <= MAX_SEED:
+            raise Refused(f"seed must be an integer in 0..{MAX_SEED}; {seed!r} cannot be honoured")
         if not ids:
             # An empty prompt is accepted and generates nothing, so a request for `length`
             # tokens cannot be met.

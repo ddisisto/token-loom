@@ -20,7 +20,7 @@ from tokenloom.core import Store, check, violations
 from tokenloom.core.check import Corrupt
 from tokenloom.core.schema import DDL
 
-#: The locked schema's tables and columns with every UNIQUE and PRIMARY KEY clause gone,
+#: The DDL's tables and columns with every UNIQUE and PRIMARY KEY clause gone,
 #: written out rather than derived, so that what a case is handed is legible at a glance.
 #: `columns_of` asserts it has not drifted from the real DDL.
 RELAXED = """
@@ -31,8 +31,8 @@ CREATE TABLE nodes  (id INTEGER, parent INTEGER, token_id INTEGER NOT NULL,
 CREATE TABLE edges  (node INTEGER NOT NULL, source INTEGER NOT NULL, rank INTEGER NOT NULL,
                      token_id INTEGER NOT NULL, logprob REAL NOT NULL);
 CREATE TABLE params (id INTEGER, json TEXT NOT NULL);
-CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, source INTEGER NOT NULL, origin INTEGER,
-                     tip INTEGER, created TEXT NOT NULL, params INTEGER, seed INTEGER,
+CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, actor INTEGER NOT NULL, origin INTEGER,
+                     tip INTEGER, created TEXT NOT NULL, model INTEGER, params INTEGER,
                      terminator TEXT, rank INTEGER);
 """
 
@@ -45,7 +45,7 @@ def columns_of(ddl: str) -> dict[str, list[str]]:
     return {t: [r[1] for r in conn.execute(f"PRAGMA table_info({t})")] for t in tables}
 
 
-def test_the_relaxed_schema_has_not_drifted_from_the_locked_one():
+def test_the_relaxed_schema_has_not_drifted_from_the_ddl():
     """Same tables, same columns, same order -- only the constraints differ. Without this
     the checker could be passing against a schema the store never writes."""
     assert columns_of(RELAXED) == columns_of(DDL)
@@ -67,12 +67,12 @@ def node(conn, nid, parent, token=10, source=1, deleted=None):
     )
 
 
-def act(conn, aid, op, source=1, origin=None, tip=None, params=None, seed=None,
+def act(conn, aid, op, actor=1, origin=None, tip=None, model=None, params=None,
         terminator=None, rank=None):
     conn.execute(
-        "INSERT INTO acts (id, op, source, origin, tip, created, params, seed, terminator, rank) "
-        "VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?)",
-        (aid, op, source, origin, tip, params, seed, terminator, rank),
+        "INSERT INTO acts (id, op, actor, origin, tip, created, model, params, "
+        "terminator, rank) VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?)",
+        (aid, op, actor, origin, tip, model, params, terminator, rank),
     )
 
 
@@ -211,11 +211,32 @@ def test_descending_logprob_is_not_an_invariant():
 # ---- acts ---------------------------------------------------------------------------
 
 
-def test_inv_act_path_only_a_generate_may_have_no_tip():
+def test_inv_act_path_closes_origin_on_an_act_with_no_tip():
+    """The descent from tip to origin is what witnesses that origin exists, and an act
+    that produced no nodes has no descent to run. Reached on purpose because ordinary use
+    cannot: a store only ever writes an origin it has just looked up."""
     conn = bare()
     node(conn, 1, None)
-    act(conn, 1, "create", tip=None)
+    act(conn, 1, "delete", origin=9999)
     assert "INV-ACT-PATH" in names(conn)
+
+
+def test_inv_act_delete_names_a_node_and_carries_nothing_else():
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "delete", origin=None)
+    act(conn, 2, "undelete", origin=1, rank=0)
+    assert names(conn) == {"INV-ACT-DELETE"}
+
+
+def test_a_delete_produces_no_nodes_and_is_not_asked_for_a_source():
+    """INV-ACT-SOURCE says where the source of a node an act produced comes from, and
+    these produce none -- so the store's only model-less act must not trip it."""
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "delete", origin=1)
+    act(conn, 2, "undelete", origin=1)
+    assert violations(conn) == []
 
 
 def test_inv_act_path_tip_must_descend_from_origin():
@@ -234,38 +255,99 @@ def test_inv_act_path_range_is_non_empty():
     assert "INV-ACT-PATH" in names(conn)
 
 
-def test_inv_act_source():
+def test_inv_act_actor():
+    """A `model` is what produces tokens, and acting is not producing."""
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "create", actor=2, tip=1)  # source 2 is a model
+    assert "INV-ACT-ACTOR" in names(conn)
+
+
+def test_inv_act_source_on_a_create_wants_one_source_along_the_path():
     conn = bare()
     node(conn, 1, None, source=1)
     node(conn, 2, 1, token=11, source=2)
-    act(conn, 1, "create", source=1, origin=None, tip=2)
+    act(conn, 1, "create", origin=None, tip=2)
     assert "INV-ACT-SOURCE" in names(conn)
 
 
-def test_inv_act_create_carries_no_generate_or_realise_fields():
-    conn = bare()
-    node(conn, 1, None)
-    act(conn, 1, "create", tip=1, seed=5)
-    assert "INV-ACT-CREATE" in names(conn)
-
-
-def test_inv_act_generate_needs_params_and_seed():
+def test_inv_act_source_on_a_generate_wants_the_acts_model():
+    """A `create` may attribute its nodes to anyone; a `generate` may not, because the
+    model that drew them is recorded and the nodes have to agree with it."""
     conn = bare()
     node(conn, 1, None, source=2)
-    act(conn, 1, "generate", source=2, tip=1)
+    node(conn, 2, 1, token=11, source=1)  # not the model the act names
+    act(conn, 1, "generate", model=2, origin=1, tip=2, params=1, terminator="limit")
+    assert "INV-ACT-SOURCE" in names(conn)
+
+
+def test_inv_act_generate_wants_a_model_that_is_one():
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "generate", model=1, tip=1, params=1, terminator="limit")
     assert "INV-ACT-GENERATE" in names(conn)
+
+
+def test_inv_act_create_names_a_tip_and_carries_nothing_else():
+    conn = bare()
+    node(conn, 1, None)
+    act(conn, 1, "create", tip=1)
+    act(conn, 2, "create", tip=None)
+    assert names(conn) == {"INV-ACT-CREATE"}
+
+
+def test_inv_act_generate_needs_a_model_and_params():
+    conn = bare()
+    node(conn, 1, None, source=2)
+    act(conn, 1, "generate", model=2, tip=1)
+    assert "INV-ACT-GENERATE" in names(conn)
+
+
+def test_inv_act_limit_wants_the_length_its_params_name():
+    """`limit` means it drew the requested length. The writer holds an answer to that and
+    a checker could not, which left the one terminator with a checkable meaning uncheckable
+    on a store some other writer produced."""
+    conn = bare()
+    conn.execute("""INSERT INTO params VALUES (1, '{"length":3}')""")
+    node(conn, 1, None)
+    node(conn, 2, 1, token=11)
+    act(conn, 1, "generate", model=2, origin=1, tip=2, params=1, terminator="limit")
+    assert "INV-ACT-LIMIT" in names(conn)  # covers one node, asked for three
+
+
+def test_inv_act_limit_holds_a_limit_whose_params_name_no_length():
+    """Unreadable is not a pass. A `limit` the record cannot be held to is the fault the
+    invariant is for, so params with no usable `length` fail rather than being skipped."""
+    conn = bare()
+    conn.execute("""INSERT INTO params VALUES (1, '{"top_k":5}')""")
+    conn.execute("""INSERT INTO params VALUES (2, '{"length":"three"}')""")
+    node(conn, 1, None, source=2)
+    node(conn, 2, 1, token=11, source=2)
+    for aid, params in ((1, 1), (2, 2)):
+        act(conn, aid, "generate", model=2, origin=1, tip=2, params=params, terminator="limit")
+    assert names(conn) == {"INV-ACT-LIMIT"}
+
+
+def test_a_limit_that_covers_exactly_its_length_is_clean():
+    conn = bare()
+    conn.execute("""INSERT INTO params VALUES (1, '{"length":2}')""")
+    node(conn, 1, None, source=2)
+    node(conn, 2, 1, token=11, source=2)
+    node(conn, 3, 2, token=12, source=2)
+    act(conn, 1, "generate", model=2, origin=1, tip=3, params=1, terminator="limit")
+    assert violations(conn) == []
 
 
 def test_inv_act_generate_null_tip_needs_a_terminator_that_allows_one():
     conn = bare()
-    act(conn, 1, "generate", source=2, params=1, seed=1, terminator="limit", tip=None)
+    act(conn, 1, "generate", model=2, params=1, terminator="limit", tip=None)
     assert "INV-ACT-GENERATE" in names(conn)
 
 
 @pytest.mark.parametrize("terminator", ["cancelled", "failed", "aborted", "refused", None])
 def test_inv_act_generate_allows_a_null_tip_under_these(terminator):
     conn = bare()
-    act(conn, 1, "generate", source=2, params=1, seed=1, terminator=terminator, tip=None)
+    act(conn, 1, "generate", model=2, params=1, terminator=terminator, tip=None)
     assert "INV-ACT-GENERATE" not in names(conn)
 
 
@@ -273,7 +355,7 @@ def test_inv_act_realise_needs_the_edge_it_names():
     conn = bare()
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
-    act(conn, 1, "realise", source=1, origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2, rank=0)
     assert "INV-ACT-REALISE" in names(conn)
 
 
@@ -282,7 +364,7 @@ def test_inv_act_realise_edge_must_carry_the_tips_token():
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
     conn.execute("INSERT INTO edges VALUES (1, 2, 0, 12, -1.0)")  # a different token
-    act(conn, 1, "realise", source=1, origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2, rank=0)
     assert "INV-ACT-REALISE" in names(conn)
 
 
@@ -291,13 +373,13 @@ def test_a_well_formed_realise_is_clean():
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
     conn.execute("INSERT INTO edges VALUES (1, 2, 0, 11, -1.0)")
-    act(conn, 1, "realise", source=1, origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2, rank=0)
     assert violations(conn) == []
 
 
 def test_an_unknown_terminator_is_caught():
     conn = bare()
-    act(conn, 1, "generate", source=2, params=1, seed=1, terminator="stop")
+    act(conn, 1, "generate", model=2, params=1, terminator="stop")
     assert "INV-ACT-GENERATE" in names(conn)
 
 
@@ -318,10 +400,18 @@ def test_a_writer_will_not_write_to_a_store_that_fails_an_invariant(tmp_path):
     reader = Store.open(path)  # a reader still opens, and reports
     assert "INV-TREE-PARENT" in names(reader.conn)
 
+    # The claim is taken before the store is verified, so the refused open is the one
+    # path that could leave a tree claimed by nobody. Repaired, it opens for writing.
+    conn = sqlite3.connect(path / "bulk.sqlite")
+    conn.execute("DELETE FROM nodes WHERE id = 1")
+    conn.commit()
+    conn.close()
+    Store.open(path, write=True).close()
 
-def test_every_invariant_the_locked_document_names_is_one_this_checker_can_report():
-    """`docs/CORE.md` is locked, so its list of invariants is fixed and the checker's must
-    match it exactly -- in both directions.
+
+def test_every_invariant_the_core_document_names_is_one_this_checker_can_report():
+    """`docs/CORE.md`'s list of invariants and the checker's must match exactly -- in both
+    directions. This is what catches one of them moving without the other.
 
     A missing name is a hole. An extra one is a rule the core does not have, which is
     worse: it would make this implementation refuse stores the format permits.
@@ -331,4 +421,4 @@ def test_every_invariant_the_locked_document_names_is_one_this_checker_can_repor
     reported = set(re.findall(r'"(INV-[A-Z-]+)"', pathlib.Path(check.__file__).read_text()))
     assert named == reported, {"only in CORE.md": named - reported,
                                "only in check.py": reported - named}
-    assert len(named) == 14
+    assert len(named) == 17

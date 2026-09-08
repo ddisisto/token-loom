@@ -68,11 +68,8 @@ alternative and generates five tokens onto it would be thrown back onto the two-
 branch they just left, because that branch is still the longest descent from the root. **The path
 follows the act.** What an act produced is what the reader is looking at when it lands.
 
-**A run is not shown.** `docs/CORE.md` derives runs — maximal chains with one live child — and the
-surface never draws one, because a run is exactly the stretch where nothing is offered and
-therefore the stretch that should look like prose. The visible object is the fork. This is what
-answers *what a run is on screen when the record has no run ids*: nothing, and it needs no id
-because nothing points at it.
+**Between forks, nothing is drawn.** A stretch where nothing is offered is a stretch that should
+look like prose, so the visible object is the fork and the reading column is otherwise text.
 
 ## Forks and the band
 
@@ -158,8 +155,8 @@ None is shown until a position is asked about.
 
 ## Writing
 
-The surface offers the three acts and the two state edits, and nothing else. What each one is, is
-`docs/CORE.md`; what it costs is here.
+The surface offers the five acts and nothing else. What each one is, is `docs/CORE.md`; what it
+costs is here.
 
 | operation | needs | can fail as |
 | --- | --- | --- |
@@ -187,7 +184,7 @@ optimistic text: the act is the record, and the surface does not draw nodes that
 was, because the record does.
 
 - **A refusal is in the record.** The adapter declined, no model was called, and the act stands
-  with the parameters and the seed it was asked for and terminator `refused`. The error names that
+  with the parameters it was asked for and terminator `refused`. The error names that
   act.
 - **A rejection is not.** The core declined before writing anything and left no trace. The error
   says so.
@@ -199,20 +196,18 @@ request itself, so what they offer is an edit rather than a retry — repeating 
 gets the same answer, and a button promising otherwise would be lying about a decision the backend
 or the core already made.
 
-**A blocked write is indistinguishable from a slow one.** The lock is acquired blocking and
-without a timeout, so a writer that cannot have it waits with nothing to report. Sole writer is a
-discipline and not an enforcement: if a command line holds the lock against a tree the surface has
-open, the surface's placeholder simply stays up. This is the visible consequence of a gap
-`docs/CORE-status.md` records — a write claim held across acts, which the locked core has no way
-to express — and it is the answer to *how a client shows that a write is blocked behind another
-writer's generation*: it does not, and it cannot, and what it would take is written down.
+**The tree is claimed when the surface opens it and held until it closes.** The surface is
+therefore the only writer for as long as it runs, and the one thing that can fail is the opening: a
+tree another process holds is refused at once, which the surface reports naming the tree rather
+than starting and showing a page that never resolves.
 
 **The tree is opened for writing once and verified once**, for the life of the process, rather
-than per request. Sole writer is what makes this the fair reading of *a writer will not write* to a
-store that fails an invariant, and it takes a whole-tree verification off every interaction.
+than per request. The claim is what makes that sound rather than merely economical — no other
+writer can change the store while it is held — and it takes a whole-tree verification off every
+interaction.
 
-**Opening for writing can change the tree, and that is the surface's first write.** Acquiring the
-lock is what records abandoned generations as `aborted`, so a tree left in flight by a writer that
+**Opening for writing can change the tree, and that is the surface's first write.** Claiming the
+tree is what records abandoned generations as `aborted`, so a tree left in flight by a writer that
 died — a killed command line, most likely — is swept the moment the surface opens it. That
 terminator is therefore something the surface *finds*, never something its own request becomes:
 the surface is the writer, and a request it loses it loses along with the process holding it.
@@ -244,9 +239,8 @@ Point reads — a node, a tree's roots, the act list — are already cheap and n
 ## Nothing written is only here
 
 **No write may be surface-only**, and the surface satisfies this by construction. Everything it
-writes is one of the five writes `docs/CORE.md` defines — the acts `create`, `generate` and
-`realise`, and the state edits `delete` and `undelete` — and each has a verb of its own name,
-`undelete` being `tokenloom delete --undo`. A long generation stopped by declining to issue the
+writes is one of the five acts `docs/CORE.md` defines — `create`, `generate`, `realise`, `delete`
+and `undelete` — and each has a verb of its own name, `undelete` being `tokenloom delete --undo`. A long generation stopped by declining to issue the
 next act is consecutive `tokenloom generate`, so it too is nothing new.
 
 Everything else this document describes is a way of looking. The reading column, the band, a
@@ -291,12 +285,8 @@ before its own inner fork and the alternatives have nowhere to hang.
 core, the llama.cpp adapter, the command line, and a throwaway probe that reads a static
 projection of a tree and cannot write.
 
-**Superseded by this document:** `docs/surface-sketch/`, and all of `docs/surface-notes.md` but its
-last section. Both are in history, and a note that outlives the document it fed is the second home
-this project keeps paying for.
-
-**Not superseded, and not yet in this document:** whether a first-pass generation should be greedy
-rather than sampled, and what a surface shows of a distribution whose mass sits in three of twenty
-recorded alternatives. `docs/surface-notes.md` holds the argument. It is taken up after the core
-changes below land, and until it is settled **Rankings** describes how alternatives are presented
-but not how many there are to present.
+**One thing is not yet in this document:** whether a first-pass generation should be greedy rather
+than sampled, and what a surface shows of a distribution whose mass sits in three of twenty
+recorded alternatives. `docs/surface-notes.md` holds that argument and nothing else, and until it
+is settled **Rankings** describes how alternatives are presented but not how many there are to
+present.

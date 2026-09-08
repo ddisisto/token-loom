@@ -1,8 +1,8 @@
 """The value types the core passes around, and the adapter surface it calls.
 
-`docs/ADAPTER.md` states three operations for one vocabulary. The core knows nothing else
-about a backend: `create` needs `tokenize`, every stored id needs `bytes_for`, and only
-`generate` calls a model.
+`docs/ADAPTER.md` states four operations for one vocabulary. The core knows nothing else
+about a backend: `create` needs `tokenize`, every stored id needs `bytes_for`, `generate`
+alone calls a model, and `will_evaluate` asks whether it would.
 """
 
 from __future__ import annotations
@@ -108,10 +108,10 @@ class Adapter(Vocabulary, Protocol):
     def source(self) -> Source:
         """The model whose draws these are. Must separate anything that must not merge."""
 
-    def generate(self, ids: list[int], params: dict, seed: int) -> Generation:
+    def generate(self, ids: list[int], params: dict) -> Generation:
         """Draw from the path `ids`, or refuse. Met or refused, never adjusted."""
 
     def will_evaluate(self, ids: list[int]) -> bool:
         """Whether the backend would accept this path. Asking is not declining: this
         writes nothing, stands in for no refusal, and the real request still goes through
-        `generate`. Its shape is unsettled in `docs/ADAPTER.md`; this is the first draw."""
+        `generate` -- which must refuse a path exactly where this rejects one."""

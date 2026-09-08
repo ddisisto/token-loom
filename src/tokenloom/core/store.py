@@ -1,4 +1,4 @@
-"""The store: the three acts, the two state edits, and everything that writes.
+"""The store: the five acts, and everything that writes.
 
 Reading is `reads.py`; checking is `check.py`. What is enforced here is what the core
 *rejects* -- and a rejection leaves no trace, so it must happen before anything is written.
@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import fcntl
 import json
-import secrets
 import sqlite3
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import IO
 
 from . import check, reads
 from .ports import Adapter, Generation, Source, Vocabulary
@@ -56,16 +56,25 @@ def canonical(params: Mapping) -> str:
 class Store:
     """One tree, in one directory.
 
-    A reader takes no lock. A writer takes the `flock` for the whole of an act, the model
-    call included, and its first write after acquiring records abandoned acts -- so
-    opening a tree for writing can modify it.
+    A reader takes no lock. A writer claims the tree when it opens it and holds the claim
+    until it closes, so one claim is one writer. Its first write after claiming records
+    abandoned acts, so opening a tree for writing can modify it.
     """
 
-    def __init__(self, path: Path, conn: sqlite3.Connection, tree: dict, *, write: bool) -> None:
+    def __init__(
+        self,
+        path: Path,
+        conn: sqlite3.Connection,
+        tree: dict,
+        *,
+        write: bool,
+        claim: IO[bytes] | None = None,
+    ) -> None:
         self.path = path
         self.conn = conn
         self.tree = tree
         self.writable = write
+        self._claim = claim
 
     # ---- opening -------------------------------------------------------------------
 
@@ -93,19 +102,40 @@ class Store:
         # A reader that does not recognise `marker` stops.
         if tree.get("marker") != MARKER:
             raise StoreError(f"unrecognised marker {tree.get('marker')!r}; this reader stops")
-        store = cls(path, _connect(path / BULK_FILE), tree, write=write)
+        # The claim is taken before the store is read, so what is verified is a tree no
+        # other writer can still be changing.
+        claim = cls._take_claim(path) if write else None
+        store = cls(path, _connect(path / BULK_FILE), tree, write=write, claim=claim)
         if write:
-            # A store that fails an invariant is not repaired silently: a reader reports
-            # it, and a writer will not write.
-            if verify:
-                check.verify(store.conn)
-            (path / LOCK_FILE).touch()
-            with store._locked():
-                pass  # acquiring is what sweeps
+            try:
+                # A store that fails an invariant is not repaired silently: a reader
+                # reports it, and a writer will not write.
+                if verify:
+                    check.verify(store.conn)
+                store._sweep()
+            except BaseException:
+                store.close()  # an open that does not return leaves the tree unclaimed
+                raise
         return store
+
+    @staticmethod
+    def _take_claim(path: Path) -> IO[bytes]:
+        """One `flock`, acquired without blocking, held until the store is closed or the
+        process dies. A second writer is refused at once and can say so."""
+        (path / LOCK_FILE).touch()
+        fd = (path / LOCK_FILE).open("a+b")
+        try:
+            fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            fd.close()
+            raise StoreError(f"another writer holds {path}") from exc
+        return fd
 
     def close(self) -> None:
         self.conn.close()
+        if self._claim is not None:
+            self._claim.close()  # closing the descriptor releases the claim
+            self._claim = None
 
     def __enter__(self) -> Store:
         return self
@@ -117,26 +147,13 @@ class Store:
     def vocabulary(self) -> str:
         return self.tree["vocabulary"]
 
-    # ---- the lock ------------------------------------------------------------------
-
-    @contextmanager
-    def _locked(self) -> Iterator[None]:
-        """Held for the whole of an act, the model call included. A stale lock blocks and
-        nothing breaks it."""
-        if not self.writable:
-            raise StoreError("this store was opened for reading")
-        fd = (self.path / LOCK_FILE).open("a+")
-        try:
-            fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
-            self._sweep()
-            yield
-        finally:
-            fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
-            fd.close()
+    # ---- writing ---------------------------------------------------------------------
 
     @contextmanager
     def _writing(self) -> Iterator[None]:
         """One transaction. Anything that raises leaves the store as it was."""
+        if not self.writable:
+            raise StoreError("this store was opened for reading")
         try:
             yield
             self.conn.commit()
@@ -145,8 +162,8 @@ class Store:
             raise
 
     def _sweep(self) -> None:
-        """Record abandoned acts. Acquiring the lock means no other writer is live, so
-        every generation still in flight is one whose writer is gone."""
+        """Record abandoned acts. The claim is exclusive, so a generation still in flight
+        when it is taken is one whose writer is gone."""
         with self._writing():
             self.conn.execute(
                 "UPDATE acts SET terminator = 'aborted' "
@@ -237,6 +254,13 @@ class Store:
             )
             next_rank += 1
 
+    def _actor_id(self, actor: Source) -> int:
+        """INV-ACT-ACTOR. A `model` is what produces tokens, and acting is not producing,
+        so an automated caller is a named user like any other."""
+        if actor.kind != "user":
+            raise Rejected(f"an act's actor is a user, not a {actor.kind}")
+        return self.source_id(actor)
+
     def _require_live(self, node: int | None) -> None:
         """Liveness constrains where an act starts, not what it produces."""
         if node is None:
@@ -246,7 +270,7 @@ class Store:
         if not reads.is_live(self.conn, node):
             raise Rejected(f"node {node} is not live; an act begins at a live node")
 
-    # ---- the acts ------------------------------------------------------------------
+    # ---- producing nodes -----------------------------------------------------------
 
     def create(
         self,
@@ -254,7 +278,8 @@ class Store:
         text: bytes | str,
         *,
         vocabulary: Vocabulary,
-        source: Source,
+        actor: Source,
+        source: Source | None = None,
         special: bool = False,
     ) -> int:
         """Bytes in, tokens out. One act, and nodes for the tokens.
@@ -262,6 +287,9 @@ class Store:
         The text is tokenised, the resulting nodes are reassembled exactly as a derived
         read will reassemble them, and the result is compared against what was authored.
         A mismatch rejects the act -- and so does a `create` that would add no tokens.
+
+        `source` is what the nodes carry and defaults to the actor. Naming another is how
+        text a model produced elsewhere is recorded as that model's.
         """
         if isinstance(text, str):
             text = text.encode("utf-8")
@@ -285,14 +313,15 @@ class Store:
                 f"{[t.id for t in tokens]}, which spells {b''.join(spelled)!r}"
             )
 
-        with self._locked(), self._writing():
+        with self._writing():
+            actor_id = self._actor_id(actor)
             self._require_live(at)
-            source_id = self.source_id(source)
+            source_id = self.source_id(source if source is not None else actor)
             cur = at
             for token, data in zip(tokens, spelled, strict=True):
                 self.put_token(token.id, data)
                 cur = self._merge_node(cur, token.id, source_id)
-            return self._write_act("create", source_id, origin=at, tip=cur)
+            return self._write_act("create", actor_id, origin=at, tip=cur)
 
     def realise(self, node: int, source: Source, rank: int, *, actor: Source) -> int:
         """The ranked edge at `(node, source, rank)`, taken. One write and no call.
@@ -300,7 +329,8 @@ class Store:
         The act's source is who acted; the node carries the source of the model that
         ranked the edge, which is why the act needs no column for the edge's source.
         """
-        with self._locked(), self._writing():
+        with self._writing():
+            actor_id = self._actor_id(actor)
             self._require_live(node)
             edge_source = self.find_source(source)
             if edge_source is None:
@@ -312,9 +342,7 @@ class Store:
             if row is None:
                 raise Rejected(f"no ranked edge at node {node}, source {source}, rank {rank}")
             tip = self._merge_node(node, row[0], edge_source)
-            return self._write_act(
-                "realise", self.source_id(actor), origin=node, tip=tip, rank=rank
-            )
+            return self._write_act("realise", actor_id, origin=node, tip=tip, rank=rank)
 
     def generate(
         self,
@@ -322,13 +350,13 @@ class Store:
         params: Mapping,
         *,
         adapter: Adapter,
-        seed: int | None = None,
+        actor: Source,
     ) -> tuple[int, Generation]:
         """Two writes, and the model call between them.
 
-        The act, its parameters and its seed are committed *before* the model is called,
-        so no node can ever belong to an act the store has not heard of, and an act with
-        no terminator is a generation in flight. The nodes, the ranked edges and the
+        The act and its parameters are committed *before* the model is called, so no node
+        can ever belong to an act the store has not heard of, and an act with no
+        terminator is a generation in flight. The nodes, the ranked edges and the
         terminator land in the second write -- and a refusal comes back on the same path
         as an answer, into that same second write.
         """
@@ -336,35 +364,31 @@ class Store:
         if not isinstance(length, int) or isinstance(length, bool) or length <= 0:
             raise Rejected(f"`length` must be a positive integer, not {length!r}")
         params = dict(params)
-        if seed is None:
-            # Conservatively inside every plausible backend's range, so the core never
-            # mints a seed a backend would read as a sentinel.
-            seed = secrets.randbelow(2**31)
 
-        with self._locked():
+        with self._writing():
+            actor_id = self._actor_id(actor)
+            self._require_live(at)
+            source_id = self.source_id(adapter.source)
+            ids = reads.path_token_ids(self.conn, at) if at is not None else []
+            act = self._write_act(
+                "generate", actor_id, origin=at, tip=None, model=source_id,
+                params=self.params_id(params),
+            )
+        # provenance is committed; the transaction is closed across the model call
+
+        try:
+            answer = adapter.generate(ids, params)
             with self._writing():
-                self._require_live(at)
-                source_id = self.source_id(adapter.source)
-                ids = reads.path_token_ids(self.conn, at) if at is not None else []
-                act = self._write_act(
-                    "generate", source_id, origin=at, tip=None,
-                    params=self.params_id(params), seed=seed,
-                )
-            # provenance is committed; the transaction is closed across the model call
-
-            try:
-                answer = adapter.generate(ids, params, seed)
-                with self._writing():
-                    self._land(act, answer, at, source_id, length, adapter)
-            except Exception:
-                # The landing is inside the guard, not after it. An answer the store will
-                # not write -- a vocabulary that disagrees at an id already held, a
-                # terminator that contradicts what came back -- is a generation that
-                # produced nothing, and the writer is right here and knows it. Left in
-                # flight it would instead be swept by the next writer as `aborted`, which
-                # asserts the writer was gone when it was not.
-                self._failed(act)
-                raise
+                self._land(act, answer, at, source_id, length, adapter)
+        except Exception:
+            # The landing is inside the guard, not after it. An answer the store will not
+            # write -- a vocabulary that disagrees at an id already held, a terminator
+            # that contradicts what came back -- is a generation that produced nothing,
+            # and the writer is right here and knows it. Left in flight it would instead
+            # be swept by the next writer as `aborted`, which asserts the writer was gone
+            # when it was not.
+            self._failed(act)
+            raise
         return act, answer
 
     def _failed(self, act: int) -> None:
@@ -425,42 +449,46 @@ class Store:
             (cur if answer.positions else None, answer.terminator, act),
         )
 
-    # ---- state edits ---------------------------------------------------------------
+    # ---- changing liveness ---------------------------------------------------------
 
-    def delete(self, node: int) -> None:
-        """One write, on that node alone. Descendants are untouched; liveness is derived
-        by walking the ancestry. Deleting what is already effectively deleted is legal,
-        and is what makes undelete work. Not an act, and not recorded in `acts`."""
-        self._set_deleted(node, 1)
+    def delete(self, node: int, *, actor: Source) -> int:
+        """The flag on that node alone, and an act. Descendants are untouched; liveness is
+        derived by walking the ancestry. Deleting what is already effectively deleted is
+        legal, and is what makes undelete work."""
+        return self._set_deleted("delete", node, 1, actor)
 
-    def undelete(self, node: int) -> None:
-        """Clears it. Live again only if its ancestry is. Not an act."""
-        self._set_deleted(node, None)
+    def undelete(self, node: int, *, actor: Source) -> int:
+        """Clears it. Live again only if its ancestry is."""
+        return self._set_deleted("undelete", node, None, actor)
 
-    def _set_deleted(self, node: int, value: int | None) -> None:
-        with self._locked(), self._writing():
+    def _set_deleted(self, op: str, node: int, value: int | None, actor: Source) -> int:
+        """No liveness precondition: liveness is what these change, so requiring a live
+        node would put `undelete` out of reach."""
+        with self._writing():
+            actor_id = self._actor_id(actor)
             if not reads.node_exists(self.conn, node):
                 raise Rejected(f"no node {node}")
             self.conn.execute("UPDATE nodes SET deleted = ? WHERE id = ?", (value, node))
+            return self._write_act(op, actor_id, origin=node, tip=None)
 
-    # ---- acts ----------------------------------------------------------------------
+    # ---- writing an act ------------------------------------------------------------
 
     def _write_act(
         self,
         op: str,
-        source_id: int,
+        actor_id: int,
         *,
         origin: int | None,
         tip: int | None,
+        model: int | None = None,
         params: int | None = None,
-        seed: int | None = None,
         rank: int | None = None,
         terminator: str | None = None,
     ) -> int:
         return self.conn.execute(
-            "INSERT INTO acts (op, source, origin, tip, created, params, seed, terminator, rank) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (op, source_id, origin, tip, _now(), params, seed, terminator, rank),
+            "INSERT INTO acts (op, actor, origin, tip, created, model, params, "
+            "terminator, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (op, actor_id, origin, tip, _now(), model, params, terminator, rank),
         ).lastrowid
 
 

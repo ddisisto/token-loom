@@ -3,15 +3,16 @@
 **What a backend must do to produce the record `docs/CORE.md` describes.** The operations, the
 obligations behind them, and what to do when one cannot be met.
 
-**This document is not locked, and that is the point of the split.** `docs/CORE.md` is fixed and
-names no backend; this one moves as backends are met. Nothing here may contradict the core, and
-the core cites this document rather than anything a particular backend happens to do.
+**This document moves as backends are met, and that is the point of the split.** `docs/CORE.md`
+names no backend and moves only as its own work; meeting a backend is not that work. Nothing
+here may contradict the core, and the core cites this document rather than anything a particular
+backend happens to do.
 
 ---
 
 ## What an adapter is
 
-An adapter provides the three operations below for one vocabulary. It may satisfy them however
+An adapter provides the four operations below for one vocabulary. It may satisfy them however
 it likes and from as many sources as it likes — reading a model file, calling one endpoint,
 calling several. **Where it gets an answer is not the core's concern.**
 
@@ -26,7 +27,8 @@ no facility for it and no way to tell that it was needed.
 | --- | --- |
 | `tokenize(bytes)` | the ids that spell those bytes, in order, each with its own bytes |
 | `bytes_for(id)` | what that id spells, exactly, for every id the adapter can emit |
-| `generate(ids, params, seed)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
+| `generate(ids, params)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
+| `will_evaluate(ids)` | whether the backend would accept that path at all — a question, answered without calling the model and without writing anything |
 
 ## The obligations
 
@@ -60,9 +62,11 @@ not require it — *Rankings* provides for a node with no covering ranked edge a
 nothing records why one is missing — so this is an obligation here and not an invariant there.
 An adapter that cannot report at least `top_k` refuses.
 
-**The seed is honoured.** The core supplies one with every request, so there is no case where an
-adapter chooses. An adapter whose backend cannot seed its sampler refuses rather than recording a
-seed that did nothing.
+**A parameter the backend needs to describe its own draw is one it requires.** The core reads
+`length` and passes the rest through, so what a complete request looks like is the adapter's to
+declare and to refuse without. A backend that samples stochastically requires whatever makes the
+draw reproducible — a seed, on the ones that exist — and refuses a request that omits it rather
+than choosing on the caller's behalf.
 
 **Room is checked before starting.** The prompt and the requested length together must fit. This
 is why running out of context is not a way for a generation to end, and why the core's `limit`
@@ -85,12 +89,13 @@ Nothing about the store changes between the two — only which ids come back.
 
 **An adapter refuses rather than adjusting.** A refusal is a `generate` that returns without
 calling the model, and it is recorded: the act stands with terminator `refused`, no tip, and the
-parameters and seed it was asked for.
+parameters it was asked for.
 
 Refuse when the prompt and requested length exceed the room available; when `top_n` exceeds what
-the backend will report; when the seed cannot be honoured; when the backend will not evaluate the
-path it was given; when a parameter is named that the backend does not understand; and whenever
-any parameter would otherwise have to be clamped, substituted or ignored.
+the backend will report; when a parameter the backend requires is missing or cannot be honoured;
+when the backend will not evaluate the path it was given; when a parameter is named that the
+backend does not understand; and whenever any parameter would otherwise have to be clamped,
+substituted or ignored.
 
 **Refuse also when the backend would meet the request and misreport how.** The first two entries
 above are not hypothetical on llama.cpp: it clamps `n_probs` above the vocabulary size without
@@ -114,9 +119,14 @@ written. A second way to decline a request gives a caller two paths leaving two 
 and the caller cannot tell which it will get. `generate` is where a request is declined.
 
 **Asking is not declining.** A client that wants to know whether a node can be generated from —
-so a reading surface can say so before offering the act — may ask the adapter, and the answer
-writes nothing and stands in for no refusal. The real request still
-goes through `generate` and still records `refused`. The shape of that query is not settled here.
+so a reading surface can say so before offering the act — asks `will_evaluate`, and the answer
+writes nothing and stands in for no refusal. The real request still goes through `generate` and
+still records `refused`.
+
+**The two answers must agree.** `will_evaluate` rejects a path exactly where `generate` refuses
+one, on the same predicate. An adapter whose answers disagree is worse than one that cannot be
+asked at all: a client told a path is generatable and then refused has been given two answers and
+no way to know which it will get.
 
 **Refusal, failure and abandonment are three outcomes.** `refused` never called the model;
 `failed` called it and the backend broke under it; `aborted` is what a later writer records for a
@@ -142,31 +152,27 @@ has the sequences. The loss shows in the token counters and the ids are gone, an
 back from the group's bytes is the artefact this format exists to avoid. So a streamed act would
 have to be declined, and a generation that could be stopped would be one that dies on an emoji.
 
-**So a caller who wants to stop asks for less at a time.** A long generation is issued as
-consecutive `generate` acts over a shorter `length`, each blocking, each complete, and stopping is
-declining to issue the next one. What the caller presents as one block of output is its own
-construct and is not the unit the record is in — the store already holds the boundaries, since
-every act names its `origin` and its `length`.
-
-**This trades a perturbed measurement for a faithful record**, and the trade is not close:
-chunking moves the logprobs recorded at a boundary, which *Determinism* is about and which the
-format absorbs by construction, while streaming loses ids, which nothing absorbs. Note also what chunking gives back
-— the lock is released between chunks, so a long generation stops blocking every other writer for
-its whole duration.
-
-Three consequences follow, and are easier written down than discovered:
-
-- **A block can be refused part-way.** Room is checked per act, so a caller may be met five times
-  and refused on the sixth. There is no way to check a block up front, because a block is not a
-  thing the adapter is ever asked for.
-- **Each act carries its own seed**, so a path is replayed act by act rather than from one triple.
-- **A block is not atomic.** The lock is released between chunks and another writer may interleave,
-  which is legal and merges by the usual key.
-
 **`cancelled` therefore stays unreached on this backend, and that is a decision rather than a gap.**
 It is specified, nothing produces it, and a `generate` short enough to be worth stopping is short
 enough to wait for. An adapter whose backend streams *without* losing ids may produce it, and the
 core is unchanged either way.
+
+**A client that wants a long generation it can stop may issue it as consecutive acts** over a
+shorter `length`, each blocking and each complete, so that stopping is declining to issue the next
+one. This is a technique available to a client, not an obligation on one: the command line does
+not use it, and what a client that does use it presents as a block of output is its own construct
+rather than a unit of the record. Two things follow for such a client, and are easier written down
+than discovered:
+
+- **A block can be refused part-way.** Room is checked per act, so a caller may be met five times
+  and refused on the sixth. There is no way to check a block up front, because a block is not a
+  thing the adapter is ever asked for.
+- **Each act carries its own parameters**, so a path is replayed act by act rather than from one
+  request.
+
+**It trades a perturbed measurement for a faithful record**, and the trade is not close: acts of a
+shorter `length` move the logprobs recorded at a boundary, which *Determinism* is about and which
+the format absorbs by construction, while streaming loses ids, which nothing absorbs.
 
 ## Declination
 
@@ -197,9 +203,9 @@ property of the backend, belongs in its notes, and is expected to move as it is 
 **Measured on llama.cpp over Vulkan, single slot: no disagreement at all, at a fixed cache state.**
 Two requests differing in seed and in `top_n` returned bit-identical logprobs for every rank they
 shared, and repeating a request reproduced both the path and its values exactly. That is one
-backend on one machine with `--parallel 1`, so it is not a general result — but note that the core
-holds its lock across a whole act, so an adapter never sees its own requests batched together,
-which is where most of this class of nondeterminism comes from in the first place.
+backend on one machine with `--parallel 1`, so it is not a general result — but note that a tree
+has one writer at a time, so an adapter never sees its own requests batched together, which is
+where most of this class of nondeterminism comes from in the first place.
 
 **The cache is the variable that was being held still, and it is worth more than the last decimal
 places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
@@ -220,9 +226,9 @@ same build, GPU and quantisation.
 **A chunk boundary is a third variable of the same size, and it is not the cache's doing.**
 Continuing inside one call and starting a fresh call at the same path disagree by up to 0.057 with
 the cache off and 0.036 with it on — warm is marginally the *closer* of the two — and both reorder
-ranks. It does not decay downstream, because a KV state that differs at all is inherited. Since
-*Cancellation* makes chunking how a stoppable generation is issued, this is a variable the record
-will carry in practice rather than in principle.
+ranks. It does not decay downstream, because a KV state that differs at all is inherited. Any
+client that issues a long generation as consecutive acts — *Cancellation* has the one reason to —
+carries this variable in practice rather than in principle.
 
 **Which is bearable only because the disagreement is native to the instrument.** Branching is
 already a fresh call at a path first reached by continuing: `realise` then `generate` at an
@@ -275,9 +281,6 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 - **The special-token path is named.** `tokenize(text, special=True)`, never the default, and
   `tokenloom create --special` on the command line. Nothing about the store changes between the
   two readings; only which ids come back.
-- **The generatability query has a shape**: `will_evaluate(ids) -> bool`. It writes nothing and
-  stands in for no refusal, and a live test asserts it agrees with what `generate` actually does —
-  asking that disagreed with declining would be worse than not asking.
 - **`docs/SERVER.md` is still unstructured**, and is still expected to be reorganised as this
   contract's first backend's notes.
 - **The refusal list is still provisional**, and has lengthened once already: meeting the running
@@ -286,9 +289,9 @@ one always could; a reader who wants to *select* on it now can, in the common ca
   terminator and the core stores none of it; whether that becomes a code as well waits for a
   client that has to display one.
 - **`cancelled` is unreached, and is no longer an open item.** Streaming was the route to it and
-  streaming loses ids on this backend, so *Cancellation* settles the question the other way:
-  stopping is declining to issue the next chunk. The core specifies the terminator and nothing
-  produces it, which is now a decision with a reason rather than work outstanding.
+  streaming loses ids on this backend, so the terminator is specified and nothing produces it — a
+  decision with a reason rather than work outstanding. *Cancellation* has what a client that wants
+  to stop a long generation does instead.
 - **`cache_prompt` is a required per-call parameter**, and the adapter refuses a request that
   omits it or names a non-bool. *Determinism* says why. On the command line it is
   `tokenloom generate --cache-prompt`, on that verb alone, since no other calls a model.

@@ -36,7 +36,8 @@ def build(path: Path, nodes: int, top_n: int, seed: int) -> Store:
         "INSERT INTO vocab VALUES (?, ?)",
         [(i, bytes([97 + i % 26])) for i in range(VOCAB_SIZE)],
     )
-    conn.execute("INSERT INTO params VALUES (1, '{}')")
+    # Each synthetic act below covers exactly one node, and `limit` is held to it.
+    conn.execute('INSERT INTO params VALUES (1, \'{"length":1}\')')
     conn.execute("INSERT INTO nodes (id, parent, token_id, source) VALUES (1, NULL, 0, 2)")
 
     rows: list[tuple] = []
@@ -61,8 +62,8 @@ def build(path: Path, nodes: int, top_n: int, seed: int) -> Store:
     conn.executemany("INSERT INTO edges VALUES (?,?,?,?,?)", edges)
 
     conn.executemany(
-        "INSERT INTO acts (op, source, origin, tip, created, params, seed, terminator) "
-        "VALUES ('generate', 2, ?, ?, '2026-01-01T00:00:00Z', 1, 1, 'limit')",
+        "INSERT INTO acts (op, actor, model, origin, tip, created, params, terminator) "
+        "VALUES ('generate', 1, 2, ?, ?, '2026-01-01T00:00:00Z', 1, 'limit')",
         [(row[1], row[0]) for row in rows[::8]],
     )
     conn.commit()

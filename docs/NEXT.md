@@ -12,17 +12,17 @@ that relation to the others is a bullet at the end rather than a number.
 
 ---
 
-## 0. `docs/CORE.md`, reopened once
+## 0. `docs/ADAPTER.md`'s Status, groomed
 
-The locked document moves once: a session lock in place of the per-act one, `Runs` removed, a
-clause keeping the appendix's parameters from reading as a recommendation, and deleting recorded
-as an act. The last of those bumps `marker`. **The list, the sentences it touches and the
-knock-ons outside the core are `docs/CORE-status.md`'s *Held for a possible future core*, and are
-not repeated here.**
+The section has outlived several of its items. Some ask for work that is now cheap; some hold a
+fact a reader would go looking for in the body of the contract; and at least one had settled
+without being closed — `will_evaluate` has a signature, a stated obligation and a live test, and
+was still listed there as a shape nobody had fixed.
 
-**First, because what follows is written against it.** `docs/SURFACE.md` already carries two
-paragraphs the lock change deletes, and `docs/ADAPTER.md` carries two the same change makes moot
-and false. Every week it waits is a week more written against a lock that is going to move.
+**Stale status is written against.** A claim that a question is open is an invitation to leave it
+open, and it travels: that one reached a docstring in `src/tokenloom/core/ports.py` and sat there
+saying the shape was unsettled long after it was not. Every item this section keeps past its life
+is one the surface and the read layer get built around.
 
 ## 1. `docs/SURFACE.md`, before the surface is built
 
@@ -34,19 +34,10 @@ the read layer should be built against a known set of questions rather than a gu
 N+1 fix below is specified either way — `docs/CORE.md` already says what it is — but *which* bulk
 reads exist is decided here.
 
-**It is drafted, and it is not accepted.** The four questions this item once listed as open are
-answered in the draft, and one of them — what a run is on screen — stops being a question at all
-once item 0 lands. What it waits on is item 0, and one thing it does not yet say: whether a
-first-pass generation is greedy rather than sampled, and what a surface shows of a distribution
-whose mass sits in three of twenty recorded alternatives. `docs/surface-notes.md` holds that
-argument until the core has moved.
-
-**It has one technique available to it that the record does not name.** A caller that wants to
-stop a long generation can issue it as consecutive short `generate` acts — `docs/ADAPTER.md`'s
-*Cancellation* has the reasoning — so a block of output a reader sees may be a construct of the
-surface rather than a unit of the record. Whether the surface works that way is its own decision;
-what follows if it does is the adapter's to state, and the bullet below says why that is not how
-the contract currently reads.
+**It is drafted, and it is not accepted.** One thing stands between the two: whether a first-pass
+generation is greedy rather than sampled, and what a surface shows of a distribution whose mass
+sits in three of twenty recorded alternatives. `docs/surface-notes.md` holds that argument and
+nothing else.
 
 ## 2. The read layer
 
@@ -72,17 +63,3 @@ written down.
 
 **Before the API, not after.** An API written against N+1 reads gets shaped around them, and the
 shape outlives the fix.
-
----
-
-- **`docs/ADAPTER.md`'s *Cancellation* over-prescribes.** The finding it rests on stands and is
-  not in question: streaming loses ids on this backend, so an interruptible generation would have
-  to be declined, so `cancelled` is unreachable and stopping is declining to continue. What
-  over-reaches is what follows it. *A caller who wants to stop asks for less at a time*, and the
-  three consequences under it, are written as though every client inherits them — and they read
-  that way, which cost a round of confusion in surface design, where chunking arrived as a
-  constraint the surface had been handed rather than a technique it could pick up. The command
-  line has never chunked and has never needed to. The edit is contained: keep the measurement,
-  keep the terminator's fate, demote the prescription to a note that a client *may* issue a long
-  generation as consecutive acts, and keep the three consequences attached to that note rather
-  than standing free. Unnumbered because it is cheap at any point and nothing waits on it.

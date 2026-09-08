@@ -1,7 +1,7 @@
 """The command line: the reference client, and every write the record admits.
 
-Reads take no lock and need no server. `realise` and `delete` need neither a server nor a
-tokeniser; `create` needs a tokeniser; only `generate` calls a model.
+Reads take no lock and need no server. `realise`, `delete` and `undelete` need neither a
+server nor a tokeniser; `create` needs a tokeniser; only `generate` calls a model.
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -73,6 +74,18 @@ def actor(args) -> Source:
     return Source("user", getattr(args, "user", "") or "")
 
 
+def attributed(args) -> Source | None:
+    """`--attribute KIND:NAME`: who produced the text, where that is not the actor."""
+    named = getattr(args, "attribute", None)
+    if not named:
+        return None
+    kind, _, name = named.partition(":")
+    try:
+        return Source(kind, name)
+    except ValueError as why:
+        raise SystemExit(f"--attribute: {why}") from why
+
+
 # ---- commands ------------------------------------------------------------------------
 
 
@@ -85,30 +98,37 @@ def cmd_init(args) -> int:
 def cmd_create(args) -> int:
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
+        source = attributed(args)
         act = store.create(
-            args.at, args.text, vocabulary=adapter, source=actor(args), special=args.special
+            args.at, args.text, vocabulary=adapter,
+            actor=actor(args), source=source, special=args.special,
         )
         tip = store.conn.execute("SELECT tip FROM acts WHERE id = ?", (act,)).fetchone()[0]
         nodes = R.act_tokens(store.conn, act)
-        print(f"act {act}  create  {len(nodes)} tokens  tip {tip}")
+        attribution = f"  source {source}" if source else ""
+        print(f"act {act}  create  {len(nodes)} tokens  tip {tip}{attribution}")
         for node in nodes:
             print(f"  {node.id:>6}  {node.token_id:>7}  {token_repr(store, node)}")
     return 0
 
 
 def cmd_generate(args) -> int:
+    from .adapters.llamacpp.adapter import MAX_SEED
+
     params = {
         "length": args.length,
         "top_k": args.top_k,
         "top_n": args.top_n,
         "temperature": args.temperature,
         "cache_prompt": args.cache_prompt,
+        # This backend samples, so it requires a seed and refuses without one. Drawing it
+        # here is what makes the recorded parameters a complete description of the draw.
+        "seed": args.seed if args.seed is not None else secrets.randbelow(MAX_SEED + 1),
     }
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
-        act, answer = store.generate(args.at, params, adapter=adapter, seed=args.seed)
-        seed = store.conn.execute("SELECT seed FROM acts WHERE id = ?", (act,)).fetchone()[0]
-        print(f"act {act}  generate  {answer.terminator}  seed {seed}")
+        act, answer = store.generate(args.at, params, adapter=adapter, actor=actor(args))
+        print(f"act {act}  generate  {answer.terminator}  seed {params['seed']}")
         if answer.reason:
             print(f"  reason: {answer.reason}")
         for node in R.act_tokens(store.conn, act):
@@ -149,7 +169,8 @@ def _edge_source(store: Store, node: int, named: str | None) -> Source:
 
 def cmd_delete(args) -> int:
     with Store.open(args.tree, write=True) as store:
-        store.undelete(args.node) if args.undo else store.delete(args.node)
+        write = store.undelete if args.undo else store.delete
+        print(f"act {write(args.node, actor=actor(args))}")
         print(f"node {args.node}  {'live' if R.is_live(store.conn, args.node) else 'not live'}")
     return 0
 
@@ -230,18 +251,25 @@ def cmd_acts(args) -> int:
     with Store.open(args.tree) as store:
         rows = store.conn.execute(
             "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, a.rank, "
-            "a.seed, p.json, a.source FROM acts a LEFT JOIN params p ON p.id = a.params "
+            "p.json, a.actor, a.model FROM acts a LEFT JOIN params p ON p.id = a.params "
             "ORDER BY a.id"
         ).fetchall()
-        for act, op, origin, tip, created, terminator, rank, seed, params, source in rows:
-            bits = [f"{act:>4}", f"{op:<8}", created, f"{source_name(store, source):<24}",
+        for act, op, origin, tip, created, terminator, rank, params, act_or, model in rows:
+            who = source_name(store, act_or)
+            if model is not None:
+                who += f" asked {source_name(store, model)}"
+            elif op == "create" and R.get_node(store.conn, tip).source != act_or:
+                # A create names the source its nodes carry, and it need not be the actor.
+                # The act stores no column for it, so it is read off the tip.
+                who += f" attributing {source_name(store, R.get_node(store.conn, tip).source)}"
+            bits = [f"{act:>4}", f"{op:<8}", created, f"{who:<40}",
                     f"origin {origin}", f"tip {tip}"]
             if terminator:
                 bits.append(terminator)
             if rank is not None:
                 bits.append(f"rank {rank}")
             if params:
-                bits.append(f"{params} seed {seed}")
+                bits.append(params)
             print("  ".join(bits))
     return 0
 
@@ -308,6 +336,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--special", action="store_true",
                    help="read control-token literals as control tokens. Never the default: "
                         "authored text is plain bytes, and quoting one does not inject it.")
+    p.add_argument("--attribute", metavar="KIND:NAME",
+                   help="who produced the text, where that is not the acting user -- "
+                        "`model:NAME` for a transcript from elsewhere")
     backend(p)
     p.set_defaults(fn=cmd_create)
 
@@ -320,7 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="how many alternatives to record. top_n >= top_k keeps the drawn "
                         "token inside its own ranking.")
     p.add_argument("--temperature", type=float, default=1.0)
-    p.add_argument("--seed", type=int, help="omit and the core supplies one")
+    p.add_argument("--seed", type=int, help="omit and one is drawn for you")
     p.add_argument("--cache-prompt", action="store_true", dest="cache_prompt",
                    help="let the server reuse its KV cache. Faster on a long path, and it "
                         "moves the logprobs recorded.")
@@ -338,6 +369,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("delete", help="mark a node deleted; liveness is derived")
     p.add_argument("tree", type=Path)
     p.add_argument("node", type=int)
+    p.add_argument("--user", default="", help="the acting user; empty is the unnamed user")
     p.add_argument("--undo", action="store_true", help="clear it; live again only if its "
                                                        "ancestry is")
     p.set_defaults(fn=cmd_delete)

@@ -262,27 +262,16 @@ def branch_points(conn: sqlite3.Connection) -> list[int]:
     ]
 
 
-def run_from(conn: sqlite3.Connection, node: int) -> list[int]:
-    """A maximal chain onward from `node` while each node has exactly one live child.
-
-    Runs have no ids, so this returns the nodes rather than a handle on them.
-    """
-    chain = [node]
-    seen = {node}
-    while True:
-        live = [c for c in children(conn, chain[-1]) if not c.deleted]
-        if len(live) != 1 or live[0].id in seen:
-            return chain
-        chain.append(live[0].id)
-        seen.add(live[0].id)
-
-
 def agreement(conn: sqlite3.Connection) -> dict[str, list]:
     """Nodes produced by more than one act, and siblings carrying one token from
     different sources.
 
     Source is in the merge key, so cross-source agreement is two nodes rather than one --
     which is exactly why it has to be looked for rather than read off a column.
+
+    `cross_source` comes back empty on a tree that holds one model, which every tree built
+    so far does. That is the expected reading and not evidence the read is dead: what it
+    looks for is a shape the format admits and nothing has yet had reason to make.
     """
     repeated = [
         n[0]

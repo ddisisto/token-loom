@@ -102,12 +102,11 @@ def _pos(token_id: int, ranking: list[Ranked]) -> Position:
 
 
 #: One entry per `generate` the appendix performs, in order: the params it was asked for,
-#: the seed, the prompt ids the core should hand the adapter, and what comes back.
+#: the prompt ids the core should hand the adapter, and what comes back.
 GENERATIONS = [
     # Stage 2 -- top_k 5, top_n 5, length 3, seed 42. Terminator `limit`.
     (
-        {"top_k": 5, "top_n": 5, "length": 3},
-        42,
+        {"top_k": 5, "top_n": 5, "length": 3, "seed": 42},
         [785, 12884],
         Generation("limit", (
             _pos(5023, NODE2_TOP5),
@@ -117,8 +116,7 @@ GENERATIONS = [
     ),
     # Stage 3 -- top_k 5, top_n 20, length 2, seed 99. Extends node 2's ranking to twenty.
     (
-        {"top_k": 5, "top_n": 20, "length": 2},
-        99,
+        {"top_k": 5, "top_n": 20, "length": 2, "seed": 99},
         [785, 12884],
         Generation("limit", (
             _pos(702, NODE2_TOP20),
@@ -128,8 +126,7 @@ GENERATIONS = [
     # Stage 4 -- identical to stage 2. The model reproduces the path exactly, so every
     # node merges and nothing new is written but the act.
     (
-        {"top_k": 5, "top_n": 5, "length": 3},
-        42,
+        {"top_k": 5, "top_n": 5, "length": 3, "seed": 42},
         [785, 12884],
         Generation("limit", (
             _pos(5023, NODE2_TOP5),
@@ -140,8 +137,7 @@ GENERATIONS = [
     # Stage 7 -- top_n 200 at node 12. The adapter will not report two hundred ranked ids,
     # and reducing the request is not open to it, so it refuses. No model is called.
     (
-        {"top_k": 5, "top_n": 200, "length": 4},
-        7,
+        {"top_k": 5, "top_n": 200, "length": 4, "seed": 7},
         [785, 12884, 374, 151643, 9284, 250, 223],
         Generation("refused", (), reason="top_n 200 exceeds what this backend will report"),
     ),
@@ -151,7 +147,7 @@ GENERATIONS = [
 class ScriptedAdapter:
     """A backend that has already answered.
 
-    It asserts the prompt ids, params and seed the core hands it, which is the half of the
+    It asserts the prompt ids and the params the core hands it, which is the half of the
     contract a stub can still check: a core that assembled the wrong path would otherwise
     write a perfectly valid tree of the wrong thing.
     """
@@ -173,10 +169,9 @@ class ScriptedAdapter:
     def will_evaluate(self, ids: list[int]) -> bool:
         return True
 
-    def generate(self, ids: list[int], params: dict, seed: int) -> Generation:
-        want_params, want_seed, want_ids, answer = self.script.pop(0)
+    def generate(self, ids: list[int], params: dict) -> Generation:
+        want_params, want_ids, answer = self.script.pop(0)
         assert ids == want_ids, f"prompt ids {ids} != {want_ids}"
         assert params == want_params, f"params {params} != {want_params}"
-        assert seed == want_seed, f"seed {seed} != {want_seed}"
-        self.calls.append((ids, params, seed))
+        self.calls.append((ids, params))
         return answer
