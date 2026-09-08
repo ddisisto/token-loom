@@ -285,12 +285,8 @@ before its own inner fork and the alternatives have nowhere to hang.
 core, the llama.cpp adapter, the command line, and a throwaway probe that reads a static
 projection of a tree and cannot write.
 
-**Superseded by this document:** `docs/surface-sketch/`, and all of `docs/surface-notes.md` but its
-last section. Both are in history, and a note that outlives the document it fed is the second home
-this project keeps paying for.
-
-**Not superseded, and not yet in this document:** whether a first-pass generation should be greedy
-rather than sampled, and what a surface shows of a distribution whose mass sits in three of twenty
-recorded alternatives. `docs/surface-notes.md` holds the argument. It is taken up after the core
-changes below land, and until it is settled **Rankings** describes how alternatives are presented
-but not how many there are to present.
+**One thing is not yet in this document:** whether a first-pass generation should be greedy rather
+than sampled, and what a surface shows of a distribution whose mass sits in three of twenty
+recorded alternatives. `docs/surface-notes.md` holds that argument and nothing else, and until it
+is settled **Rankings** describes how alternatives are presented but not how many there are to
+present.

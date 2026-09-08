@@ -56,8 +56,7 @@ rather than a fault to correct.
 
 - **`docs/CORE.md`** is what the format *is* — node, edge, source, ranking, act, the on-disk
   shape, the invariants, the operations. It carries no arguments and is written against one test:
-  can someone implement a reader from it alone. **It is locked and does not move**; what is true
-  of it only for now is `docs/CORE-status.md`.
+  can someone implement a reader from it alone. **It is locked and does not move.**
 - **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
   obligations behind them, and what to do when one cannot be met. **It is deliberately not
   locked**, and it moves as backends are met. It carries its own status inline.
@@ -171,8 +170,8 @@ How decisions get made here — what has paid off, and what it cost to skip.
 
 ## State
 
-**The core, the llama.cpp adapter and the command line exist, and a tree has been built against
-a running server.** What that leaves open — and what building it found — is
-`docs/CORE-status.md` for the format and the Status section of `docs/ADAPTER.md` for the
-backend. **What gets built next is `docs/NEXT.md`.** Those three are the files that move; not
-this section, and not `docs/CORE.md`.
+**The format is built per `docs/CORE.md`, with a command line that makes every write it
+admits.** `src/tokenloom/core/` is the store — the five acts, the derived reads and a checker for
+every named invariant — and trees have been built against a running server. What the backend
+leaves open is the Status section of `docs/ADAPTER.md`; **what gets built next is
+`docs/NEXT.md`.** Those two are the files that move; not this section, and not `docs/CORE.md`.

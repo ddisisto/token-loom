@@ -230,8 +230,12 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
 
 
 def test_eos_is_drawable_and_is_a_node(adapter):
-    """`docs/CORE-status.md` lists `eos` as specified and unwitnessed. It is drawable on
-    this model after a document-ending prompt, and it arrives as an ordinary node."""
+    """`eos` is drawable on this model after a document-ending prompt, and it arrives as
+    an ordinary node with a covering ranked edge -- not by a path of its own.
+
+    It is a question of the prompt rather than of the model: end-of-text does not appear
+    in the top 40 at every document-ending prompt, so a search that finds none proves
+    nothing about whether the terminator is reachable."""
     if not is_qwen(adapter):
         pytest.skip("the prompt ids are Qwen2.5's")
     for seed in range(12):

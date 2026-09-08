@@ -1,8 +1,7 @@
 # The core
 
 **What the format is.** Node, edge, source, ranking, act, the on-disk shape, the invariants and
-the operations. **This document does not move.** What is true of it only for now — what is built,
-what is specified and unwitnessed — is `docs/CORE-status.md`.
+the operations. **This document does not move.**
 
 **The test it is written against: can someone implement a reader from it alone?**
 
@@ -116,6 +115,11 @@ whatever has accumulated there, and is not derivable from any one generation's p
 **A node's own logprob is not stored.** It is the ranked edge at its parent, for its source,
 carrying its `token_id`. What a node was worth and what its alternatives were worth cannot drift
 apart, because there is only one record of both.
+
+**A root has no logprob**, having no parent to carry the edge. It follows that a `generate` that
+begins a root cannot record the ranking for its first position: a ranking belongs to the node the
+position was computed at, and for that position there is none. The distribution over an empty
+context is a real thing this format does not hold.
 
 **A node may be absent from its parent's ranking.** A generation that can give no ranking for a
 position declines rather than guesses, and a backend may emit a token on a stop condition

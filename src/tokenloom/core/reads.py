@@ -268,6 +268,10 @@ def agreement(conn: sqlite3.Connection) -> dict[str, list]:
 
     Source is in the merge key, so cross-source agreement is two nodes rather than one --
     which is exactly why it has to be looked for rather than read off a column.
+
+    `cross_source` comes back empty on a tree that holds one model, which every tree built
+    so far does. That is the expected reading and not evidence the read is dead: what it
+    looks for is a shape the format admits and nothing has yet had reason to make.
     """
     repeated = [
         n[0]

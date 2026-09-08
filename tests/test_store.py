@@ -251,6 +251,34 @@ def test_generate_writes_provenance_before_the_nodes(store):
     assert seen["nodes"] == 2  # only what `create` wrote
 
 
+def test_a_generate_that_begins_a_root_cannot_record_its_first_ranking(store):
+    """A ranking belongs to the node the position was computed at, and position 0 of a
+    root-beginning generate has no such node.
+
+    Not a fault in the implementation and not one a lock could fix -- it follows from a
+    node's logprob being the ranked edge at its *parent*, and a root has none. The path is
+    here because nothing else runs it: `create` is how a root gets made in practice, and
+    the one backend that exists refuses an empty prompt.
+    """
+    adapter = ToyAdapter([drew(
+        (100, [(100, -0.1), (101, -0.5)]),   # position 0: computed at nothing
+        (101, [(101, -0.2), (102, -0.9)]),   # position 1: computed at the root
+    )])
+    store.generate(None, {"length": 2}, adapter=adapter, actor=USER)
+
+    root = R.roots(store.conn)[0]
+    assert root.token_id == 100
+    child = R.children(store.conn, root.id)[0]
+
+    # Position 0's ranking is not recorded anywhere -- not at the root, not orphaned.
+    assert store.conn.execute("SELECT COUNT(*) FROM edges WHERE node = ?", (root.id,)) \
+        .fetchone()[0] == 2  # position 1's two rows, and only those
+    assert {e.token_id for e in R.ranking(store.conn, root.id)} == {101, 102}
+
+    assert R.node_logprob(store.conn, root.id) is None  # no parent to carry the edge
+    assert R.node_logprob(store.conn, child.id) == -0.2  # the position that had a node
+
+
 def test_a_backend_that_breaks_mid_call_records_failed(store):
     tip = seeded(store)
     adapter = ToyAdapter([RuntimeError("the backend broke under it")])
