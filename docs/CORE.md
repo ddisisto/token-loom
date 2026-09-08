@@ -1,7 +1,8 @@
 # The core
 
 **What the format is.** Node, edge, source, ranking, act, the on-disk shape, the invariants and
-the operations. **This document does not move.**
+the operations. **It is never edited in the course of doing something else.** Moving it is its
+own piece of work; what that costs a reader is *Conformance and extension*.
 
 **The test it is written against: can someone implement a reader from it alone?**
 

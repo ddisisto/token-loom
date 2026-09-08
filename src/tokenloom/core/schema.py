@@ -1,6 +1,6 @@
 """The on-disk shape, transcribed from `docs/CORE.md`'s *On disk*.
 
-The DDL here is the locked one, verbatim. Nothing is added to it -- no foreign keys, no
+The DDL here is that document's, verbatim. Nothing is added to it -- no foreign keys, no
 indices beyond the keys the document states. Closure is checked by `check.py` rather than
 declared, because a checker that trusts the schema checks nothing.
 """

@@ -3,9 +3,10 @@
 **What a backend must do to produce the record `docs/CORE.md` describes.** The operations, the
 obligations behind them, and what to do when one cannot be met.
 
-**This document is not locked, and that is the point of the split.** `docs/CORE.md` is fixed and
-names no backend; this one moves as backends are met. Nothing here may contradict the core, and
-the core cites this document rather than anything a particular backend happens to do.
+**This document moves as backends are met, and that is the point of the split.** `docs/CORE.md`
+names no backend and moves only as its own work; meeting a backend is not that work. Nothing
+here may contradict the core, and the core cites this document rather than anything a particular
+backend happens to do.
 
 ---
 

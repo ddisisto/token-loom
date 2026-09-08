@@ -1,7 +1,7 @@
 """The core: the tree, and nothing about any backend.
 
-`docs/CORE.md` is what this implements and it is locked. Nothing in here names a backend,
-and no backend's limitation is a rule in here.
+`docs/CORE.md` is what this implements. Nothing in here names a backend, and no backend's
+limitation is a rule in here.
 """
 
 from .check import Corrupt, Violation, verify, violations

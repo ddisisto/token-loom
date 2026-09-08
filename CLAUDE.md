@@ -57,10 +57,12 @@ rather than a fault to correct.
 
 - **`docs/CORE.md`** is what the format *is* — node, edge, source, ranking, act, the on-disk
   shape, the invariants, the operations. It carries no arguments and is written against one test:
-  can someone implement a reader from it alone. **It is locked and does not move.**
+  can someone implement a reader from it alone. **It moves only as its own deliberate piece of
+  work** — never in passing, and never to accommodate what a backend or a client turned out to
+  want. `marker` is what tells a reader it moved.
 - **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
-  obligations behind them, and what to do when one cannot be met. **It is deliberately not
-  locked**, and it moves as backends are met. It carries its own status inline.
+  obligations behind them, and what to do when one cannot be met. **It moves as backends are
+  met**, which is the point of the split, and it carries its own status inline.
 - **`docs/SERVER.md`** is what llama.cpp actually does, measured. Read it before writing or
   changing anything that talks to the server. **It is the llama.cpp adapter's notes, and neither
   the core nor the contract cites it.** What is required of any backend is `docs/ADAPTER.md`;
@@ -175,4 +177,5 @@ How decisions get made here — what has paid off, and what it cost to skip.
 admits.** `src/tokenloom/core/` is the store — the five acts, the derived reads and a checker for
 every named invariant — and trees have been built against a running server. What the backend
 leaves open is the Status section of `docs/ADAPTER.md`; **what gets built next is
-`docs/NEXT.md`.** Those two are the files that move; not this section, and not `docs/CORE.md`.
+`docs/NEXT.md`.** Those two are the files that carry what is unfinished; this section is not one,
+and neither is `docs/CORE.md`.

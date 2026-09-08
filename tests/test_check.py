@@ -20,7 +20,7 @@ from tokenloom.core import Store, check, violations
 from tokenloom.core.check import Corrupt
 from tokenloom.core.schema import DDL
 
-#: The locked schema's tables and columns with every UNIQUE and PRIMARY KEY clause gone,
+#: The DDL's tables and columns with every UNIQUE and PRIMARY KEY clause gone,
 #: written out rather than derived, so that what a case is handed is legible at a glance.
 #: `columns_of` asserts it has not drifted from the real DDL.
 RELAXED = """
@@ -45,7 +45,7 @@ def columns_of(ddl: str) -> dict[str, list[str]]:
     return {t: [r[1] for r in conn.execute(f"PRAGMA table_info({t})")] for t in tables}
 
 
-def test_the_relaxed_schema_has_not_drifted_from_the_locked_one():
+def test_the_relaxed_schema_has_not_drifted_from_the_ddl():
     """Same tables, same columns, same order -- only the constraints differ. Without this
     the checker could be passing against a schema the store never writes."""
     assert columns_of(RELAXED) == columns_of(DDL)
@@ -409,9 +409,9 @@ def test_a_writer_will_not_write_to_a_store_that_fails_an_invariant(tmp_path):
     Store.open(path, write=True).close()
 
 
-def test_every_invariant_the_locked_document_names_is_one_this_checker_can_report():
-    """`docs/CORE.md` is locked, so its list of invariants is fixed and the checker's must
-    match it exactly -- in both directions.
+def test_every_invariant_the_core_document_names_is_one_this_checker_can_report():
+    """`docs/CORE.md`'s list of invariants and the checker's must match exactly -- in both
+    directions. This is what catches one of them moving without the other.
 
     A missing name is a hole. An extra one is a rule the core does not have, which is
     worse: it would make this implementation refuse stores the format permits.
