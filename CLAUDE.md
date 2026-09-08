@@ -17,8 +17,9 @@ alternatives that were live along it — not just against its siblings. A branch
 at a token the model ranked and did not sample. That is the whole reason the tree is a trie
 over tokens rather than over text, and it is what the name is for.
 
-The tree is `src/tokenloom/core/`, with two clients on it: a command line and an HTTP API,
-the latter also serving the reading surface.
+The tree is `src/tokenloom/core/`, and the command line is the client on it. A reading
+surface over an HTTP API is where this is going, which is why the second point below is a
+constraint and not an observation.
 
 Two things pull on the design:
 
@@ -30,8 +31,8 @@ Two things pull on the design:
   and not a second client: a mutation reachable only by clicking has put itself somewhere
   the record cannot follow, while a way of looking records nothing and costs nothing. It is
   close to self-enforcing, since `docs/CORE.md` closes the set of writes — five acts — and
-  each already has a verb. A surface write with no verb would be a
-  new kind of write, which is a core change and gets read as one.
+  each already has a verb. A surface write with no verb would be a new kind of write, which
+  is a core change and gets read as one.
 
 Controlled research — attractors in the prior, how temperature gates access to them, framing
 as a change of basis, what survives repeated retransmission — is where this points, and the
@@ -64,6 +65,9 @@ rather than a fault to correct.
   changing anything that talks to the server. **It is the llama.cpp adapter's notes, and neither
   the core nor the contract cites it.** What is required of any backend is `docs/ADAPTER.md`;
   what one backend happens to do is here.
+- **`docs/SURFACE.md`** is the reading surface's design and constraints, **drafted and not
+  accepted**; `docs/surface-notes.md` holds the one argument it does not yet settle and nothing
+  else. Both move until the surface is built.
 - **`docs/NEXT.md`** is what gets built next and why in that order. **It is living**: items are
   added as they come up and deleted once they close or fall out of scope, so it never
   accumulates a history of itself. Nothing cites it, and nothing should — it is the one document
@@ -73,9 +77,6 @@ rather than a fault to correct.
 llama.cpp will not evaluate a prompt whose bytes end mid-character, which had become an invariant
 forbidding acts at fragment nodes, including ones that call no model. The core forms positions;
 an adapter decides which its backend will accept.
-
-Direction, the reading surface and its constraints get their own documents in `docs/` when
-there is something to say.
 
 **Every fact has one home, and a change moves it rather than copying it.** This is what bit
 last time: a decision changed, the old statement of it was left standing somewhere else, and
@@ -88,10 +89,9 @@ second home in the tree.
 **Status goes in one place, never woven through.** A checkbox beside a requirement, a
 `(done)` after a claim, a sentence saying what is true *for now* — these rot, because the
 edit that records progress is also the edit that can soften the claim, and nothing marks
-which one happened. Consolidated at the end of a document, or in a file of its own, it cannot
-do that. Which of those depends only on whether the document has to be lockable: `docs/CORE.md`
-is cited and must not move, so its status lives elsewhere; a document nothing cites is more
-useful carrying its own inline.
+which one happened. A section at the end of the document it is about cannot do that. A file of
+its own can: parted from its subject it drifts into holding what the subject should have said,
+and then there are two answers.
 
 **A citation from a document you may not edit says the cited thing is in the wrong place.**
 
@@ -130,7 +130,8 @@ touched, not after something disagrees.
 - Recurring commands go in `scripts/`, which is **committed**.
 - `data/` is disposable scratch and is gitignored.
 - Stage explicitly. Never `git add -A`.
-- The project is a `uv` one: `uv sync`, `uv run pytest`, `uv run tokenloom`.
+- The project is a `uv` one: `uv sync`, `uv run pytest`, `uv run tokenloom`, and
+  `uv run ruff check src tests scripts` before every commit.
 - **`uv run pytest` needs no server.** The live tests skip without one; `-m live` runs only
   those, and they are the ones that can tell you the docs have gone stale.
 
