@@ -469,8 +469,9 @@ Nothing here is stored.
 ## Conformance and extension
 
 - A reader that does not recognise `marker` stops.
-- **A reader ignores tables and columns it does not know**, and adding a new table does not change
-  `marker`. This is what allows the format to grow without invalidating a reader.
+- **A reader ignores tables and columns it does not know**, and neither a new table nor a new
+  column changes `marker`. This is what allows the format to grow without invalidating a reader:
+  what a reader already understands still means what it did.
 - **A new value in an existing column changes what that column means, and does change `marker`**,
   as does any other change to what an existing table means — the one circumstance that makes an
   older reader wrong rather than merely incomplete.
