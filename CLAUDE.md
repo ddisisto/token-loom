@@ -95,6 +95,12 @@ which one happened. A section at the end of the document it is about cannot do t
 its own can: parted from its subject it drifts into holding what the subject should have said,
 and then there are two answers.
 
+**A status section holds only what has no home yet.** It is where a finding lands while it is
+still being learned, which makes it structurally the place duplicates are born: the body gets
+written later, and retiring the note reads as tidying rather than as finishing the job. An
+item should die the moment a home is written for it, and an entry announcing that something
+is settled is the signal that one did not.
+
 **A citation from a document you may not edit says the cited thing is in the wrong place.**
 
 ## Inference

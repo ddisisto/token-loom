@@ -25,7 +25,7 @@ no facility for it and no way to tell that it was needed.
 
 | operation | returns |
 | --- | --- |
-| `tokenize(bytes)` | the ids that spell those bytes, in order, each with its own bytes |
+| `tokenize(bytes, special)` | the ids that spell those bytes, in order, each with its own bytes |
 | `bytes_for(id)` | what that id spells, exactly, for every id the adapter can emit |
 | `generate(ids, params)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
 | `will_evaluate(ids)` | whether the backend would accept that path at all — a question, answered without calling the model and without writing anything |
@@ -82,8 +82,8 @@ store records which was meant.
 **`tokenize` reads authored text as plain bytes.** Control sequences in it become the ordinary
 tokens that spell them, and a user who quotes one does not inject it.
 
-**A second path exists for a caller who means the control token**, and it is never the default.
-Nothing about the store changes between the two — only which ids come back.
+**A second path exists for a caller who means the control token** — `special` — and it is never
+the default. Nothing about the store changes between the two — only which ids come back.
 
 ## Refusal
 
@@ -132,8 +132,9 @@ no way to know which it will get.
 `failed` called it and the backend broke under it; `aborted` is what a later writer records for a
 generation whose own writer is gone. None names a tip, and the store tells them apart.
 
-**The shape of a refusal is not settled here** — a reason code, a message, both. What the core
-takes from it is the terminator; the rest is the adapter's answer to its caller.
+**The core takes the terminator and nothing else.** Whatever a refusal carries beyond it — a
+message, a code, both — is the adapter's answer to its caller, and this contract does not shape
+it.
 
 ## Cancellation
 
@@ -258,40 +259,20 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 
 ## Backends
 
-- **llama.cpp** — measured behaviour lives in `docs/SERVER.md`, which is that adapter's notes and
-  nothing the core cites. Several of the behaviours recorded there produce a record that is
-  quietly wrong rather than an error, so it is read before the adapter is touched, not after
-  something disagrees.
+- **llama.cpp** — `src/tokenloom/adapters/llamacpp/`, exercised against a running server by
+  `tests/test_live.py`. Measured behaviour lives in `docs/SERVER.md`, which is that adapter's
+  notes and nothing the core cites. Several of the behaviours recorded there produce a record
+  that is quietly wrong rather than an error, so it is read before the adapter is touched, not
+  after something disagrees.
 
 ---
 
 ## Status
 
-- **The llama.cpp adapter exists**, in `src/tokenloom/adapters/llamacpp/`. It meets the three
-  operations, and it is exercised against a running server by `tests/test_live.py`, which skips
-  when there is none. Refusal, declination and a generation ending on `eos` have all now been run.
-- **The path predicate is settled, and it is narrower than either candidate.** llama.cpp refuses
-  a prompt whose bytes *end* with an under-filled multi-byte sequence, and accepts one carrying a
-  completed invalid sequence with valid bytes after it — including a stray continuation byte in
-  last position. So the question is about the tail alone and not about whether the path decodes
-  end to end. `docs/SERVER.md` records the seven sequences it was measured on.
-- **`eos` is witnessed.** The earlier note here — that end-of-text did not appear in the top 40 at
-  three document-ending prompts — was a fact about those prompts. After ` The end.` it ranks at
-  −1.364 and is drawn on most seeds.
-- **The special-token path is named.** `tokenize(text, special=True)`, never the default, and
-  `tokenloom create --special` on the command line. Nothing about the store changes between the
-  two readings; only which ids come back.
+**What is open, and nothing that has found a home above.**
+
+- **Whether a refusal carries a code as well as a message.** The one adapter returns a reason
+  string; *Refusal* says the core takes none of it. What would settle this is a client that has
+  to display one, and there is no such client.
 - **`docs/SERVER.md` is still unstructured**, and is still expected to be reorganised as this
   contract's first backend's notes.
-- **The refusal list is still provisional**, and has lengthened once already: meeting the running
-  server added two conditions that no amount of reading the API surface would have suggested.
-- **The shape of a refusal is half-settled.** The adapter returns a reason string alongside the
-  terminator and the core stores none of it; whether that becomes a code as well waits for a
-  client that has to display one.
-- **`cancelled` is unreached, and is no longer an open item.** Streaming was the route to it and
-  streaming loses ids on this backend, so the terminator is specified and nothing produces it — a
-  decision with a reason rather than work outstanding. *Cancellation* has what a client that wants
-  to stop a long generation does instead.
-- **`cache_prompt` is a required per-call parameter**, and the adapter refuses a request that
-  omits it or names a non-bool. *Determinism* says why. On the command line it is
-  `tokenloom generate --cache-prompt`, on that verb alone, since no other calls a model.
