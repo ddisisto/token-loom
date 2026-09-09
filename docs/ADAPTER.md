@@ -272,6 +272,12 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 
 **What is open, and nothing that has found a home above.**
 
-- **Whether a refusal carries a code as well as a message.** The one adapter returns a reason
-  string; *Refusal* says the core takes none of it. What would settle this is a client that has
-  to display one, and there is no such client.
+- **Whether a refusal's reason outlives the call.** The adapter returns one and the calling
+  client acts on it, which is all a client has needed so far; *Refusal* says the core takes none
+  of it, so a later reader of the tree sees `refused` and no more. Most of that is recoverable —
+  a refusal decidable from `params` or from the path is derivable from the act itself. What is
+  not is the backend's capacity: a request refused for room, or for a `top_n` above the
+  vocabulary, met a server configuration the tree does not hold, and two servers running one
+  model at different context lengths are one source to this format. If this is picked up, the
+  cheap form is an adapter recording its capacity in `params`, which the core does not read; the
+  fuller one is a nullable reason on the act.
