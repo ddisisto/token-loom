@@ -148,10 +148,11 @@ every token the model produced — nodes land only in the core's second write.
 
 **The interruptible form is not the same operation with a way in**, which is what measuring it
 settled. A streamed generation on the one backend that exists reports a multi-token character's
-final id and drops the ids before it — in no chunk, and on both of its endpoints; `docs/SERVER.md`
-has the sequences. The loss shows in the token counters and the ids are gone, and reading them
-back from the group's bytes is the artefact this format exists to avoid. So a streamed act would
-have to be declined, and a generation that could be stopped would be one that dies on an emoji.
+final id and drops the ids before it — in no chunk, and on both of its endpoints; that adapter's
+notes have the sequences. The loss shows in the token counters and the ids are gone, and reading
+them back from the group's bytes is the artefact this format exists to avoid. So a streamed act
+would have to be declined, and a generation that could be stopped would be one that dies on an
+emoji.
 
 **`cancelled` therefore stays unreached on this backend, and that is a decision rather than a gap.**
 It is specified, nothing produces it, and a `generate` short enough to be worth stopping is short
@@ -211,7 +212,7 @@ where most of this class of nondeterminism comes from in the first place.
 **The cache is the variable that was being held still, and it is worth more than the last decimal
 places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
 against warm differs by up to 0.056 in logprob at the top of a five-row ranking — enough to
-reorder a near-tie. `docs/SERVER.md` has the numbers. Because each state is internally
+reorder a near-tie. That adapter's notes have the numbers. Because each state is internally
 reproducible this is a *second variable* rather than noise, and a ranking recorded with the cache
 on is a function of the model, the path and what was generated before it. That is the thing
 obligation 5 asks a backend not to be. The format would survive either way — ranks are recorded in
@@ -260,10 +261,10 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 ## Backends
 
 - **llama.cpp** — `src/tokenloom/adapters/llamacpp/`, exercised against a running server by
-  `tests/test_live.py`. Measured behaviour lives in `docs/SERVER.md`, which is that adapter's
-  notes and nothing the core cites. Several of the behaviours recorded there produce a record
-  that is quietly wrong rather than an error, so it is read before the adapter is touched, not
-  after something disagrees.
+  `tests/test_live.py`. Measured behaviour lives in that directory's `README.md`, which is the
+  adapter's own notes and binds nothing. Several of the behaviours recorded there produce a
+  record that is quietly wrong rather than an error, so it is read before the adapter is touched,
+  not after something disagrees.
 
 ---
 
@@ -274,5 +275,3 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 - **Whether a refusal carries a code as well as a message.** The one adapter returns a reason
   string; *Refusal* says the core takes none of it. What would settle this is a client that has
   to display one, and there is no such client.
-- **`docs/SERVER.md` is still unstructured**, and is still expected to be reorganised as this
-  contract's first backend's notes.

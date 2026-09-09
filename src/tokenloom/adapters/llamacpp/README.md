@@ -1,6 +1,8 @@
-# The server
+# llama.cpp, measured
 
-**What llama.cpp actually does**, measured against the model and build named in `CLAUDE.md`.
+**What this backend actually does**, measured against the model and build named in the project's
+`CLAUDE.md`. These are this adapter's notes: what is required of *any* backend is
+`docs/ADAPTER.md`, and nothing here is a rule.
 
 **Read this before writing or changing anything that talks to the server.** Nearly every item
 below overturned a confident assumption, none of them is guessable from the API surface, and
@@ -150,10 +152,10 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   record a terminator that is a lie, and only `truncated` — a field nothing obliges a reader
   to look at — distinguishes it. The prompt *alone* exceeding `n_ctx` is clean by contrast:
   HTTP 400, `exceed_context_size_error`, naming both numbers.
-- **End-of-text is drawable and rankable on this base model**, contrary to the earlier note
-  that it did not appear in the top 40 at three document-ending prompts. It is a question of
-  the prompt: after ` The end.` (`[576, 835, 13]`) it is ranked at −1.364 and is drawn on 5
-  of 8 seeds at temperature 1.0, arriving with `stop_type: eos`, `tokens_predicted: 1` and
+- **End-of-text is drawable and rankable on this base model, and whether it appears at all is a
+  question of the prompt.** At three document-ending prompts it did not reach the top 40; after
+  ` The end.` (`[576, 835, 13]`) it is ranked at −1.364 and is drawn on 5 of 8 seeds at
+  temperature 1.0, arriving with `stop_type: eos`, `tokens_predicted: 1` and
   `tokens: [151643]`. It reaches `completion_probabilities` like any other token, with its
   bytes empty and its ranking present.
 - **`cache_prompt` defaults on in the server, and a generation is therefore not guaranteed to

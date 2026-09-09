@@ -1,8 +1,8 @@
-"""The llama.cpp adapter: the three operations, and the repairs behind them.
+"""The llama.cpp adapter: the four operations, and the repairs behind them.
 
 An adapter absorbs its backend's faults rather than passing them through. This one has
-four to absorb, all recorded in `docs/SERVER.md`, and every one of them produces a record
-that is *quietly wrong* rather than an error:
+four to absorb, all recorded in this package's `README.md`, and every one of them produces a
+record that is *quietly wrong* rather than an error:
 
 1. `completion_probabilities` is the generated sequence regrouped onto character
    boundaries, not the sequence itself. `walk` puts the two back together.

@@ -3,7 +3,7 @@
 **The server has no route to per-token bytes.** `/detokenize` answers a fragment id with
 the replacement character rather than the bytes, and it does so with HTTP 200 -- the
 response is lossy rather than an error, which is exactly the shape of fault that produces
-a record that is quietly wrong. `docs/SERVER.md` records the measurement.
+a record that is quietly wrong. This package's `README.md` records the measurement.
 
 So bytes come from `tokenizer.ggml.tokens` in the model file, which holds every entry in
 byte-level BPE encoding. Applying the GPT-2 byte decoder gives real bytes for every id,
