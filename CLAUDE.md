@@ -63,10 +63,6 @@ rather than a fault to correct.
 - **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
   obligations behind them, and what to do when one cannot be met. **It moves as backends are
   met**, which is the point of the split, and it carries its own status inline.
-- **`docs/SERVER.md`** is what llama.cpp actually does, measured. Read it before writing or
-  changing anything that talks to the server. **It is the llama.cpp adapter's notes, and neither
-  the core nor the contract cites it.** What is required of any backend is `docs/ADAPTER.md`;
-  what one backend happens to do is here.
 - **`docs/SURFACE.md`** is the reading surface's design and constraints, **drafted and not
   accepted**; `docs/surface-notes.md` holds the one argument it does not yet settle and nothing
   else. Both move until the surface is built.
@@ -79,6 +75,12 @@ rather than a fault to correct.
 llama.cpp will not evaluate a prompt whose bytes end mid-character, which had become an invariant
 forbidding acts at fragment nodes, including ones that call no model. The core forms positions;
 an adapter decides which its backend will accept.
+
+**A backend's notes live with that backend's code, and the contract may cite them as evidence
+and never as a requirement.** `docs/ADAPTER.md` leans on measurements to explain why an
+obligation reads as it does — why `cancelled` is unreachable, what *Determinism* is guarding —
+and that is the right use. The moment such a citation is what *makes* a rule true, the rule has
+a backend inside it.
 
 **Every fact has one home, and a change moves it rather than copying it.** This is what bit
 last time: a decision changed, the old statement of it was left standing somewhere else, and
@@ -94,6 +96,12 @@ edit that records progress is also the edit that can soften the claim, and nothi
 which one happened. A section at the end of the document it is about cannot do that. A file of
 its own can: parted from its subject it drifts into holding what the subject should have said,
 and then there are two answers.
+
+**A status section holds only what has no home yet.** It is where a finding lands while it is
+still being learned, which makes it structurally the place duplicates are born: the body gets
+written later, and retiring the note reads as tidying rather than as finishing the job. An
+item should die the moment a home is written for it, and an entry announcing that something
+is settled is the signal that one did not.
 
 **A citation from a document you may not edit says the cited thing is in the wrong place.**
 
@@ -117,10 +125,11 @@ provider returns logprobs there — including ones whose `/models/{id}/endpoints
 otherwise. There are no true base models left in the hosted catalogue anyway.
 
 The stack talks to llama.cpp's native `/completion` endpoint, not the OpenAI-compatible one.
-**`docs/SERVER.md` holds what that server actually does** — the endpoint choice, and a list
-of measured behaviours that is not guessable from the API surface. Several of them produce a
-record that is quietly wrong rather than an error, so it is read before the adapter is
-touched, not after something disagrees.
+**`src/tokenloom/adapters/llamacpp/README.md` holds what that server actually does** — the
+endpoint choice, and a list of measured behaviours that is not guessable from the API surface.
+Several of them produce a record that is quietly wrong rather than an error, so it is read
+before the adapter is touched, not after something disagrees. It sits beside the code it is
+about so that reading it first is where you already are.
 
 ## Working conventions
 
@@ -167,9 +176,9 @@ How decisions get made here — what has paid off, and what it cost to skip.
   a worked counterexample before they are struck out — and a rejection that names a use case
   should be re-read when that use case leaves the documents.
 - **Probe rather than reason, when the question is decidable.** Nearly every item in
-  `docs/SERVER.md` overturned a confident assumption in minutes. The general form: **absence
-  of observation cannot settle a question about what is possible.** Ask the vocabulary, not
-  the samples.
+  the llama.cpp adapter's notes overturned a confident assumption in minutes. The general
+  form: **absence of observation cannot settle a question about what is possible.** Ask the
+  vocabulary, not the samples.
 
 ## State
 

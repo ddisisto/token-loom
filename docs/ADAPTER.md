@@ -25,7 +25,7 @@ no facility for it and no way to tell that it was needed.
 
 | operation | returns |
 | --- | --- |
-| `tokenize(bytes)` | the ids that spell those bytes, in order, each with its own bytes |
+| `tokenize(bytes, special)` | the ids that spell those bytes, in order, each with its own bytes |
 | `bytes_for(id)` | what that id spells, exactly, for every id the adapter can emit |
 | `generate(ids, params)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
 | `will_evaluate(ids)` | whether the backend would accept that path at all — a question, answered without calling the model and without writing anything |
@@ -82,8 +82,8 @@ store records which was meant.
 **`tokenize` reads authored text as plain bytes.** Control sequences in it become the ordinary
 tokens that spell them, and a user who quotes one does not inject it.
 
-**A second path exists for a caller who means the control token**, and it is never the default.
-Nothing about the store changes between the two — only which ids come back.
+**A second path exists for a caller who means the control token** — `special` — and it is never
+the default. Nothing about the store changes between the two — only which ids come back.
 
 ## Refusal
 
@@ -132,8 +132,9 @@ no way to know which it will get.
 `failed` called it and the backend broke under it; `aborted` is what a later writer records for a
 generation whose own writer is gone. None names a tip, and the store tells them apart.
 
-**The shape of a refusal is not settled here** — a reason code, a message, both. What the core
-takes from it is the terminator; the rest is the adapter's answer to its caller.
+**The core takes the terminator and nothing else.** Whatever a refusal carries beyond it — a
+message, a code, both — is the adapter's answer to its caller, and this contract does not shape
+it.
 
 ## Cancellation
 
@@ -147,10 +148,11 @@ every token the model produced — nodes land only in the core's second write.
 
 **The interruptible form is not the same operation with a way in**, which is what measuring it
 settled. A streamed generation on the one backend that exists reports a multi-token character's
-final id and drops the ids before it — in no chunk, and on both of its endpoints; `docs/SERVER.md`
-has the sequences. The loss shows in the token counters and the ids are gone, and reading them
-back from the group's bytes is the artefact this format exists to avoid. So a streamed act would
-have to be declined, and a generation that could be stopped would be one that dies on an emoji.
+final id and drops the ids before it — in no chunk, and on both of its endpoints; that adapter's
+notes have the sequences. The loss shows in the token counters and the ids are gone, and reading
+them back from the group's bytes is the artefact this format exists to avoid. So a streamed act
+would have to be declined, and a generation that could be stopped would be one that dies on an
+emoji.
 
 **`cancelled` therefore stays unreached on this backend, and that is a decision rather than a gap.**
 It is specified, nothing produces it, and a `generate` short enough to be worth stopping is short
@@ -210,7 +212,7 @@ where most of this class of nondeterminism comes from in the first place.
 **The cache is the variable that was being held still, and it is worth more than the last decimal
 places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
 against warm differs by up to 0.056 in logprob at the top of a five-row ranking — enough to
-reorder a near-tie. `docs/SERVER.md` has the numbers. Because each state is internally
+reorder a near-tie. That adapter's notes have the numbers. Because each state is internally
 reproducible this is a *second variable* rather than noise, and a ranking recorded with the cache
 on is a function of the model, the path and what was generated before it. That is the thing
 obligation 5 asks a backend not to be. The format would survive either way — ranks are recorded in
@@ -258,40 +260,24 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 
 ## Backends
 
-- **llama.cpp** — measured behaviour lives in `docs/SERVER.md`, which is that adapter's notes and
-  nothing the core cites. Several of the behaviours recorded there produce a record that is
-  quietly wrong rather than an error, so it is read before the adapter is touched, not after
-  something disagrees.
+- **llama.cpp** — `src/tokenloom/adapters/llamacpp/`, exercised against a running server by
+  `tests/test_live.py`. Measured behaviour lives in that directory's `README.md`, which is the
+  adapter's own notes and binds nothing. Several of the behaviours recorded there produce a
+  record that is quietly wrong rather than an error, so it is read before the adapter is touched,
+  not after something disagrees.
 
 ---
 
 ## Status
 
-- **The llama.cpp adapter exists**, in `src/tokenloom/adapters/llamacpp/`. It meets the three
-  operations, and it is exercised against a running server by `tests/test_live.py`, which skips
-  when there is none. Refusal, declination and a generation ending on `eos` have all now been run.
-- **The path predicate is settled, and it is narrower than either candidate.** llama.cpp refuses
-  a prompt whose bytes *end* with an under-filled multi-byte sequence, and accepts one carrying a
-  completed invalid sequence with valid bytes after it — including a stray continuation byte in
-  last position. So the question is about the tail alone and not about whether the path decodes
-  end to end. `docs/SERVER.md` records the seven sequences it was measured on.
-- **`eos` is witnessed.** The earlier note here — that end-of-text did not appear in the top 40 at
-  three document-ending prompts — was a fact about those prompts. After ` The end.` it ranks at
-  −1.364 and is drawn on most seeds.
-- **The special-token path is named.** `tokenize(text, special=True)`, never the default, and
-  `tokenloom create --special` on the command line. Nothing about the store changes between the
-  two readings; only which ids come back.
-- **`docs/SERVER.md` is still unstructured**, and is still expected to be reorganised as this
-  contract's first backend's notes.
-- **The refusal list is still provisional**, and has lengthened once already: meeting the running
-  server added two conditions that no amount of reading the API surface would have suggested.
-- **The shape of a refusal is half-settled.** The adapter returns a reason string alongside the
-  terminator and the core stores none of it; whether that becomes a code as well waits for a
-  client that has to display one.
-- **`cancelled` is unreached, and is no longer an open item.** Streaming was the route to it and
-  streaming loses ids on this backend, so the terminator is specified and nothing produces it — a
-  decision with a reason rather than work outstanding. *Cancellation* has what a client that wants
-  to stop a long generation does instead.
-- **`cache_prompt` is a required per-call parameter**, and the adapter refuses a request that
-  omits it or names a non-bool. *Determinism* says why. On the command line it is
-  `tokenloom generate --cache-prompt`, on that verb alone, since no other calls a model.
+**What is open, and nothing that has found a home above.**
+
+- **Whether a refusal's reason outlives the call.** The adapter returns one and the calling
+  client acts on it, which is all a client has needed so far; *Refusal* says the core takes none
+  of it, so a later reader of the tree sees `refused` and no more. Most of that is recoverable —
+  a refusal decidable from `params` or from the path is derivable from the act itself. What is
+  not is the backend's capacity: a request refused for room, or for a `top_n` above the
+  vocabulary, met a server configuration the tree does not hold, and two servers running one
+  model at different context lengths are one source to this format. If this is picked up, the
+  cheap form is an adapter recording its capacity in `params`, which the core does not read; the
+  fuller one is a nullable reason on the act.

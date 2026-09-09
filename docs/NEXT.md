@@ -12,18 +12,6 @@ that relation to the others is a bullet at the end rather than a number.
 
 ---
 
-## 0. `docs/ADAPTER.md`'s Status, groomed
-
-The section has outlived several of its items. Some ask for work that is now cheap; some hold a
-fact a reader would go looking for in the body of the contract; and at least one had settled
-without being closed — `will_evaluate` has a signature, a stated obligation and a live test, and
-was still listed there as a shape nobody had fixed.
-
-**Stale status is written against.** A claim that a question is open is an invitation to leave it
-open, and it travels: that one reached a docstring in `src/tokenloom/core/ports.py` and sat there
-saying the shape was unsettled long after it was not. Every item this section keeps past its life
-is one the surface and the read layer get built around.
-
 ## 1. `docs/SURFACE.md`, before the surface is built
 
 Design and constraints in prose first. This is the method the project has already been paid by
