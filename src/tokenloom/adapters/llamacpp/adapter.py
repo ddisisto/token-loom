@@ -17,6 +17,7 @@ record that is *quietly wrong* rather than an error:
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 from ...core import Generation, Position, Ranked, Source, Token
@@ -25,15 +26,34 @@ from .vocab import GgufVocabulary
 
 #: What a caller may name. Anything else is refused rather than ignored: obligation 6
 #: forbids substituting a default for a parameter the backend does not understand.
+#:
+#: Sampling parameters keep the field's names; what governs the *record* is `record_`.
 KNOWN = frozenset(
-    {"length", "top_k", "top_n", "temperature", "top_p", "min_p", "cache_prompt", "seed"}
+    {
+        "length",
+        "record_rows",
+        "record_mass",
+        "top_k",
+        "temperature",
+        "top_p",
+        "min_p",
+        "cache_prompt",
+        "seed",
+    }
 )
 
-#: All six are required, so that a recorded `params` row is a complete description of the
-#: draw. The core reads only `length`; the rest is what makes the act reproducible.
-#: `cache_prompt` is one of them: it moves the logprobs. `docs/ADAPTER.md`, *Determinism*.
-#: So is `seed`: this backend samples, and a draw it cannot reproduce is not described.
-REQUIRED = ("length", "top_k", "top_n", "temperature", "cache_prompt", "seed")
+#: Required is what something other than the caller would otherwise decide. Leave `top_k`
+#: or `temperature` unnamed and the server's own sampler chain joins the request; leave
+#: `cache_prompt` unnamed and it picks a cache state, which moves the logprobs; leave
+#: `record_rows` or `record_mass` unnamed and *this adapter* would be deciding what the
+#: store keeps for good.
+#:
+#: `seed` is deliberately **not** here, and that is not an oversight to repair. A seed is
+#: not a policy: there is no value the server imposes and none it substitutes, so a caller
+#: who does not ask for reproducibility has had nothing adjusted. `docs/ADAPTER.md` states
+#: what it costs -- a stochastic act naming no seed cannot be replayed, and nothing in the
+#: record marks it as one that cannot.
+REQUIRED = ("length", "record_rows", "record_mass", "top_k", "temperature", "cache_prompt")
 
 #: Every sampler this adapter does not expose, set to its identity. Without these the
 #: server's own defaults -- `min_p` 0.05, `top_p` 0.95, a repetition window of 64 -- would
@@ -141,7 +161,10 @@ class LlamaCppAdapter:
             )
 
         positions = walk(answer["tokens"], answer["completion_probabilities"], self.vocabulary)
-        return Generation(terminator_for(answer["stop_type"]), tuple(positions))
+        return Generation(
+            terminator_for(answer["stop_type"]),
+            tuple(bound(positions, params["record_mass"])),
+        )
 
     def _request(self, ids: list[int], params: dict) -> dict:
         """Every refusal, in one place. Each is decidable from the request and this
@@ -151,25 +174,34 @@ class LlamaCppAdapter:
             raise Refused(f"parameters this backend does not understand: {sorted(unknown)}")
         missing = [key for key in REQUIRED if key not in params]
         if missing:
-            raise Refused(f"parameters required to describe the draw: {missing}")
+            raise Refused(f"parameters this backend requires: {missing}")
 
-        length, top_k, top_n = params["length"], params["top_k"], params["top_n"]
-        seed = params["seed"]
+        length, top_k = params["length"], params["top_k"]
+        rows, mass = params["record_rows"], params["record_mass"]
         if not isinstance(params["cache_prompt"], bool):
             raise Refused(f"cache_prompt must be a bool, not {params['cache_prompt']!r}")
         if not isinstance(top_k, int) or top_k < 1:
             raise Refused(f"top_k must be a positive integer, not {top_k!r}")
-        if not isinstance(top_n, int) or top_n < top_k:
-            raise Refused(f"top_n >= top_k > 0; asked top_n {top_n!r}, top_k {top_k}")
-        if top_n > len(self.vocabulary):
-            # The server reports the whole vocabulary and calls it top_n; that is a
+        if not isinstance(rows, int) or isinstance(rows, bool) or rows < max(2, top_k):
+            raise Refused(
+                f"record_rows >= top_k > 0 and record_rows >= 2; "
+                f"asked record_rows {rows!r}, top_k {top_k}"
+            )
+        if rows > len(self.vocabulary):
+            # The server reports the whole vocabulary and calls it n_probs; that is a
             # parameter adjusted rather than met.
             raise Refused(
-                f"top_n {top_n} exceeds the vocabulary ({len(self.vocabulary)}); "
+                f"record_rows {rows} exceeds the vocabulary ({len(self.vocabulary)}); "
                 "the server would clamp it silently"
             )
-        if not isinstance(seed, int) or isinstance(seed, bool) or not 0 <= seed <= MAX_SEED:
-            raise Refused(f"seed must be an integer in 0..{MAX_SEED}; {seed!r} cannot be honoured")
+        if isinstance(mass, bool) or not isinstance(mass, int | float) or not 0.0 < mass <= 1.0:
+            raise Refused(f"record_mass must be a probability in (0, 1]; not {mass!r}")
+        if "seed" in params:
+            seed = params["seed"]
+            if not isinstance(seed, int) or isinstance(seed, bool) or not 0 <= seed <= MAX_SEED:
+                raise Refused(
+                    f"seed must be an integer in 0..{MAX_SEED}; {seed!r} cannot be honoured"
+                )
         if not ids:
             # An empty prompt is accepted and generates nothing, so a request for `length`
             # tokens cannot be met.
@@ -186,13 +218,52 @@ class LlamaCppAdapter:
         return {
             **NEUTRAL,
             "n_predict": length,
-            "n_probs": top_n,
+            # The ceiling is what the server is asked for; `record_mass` cuts what comes
+            # back, and the server has no way to express it.
+            "n_probs": rows,
             "top_k": top_k,
             "temperature": params["temperature"],
-            **{k: params[k] for k in ("top_p", "min_p") if k in params},
-            "seed": seed,
+            **{k: params[k] for k in ("top_p", "min_p", "seed") if k in params},
             "cache_prompt": params["cache_prompt"],
         }
+
+
+# ---- the recording bounds ------------------------------------------------------------
+
+
+def reaches(ranking: tuple[Ranked, ...], mass: float) -> int:
+    """How many rows it takes for the probabilities to reach `mass`.
+
+    The whole ranking when they never do -- which `mass` of 1.0 always is, since the
+    reported values sum to less than one by the mass of the vocabulary not reported.
+    """
+    running = 0.0
+    for k, row in enumerate(ranking, start=1):
+        running += math.exp(row.logprob)
+        if running >= mass:
+            return k
+    return len(ranking)
+
+
+def bound(positions: list[Position], mass: float) -> list[Position]:
+    """Cut each position's ranking to `record_mass`, two rows, and the token drawn --
+    whichever of the three reaches furthest.
+
+    The `record_rows` ceiling is already applied: it is what `n_probs` asked the server
+    for. A position the backend declined to rank is passed through untouched.
+    """
+    out: list[Position] = []
+    for position in positions:
+        if position.ranking is None:
+            out.append(position)
+            continue
+        keep = max(reaches(position.ranking, mass), 2)
+        for index, row in enumerate(position.ranking):
+            if row.token_id == position.token_id:
+                keep = max(keep, index + 1)
+                break
+        out.append(Position(position.token_id, tuple(position.ranking[:keep])))
+    return out
 
 
 # ---- the repairs -------------------------------------------------------------------

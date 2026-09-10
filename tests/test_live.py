@@ -24,7 +24,17 @@ SERVER = os.environ.get("TOKENLOOM_SERVER", "http://localhost:8081")
 pytestmark = pytest.mark.live
 
 #: A complete draw. A case below that varies one key is testing that key.
-DRAW = {"top_k": 5, "top_n": 5, "temperature": 1.0, "cache_prompt": False, "seed": 1}
+#:
+#: `record_mass` 1.0 is never reached -- the reported values sum to less than one -- so it
+#: means every row `record_rows` allows, which is what the assertions below are counting.
+DRAW = {
+    "top_k": 5,
+    "record_rows": 5,
+    "record_mass": 1.0,
+    "temperature": 1.0,
+    "cache_prompt": False,
+    "seed": 1,
+}
 
 
 @pytest.fixture(scope="session")
@@ -110,8 +120,8 @@ def test_the_appendix_logprobs_are_what_this_backend_returns(adapter):
         pytest.skip("the appendix's ids are Qwen2.5's")
     answer = adapter.generate(
         [785, 12884],
-        {"length": 1, "top_k": 20, "top_n": 20, "temperature": 0.9,
-         "cache_prompt": False, "seed": 99},
+        {"length": 1, "top_k": 20, "record_rows": 20, "record_mass": 1.0,
+         "temperature": 0.9, "cache_prompt": False, "seed": 99},
     )
     assert answer.terminator == "limit"
     got = [(r.token_id, round(r.logprob, 4)) for r in answer.positions[0].ranking]
@@ -123,18 +133,68 @@ def test_the_appendix_logprobs_are_what_this_backend_returns(adapter):
     ]
 
 
-def test_top_n_at_least_top_k_keeps_the_drawn_token_in_its_own_ranking(adapter):
+def test_record_rows_at_least_top_k_keeps_the_drawn_token_in_its_own_ranking(adapter):
     """The drawn token is unmarked in the response and is found by id, never by rank. With
-    `top_k == top_n` it is always there, which is what makes a node's logprob derivable."""
+    `top_k == record_rows` it is always there, which is what makes a node's logprob
+    derivable."""
     for seed in range(12):
         answer = adapter.generate(
             [785, 12884],
-            {"length": 3, "top_k": 8, "top_n": 8, "temperature": 1.3,
-             "cache_prompt": False, "seed": seed},
+            {"length": 3, "top_k": 8, "record_rows": 8, "record_mass": 1.0,
+             "temperature": 1.3, "cache_prompt": False, "seed": seed},
         )
         for position in answer.positions:
             assert position.ranking is not None
             assert position.token_id in [r.token_id for r in position.ranking]
+
+
+# ---- the recording bounds -----------------------------------------------------------
+
+
+def test_record_mass_cuts_the_ranking_and_1_0_does_not(adapter):
+    """The same position twice, bounded by mass and not. The bound is what makes a wide
+    `record_rows` affordable, so the assertion is that it *is* narrower -- not that it
+    lands on any particular count, which is a property of the model and the path."""
+    ask = {"length": 1, "top_k": 1, "record_rows": 80, "temperature": 0.0,
+           "cache_prompt": False}
+    everything = adapter.generate([785, 12884], {**ask, "record_mass": 1.0})
+    bounded = adapter.generate([785, 12884], {**ask, "record_mass": 0.5})
+    assert everything.terminator == bounded.terminator == "limit"
+    assert len(everything.positions[0].ranking) == 80
+    assert len(bounded.positions[0].ranking) < 80
+    # A prefix, and the same values: the bound cuts, it never reorders or rescales.
+    assert bounded.positions[0].ranking == everything.positions[0].ranking[
+        : len(bounded.positions[0].ranking)
+    ]
+
+
+def test_a_stochastic_draw_past_the_mass_bound_is_still_covered(adapter):
+    """A sampler reaching past `record_mass` would otherwise leave a node with no
+    derivable logprob. The drawn token extends the recorded set, so it never does."""
+    for seed in range(12):
+        answer = adapter.generate(
+            [785, 12884],
+            {"length": 4, "top_k": 40, "record_rows": 40, "record_mass": 0.1,
+             "temperature": 2.0, "cache_prompt": False, "seed": seed},
+        )
+        assert answer.terminator == "limit"
+        for position in answer.positions:
+            assert position.ranking is not None
+            assert position.token_id in [r.token_id for r in position.ranking]
+
+
+def test_every_position_offers_at_least_one_alternative_to_branch_into(adapter):
+    """The floor of two rows. At a position the model is sure of, a mass bound would
+    otherwise record the one token taken and nothing to take instead."""
+    answer = adapter.generate(
+        [785, 12884],
+        {"length": 8, "top_k": 1, "record_rows": 40, "record_mass": 0.01,
+         "temperature": 0.0, "cache_prompt": False},
+    )
+    assert answer.terminator == "limit"
+    for position in answer.positions:
+        assert position.ranking is not None
+        assert len(position.ranking) >= 2
 
 
 # ---- refusal ------------------------------------------------------------------------
@@ -158,15 +218,20 @@ def test_a_path_that_ends_mid_character_is_refused_and_the_predicate_agrees(adap
 @pytest.mark.parametrize(
     ("params", "why"),
     [
-        ({**DRAW, "length": 2, "top_n": 3}, "top_n >= top_k"),
+        ({**DRAW, "length": 2, "record_rows": 3}, "record_rows >= top_k"),
+        ({**DRAW, "length": 2, "top_k": 1, "record_rows": 1}, "record_rows >= 2"),
         ({**DRAW, "length": 2, "top_k": 0}, "positive integer"),
-        ({**DRAW, "length": 2, "top_n": 10**9}, "exceeds the vocabulary"),
-        ({"length": 2, "top_k": 5, "top_n": 5, "cache_prompt": False, "seed": 1},
-         "['temperature']"),
-        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0, "seed": 1},
-         "['cache_prompt']"),
-        ({"length": 2, "top_k": 5, "top_n": 5, "temperature": 1.0, "cache_prompt": False},
-         "['seed']"),
+        ({**DRAW, "length": 2, "record_rows": 10**9}, "exceeds the vocabulary"),
+        ({**DRAW, "length": 2, "record_mass": 0.0}, "record_mass must be a probability"),
+        ({**DRAW, "length": 2, "record_mass": 1.5}, "record_mass must be a probability"),
+        ({"length": 2, "top_k": 5, "record_rows": 5, "record_mass": 1.0,
+          "cache_prompt": False}, "['temperature']"),
+        ({"length": 2, "top_k": 5, "record_rows": 5, "record_mass": 1.0,
+          "temperature": 1.0}, "['cache_prompt']"),
+        ({"length": 2, "top_k": 5, "record_mass": 1.0, "temperature": 1.0,
+          "cache_prompt": False}, "['record_rows']"),
+        ({"length": 2, "top_k": 5, "record_rows": 5, "temperature": 1.0,
+          "cache_prompt": False}, "['record_mass']"),
         ({**DRAW, "length": 2, "seed": 2**32}, "seed must be an integer"),
         ({**DRAW, "length": 2, "cache_prompt": "yes"}, "cache_prompt must be a bool"),
         ({**DRAW, "length": 2, "mirostat": 2}, "understand"),
@@ -188,6 +253,26 @@ def test_an_empty_prompt_is_refused_rather_than_generating_nothing(adapter):
     assert answer.terminator == "refused"
 
 
+def test_a_request_naming_no_seed_is_met(adapter):
+    """A seed is not required. What it costs is that a stochastic draw made without one
+    cannot be replayed -- the server picks and does not report it -- so the assertion here
+    is that the request is *met*, and nothing about what comes back twice."""
+    unseeded = {k: v for k, v in DRAW.items() if k != "seed"}
+    answer = adapter.generate([785, 12884], {**unseeded, "length": 2})
+    assert answer.terminator == "limit"
+
+
+def test_a_greedy_draw_repeats_without_a_seed(adapter):
+    """Greedy needs no seed to be reproducible, which is why omitting one costs nothing on
+    the path that omits it."""
+    ask = {"length": 6, "top_k": 1, "record_rows": 20, "record_mass": 1.0,
+           "temperature": 0.0, "cache_prompt": False}
+    once = adapter.generate([785, 12884], ask)
+    twice = adapter.generate([785, 12884], ask)
+    assert once.terminator == twice.terminator == "limit"
+    assert [p.token_id for p in once.positions] == [p.token_id for p in twice.positions]
+
+
 # ---- through the store --------------------------------------------------------------
 
 
@@ -196,7 +281,8 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
     continue from it, author fragments below, refuse at one of them, delete, and check."""
     with Store.initialise(tmp_path / "live", vocabulary=adapter.name) as store:
         user = Source("user", "")
-        draw = {"top_k": 10, "top_n": 10, "temperature": 0.9, "cache_prompt": False}
+        draw = {"top_k": 10, "record_rows": 10, "record_mass": 1.0,
+                "temperature": 0.9, "cache_prompt": False}
 
         store.create(None, "The sky", vocabulary=adapter, actor=user)
         tip = R.roots(store.conn)[0].id + 1

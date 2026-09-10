@@ -12,50 +12,7 @@ that relation to the others is a bullet at the end rather than a number.
 
 ---
 
-## 1. The generate defaults, in `docs/ADAPTER.md` and in the adapter
-
-**Greedy, and a ranking bounded by probability mass under the `top_n` ceiling.** Other sampling
-methods stay available and the surface may offer them; `docs/CORE.md` stays silent on all of it,
-which it already is. What changes is the adapter's declaration of what a complete request looks
-like, and *The obligations* already provides for exactly that.
-
-- **Greedy is the starting default.** It is the simplest draw available and the only one that
-  assigns no free parameter, which is the whole of the argument for it: a default has to be
-  defensible without a number nobody has chosen yet. It is not a claim about what this instrument
-  needs. Other decoding methods stay available, and exploring the existing ones — or researching
-  ones that do not exist — is somewhere this may later be turned.
-- **One consequence worth having.** Under greedy, *deepen this ranking* is cheap: a `generate` of
-  `length` 1 at a wider bound draws the argmax, which ordinarily already exists, so it merges and
-  costs one act. A stochastic default litters the tree with children nobody asked for.
-- **Greedy base text degenerates, and nothing here treats that as a defect.** Repetition and
-  looping are among the behaviours a model may exhibit, all of which are to be available to look
-  at. The default must not be chosen so as to sample them away, and navigating out of one is the
-  reader's to do.
-- **`top_n` remains the upper limit** on rows requested and recorded. A mass threshold cuts
-  further, with a floor of 2 so that every position offers at least one branchable edge. Nothing
-  is unmet when the mass is not reached within the ceiling: the ceiling is simply what bound the
-  set, which is a recorded outcome and not a refusal.
-- **Naming is the work, and it is not `top_p`.** `top_p` is a sampler that shapes the draw; this
-  shapes what is recorded and touches the draw not at all. Both may appear in one `params` dict,
-  the server implements one of them, and two things named alike is how a parameter reaches the
-  wrong place. The name has to separate them where a reader will meet them together.
-
-**What makes this a decision rather than a guess, and what it does not cost.** The reported
-distribution is the full softmax, pre-temperature and pre-truncation — forty rows bit-identical
-across `temperature ∈ {0.5, 1.0, 1.5, 2.0}`, with `top_k` and `top_p` changing nothing, measured
-in the adapter's notes. So mass is exactly computable from what comes back; the sampler default
-changes only *which edge was taken* and never what a position's rows are worth; and trees built
-under either default stay directly comparable. Reversing this later costs existing trees nothing.
-
-**One consequence for a reader.** A ranking extends across acts, so a node's stored rows are a
-union and its row count is not any one request's bound. Which bound applied is readable per act —
-exactly `top_n` rows is the ceiling, fewer is the mass — and not per node.
-
-**Why it comes first.** `docs/SURFACE.md`'s Status says its **Rankings** section describes how
-alternatives are presented but not how many there are to present. This is the sentence that closes
-it, and the item below cannot be finished while it stands.
-
-## 2. `docs/SURFACE.md`, revised — and `docs/surface-notes.md` dies
+## 1. `docs/SURFACE.md`, revised — and `docs/surface-notes.md` dies
 
 The draft predates the last two core changes and has now had one review. What that review
 settled, and what the revision has to carry:
@@ -65,7 +22,9 @@ settled, and what the revision has to carry:
   inconsistency shown directly rather than designed around. The argument the draft gives for the
   blanket rule is also wrong: values sum to less than one because the rest of the vocabulary is
   unrecorded, not because anything was truncated, so proportion-of-recorded-mass is honest and the
-  shortfall is a nameable quantity.
+  shortfall is a nameable quantity. What the surface may *not* read off that quantity is a
+  request: a ranking extends across acts, so a node's stored rows are a union and its recorded
+  mass is a property of what has accumulated there rather than of any one `record_mass`.
 - **The continuation rule is a family, not a rule.** Longest, first, last, most-recently-used,
   cumulative open time — comparable only by use, so this belongs in *What is not decided here*
   with `longest` named as the first implementation rather than as the design. Ties bite only for
@@ -96,10 +55,10 @@ settled, and what the revision has to carry:
   decided here** the centre of it rather than an apology at the end, and leaves Status holding only
   what has no home yet, which is what `CLAUDE.md` now asks of one.
 
-`docs/surface-notes.md` holds the sampling argument and item 1 settles it, so the file goes in the
-same edit. `CLAUDE.md`'s description of it goes with it.
+`docs/surface-notes.md`'s sampling argument is settled and the revision above is its last
+reader, so the file goes in the same edit. `CLAUDE.md`'s description of it goes with it.
 
-## 3. The descent, and the reads that sit on it
+## 2. The descent, and the reads that sit on it
 
 Point reads are cheap and bulk reads are not. `scripts/scale.py` is what measured this and what
 re-measures it; at 20k nodes, 400k edges and depth 1401:
@@ -115,16 +74,17 @@ re-measures it; at 20k nodes, 400k edges and depth 1401:
 children. `docs/CORE.md` already says what the fix is and only the single-node form was built:
 *a descent from the root carries the answer down and costs nothing.*
 
-**The primitive does not wait for 1 or 2.** A descent carrying liveness down is a property of the
-store and does not care what is asked of it, so it is specifiable now and is a finished piece of
-work when it lands. What waits is which composite reads sit on it.
+**The primitive does not wait for the revision above.** A descent carrying liveness down is a
+property of the store and does not care what is asked of it, so it is specifiable now and is a
+finished piece of work when it lands. What waits is which composite reads sit on it.
 
 **That set does not close, and aiming at closing it is the mistake to avoid.** The path read has
-to take the continuation rule as a parameter rather than embedding one, because item 2 puts that
-rule in *What is not decided here* and the comparison is made by using the surface. Build the
-reads `docs/SURFACE.md` names once it is revised, expect churn, and keep the primitive clean of it.
+to take the continuation rule as a parameter rather than embedding one, because the revision
+above puts that rule in *What is not decided here* and the comparison is made by using the
+surface. Build the reads `docs/SURFACE.md` names once it is revised, expect churn, and keep the
+primitive clean of it.
 
-## 4. The API
+## 3. The API
 
 **Before the surface, and after the descent.** An API written against N+1 reads gets shaped around
 them, and the shape outlives the fix.
@@ -132,10 +92,10 @@ them, and the shape outlives the fix.
 It opens the tree for writing once and verifies once, for the life of the process, which the claim
 is what makes sound. `Store.open` already takes the flag; what this item settles is who passes it.
 
-## 5. The surface
+## 4. The surface
 
-**Build the continuation rule swappable.** The family in item 2 is compared by use, and a first
-build that hard-codes `longest` answers the question by making it expensive to ask.
+**Build the continuation rule swappable.** The family named two items above is compared by use,
+and a first build that hard-codes `longest` answers the question by making it expensive to ask.
 
 ---
 

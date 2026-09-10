@@ -117,18 +117,24 @@ def cmd_generate(args) -> int:
 
     params = {
         "length": args.length,
+        "record_rows": args.record_rows,
+        "record_mass": args.record_mass,
         "top_k": args.top_k,
-        "top_n": args.top_n,
         "temperature": args.temperature,
         "cache_prompt": args.cache_prompt,
-        # This backend samples, so it requires a seed and refuses without one. Drawing it
-        # here is what makes the recorded parameters a complete description of the draw.
-        "seed": args.seed if args.seed is not None else secrets.randbelow(MAX_SEED + 1),
     }
+    if args.seed is not None:
+        params["seed"] = args.seed
+    elif args.temperature > 0:
+        # A stochastic draw nobody seeded cannot be replayed and the server does not
+        # report the one it picks. A greedy draw needs none, and leaving it out is what
+        # lets two identical requests intern to one `params` row.
+        params["seed"] = secrets.randbelow(MAX_SEED + 1)
     with Store.open(args.tree, write=True) as store:
         adapter = adapter_for(args)
         act, answer = store.generate(args.at, params, adapter=adapter, actor=actor(args))
-        print(f"act {act}  generate  {answer.terminator}  seed {params['seed']}")
+        seeded = "" if "seed" not in params else f"  seed {params['seed']}"
+        print(f"act {act}  generate  {answer.terminator}{seeded}")
         if answer.reason:
             print(f"  reason: {answer.reason}")
         for node in R.act_tokens(store.conn, act):
@@ -347,11 +353,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--at", type=int, required=True)
     p.add_argument("--length", type=int, default=16)
     p.add_argument("--top-k", type=int, default=20, dest="top_k")
-    p.add_argument("--top-n", type=int, default=20, dest="top_n",
-                   help="how many alternatives to record. top_n >= top_k keeps the drawn "
-                        "token inside its own ranking.")
-    p.add_argument("--temperature", type=float, default=1.0)
-    p.add_argument("--seed", type=int, help="omit and one is drawn for you")
+    p.add_argument("--record-rows", type=int, default=80, dest="record_rows",
+                   help="at most this many alternatives recorded per position. Must be at "
+                        "least top_k, so the drawn token is inside its own ranking.")
+    p.add_argument("--record-mass", type=float, default=0.9, dest="record_mass",
+                   help="stop recording alternatives once their probabilities reach this. "
+                        "1.0 records every row --record-rows allows.")
+    p.add_argument("--temperature", type=float, default=0.0,
+                   help="0 draws the most probable token at every position")
+    p.add_argument("--seed", type=int,
+                   help="omit and a stochastic draw gets one drawn for it; a greedy draw "
+                        "records none")
     p.add_argument("--cache-prompt", action="store_true", dest="cache_prompt",
                    help="let the server reuse its KV cache. Faster on a long path, and it "
                         "moves the logprobs recorded.")

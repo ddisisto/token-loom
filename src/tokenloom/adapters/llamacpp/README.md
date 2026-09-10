@@ -18,7 +18,7 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
 ## Measured, and not obvious
 
 - **`n_probs` below 1 returns no per-token record at all**, not merely no alternatives — so
-  there is no per-position logprob without it either. `top_n >= 1` is a hard requirement.
+  there is no per-position logprob without it either. `record_rows >= 1` is a hard requirement.
 - **Rank 0 is not always the sampled token**, and nothing in the response marks which one was
   taken. With `top_k` off it is absent from its own top-3 about a ninth of the time, and at
   the default `top_k: 40` about a thirtieth. Confining sampling to the top `k` and recording
@@ -191,6 +191,47 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
 
   Cost of a boundary, warm: `prompt_n` 1 and `prompt_ms` 26, against 190 ms to draw the
   chunk's eight tokens. Cold, the whole path is re-evaluated at each boundary.
+- **`n_probs` moves the values it shares with a smaller request, reproducibly and by very
+  little.** Prompt `The capital of France is`, greedy, cache off, requests back to back.
+  Repeating one request is bit-identical — a floor of exactly zero — and against that floor,
+  10 rows and 40 rows disagree by **1.383e-05** at rank 9, the same figure on every trial. 10
+  against 200 gives the same 1.383e-05; **40 against 200 is bit-identical.** So it is neither
+  noise nor a gradient: it is a step somewhere between 10 and 40 that then saturates.
+
+  This is a fourth variable of the same kind as the cache and the chunk boundary and about
+  four thousand times smaller — it cannot reorder anything that is not already an exact tie.
+  The format absorbs it the way it absorbs the others: a ranking extends, the first value
+  written is the one kept, so a node first ranked by a narrow act keeps that act's values for
+  the rows a later wide one shares. **`scripts/mass.py` is the reason this was found** — it
+  asks for a wide ranking and applies the bounds locally, which is only sound because the
+  wide values agree with the narrow ones to this order.
 - **`/slots/0?action=erase` answers HTTP 501 on this build**, so the cache cannot be cleared
   between requests from the client. Measurements that need a cache state control it by what
   they send, not by resetting the server.
+- **`temperature: 0` is argmax, and nothing else about the response changes.** The path is
+  identical across seeds (1 and 99) and across `top_k` (1 and 40), and every drawn token was
+  the rank-0 row of its own position — greedy needs no seed to repeat. More to the point,
+  **the rows reported at temperature 0 are bit-identical to those at 1.0**: same ids, same
+  order, same logprobs, same sum. Greedy is a separate sampler in llama.cpp and the
+  temperature sweep above only covered {0.5, 1.0, 1.5, 2.0}, so this had to be measured
+  rather than assumed — a ranking bounded by probability mass has nothing to bound if
+  temperature 0 reports a degenerate one.
+- **How much of the distribution a position holds varies by two orders of magnitude, and it
+  varies with what is being read.** `scripts/mass.py` measures it; 160 greedy positions over
+  five unalike prompts, rows needed to reach 0.9 of the mass:
+
+  | prompt | p50 | p90 |
+  | --- | --- | --- |
+  | `Q: What is 17 times 23?` | 1 | 3 |
+  | `def fibonacci(n):` … | 1 | 4 |
+  | `The capital of France is` | 5 | 36 |
+  | `Once upon a time,` … | 4 | 65 |
+  | `The sky above the port was…` | 78 | 200+ |
+
+  Overall p50 is 3 and p90 is 101. **Most positions are sharp and a minority are very flat**,
+  and the flat ones are where branching is worth anything — so a flat row budget both
+  over-records the sharp positions and truncates the interesting ones. A mass bound is what
+  makes a wide ceiling affordable: at `record_mass` 0.9, a `record_rows` of 80 stores 0.86×
+  what a flat 20 stores, keeps 3 rows at the median position, and leaves only 12% of
+  positions cut short by the ceiling. Measured on this model; the script exists to re-measure
+  it for another.

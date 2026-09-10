@@ -1,15 +1,26 @@
-"""The llama.cpp adapter's two repairs, against measured data.
+"""The llama.cpp adapter's repairs and its recording bounds, without a server.
 
-Neither of these is guessable from the API surface, and both produce a record that is
-quietly wrong rather than an error. The values here were taken off the running server
-rather than constructed, so what is being tested is the repair and not a model of it.
+The repairs are not guessable from the API surface and each produces a record that is
+quietly wrong rather than an error; their values were taken off the running server rather
+than constructed, so what is being tested is the repair and not a model of it. The bounds
+are arithmetic over what comes back, which is the kind of derived value nothing disagrees
+with -- so they are reached here on purpose.
 """
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
-from tokenloom.adapters.llamacpp.adapter import ends_mid_character, terminator_for, walk
+from tokenloom.adapters.llamacpp.adapter import (
+    bound,
+    ends_mid_character,
+    reaches,
+    terminator_for,
+    walk,
+)
+from tokenloom.core import Position, Ranked
 
 #: Real bytes off `tokenizer.ggml.tokens`, for the ids the measured response below carries.
 SPELL: dict[int, bytes] = {
@@ -146,3 +157,67 @@ def test_an_unexpected_stop_type_is_a_fault_and_not_a_terminator(stop_type):
     boundary loses bytes the model emitted and the loss is undecidable from the response."""
     with pytest.raises(AssertionError):
         terminator_for(stop_type)
+
+
+# ---- the recording bounds ------------------------------------------------------------
+
+#: Halving probabilities, so a prefix's mass is exact in binary and the assertions below
+#: can be arithmetic rather than eyeballed. They sum to 0.96875, never to one -- which is
+#: what a real ranking does too, by the mass of the vocabulary it does not report.
+PROBS = (0.5, 0.25, 0.125, 0.0625, 0.03125)
+RANKING = tuple(Ranked(100 + i, math.log(p)) for i, p in enumerate(PROBS))
+
+
+@pytest.mark.parametrize("mass", [0.1, 0.49, 0.6, 0.9, 0.96])
+def test_reaches_is_the_shortest_prefix_that_gets_there(mass):
+    """Stated as the definition rather than as a count: the prefix reaches the mass and
+    dropping its last row does not."""
+    k = reaches(RANKING, mass)
+    assert sum(PROBS[:k]) >= mass
+    assert k == 1 or sum(PROBS[: k - 1]) < mass
+
+
+def test_reaches_is_the_whole_ranking_when_the_mass_is_never_there():
+    assert reaches(RANKING, 1.0) == len(RANKING)
+
+
+def test_bound_keeps_a_prefix_and_never_reorders_or_rescales():
+    [kept] = bound([Position(RANKING[0].token_id, RANKING)], 0.9)
+    assert kept.ranking == RANKING[: len(kept.ranking)]
+    assert len(kept.ranking) == reaches(RANKING, 0.9)
+
+
+def test_bound_at_mass_one_keeps_every_row():
+    [kept] = bound([Position(RANKING[0].token_id, RANKING)], 1.0)
+    assert kept.ranking == RANKING
+
+
+def test_bound_floors_at_two_rows():
+    """One row holds the mass here, and one row offers nothing to branch into."""
+    assert reaches(RANKING, 0.01) == 1
+    [kept] = bound([Position(RANKING[0].token_id, RANKING)], 0.01)
+    assert len(kept.ranking) == 2
+
+
+def test_bound_extends_to_the_token_drawn():
+    """A sampler reaching past the mass bound would otherwise leave the node with no
+    covering ranked edge, and so no derivable logprob."""
+    assert reaches(RANKING, 0.01) == 1
+    drawn = RANKING[3]
+    [kept] = bound([Position(drawn.token_id, RANKING)], 0.01)
+    assert kept.ranking[-1] == drawn
+    assert drawn.token_id in [row.token_id for row in kept.ranking]
+
+
+def test_bound_does_not_invent_a_row_for_a_token_that_was_never_ranked():
+    """The extension finds the drawn token or does nothing. It never appends one."""
+    [kept] = bound([Position(9999, RANKING)], 0.01)
+    assert len(kept.ranking) == 2
+    assert 9999 not in [row.token_id for row in kept.ranking]
+
+
+def test_bound_passes_a_declination_through():
+    """`None` is a position the backend could give no distribution for, and it is not an
+    empty ranking. Nothing here fills it."""
+    declined = Position(RANKING[0].token_id, None)
+    assert bound([declined], 0.9) == [declined]

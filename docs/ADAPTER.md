@@ -27,7 +27,7 @@ no facility for it and no way to tell that it was needed.
 | --- | --- |
 | `tokenize(bytes, special)` | the ids that spell those bytes, in order, each with its own bytes |
 | `bytes_for(id)` | what that id spells, exactly, for every id the adapter can emit |
-| `generate(ids, params)` | per position: the id drawn, and the `top_n` ranked ids with their logprobs — and a terminator, which may be a refusal |
+| `generate(ids, params)` | per position: the id drawn, and the ranked ids with their logprobs, as many as the recording bounds call for — and a terminator, which may be a refusal |
 | `will_evaluate(ids)` | whether the backend would accept that path at all — a question, answered without calling the model and without writing anything |
 
 ## The obligations
@@ -52,21 +52,51 @@ they exist to satisfy them.
    rankings on the act rather than the node, which is to say it could not merge at all.
 6. **A request is met or refused, never adjusted.** See *Refusal*.
 
-Three obligations follow from these but are stated separately, because they are the ones a
-backend is most likely to fail quietly.
+What follows is stated separately because it is what a backend is most likely to fail quietly —
+each of these is met or missed without anything erroring.
 
-**`top_n >= top_k > 0`.** `top_k` confines the draw to raw ranks `0…k−1`; `top_n` is how many
-ranked ids are reported. A drawn token is therefore always among the alternatives reported for
-its position, which is what makes a node's logprob derivable in the ordinary case. The core does
-not require it — *Rankings* provides for a node with no covering ranked edge and states that
-nothing records why one is missing — so this is an obligation here and not an invariant there.
-An adapter that cannot report at least `top_k` refuses.
+**Sampling and recording are named apart.** A parameter that shapes the draw keeps the name the
+field gave it — `temperature`, `top_k`, `top_p`, `min_p`, `seed`. A parameter that governs what is
+*recorded* is prefixed `record_`. Both kinds arrive in one `params` dict and a reader meets them
+together in the row it interns to, so the distinction has to be legible in the key rather than
+recoverable from knowing which is which: `top_p` and `record_mass` are both thresholds on
+cumulative probability, and they do entirely different things.
 
-**A parameter the backend needs to describe its own draw is one it requires.** The core reads
-`length` and passes the rest through, so what a complete request looks like is the adapter's to
-declare and to refuse without. A backend that samples stochastically requires whatever makes the
-draw reproducible — a seed, on the ones that exist — and refuses a request that omits it rather
-than choosing on the caller's behalf.
+**`record_rows >= top_k > 0`, and `record_rows >= 2`.** `top_k` confines the draw to raw ranks
+`0…k−1`; `record_rows` is the most ranked ids that will be reported for a position. A drawn token
+is therefore always among the alternatives reported for its position, which is what makes a node's
+logprob derivable in the ordinary case. The core does not require it — *Rankings* provides for a
+node with no covering ranked edge and states that nothing records why one is missing — so this is
+an obligation here and not an invariant there. An adapter that cannot report at least `top_k`
+refuses.
+
+**`record_mass` bounds the same set by probability, and the two bounds compose.** What is reported
+for a position is the shortest prefix of the ranking whose probabilities reach `record_mass`,
+extended to two rows and to include the token actually drawn, and cut at `record_rows`. Three
+lower bounds and one upper: two rows so that every position offers at least one alternative to
+branch into, and the drawn token so that a stochastic draw landing past the mass bound cannot
+leave a node with no derivable logprob — which `record_rows >= top_k` is what makes reachable.
+**Failing to reach `record_mass` is not a failure.** Where the ceiling binds first, the recorded
+set is what the ceiling allowed; that is an outcome and never a refusal, and no request is unmet
+by it.
+
+**An adapter requires every parameter that something other than the caller would otherwise
+decide.** The core reads `length` and passes the rest through, so what a complete request looks
+like is the adapter's to declare and to refuse without. Three things do the deciding when a
+request is silent, and all three count: the backend's sampler chain, which joins any request that
+does not name it; the backend's handling of its own cache, which moves the values recorded; and
+the adapter's recording bounds, which fix what the store keeps for good. An adapter that supplies
+its own default for one of these has adjusted the request as surely as the backend would have —
+one level further up, where the record cannot see it either.
+
+**A seed is the exception, and it is an exception rather than a case of the rule.** There is no
+value for a backend to impose and none to substitute: one that picks a seed is not applying a
+policy, it is declining to have one, and a caller who did not ask for reproducibility has had
+nothing taken from them. What that costs is worth naming rather than leaving to inference — a
+backend that picks a seed does not report it, so a stochastic act whose `params` name none cannot
+be replayed, and nothing in the record marks it as one that cannot. The record stays honest: no
+seed was asked for, and that is what it says. But replay is a property such an act does not have.
+A caller that wants it names a seed, and a backend that cannot honour the one it names refuses.
 
 **Room is checked before starting.** The prompt and the requested length together must fit. This
 is why running out of context is not a way for a generation to end, and why the core's `limit`
@@ -91,8 +121,9 @@ the default. Nothing about the store changes between the two — only which ids 
 calling the model, and it is recorded: the act stands with terminator `refused`, no tip, and the
 parameters it was asked for.
 
-Refuse when the prompt and requested length exceed the room available; when `top_n` exceeds what
-the backend will report; when a parameter the backend requires is missing or cannot be honoured;
+Refuse when the prompt and requested length exceed the room available; when `record_rows` exceeds
+what the backend will report; when a parameter the backend requires is missing or cannot be
+honoured;
 when the backend will not evaluate the path it was given; when a parameter is named that the
 backend does not understand; and whenever any parameter would otherwise have to be clamped,
 substituted or ignored.
@@ -109,9 +140,11 @@ will not answer for a prompt whose bytes end mid-character, however the prompt i
 predicate is the backend's and belongs here; `create` and `realise` reach those nodes regardless,
 since neither calls a model.
 
-Never truncate a prompt to fit. Never reduce `top_n` and report fewer. Never clamp a temperature
-into a supported range, and never substitute a default for a parameter the backend does not
-understand.
+Never truncate a prompt to fit. Never meet a smaller `record_rows` than the one asked for and
+report the difference as though the distribution ran out — a set cut short by `record_mass` is the
+parameters doing what they say, and one cut short by the backend is a request adjusted. Never
+clamp a temperature into a supported range, and never substitute a default for a parameter the
+backend does not understand.
 
 **Refuse in one place.** Every condition above is decidable from the request and the adapter's own
 configuration, which is to say it is equally decidable before the model call and after the act is
@@ -202,12 +235,16 @@ a fact about that backend worth knowing, and a large one is evidence of somethin
 forbids — a ranking that is not actually a function of the path. What counts as large is a
 property of the backend, belongs in its notes, and is expected to move as it is measured.
 
-**Measured on llama.cpp over Vulkan, single slot: no disagreement at all, at a fixed cache state.**
-Two requests differing in seed and in `top_n` returned bit-identical logprobs for every rank they
-shared, and repeating a request reproduced both the path and its values exactly. That is one
-backend on one machine with `--parallel 1`, so it is not a general result — but note that a tree
-has one writer at a time, so an adapter never sees its own requests batched together, which is
-where most of this class of nondeterminism comes from in the first place.
+**Measured on llama.cpp over Vulkan, single slot: repeating a request is bit-identical, and
+changing how many rows it asks for is not quite.** Repeating one reproduced both the path and its
+values exactly — a floor of zero — while a request for ten rows and one for forty disagreed by
+1.3e-05 on the ranks they shared, reproducibly, and forty against two hundred agreed exactly. That
+is a step rather than noise, four thousand times below the two variables below it, and too small
+to reorder anything but an exact tie. It is recorded because a floor of zero is what makes it
+visible at all, and because *the number of rows asked for* is the one thing here a client changes
+casually. That is one backend on one machine with `--parallel 1`, so it is not a general result —
+but note that a tree has one writer at a time, so an adapter never sees its own requests batched
+together, which is where most of this class of nondeterminism comes from in the first place.
 
 **The cache is the variable that was being held still, and it is worth more than the last decimal
 places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
@@ -243,10 +280,10 @@ can see where a call started and how far it ran — which is more than the cache
 nothing in the store says which state a row was measured in. That asymmetry is what settles the
 next paragraph.
 
-**`cache_prompt` is a per-call parameter, required, and defaults off.** It changes the draw, so by
-the same rule that makes `top_k` and `temperature` required — a recorded `params` row is a complete
-description of the draw — a row that omits it is not complete, and a default applied silently is
-the failure the neutralised-sampler list exists to prevent. It is a parameter and not adapter
+**`cache_prompt` is a per-call parameter, and required.** It changes the draw, and a backend
+handed a request that does not name it applies its own — which is precisely the policy the rule
+above requires a parameter against, and the failure the neutralised-sampler list exists to
+prevent. It is a parameter and not adapter
 configuration because callers differ within one process: the command line asks for correctness and
 sends `false`, a reading surface issuing chunked continuations asks for tractable latency and sends
 `true`, and one adapter serves both. The core reads only `length` and interns the rest, so this
@@ -276,7 +313,7 @@ one always could; a reader who wants to *select* on it now can, in the common ca
   client acts on it, which is all a client has needed so far; *Refusal* says the core takes none
   of it, so a later reader of the tree sees `refused` and no more. Most of that is recoverable —
   a refusal decidable from `params` or from the path is derivable from the act itself. What is
-  not is the backend's capacity: a request refused for room, or for a `top_n` above the
+  not is the backend's capacity: a request refused for room, or for a `record_rows` above the
   vocabulary, met a server configuration the tree does not hold, and two servers running one
   model at different context lengths are one source to this format. If this is picked up, the
   cheap form is an adapter recording its capacity in `params`, which the core does not read; the
