@@ -242,10 +242,9 @@ def cmd_path(args) -> int:
 def cmd_tree(args) -> int:
     with Store.open(args.tree) as store:
         start = args.at
-        for depth, node in R.walk(store.conn, start):
+        for depth, node, live in R.descend(store.conn, start):
             if depth > args.depth:
                 continue
-            live = R.is_live(store.conn, node.id)
             ranked = len(R.unrealised_edges(store.conn, node.id))
             print(f"{'  ' * depth}{node.id:>6}  {token_repr(store, node):<18}"
                   f"{'' if live else ' [deleted]'}"

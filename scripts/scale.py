@@ -107,11 +107,11 @@ def main() -> int:
     timed("frequency(one node)", lambda: R.frequency(conn, args.nodes // 2))
     timed("is_live(one node)", lambda: R.is_live(conn, deepest))
     timed("branch_points()", lambda: R.branch_points(conn))
-    timed("walk() over the whole tree", lambda: list(R.walk(conn)))
     timed(
         f"is_live over {args.sample} nodes -- the N+1 form",
         lambda: [R.is_live(conn, n) for n in range(1, args.sample + 1)],
     )
+    timed("descend() over the whole tree -- one query", lambda: list(R.descend(conn)))
     store.close()
     return 0
 

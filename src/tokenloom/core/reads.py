@@ -104,10 +104,67 @@ def roots(conn: sqlite3.Connection) -> list[Node]:
     return children(conn, None)
 
 
+def path_liveness(nodes: list[Node]) -> list[bool]:
+    """Whether each node of a path is live, root first.
+
+    Takes the list `path_nodes` returns rather than a connection: an ancestry already
+    carries every `deleted` the answer depends on, so a path needs no second query.
+    """
+    live, out = True, []
+    for n in nodes:
+        live = live and not n.deleted
+        out.append(live)
+    return out
+
+
 def is_live(conn: sqlite3.Connection, node: int) -> bool:
     """Neither it nor any ancestor carries `deleted`. A descent from the root carries the
     answer down and costs nothing; this is the single-node form."""
-    return not any(n.deleted for n in path_nodes(conn, node))
+    return path_liveness(path_nodes(conn, node))[-1]
+
+
+_DESCENT = """
+WITH RECURSIVE down(id, parent, token_id, source, deleted, live, depth) AS (
+    SELECT id, parent, token_id, source, deleted, (deleted IS NULL) AND ?, 0
+      FROM nodes WHERE parent {anchor}
+    UNION ALL
+    SELECT n.id, n.parent, n.token_id, n.source, n.deleted,
+           (n.deleted IS NULL) AND down.live, down.depth + 1
+      FROM nodes n JOIN down ON n.parent = down.id
+     WHERE down.depth < (SELECT COUNT(*) FROM nodes)
+)
+SELECT id, parent, token_id, source, deleted, live, depth FROM down
+"""
+
+
+def descend(
+    conn: sqlite3.Connection, node: int | None = None
+) -> Iterator[tuple[int, Node, bool]]:
+    """Depth-first from the roots, or from below `node`, yielding `(depth, node, live)`.
+
+    One query, with liveness carried down rather than walked up per node. Siblings come in
+    id order, and `depth` is relative to where the descent started.
+    """
+    if node is None:
+        rows = conn.execute(_DESCENT.format(anchor="IS NULL"), (1,)).fetchall()
+    else:
+        rows = conn.execute(
+            _DESCENT.format(anchor="= ?"), (is_live(conn, node), node)
+        ).fetchall()
+
+    below: dict[int, list[tuple]] = {}
+    top = []
+    for r in rows:
+        (top if r[6] == 0 else below.setdefault(r[1], [])).append(r)
+    for kids in below.values():
+        kids.sort(key=lambda r: r[0])
+    top.sort(key=lambda r: r[0])
+
+    stack = list(reversed(top))
+    while stack:
+        r = stack.pop()
+        yield r[6], _node(r), bool(r[5])
+        stack.extend(reversed(below.get(r[0], ())))
 
 
 # ---- bytes -------------------------------------------------------------------------
@@ -287,12 +344,3 @@ def agreement(conn: sqlite3.Connection) -> dict[str, list]:
         )
     ]
     return {"repeated": repeated, "cross_source": cross}
-
-
-def walk(conn: sqlite3.Connection, node: int | None = None) -> Iterator[tuple[int, Node]]:
-    """Depth-first from the roots (or from `node`), yielding `(depth, node)`."""
-    stack = [(0, n) for n in reversed(children(conn, node) if node is not None else roots(conn))]
-    while stack:
-        d, n = stack.pop()
-        yield d, n
-        stack.extend((d + 1, c) for c in reversed(children(conn, n.id)))
