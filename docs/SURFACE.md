@@ -229,8 +229,8 @@ must be answerable that way, not as an interface.
 **1. A path.** From the root to a node: the segments in order, each carrying the node ids it
 spells, and for each node its source, its logprob, whether it is live, and whether it is a fork.
 One descent, carrying liveness down rather than asking per node. **If the column comes to mark
-uncertainty it carries one value more** — per node, a measure of the ranking its *parent* held,
-which rides the same descent.
+uncertainty this read grows a per-node measure of the ranking its *parent* held** — an aggregate
+over ranked edges, decorating the descent's output rather than joining its recursion.
 
 **2. A ranking.** Every ranked edge at one node, each with the bytes its token spells, its
 logprob, and **the child that realised it, if any**. Not the branchable set alone: a reader
@@ -290,8 +290,11 @@ when it is settled.
   truncated tail — would show a reader where branching is worth doing, instead of leaving them to
   ask position by position. It cuts against *Between forks, nothing is drawn* and against *Density
   stays behind intent*, and it is the one open question here that changes what a read must carry.
-  What settles it is reading a real tree with the mark and without it; what makes it cheap to try
-  is that the measure rides a descent already being made.
+  It is also not yet well posed: a node several models have ranked holds several rankings, and the
+  measure has to say whose — or whether the interesting quantity there is their disagreement.
+  What settles it is reading a real tree with the mark and without it, and what keeps that cheap
+  to try is that the measure decorates a descent already being made rather than needing one of its
+  own.
 - **Keyboard.** The band's depth-first row order is already the natural arrow-key sequence, but
   what the whole reader does under a keyboard — moving between forks, into a ranking, back out
   without losing one's place — is unsettled. *Keyboard and mouse first* is the target and only
