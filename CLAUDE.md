@@ -64,8 +64,10 @@ rather than a fault to correct.
   obligations behind them, and what to do when one cannot be met. **It moves as backends are
   met**, which is the point of the split, and it carries its own status inline.
 - **`docs/SURFACE.md`** is the reading surface's design and constraints, **drafted and not
-  accepted**; `docs/surface-notes.md` holds the one argument it does not yet settle and nothing
-  else. Both move until the surface is built.
+  accepted**. It is written against a different test than the core's — can a reader tell what is
+  settled from what is open, and does each open question say what would settle it — because a
+  design in progress fails by writing an open question down as a rule. It moves until the surface
+  is built.
 - **`docs/NEXT.md`** is what gets built next and why in that order. **It is living**: items are
   added as they come up and deleted once they close or fall out of scope, so it never
   accumulates a history of itself. Nothing cites it, and nothing should — it is the one document
