@@ -83,9 +83,10 @@ the act.
 produces already exists, so the act merges and adds nothing. *Extending* is length-N at a tip and
 buys depth. Both are ordinary `generate` acts and the store does not tell them apart.
 
-**Deepening moves a derived read.** An act's range is reckoned before merge, so a deepening call
-increments sampling frequency at every node it passes. After a run, *how often was this sampled*
-and *how often did anything pass through here* are no longer the same number.
+**Deepening muddies any count of how often a path was taken.** An act's range is reckoned before
+merge, so a deepening call covers every node it passes without having drawn one of them. Counting
+over `acts` therefore answers *how often did anything pass through here*, which after a run is no
+longer the same number as *how often was this sampled*.
 
 ## The policy
 
