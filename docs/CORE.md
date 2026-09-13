@@ -158,8 +158,7 @@ stored, because each node has one parent and that path is therefore unique.
 
 **An act that produced nodes covers a non-empty range.** This is not the same as producing no
 *new* nodes: the range is reckoned before merge, so acts may overlap in part or in full, and an
-act whose every node already existed is legal and records that the path was taken again. That
-overlap is the sampling frequency, and it costs nothing to keep.
+act whose every node already existed is legal and records that the path was taken again.
 
 **Only `generate` calls a model.** `create` tokenises text someone wrote, which needs the
 vocabulary but not the model. `realise` turns a ranked edge that is already recorded into a node,
@@ -447,24 +446,17 @@ already existed does.
 
 ## Derived reads
 
-Nothing here is stored.
+Nothing here is stored. **These are the derivations a reader would otherwise get wrong**; what
+else the tables admit is a query rather than a fact about the format.
 
 - **A node's bytes** — its `vocab` entry.
 - **A path's bytes** — the bytes of each node from the root down, in order.
-- **Display text** — a path's bytes, decoded. Bytes that do not decode have no string form, and
-  what a reader shows in their place is the reader's to choose.
 - **A node's logprob** — the ranked edge at its parent, for its source, with its `token_id`.
 - **An act's tokens** — the path from `origin` exclusive to `tip` inclusive.
 - **Whether a node is live** — neither it nor any ancestor carries `deleted`. A descent from the
-  root carries the answer down and costs nothing.
-- **Branch points** — nodes with more than one child.
+  root carries the answer down.
 - **Unrealised edges** — ranked edges at a node with no matching child. This is the branchable
   set, and it is a `LEFT JOIN`.
-- **Sampling frequency** — how many acts' paths pass through a node.
-- **Agreement** — a node produced by more than one act, and siblings carrying one token from
-  different sources. Source is in the merge key, so cross-source agreement is two nodes rather
-  than one.
-- **Depth** — a node's distance from the root, in tokens.
 
 ## Conformance and extension
 
@@ -594,7 +586,7 @@ Act 4: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1,
 every field but the id identical to act 2.
 
 **An act that produces no new nodes still covers a non-empty range.** The range is reckoned before
-merge, so this act covers nodes 3, 4 and 5, and node 3's sampling frequency becomes 2. The
+merge, so this act covers nodes 3, 4 and 5 — every one of them already covered by act 2. The
 rankings it reported were already recorded, so extension appends nothing.
 
 ### Stage 5 — `realise(node 2, source 2, rank 0)`
@@ -659,8 +651,5 @@ so the store keeps what was asked for whether or not it was met.
   once, derived rather than duplicated.
 - **Unrealised edges at node 2** — ranks 3 through 19. Ranks 0, 1 and 2 have children: nodes 8, 6
   and 3. This is the branchable set.
-- **Sampling frequency at node 3** — 2. Acts 2 and 4 both pass through it. At node 2 it is 1:
-  four acts begin there, and an act's range begins below its origin.
-- **Depth of node 12** — 6.
-- **Branch points** — node 2 alone, with children 3, 6 and 8.
-- **Agreement** — node 3 is produced by two acts. No node here has a cross-source sibling.
+- **An act's tokens for act 4** — nodes 3, 4 and 5, the same three act 2 covered. An act's range
+  begins below its origin, so neither covers node 2.

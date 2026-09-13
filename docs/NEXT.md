@@ -68,11 +68,3 @@ is what makes sound. `Store.open` already takes the flag; what this item settles
 **Build the continuation rule swappable.** `docs/SURFACE.md` names a family of them and settles
 none, because they are compared by use — and a first build that hard-codes `longest` answers the
 question by making it expensive to ask.
-
----
-
-- **`agreement()` and `frequency()` are out of scope for the read layer.** `agreement()` calls
-  `frequency()` once per node and each call is a recursive CTE over every act with a tip, which
-  makes it the worst read in `reads.py` by a wide margin; `scripts/scale.py` times `frequency` on
-  one node and `agreement` not at all, so nothing above bounds them. Nothing the surface reads
-  reaches either, and this bullet exists so the measurement is not taken again.

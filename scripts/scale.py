@@ -104,9 +104,7 @@ def main() -> int:
     timed("path_bytes(deepest)", lambda: R.path_bytes(conn, deepest))
     timed("unrealised_edges(one node)", lambda: R.unrealised_edges(conn, 1))
     timed("node_logprob(one node)", lambda: R.node_logprob(conn, deepest))
-    timed("frequency(one node)", lambda: R.frequency(conn, args.nodes // 2))
     timed("is_live(one node)", lambda: R.is_live(conn, deepest))
-    timed("branch_points()", lambda: R.branch_points(conn))
     timed(
         f"is_live over {args.sample} nodes -- the N+1 form",
         lambda: [R.is_live(conn, n) for n in range(1, args.sample + 1)],

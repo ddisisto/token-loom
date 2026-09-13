@@ -119,6 +119,12 @@ def test_depth_is_relative_to_where_the_descent_started(tree):
     assert dict((n.id, d) for d, n, _ in R.descend(tree.conn, 3)) == {4: 0}
 
 
+def test_depth_agrees_with_the_descent_that_reached_a_node(tree):
+    """`depth` walks up and the descent counts down; they are one number from two ends."""
+    for d, node, _ in R.descend(tree.conn):
+        assert R.depth(tree.conn, node.id) == d, f"node {node.id}"
+
+
 def test_a_descent_from_a_leaf_yields_nothing(tree):
     assert list(R.descend(tree.conn, 4)) == []
 

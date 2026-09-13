@@ -201,8 +201,6 @@ def cmd_show(args) -> int:
         print(f"  logprob    {'-' if logprob is None else f'{logprob:.4f}'}")
         print(f"  live       {R.is_live(store.conn, node.id)}"
               f"{'  (row carries deleted)' if node.deleted else ''}")
-        print(f"  frequency  {R.frequency(store.conn, node.id)}"
-              f"  acts {R.acts_through(store.conn, node.id)}")
         print(f"  path       {show_bytes(R.path_bytes(store.conn, node.id))!r}")
 
         kids = R.children(store.conn, node.id)

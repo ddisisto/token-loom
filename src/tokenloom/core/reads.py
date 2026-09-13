@@ -1,8 +1,11 @@
 """Derived reads. Nothing here is stored.
 
-These are the reads `docs/CORE.md` names, computed from the tables and never cached. They
-assume `INV-TREE-ROOTED`: the ancestry walks bound themselves by the node count so that a
-cyclic store raises rather than hanging, but repairing one is `check.py`'s business and
+Computed from the tables and never cached. `docs/CORE.md`'s *Derived reads* names only the
+handful a reader would otherwise get wrong; what a client needs is wider than that, and this
+is where the width goes.
+
+All of it assumes `INV-TREE-ROOTED`: the ancestry walks bound themselves by the node count so
+that a cyclic store raises rather than hanging, but repairing one is `check.py`'s business and
 nobody's to do silently.
 """
 
@@ -118,8 +121,8 @@ def path_liveness(nodes: list[Node]) -> list[bool]:
 
 
 def is_live(conn: sqlite3.Connection, node: int) -> bool:
-    """Neither it nor any ancestor carries `deleted`. A descent from the root carries the
-    answer down and costs nothing; this is the single-node form."""
+    """Neither it nor any ancestor carries `deleted`. One ancestry walk per call, so asking
+    for many nodes is what `descend` is for. `scripts/scale.py` is what weighs the two."""
     return path_liveness(path_nodes(conn, node))[-1]
 
 
@@ -262,85 +265,3 @@ def act_tokens(conn: sqlite3.Connection, act: int) -> list[Node]:
         if n.id == origin:
             return chain[i + 1 :]
     raise ValueError(f"act {act}: tip {tip} does not descend from origin {origin}; INV-ACT-PATH")
-
-
-def frequency(conn: sqlite3.Connection, node: int) -> int:
-    """Sampling frequency: how many acts' paths pass through a node.
-
-    An act's range begins *below* its origin, so an act does not pass through the node it
-    started from. Ranges are reckoned before merge, so acts may overlap in part or in
-    full and this is what counts that overlap.
-    """
-    row = conn.execute(
-        """
-        WITH RECURSIVE span(act, id, origin) AS (
-            SELECT a.id, a.tip, a.origin FROM acts a WHERE a.tip IS NOT NULL
-            UNION ALL
-            SELECT s.act, n.parent, s.origin FROM nodes n JOIN span s ON n.id = s.id
-             WHERE n.parent IS NOT NULL AND n.parent IS NOT s.origin
-        )
-        SELECT COUNT(*) FROM span WHERE id = ?
-        """,
-        (node,),
-    ).fetchone()
-    return row[0]
-
-
-def acts_through(conn: sqlite3.Connection, node: int) -> list[int]:
-    """Which acts pass through it -- `frequency` with the ids kept."""
-    return [
-        r[0]
-        for r in conn.execute(
-            """
-            WITH RECURSIVE span(act, id, origin) AS (
-                SELECT a.id, a.tip, a.origin FROM acts a WHERE a.tip IS NOT NULL
-                UNION ALL
-                SELECT s.act, n.parent, s.origin FROM nodes n JOIN span s ON n.id = s.id
-                 WHERE n.parent IS NOT NULL AND n.parent IS NOT s.origin
-            )
-            SELECT act FROM span WHERE id = ? ORDER BY act
-            """,
-            (node,),
-        )
-    ]
-
-
-# ---- shape -------------------------------------------------------------------------
-
-
-def branch_points(conn: sqlite3.Connection) -> list[int]:
-    """Nodes with more than one child."""
-    return [
-        r[0]
-        for r in conn.execute(
-            "SELECT parent FROM nodes WHERE parent IS NOT NULL "
-            "GROUP BY parent HAVING COUNT(*) > 1 ORDER BY parent"
-        )
-    ]
-
-
-def agreement(conn: sqlite3.Connection) -> dict[str, list]:
-    """Nodes produced by more than one act, and siblings carrying one token from
-    different sources.
-
-    Source is in the merge key, so cross-source agreement is two nodes rather than one --
-    which is exactly why it has to be looked for rather than read off a column.
-
-    `cross_source` comes back empty on a tree that holds one model, which every tree built
-    so far does. That is the expected reading and not evidence the read is dead: what it
-    looks for is a shape the format admits and nothing has yet had reason to make.
-    """
-    repeated = [
-        n[0]
-        for n in conn.execute("SELECT id FROM nodes ORDER BY id")
-        if frequency(conn, n[0]) > 1
-    ]
-    cross = [
-        (r[0], r[1], r[2])
-        for r in conn.execute(
-            "SELECT parent, token_id, COUNT(DISTINCT source) FROM nodes "
-            "WHERE parent IS NOT NULL GROUP BY parent, token_id "
-            "HAVING COUNT(DISTINCT source) > 1 ORDER BY parent, token_id"
-        )
-    ]
-    return {"repeated": repeated, "cross_source": cross}

@@ -60,6 +60,15 @@ rather than a fault to correct.
   can someone implement a reader from it alone. **It moves only as its own deliberate piece of
   work** — never in passing, and never to accommodate what a backend or a client turned out to
   want. `marker` is what tells a reader it moved.
+  **How a derivation is shaped is not an argument.** *A descent from the root carries the answer
+  down* and *it is a `LEFT JOIN`* say what the relation between the tables is, which a reader
+  implementing one needs and cannot infer; the document already speaks SQL, since *On disk* is
+  DDL. A claim about what something *costs* is the other thing, and belongs with the code that
+  pays it.
+  **Its *Derived reads* names only what a reader would otherwise get wrong**, and is not a
+  catalogue of queries. One grew there before anything used it, and four of its entries were
+  reads nothing called, two of them restating facts that already had homes in *Acts* and
+  *Sources*.
 - **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
   obligations behind them, and what to do when one cannot be met. **It moves as backends are
   met**, which is the point of the split, and it carries its own status inline.

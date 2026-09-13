@@ -235,40 +235,13 @@ def test_unrealised_edges_at_node_2_are_ranks_3_through_19(tree):
     assert [e.rank for e in R.unrealised_edges(store.conn, 2)] == list(range(3, 20))
 
 
-def test_sampling_frequency(tree):
-    """2 at node 3 -- acts 2 and 4 both pass through it. 1 at node 2: four acts begin
-    there, and an act's range begins below its origin."""
-    store, acts, _, _ = tree
-    assert R.frequency(store.conn, 3) == 2
-    assert R.acts_through(store.conn, 3) == sorted([acts[2], acts[4]])
-    assert R.frequency(store.conn, 2) == 1
-    assert R.acts_through(store.conn, 2) == [acts[1]]
-
-
-def test_depth_of_node_12_is_6(tree):
-    store, *_ = tree
-    assert R.depth(store.conn, 12) == 6
-    assert R.depth(store.conn, 1) == 0
-
-
-def test_branch_points_are_node_2_alone(tree):
-    store, *_ = tree
-    assert R.branch_points(store.conn) == [2]
-    assert [c.id for c in R.children(store.conn, 2)] == [3, 6, 8]
-
-
-def test_agreement(tree):
-    """Node 3 is produced by two acts. No node here has a cross-source sibling."""
-    store, *_ = tree
-    found = R.agreement(store.conn)
-    assert found["repeated"] == [3, 4, 5]
-    assert found["cross_source"] == []
-
-
 def test_an_acts_tokens_are_the_path_from_origin_exclusive_to_tip_inclusive(tree):
+    """Act 4 covers the same three nodes act 2 did -- the range is reckoned before merge,
+    so two acts overlap in full. Neither covers node 2, which both began from."""
     store, acts, _, _ = tree
     assert [n.id for n in R.act_tokens(store.conn, acts[1])] == [1, 2]
     assert [n.id for n in R.act_tokens(store.conn, acts[2])] == [3, 4, 5]
+    assert [n.id for n in R.act_tokens(store.conn, acts[4])] == [3, 4, 5]
     assert [n.id for n in R.act_tokens(store.conn, acts[5])] == [8]
     assert R.act_tokens(store.conn, acts[7]) == []
 
