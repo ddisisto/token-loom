@@ -200,6 +200,11 @@ How decisions get made here — what has paid off, and what it cost to skip.
   a base unit for a year before now. Options that would change the shape of the format deserve
   a worked counterexample before they are struck out — and a rejection that names a use case
   should be re-read when that use case leaves the documents.
+- **A question that keeps coming back is usually planted by the prose.** The claim was
+  stated by what it refuses, so what refusing costs came up session after session — about a
+  simultaneity nobody had asked for. Re-answering it each time was cheaper than noticing,
+  which is what let it run. When something recurs, read what introduces it rather than what
+  raised it.
 - **Probe rather than reason, when the question is decidable.** Nearly every item in
   the llama.cpp adapter's notes overturned a confident assumption in minutes. The general
   form: **absence of observation cannot settle a question about what is possible.** Ask the
