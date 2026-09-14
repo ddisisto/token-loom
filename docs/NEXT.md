@@ -39,6 +39,26 @@ opens at a fork rather than at a root, so that is a ceiling and not a typical ca
 a band wants a bound in the other direction is an open question in `docs/SURFACE.md`, and the
 page is what settles it.
 
+**Nothing can change the store under the page, and what to do with that is the page's to
+settle.** The server holds the claim, so it is the only writer there is — but that is true of
+the server and not of a page, since two pages on one server change it under each other. A
+revision on each read and `If-None-Match` against it is about ten lines and needs nothing from
+the core: the sole writer can count its own writes in memory, and a token minted per process
+covers a restart. It buys nothing on a first read, which is the one that is large.
+
+**What a page can cache with no protocol at all is the immutable half, and it is most of what a
+page pulls.** A node's parent, token and source never change and only `deleted` does; a token's
+bytes never change, because `put_token` refuses a vocabulary that disagrees at an id already
+held; and a ranking only grows, because `_extend_ranking` appends and never rewrites. Spellings
+and rankings are therefore cacheable for the life of the page, and liveness is the only thing
+that has to be asked again.
+
+**A delta is a different idea and does not follow from either.** A band is computed whole from
+one descent, so diffing two costs what computing one costs — there is nothing cheap for the
+server to send. What is naturally deltaic is the act, which a write already answers with; but a
+page that applies acts to a cached tree and recomputes the band from it is a page holding
+`surface.branches` itself, which is another architecture rather than a cache over this one.
+
 ## Loose ends
 
 Not in the ordering; each stands on its own.
