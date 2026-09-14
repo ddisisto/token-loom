@@ -194,6 +194,16 @@ suppressing one it predicted.
 occupy, replaced by the nodes when they land — not a spinner elsewhere on the page, and not
 optimistic text.
 
+**The placeholder is read rather than remembered.** `docs/CORE.md` commits a `generate` act before
+the model is called, and an act with no terminator is a generation in flight, so what the
+placeholder stands for is in the record. A page opened while one is running draws it, and a page
+reloaded mid-generation does not lose it.
+
+**Reading goes on while a write is in flight.** A generation is seconds of waiting, and the reader
+is not held at the page they asked from: the store's journal mode lets a read take no lock, and
+`docs/CORE.md` is explicit that no transaction spans a model call. What the reader cannot do is ask
+for a second write.
+
 **A failure becomes a dismissable error in the placeholder's position**, and it says which kind it
 was, because the record does.
 
@@ -207,13 +217,10 @@ was, because the record does.
 errors that never reached an act. A refusal and a rejection are answers about the request itself,
 so what they offer is an edit — repeating either unchanged gets the same answer.
 
-**The tree is claimed when the surface opens it and held until it closes**, so nothing else can
-write to it while the surface runs. A tree another process already holds is refused at once, which
+**The surface is started against one tree and claims it for as long as it runs**, which is what
+lets it open for writing once and verify once for the life of the process rather than before every
+write. Verifying is a whole-tree read. A tree another process is holding cannot be opened, which
 the surface reports naming the tree rather than starting and showing a page that never resolves.
-
-**The tree is opened for writing once and verified once**, for the life of the process rather than
-per request. The claim is what makes that sound: no other writer can change the store while it is
-held. Verifying is a whole-tree read, so a surface without the claim pays one per request.
 
 **Opening for writing can change the tree, and that is the surface's first write.** Claiming the
 tree is what records abandoned generations as `aborted`, so a tree left in flight by a writer that
@@ -324,6 +331,6 @@ when it is settled.
 ## Status
 
 **Nothing here is built as a surface.** The three reads exist and nothing calls them: there is no
-API and no page. What else exists is the core, the llama.cpp adapter, the command line, and a
+server and no page. What else exists is the core, the llama.cpp adapter, the command line, and a
 throwaway probe that reads a static projection of a tree and cannot write — which is what
 demonstrated the band.

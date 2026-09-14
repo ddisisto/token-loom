@@ -21,6 +21,14 @@ The tree is `src/tokenloom/core/`, and the command line is the client on it. A r
 surface over an HTTP API is where this is going, which is why the second point below is a
 constraint and not an observation.
 
+**The claim is not concurrency control, and reading it as such costs an argument every
+time.** One `flock`, one writer — and what it buys is that two things can be read off the
+store instead of guessed at: what a writer verified cannot change beneath it, so verifying
+is once per claim; and an act left in flight is one whose writer is gone, which is what
+makes `aborted` decidable. Simultaneous writers to one tree are not wanted and never have
+been, so what it costs to exclude them is not a question. `docs/CORE.md`'s *On disk* is
+where this is stated.
+
 **A read sits above the core when it needs a character, a measure of room, or what the
 reader did.** `src/tokenloom/surface.py` is that layer — segmentation, the continuation rule,
 and the three reads `docs/SURFACE.md` states — and `core/reads.py` holds the record half each
