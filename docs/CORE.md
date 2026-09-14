@@ -335,12 +335,14 @@ commits and the transaction closes.
 
 Timestamps everywhere in this format are ISO 8601 in UTC, ending `Z`.
 
-**`lock`** — a writer's claim on the tree. One `flock`, taken when a store is opened for writing,
-held until it is closed or the process dies, and acquired without blocking so that a second writer
-is refused at once. **One claim is one writer**, so nothing generates concurrently and a claim is
-what a client holds to say a tree is its own until it is done. A claim dies with its holder.
-Recording abandoned acts is the first write after claiming, so **opening a tree for writing can
-modify it.** A reader takes no lock.
+**`lock`** — a writer's claim on the tree. One `flock`, taken when a store is opened for writing
+and held until it is closed or the process dies. **One claim is one writer, and what that buys is
+two things a writer can read off the store rather than guess at.** What it verified cannot change
+beneath it, so verifying is once per claim and not once per act. And an act still in flight when a
+claim is taken is one whose writer is gone, because a claim dies with its holder. Recording those
+acts as `aborted` is the first write after claiming, so **opening a tree for writing can modify
+it.** The `flock` is taken without blocking, so a second writer is told at once rather than left
+waiting. A reader takes no lock.
 
 ## The invariants
 
