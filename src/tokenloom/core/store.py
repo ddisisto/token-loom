@@ -131,6 +131,19 @@ class Store:
             raise StoreError(f"another writer holds {path}") from exc
         return fd
 
+    def reader(self) -> sqlite3.Connection:
+        """A connection of its own, for a read that must not wait behind a write.
+
+        It takes no claim and makes no second writer: `query_only` is set on it, and the
+        journal mode already lets a reader take no lock. Unlike the store's own connection
+        it may be used from another thread, which is the whole reason it exists -- a
+        connection cannot leave the thread that made it, and a `generate` holds the writer's
+        for as long as the model takes. The caller closes it.
+        """
+        conn = _connect(self.path / BULK_FILE)
+        conn.execute("PRAGMA query_only = ON")
+        return conn
+
     def close(self) -> None:
         self.conn.close()
         if self._claim is not None:

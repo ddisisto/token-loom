@@ -82,9 +82,8 @@ def attributed(args) -> Source | None:
     named = getattr(args, "attribute", None)
     if not named:
         return None
-    kind, _, name = named.partition(":")
     try:
-        return Source(kind, name)
+        return Source.parse(named)
     except ValueError as why:
         raise SystemExit(f"--attribute: {why}") from why
 
@@ -298,6 +297,31 @@ def cmd_check(args) -> int:
     return 1 if found else 0
 
 
+def cmd_serve(args) -> int:
+    """One process against one tree, claimed and verified once for as long as it runs.
+
+    The claim is taken here rather than inside the application so that a tree another
+    process holds is reported by the command that asked for it, and not as a server that
+    fails to come up. The backend is built on first need: reads want none, and neither do
+    three of the five acts.
+    """
+    import uvicorn
+
+    from .api.server import Backend, Writer, build_app
+
+    writer = Writer(args.tree)
+    print(f"{writer.store.path}  vocabulary {writer.store.vocabulary}  "
+          f"claimed until this process exits", flush=True)
+    try:
+        uvicorn.run(
+            build_app(writer, Backend(lambda: adapter_for(args))),
+            host=args.host, port=args.port, log_level=args.log_level,
+        )
+    finally:
+        writer.close()
+    return 0
+
+
 def cmd_props(args) -> int:
     """What the adapter would talk to, and what it would call itself."""
     from .adapters.llamacpp.client import LlamaCppClient
@@ -332,6 +356,8 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--model", default=os.environ.get("TOKENLOOM_MODEL"),
                        help="source name; must separate anything whose draws must not "
                             "factor together. Defaults to the model file's stem.")
+
+    def acting(p):
         p.add_argument("--user", default="", help="the acting user; empty is the unnamed user")
 
     p = sub.add_parser("init", help="make a tree")
@@ -350,6 +376,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="who produced the text, where that is not the acting user -- "
                         "`model:NAME` for a transcript from elsewhere")
     backend(p)
+    acting(p)
     p.set_defaults(fn=cmd_create)
 
     p = sub.add_parser("generate", help="draw from a model")
@@ -372,6 +399,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="let the server reuse its KV cache. Faster on a long path, and it "
                         "moves the logprobs recorded.")
     backend(p)
+    acting(p)
     p.set_defaults(fn=cmd_generate)
 
     p = sub.add_parser("realise", help="take a ranked edge; no model is called")
@@ -379,13 +407,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--at", type=int, required=True)
     p.add_argument("--rank", type=int, required=True)
     p.add_argument("--source", help="whose ranking; needed only where more than one ranked")
-    p.add_argument("--user", default="")
+    acting(p)
     p.set_defaults(fn=cmd_realise)
 
     p = sub.add_parser("delete", help="mark a node deleted; liveness is derived")
     p.add_argument("tree", type=Path)
     p.add_argument("node", type=int)
-    p.add_argument("--user", default="", help="the acting user; empty is the unnamed user")
+    acting(p)
     p.add_argument("--undo", action="store_true", help="clear it; live again only if its "
                                                        "ancestry is")
     p.set_defaults(fn=cmd_delete)
@@ -415,6 +443,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("check", help="every invariant")
     p.add_argument("tree", type=Path)
     p.set_defaults(fn=cmd_check)
+
+    p = sub.add_parser("serve", help="hold a tree and serve the reads and the five acts")
+    p.add_argument("tree", type=Path)
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--log-level", default="info", dest="log_level")
+    backend(p)
+    p.set_defaults(fn=cmd_serve)
 
     p = sub.add_parser("props", help="what the server is serving")
     p.add_argument("--server", default=DEFAULT_SERVER)

@@ -28,6 +28,13 @@ class Source:
     def __str__(self) -> str:
         return f"{self.kind}:{self.name}" if self.name else self.kind
 
+    @classmethod
+    def parse(cls, text: str) -> Source:
+        """The inverse of `__str__`, so the spelling a client sends back is the one it was
+        given. A bad kind raises the same `ValueError` constructing one does."""
+        kind, _, name = text.partition(":")
+        return cls(kind, name)
+
 
 USER = Source("user", "")
 

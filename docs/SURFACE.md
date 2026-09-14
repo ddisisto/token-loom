@@ -119,6 +119,10 @@ own alternatives with it rather than letting them fall back to the split column 
 where they do not. **The band says how many it dropped**, since a silent truncation reads as *that
 is all of them*.
 
+**Room there is a line's width.** Nothing bounds the band in the other direction: a divergence
+inside a line that is shown is followed however deep it nests, so a band opened high in a branchy
+tree holds most of what is under it. Whether that needs a bound is in What is not decided here.
+
 **Nothing about the band is expressible in flow layout.** A column is a measured position in
 proportional text, and each line's children can only be placed once that line is rendered. It is
 laid out again whenever the geometry changes.
@@ -293,6 +297,12 @@ when it is settled.
   insertion order. What settles it is reading one tree under two of them, which is why the path
   read takes the rule as a parameter. A rule that reads what the reader did is what puts reader
   state in *Nothing written is only here*.
+- **Whether a band has a height.** Its width is a reading measure taken from the page; its depth
+  is whatever the tree holds below the fork, which on a branchy tree is nearly all of it. A bound
+  would have to say what it drops and where, the way the width already does, and a band that
+  silently stopped going down would read as *that is all of them* — the failure the drop count
+  exists to prevent. What settles it is opening a band on a tree deep enough to need one and
+  seeing where a reader loses the thread.
 - **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each reads
   differently at a sharp position than at a flat one, and a real ranking is often one and
   sometimes the other. What settles it is drawing a real tree several ways.
@@ -330,7 +340,8 @@ when it is settled.
 
 ## Status
 
-**Nothing here is built as a surface.** The three reads exist and nothing calls them: there is no
-server and no page. What else exists is the core, the llama.cpp adapter, the command line, and a
-throwaway probe that reads a static projection of a tree and cannot write — which is what
-demonstrated the band.
+**A server with no page.** `tokenloom serve` holds one tree for as long as it runs and serves the
+three reads, the path predicate and the five acts over HTTP, each act under its own verb. What
+does not exist is the page: nothing reads any of it. What else exists is the core, the llama.cpp
+adapter, the command line, and a throwaway probe that reads a static projection of a tree and
+cannot write — which is what demonstrated the band.
