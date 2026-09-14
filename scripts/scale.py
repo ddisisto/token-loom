@@ -21,6 +21,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from tokenloom import surface as S
 from tokenloom.core import Store, violations
 from tokenloom.core import reads as R
 
@@ -110,6 +111,13 @@ def main() -> int:
         lambda: [R.is_live(conn, n) for n in range(1, args.sample + 1)],
     )
     timed("descend() over the whole tree -- one query", lambda: list(R.descend(conn)))
+    timed("annotated_path(deepest)", lambda: R.annotated_path(conn, deepest))
+    timed("ranking_with_children(one node)", lambda: R.ranking_with_children(conn, 1))
+
+    print()
+    timed("surface.path(deepest) -- read 1", lambda: S.path(conn, deepest))
+    timed("surface.ranking(one node) -- read 2", lambda: S.ranking(conn, 1))
+    timed("surface.branches(root, 400) -- read 3", lambda: S.branches(conn, 1, 400))
     store.close()
     return 0
 

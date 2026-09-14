@@ -12,7 +12,7 @@ nobody's to do silently.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
 
@@ -32,6 +32,30 @@ class Edge:
     rank: int
     token_id: int
     logprob: float
+
+
+@dataclass(frozen=True, slots=True)
+class PathNode:
+    """A node of a path, with what is derived at it rather than stored on it.
+
+    `fork` is *its parent has more than one live child*, which is not `Node.deleted` on a
+    sibling: a parent that is itself out of the live tree forks nowhere. A root is never
+    one -- it has no parent to part from.
+    """
+
+    node: Node
+    live: bool
+    logprob: float | None
+    fork: bool
+
+
+@dataclass(frozen=True, slots=True)
+class RankedEdge:
+    """A ranked edge, what its token spells, and the child that realised it, if any."""
+
+    edge: Edge
+    spelling: bytes
+    child: Node | None
 
 
 def _node(row: tuple) -> Node:
@@ -126,6 +150,43 @@ def is_live(conn: sqlite3.Connection, node: int) -> bool:
     return path_liveness(path_nodes(conn, node))[-1]
 
 
+_ANNOTATED_PATH = """
+WITH RECURSIVE up(id, parent, token_id, source, deleted, depth) AS (
+    SELECT id, parent, token_id, source, deleted, 0 FROM nodes WHERE id = ?
+    UNION ALL
+    SELECT n.id, n.parent, n.token_id, n.source, n.deleted, up.depth + 1
+      FROM nodes n JOIN up ON n.id = up.parent
+     WHERE up.depth < (SELECT COUNT(*) FROM nodes)
+)
+SELECT u.id, u.parent, u.token_id, u.source, u.deleted, u.depth, e.logprob,
+       (SELECT COUNT(*) FROM nodes s WHERE s.parent = u.parent AND s.deleted IS NULL)
+  FROM up u
+  LEFT JOIN edges e
+    ON e.node = u.parent AND e.source = u.source AND e.token_id = u.token_id
+ ORDER BY u.depth DESC
+"""
+
+
+def annotated_path(conn: sqlite3.Connection, node: int) -> list[PathNode]:
+    """Root first, `node` last, each carrying its liveness, its logprob and whether it forks.
+
+    One query. All three want the same ancestry and the same parents, so asking for them
+    apart is three walks up where one does; `edges` is unique on `(node, source, token_id)`,
+    so the join adds no row.
+    """
+    rows = conn.execute(_ANNOTATED_PATH, (node,)).fetchall()
+    if not rows:
+        raise KeyError(f"no node {node}")
+    if rows[0][1] is not None:
+        raise ValueError(f"ancestry of node {node} does not reach a root; INV-TREE-ROOTED")
+    out, live = [], True
+    for r in rows:
+        above = live
+        live = live and r[4] is None
+        out.append(PathNode(_node(r), live, r[6], r[1] is not None and above and r[7] > 1))
+    return out
+
+
 _DESCENT = """
 WITH RECURSIVE down(id, parent, token_id, source, deleted, live, depth) AS (
     SELECT id, parent, token_id, source, deleted, (deleted IS NULL) AND ?, 0
@@ -184,6 +245,27 @@ def node_bytes(conn: sqlite3.Connection, node: int) -> bytes:
     return bytes(row[0])
 
 
+def token_bytes(conn: sqlite3.Connection, ids: Iterable[int]) -> dict[int, bytes]:
+    """The `vocab` entries for a set of ids, for a caller about to spell many nodes.
+
+    Raises rather than returning a hole: a node whose token is absent from `vocab` is
+    `INV-VOCAB-CLOSED`, and spelling it as nothing would hide that behind a shorter string.
+    """
+    wanted = sorted(set(ids))
+    out: dict[int, bytes] = {}
+    for i in range(0, len(wanted), 500):  # SQLite bounds the parameters in one statement
+        chunk = wanted[i : i + 500]
+        holes = ",".join("?" * len(chunk))
+        for token_id, data in conn.execute(
+            f"SELECT token_id, bytes FROM vocab WHERE token_id IN ({holes})", chunk
+        ):
+            out[token_id] = bytes(data)
+    missing = [i for i in wanted if i not in out]
+    if missing:
+        raise KeyError(f"token ids absent from vocab: {missing[:8]}; INV-VOCAB-CLOSED")
+    return out
+
+
 def path_bytes(conn: sqlite3.Connection, node: int) -> bytes:
     """The bytes of each node from the root down, in order.
 
@@ -225,6 +307,36 @@ def node_logprob(conn: sqlite3.Connection, node: int) -> float | None:
         (node,),
     ).fetchone()
     return row[0] if row else None
+
+
+def ranking_with_children(conn: sqlite3.Connection, node: int) -> list[RankedEdge]:
+    """Every ranked edge at a node, what it spells, and what became of it.
+
+    The alternatives at a position with the one taken sitting among them, rather than the
+    branchable set alone -- which is the same rows, filtered to those with no child. A child
+    carrying `deleted` is still a child: the merge key is what forbids realising it again,
+    and `undelete` rather than `realise` is what brings it back.
+
+    Recorded order, source by source. Descending logprob is expected of a model rather than
+    enforced, so this does not sort.
+    """
+    rows = conn.execute(
+        """
+        SELECT e.node, e.source, e.rank, e.token_id, e.logprob, v.bytes,
+               c.id, c.parent, c.token_id, c.source, c.deleted
+          FROM edges e
+          JOIN vocab v ON v.token_id = e.token_id
+          LEFT JOIN nodes c
+            ON c.parent = e.node AND c.token_id = e.token_id AND c.source = e.source
+         WHERE e.node = ?
+         ORDER BY e.source, e.rank
+        """,
+        (node,),
+    ).fetchall()
+    return [
+        RankedEdge(Edge(*r[:5]), bytes(r[5]), _node(r[6:11]) if r[6] is not None else None)
+        for r in rows
+    ]
 
 
 def unrealised_edges(conn: sqlite3.Connection, node: int) -> list[Edge]:

@@ -21,6 +21,12 @@ The tree is `src/tokenloom/core/`, and the command line is the client on it. A r
 surface over an HTTP API is where this is going, which is why the second point below is a
 constraint and not an observation.
 
+**A read sits above the core when it needs a character, a measure of room, or what the
+reader did.** `src/tokenloom/surface.py` is that layer — segmentation, the continuation rule,
+and the three reads `docs/SURFACE.md` states — and `core/reads.py` holds the record half each
+of them stands on. The core answers about the record and stops, which is what keeps a
+decision about display from becoming a fact about the format.
+
 Two things pull on the design:
 
 - **Base-model behaviour matters more than chat quality.** A chat-templated reply is a

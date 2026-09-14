@@ -136,9 +136,11 @@ Every ranked edge at that node is shown, and each is one of three things:
 | realised elsewhere | a node exists for it, off the current path | a selection; no act at all |
 | unrealised | no node exists for it | one `realise`, and then a `generate` to continue |
 
-**Rows are shown in descending logprob.** In the store, rank is recorded order and descending is
-expected rather than enforced — a ranking deepened by a later act appends rows, and a near-tie at
-the join can leave the two apart. The surface sorts.
+**Rows are shown in descending logprob, and source by source.** In the store, rank is recorded
+order and descending is expected rather than enforced — a ranking deepened by a later act appends
+rows, and a near-tie at the join can leave the two apart, so the surface sorts. Across sources it
+does not: a node several models have ranked holds several rankings, and one order over their union
+would sit rows side by side that were never alternatives to each other.
 
 **Each row shows its logprob.** How — a number, a bar, a ramp, a share of the recorded mass — is
 in What is not decided here.
@@ -221,9 +223,9 @@ loses along with the process holding it.
 
 ## What the surface reads
 
-**Three reads, and each is one descent.** Every bulk read in the core is N+1 as built — each node
-walks its own ancestry or fetches its own children — and `docs/CORE.md` already says what the fix
-is: *a descent from the root carries the answer down and costs nothing.* These are stated as what
+**Three reads, and each is one descent.** A read that asks per node — its own ancestry for
+liveness, its own children for what parts — is the one shape these cannot have, and `docs/CORE.md`
+says what the fix is: *a descent from the root carries the answer down.* These are stated as what
 must be answerable that way, not as an interface.
 
 **1. A path.** From the root to a node: the segments in order, each carrying the node ids it
@@ -239,7 +241,9 @@ branchable set is then the rows with no child.
 
 **3. A branch subtree.** Below one node: each divergence, the run of nodes from it, bounded by a
 character budget, depth-first, with the nested divergences inside each run and the index each
-parts at. The band is laid out from this and from measurement, and from nothing else.
+parts at. **A divergence with no index is counted rather than returned** — one past the budget's
+cut, and one inside a segment, which nothing addresses — since what a reader is owed is how many
+are not there. The band is laid out from this and from measurement, and from nothing else.
 
 Point reads — a node, a tree's roots, the act list — are already cheap and need nothing.
 
@@ -319,6 +323,7 @@ when it is settled.
 
 ## Status
 
-**Nothing here is built as a surface.** There is no read layer and no API. What exists is the
-core, the llama.cpp adapter, the command line, and a throwaway probe that reads a static
-projection of a tree and cannot write — which is what demonstrated the band.
+**Nothing here is built as a surface.** The three reads exist and nothing calls them: there is no
+API and no page. What else exists is the core, the llama.cpp adapter, the command line, and a
+throwaway probe that reads a static projection of a tree and cannot write — which is what
+demonstrated the band.
