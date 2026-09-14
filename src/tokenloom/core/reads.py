@@ -245,19 +245,29 @@ def node_bytes(conn: sqlite3.Connection, node: int) -> bytes:
     return bytes(row[0])
 
 
+def _chunks(ids: Iterable[int]) -> Iterator[tuple[str, list[int]]]:
+    """Distinct ids in batches small enough for one `IN`, each with its placeholders.
+
+    SQLite bounds how many parameters one statement may carry, and a bulk read asked for a
+    whole tree will pass it.
+    """
+    wanted = sorted(set(ids))
+    for i in range(0, len(wanted), 500):
+        part = wanted[i : i + 500]
+        yield ",".join("?" * len(part)), part
+
+
 def token_bytes(conn: sqlite3.Connection, ids: Iterable[int]) -> dict[int, bytes]:
     """The `vocab` entries for a set of ids, for a caller about to spell many nodes.
 
     Raises rather than returning a hole: a node whose token is absent from `vocab` is
     `INV-VOCAB-CLOSED`, and spelling it as nothing would hide that behind a shorter string.
     """
-    wanted = sorted(set(ids))
+    wanted = sorted(set(ids))  # `ids` is often a generator, and is read twice below
     out: dict[int, bytes] = {}
-    for i in range(0, len(wanted), 500):  # SQLite bounds the parameters in one statement
-        chunk = wanted[i : i + 500]
-        holes = ",".join("?" * len(chunk))
+    for holes, part in _chunks(wanted):
         for token_id, data in conn.execute(
-            f"SELECT token_id, bytes FROM vocab WHERE token_id IN ({holes})", chunk
+            f"SELECT token_id, bytes FROM vocab WHERE token_id IN ({holes})", part
         ):
             out[token_id] = bytes(data)
     missing = [i for i in wanted if i not in out]
@@ -353,6 +363,33 @@ def unrealised_edges(conn: sqlite3.Connection, node: int) -> list[Edge]:
         (node,),
     ).fetchall()
     return [Edge(*r) for r in rows]
+
+
+def unrealised_counts(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, int]:
+    """How large the branchable set is at each of `nodes`, for those where it is not empty.
+
+    The same `LEFT JOIN` as `unrealised_edges`, asked of many nodes at once. A node absent
+    from the result has none, which is most of a tree. It takes the nodes rather than
+    answering for the whole store because a listing is usually a subtree, and a query bound
+    to what was asked for beats one that grinds every edge; `scripts/scale.py` weighs the
+    three shapes.
+    """
+    out: dict[int, int] = {}
+    for holes, part in _chunks(nodes):
+        out.update(
+            conn.execute(
+                f"""
+                SELECT e.node, COUNT(*)
+                  FROM edges e
+                  LEFT JOIN nodes c
+                    ON c.parent = e.node AND c.token_id = e.token_id AND c.source = e.source
+                 WHERE c.id IS NULL AND e.node IN ({holes})
+                 GROUP BY e.node
+                """,
+                part,
+            )
+        )
+    return out
 
 
 # ---- acts --------------------------------------------------------------------------

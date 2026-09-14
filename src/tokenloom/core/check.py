@@ -116,7 +116,11 @@ def _merge_key(nodes: dict) -> list[Violation]:
 
 
 def _vocab_closed(conn: sqlite3.Connection, nodes: dict, vocab: set[int]) -> list[Violation]:
-    """INV-VOCAB-CLOSED -- every `token_id` in `nodes` and `edges` is in `vocab`."""
+    """INV-VOCAB-CLOSED -- every `token_id` in `nodes` and `edges` is in `vocab`.
+
+    `nodes` is already in hand and `edges` is a `LEFT JOIN`. A duplicated `vocab` row
+    cannot make a false match: what is selected is the rows that matched nothing.
+    """
     bad = [
         Violation("INV-VOCAB-CLOSED", f"node {nid} carries token {tok}, absent from vocab")
         for nid, (_, tok, _, _) in nodes.items()
@@ -127,8 +131,14 @@ def _vocab_closed(conn: sqlite3.Connection, nodes: dict, vocab: set[int]) -> lis
             "INV-VOCAB-CLOSED",
             f"edge ({r[0]}, {r[1]}, {r[2]}) carries token {r[3]}, absent from vocab",
         )
-        for r in conn.execute("SELECT node, source, rank, token_id FROM edges")
-        if r[3] not in vocab
+        for r in conn.execute(
+            """
+            SELECT e.node, e.source, e.rank, e.token_id
+              FROM edges e LEFT JOIN vocab v ON v.token_id = e.token_id
+             WHERE v.token_id IS NULL
+             ORDER BY e.node, e.source, e.rank
+            """
+        )
     ]
     return bad
 
@@ -180,22 +190,40 @@ def _rank_anchored(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
     ]
 
 
+#: A `(node, source)` whose ranks are not 0..n-1, or whose tokens are not distinct.
+#: Counted rather than assumed: the relaxed DDL this checker is tested against declares
+#: neither key, and a checker that takes a UNIQUE clause's word for it checks nothing.
+_SUSPECT_GROUPS = """
+SELECT node, source
+  FROM edges
+ GROUP BY node, source
+HAVING COUNT(DISTINCT rank) <> COUNT(*)
+    OR MIN(rank) <> 0
+    OR MAX(rank) <> COUNT(*) - 1
+    OR COUNT(DISTINCT token_id) <> COUNT(*)
+ ORDER BY node, source
+"""
+
+
 def _rank_dense_and_unique(conn: sqlite3.Connection) -> list[Violation]:
     """INV-RANK-DENSE -- ranks within a `(node, source)` are distinct and contiguous from 0.
-    INV-RANK-UNIQUE -- a `token_id` appears at most once within a `(node, source)`."""
+    INV-RANK-UNIQUE -- a `token_id` appears at most once within a `(node, source)`.
+
+    The grouping finds which groups fail and says nothing about how; a second query per
+    failing group fetches its rows, so the report can still name the ranks and the repeated
+    tokens. A clean store makes no second query at all, which is the case that runs.
+    """
     bad = []
-    groups: dict[tuple[int, int], list[tuple[int, int]]] = {}
-    for node, source, rank, token_id in conn.execute(
-        "SELECT node, source, rank, token_id FROM edges ORDER BY node, source, rank"
-    ):
-        groups.setdefault((node, source), []).append((rank, token_id))
-    for (node, source), rows in groups.items():
-        ranks = [r for r, _ in rows]
-        if sorted(ranks) != list(range(len(ranks))):
+    for node, source in conn.execute(_SUSPECT_GROUPS).fetchall():
+        rows = conn.execute(
+            "SELECT rank, token_id FROM edges WHERE node = ? AND source = ?", (node, source)
+        ).fetchall()
+        ranks = sorted(r for r, _ in rows)
+        if ranks != list(range(len(ranks))):
             bad.append(
                 Violation(
                     "INV-RANK-DENSE",
-                    f"node {node}, source {source}: ranks {sorted(ranks)} "
+                    f"node {node}, source {source}: ranks {ranks} "
                     f"are not 0..{len(ranks) - 1}",
                 )
             )

@@ -1,9 +1,11 @@
-"""The descent, and the two other forms of the same answer.
+"""The descent, and the other forms of the same answers.
 
 Liveness is derived from an ancestry, and there are three ways to reach it: walk up from
 one node, run down the whole tree carrying it, or read it off a path already fetched. The
 tests that matter here are the ones that hold the three against each other, because a bulk
 form that disagrees with the single-node form is the kind of fault nothing else reports.
+
+The bulk reads that are not the descent are here for the same reason.
 """
 
 from __future__ import annotations
@@ -12,7 +14,7 @@ import pytest
 
 from tokenloom.core import Store
 from tokenloom.core import reads as R
-from toy import USER, ToyVocabulary
+from toy import USER, ToyAdapter, ToyVocabulary, drew
 
 
 @pytest.fixture
@@ -132,6 +134,47 @@ def test_a_descent_from_a_leaf_yields_nothing(tree):
 def test_a_descent_from_a_node_that_does_not_exist_raises(tree):
     with pytest.raises(KeyError, match="no node 9999"):
         list(R.descend(tree.conn, 9999))
+
+
+# ---- the other bulk forms -----------------------------------------------------------
+
+
+def test_unrealised_counts_agrees_with_unrealised_edges_at_every_node(tmp_path):
+    """The branchable set asked for many nodes at once. Two of the fixture's ranked edges
+    have children and the rest do not, so a count that ignored the join would be wrong at
+    every node rather than at none."""
+    with Store.initialise(tmp_path / "u", vocabulary="toy") as store:
+        adapter = ToyAdapter([
+            drew((101, [(101, -0.1), (102, -0.5), (103, -1.0)])),
+            drew((105, [(105, -0.2), (106, -0.9)])),
+        ])
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(1, {"length": 1}, adapter=adapter, actor=USER)
+        store.generate(2, {"length": 1}, adapter=adapter, actor=USER)
+        every = [r[0] for r in store.conn.execute("SELECT id FROM nodes")]
+
+        counts = R.unrealised_counts(store.conn, every)
+        assert counts == {
+            node: len(R.unrealised_edges(store.conn, node))
+            for node in every
+            if R.unrealised_edges(store.conn, node)
+        }
+        assert counts == {1: 2, 2: 1}  # and node 3, the tip, is absent rather than 0
+        assert R.unrealised_counts(store.conn, [3]) == {}
+
+
+def test_token_bytes_agrees_with_node_bytes(tree):
+    spell = R.token_bytes(tree.conn, (n.token_id for _, n, _ in R.descend(tree.conn)))
+    for _, node, _ in R.descend(tree.conn):
+        assert spell[node.token_id] == R.node_bytes(tree.conn, node.id)
+
+
+def test_token_bytes_raises_on_a_token_the_vocabulary_does_not_hold(tree):
+    """Both callers hand it a generator, so the ids have to be held rather than read twice:
+    an exhausted one reports nothing missing and hands back a shorter dictionary."""
+    for ids in ([9999], iter([9999])):
+        with pytest.raises(KeyError, match="INV-VOCAB-CLOSED"):
+            R.token_bytes(tree.conn, ids)
 
 
 # ---- cost ---------------------------------------------------------------------------

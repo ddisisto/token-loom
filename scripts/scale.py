@@ -112,6 +112,18 @@ def main() -> int:
     )
     timed("descend() over the whole tree -- one query", lambda: list(R.descend(conn)))
     timed("annotated_path(deepest)", lambda: R.annotated_path(conn, deepest))
+    timed(
+        f"unrealised_edges over {args.sample} nodes -- the N+1 form",
+        lambda: [R.unrealised_edges(conn, n) for n in range(1, args.sample + 1)],
+    )
+    timed(
+        f"unrealised_counts over the same {args.sample}",
+        lambda: R.unrealised_counts(conn, range(1, args.sample + 1)),
+    )
+    timed(
+        "unrealised_counts over the whole tree",
+        lambda: R.unrealised_counts(conn, range(1, args.nodes + 1)),
+    )
     timed("ranking_with_children(one node)", lambda: R.ranking_with_children(conn, 1))
 
     print()

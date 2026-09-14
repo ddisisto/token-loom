@@ -29,8 +29,11 @@ def show_bytes(data: bytes) -> str:
     return data.decode("utf-8", errors="replace")
 
 
-def token_repr(store: Store, node: R.Node) -> str:
-    return repr(show_bytes(R.node_bytes(store.conn, node.id)))
+def token_repr(store: Store, node: R.Node, spell: dict[int, bytes] | None = None) -> str:
+    """`spell` is for a caller with many nodes in hand, which is what keeps a listing from
+    asking the vocabulary once per row."""
+    data = spell[node.token_id] if spell is not None else R.node_bytes(store.conn, node.id)
+    return repr(show_bytes(data))
 
 
 def source_name(store: Store, source_id: int) -> str:
@@ -239,12 +242,16 @@ def cmd_path(args) -> int:
 
 def cmd_tree(args) -> int:
     with Store.open(args.tree) as store:
-        start = args.at
-        for depth, node, live in R.descend(store.conn, start):
-            if depth > args.depth:
-                continue
-            ranked = len(R.unrealised_edges(store.conn, node.id))
-            print(f"{'  ' * depth}{node.id:>6}  {token_repr(store, node):<18}"
+        rows = [
+            (depth, node, live)
+            for depth, node, live in R.descend(store.conn, args.at)
+            if depth <= args.depth
+        ]
+        spell = R.token_bytes(store.conn, (n.token_id for _, n, _ in rows))
+        unrealised = R.unrealised_counts(store.conn, (n.id for _, n, _ in rows))
+        for depth, node, live in rows:
+            ranked = unrealised.get(node.id, 0)
+            print(f"{'  ' * depth}{node.id:>6}  {token_repr(store, node, spell):<18}"
                   f"{'' if live else ' [deleted]'}"
                   f"{f'  +{ranked}' if ranked else ''}")
     return 0

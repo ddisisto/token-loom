@@ -177,11 +177,23 @@ def test_a_deleted_nodes_edges_are_not_orphans():
     assert "INV-RANK-ANCHORED" not in names(conn)
 
 
-def test_inv_rank_dense():
-    conn = bare()
-    node(conn, 1, None)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 10, -1.0), (1, 2, 2, 11, -2.0)")
-    assert "INV-RANK-DENSE" in names(conn)
+def test_inv_rank_dense_on_a_gap_a_repeat_and_a_late_start():
+    """Distinct and contiguous from 0 has more ways to fail than a gap, and only the relaxed
+    schema can pose most of them: the real DDL's PRIMARY KEY makes a repeated rank
+    unstorable. The last two are the shapes a count and a range cannot see between them --
+    a repeat *inside* the range, and a range of the right width in the wrong place.
+    """
+    for edges in (
+        "(1, 2, 0, 10, -1.0), (1, 2, 2, 11, -2.0)",   # a gap
+        "(1, 2, 0, 10, -1.0), (1, 2, 0, 11, -2.0)",   # the same rank twice
+        "(1, 2, 1, 10, -1.0), (1, 2, 2, 11, -2.0)",   # contiguous, and not from 0
+        "(1, 2, 0, 10, -1.0), (1, 2, 0, 11, -2.0), (1, 2, 2, 12, -3.0)",   # 0, 0, 2
+        "(1, 2, -1, 10, -1.0), (1, 2, 1, 11, -2.0)",  # two ranks, widest 1, and no 0
+    ):
+        conn = bare()
+        node(conn, 1, None)
+        conn.execute(f"INSERT INTO edges VALUES {edges}")
+        assert "INV-RANK-DENSE" in names(conn), edges
 
 
 def test_inv_rank_unique():
