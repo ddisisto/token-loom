@@ -1,9 +1,21 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>token loom</title>
-<h1>token loom</h1>
-<p>The page is not built yet. The tree under this process is served at
-<a href="/tree">/tree</a>, and from there <code>/path/{node}</code>,
-<code>/ranking/{node}</code>, <code>/branches/{node}</code>, <code>/acts</code> and
-<code>/evaluable</code> read it; <code>/create</code>, <code>/generate</code>,
-<code>/realise</code>, <code>/delete</code> and <code>/undelete</code> write it.
+<link rel="stylesheet" href="assets/app.css">
+
+<nav id="roots">
+  <div class="head">
+    <button id="new" title="start something new">+</button>
+    <button id="fold" title="fold the list away" aria-pressed="false">‹</button>
+  </div>
+  <ol id="list"></ol>
+</nav>
+
+<main>
+  <div id="column"></div>
+</main>
+
+<footer id="status">&nbsp;</footer>
+
+<script type="module" src="assets/app.js"></script>

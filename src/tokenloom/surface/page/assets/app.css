@@ -1,0 +1,92 @@
+/* The palette and the reading column are the probe's, which measured them against a real
+   tree. The column is half of a container two measures wide: the right half is empty until a
+   band opens into it, so a preview that starts late in a line still has a line's worth of
+   room and the reading column never moves to make space. */
+
+:root {
+  --bg: #faf8f4; --ink: #17150f; --dim: #6d685c; --faint: #d8d2c4;
+  --rule: #e6e0d2; --accent: #9a4a1e; --accent-bg: #f0e2d6;
+  --panel: #fffdf9;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* U+2442 is missing from most system UI faces and falls back to a tofu box, which reads
+     as corruption rather than as a mark. These are the families that carry it. */
+  --fork-face: "DejaVu Sans", "Symbola", "Segoe UI Symbol", "Noto Sans Symbols2", sans-serif;
+  --nav: 15.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14130f; --ink: #eae5d8; --dim: #8f8878; --faint: #33302a;
+    --rule: #2a2721; --accent: #d98a55; --accent-bg: #33251b;
+    --panel: #1c1a15;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font-family: var(--serif); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: var(--dim); background: none; cursor: pointer;
+         border: 1px solid var(--rule); border-radius: 4px; padding: 3px 9px; }
+button:hover { color: var(--ink); border-color: var(--dim); }
+
+/* ---- the list of roots ----
+   Each is its own trie; they share a store and a vocabulary and nothing else. */
+
+#roots { position: fixed; top: 0; left: 0; bottom: 0; width: var(--nav); z-index: 20;
+         display: flex; flex-direction: column; background: var(--panel);
+         border-right: 1px solid var(--rule); transition: width .14s ease; }
+#roots .head { display: flex; gap: 8px; padding: 12px; border-bottom: 1px solid var(--rule); }
+#new { flex: 1; font: 400 15px/1.2 var(--mono); }
+#fold { font: 400 13px/1.2 var(--mono); }
+#list { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; }
+
+#list li { display: block; width: 100%; padding: 9px 12px; cursor: pointer;
+           font: 400 12.5px/1.45 var(--mono); color: var(--dim);
+           border-left: 2px solid transparent;
+           /* One line, clipped. The mark is part of the text and is cut with it. */
+           white-space: nowrap; overflow: hidden; }
+#list li:hover { color: var(--ink); background: var(--bg); }
+#list li[aria-current="true"] { color: var(--ink); border-left-color: var(--accent);
+                                background: var(--accent-bg); }
+#list .fork { font-family: var(--fork-face); color: var(--accent); }
+#list .none { color: var(--dim); cursor: default; font-style: italic;
+              font-family: var(--serif); white-space: normal; }
+#list .none:hover { background: none; }
+
+body.folded #roots { width: 3.25rem; }
+body.folded #roots .head { flex-direction: column; }
+body.folded #list { display: none; }
+body.folded main, body.folded footer { margin-left: 3.25rem; }
+body.folded #fold { transform: rotate(180deg); }
+
+/* ---- the reading column ---- */
+
+main { margin-left: var(--nav); transition: margin-left .14s ease; }
+#column { --col: min(34em, 44vw); box-sizing: content-box; width: calc(var(--col) * 2);
+          margin: 0 auto; padding: 72px 24px 45vh;
+          font-size: 21px; line-height: 1.75; letter-spacing: .002em; }
+.flow { width: var(--col); white-space: pre-wrap; overflow-wrap: break-word; }
+/* Bytes that do not decode. Marked rather than hidden, as everywhere else. */
+.seg.raw { color: var(--accent); background: var(--accent-bg); border-radius: 2px; }
+
+/* ---- the composer ----
+   A request appears where its result will, so this stands in the column at the position it
+   will write into. One component: what changes between a root and a branch is `at`. */
+
+.compose { width: var(--col); }
+.compose textarea { display: block; width: 100%; min-height: 7.5em; resize: vertical;
+                    font: inherit; font-size: 19px; line-height: 1.6; padding: 12px 14px;
+                    color: var(--ink); background: var(--panel);
+                    border: 1px solid var(--rule); border-radius: 5px; }
+.compose textarea:focus { outline: none; border-color: var(--dim); }
+.compose .foot { display: flex; align-items: center; gap: 12px; margin-top: 10px;
+                 font: 400 12px/1.5 var(--mono); color: var(--dim); }
+.compose .foot .grow { flex: 1; }
+.compose .fault { color: var(--accent); white-space: pre-wrap; }
+
+footer { position: fixed; left: var(--nav); right: 0; bottom: 0; z-index: 10;
+         padding: 7px 20px; font: 400 11.5px/1.4 var(--mono); color: var(--dim);
+         background: color-mix(in srgb, var(--bg) 88%, transparent);
+         backdrop-filter: blur(8px); border-top: 1px solid var(--rule);
+         transition: left .14s ease; }
+footer .fault { color: var(--accent); }

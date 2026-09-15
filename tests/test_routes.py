@@ -429,6 +429,13 @@ def test_the_page_is_at_the_root_and_shadows_none_of_the_routes(client):
     assert page.headers["content-type"].startswith("text/html")
     assert client.get("/tree").json()["vocabulary"] == "toy"
 
+    # What the page pulls for itself comes off the same mount, so a file left out of the
+    # package is a 404 here rather than a page that loads and does nothing.
+    for asset, kind in (("app.css", "text/css"), ("app.js", "text/javascript")):
+        served = client.get(f"/assets/{asset}")
+        assert served.status_code == 200, asset
+        assert served.headers["content-type"].startswith(kind)
+
 
 def test_a_path_that_is_neither_a_route_nor_a_file_is_not_the_page(client):
     """`html=True` serves the index for a directory and not for anything else, so a client
