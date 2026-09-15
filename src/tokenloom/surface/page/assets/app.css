@@ -12,7 +12,7 @@
   /* U+2442 is missing from most system UI faces and falls back to a tofu box, which reads
      as corruption rather than as a mark. These are the families that carry it. */
   --fork-face: "DejaVu Sans", "Symbola", "Segoe UI Symbol", "Noto Sans Symbols2", sans-serif;
-  --nav: 15.5rem;
+  --nav: 15.5rem; --fold: 3.25rem;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -29,35 +29,47 @@ button { font: inherit; color: var(--dim); background: none; cursor: pointer;
          border: 1px solid var(--rule); border-radius: 4px; padding: 3px 9px; }
 button:hover { color: var(--ink); border-color: var(--dim); }
 
-/* ---- the list of roots ----
-   Each is its own trie; they share a store and a vocabulary and nothing else. */
+/* ---- the side: what the tree holds ----
+   Each root is its own trie; they share a store and a vocabulary and nothing else. Folding
+   is for putting this out of the way, not for using it small, so the list goes with it. */
 
-#roots { position: fixed; top: 0; left: 0; bottom: 0; width: var(--nav); z-index: 20;
-         display: flex; flex-direction: column; background: var(--panel);
-         border-right: 1px solid var(--rule); transition: width .14s ease; }
-#roots .head { display: flex; gap: 8px; padding: 12px; border-bottom: 1px solid var(--rule); }
-#new { flex: 1; font: 400 15px/1.2 var(--mono); }
-#fold { font: 400 13px/1.2 var(--mono); }
-#list { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; }
+#side { position: fixed; top: 0; left: 0; bottom: 0; width: var(--nav); z-index: 20;
+        display: flex; flex-direction: column; background: var(--panel);
+        border-right: 1px solid var(--rule); transition: width .14s ease; }
+#side .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+              gap: 8px; padding: 11px 12px; border-bottom: 1px solid var(--rule); }
+#side .head b { grid-column: 2; font: 400 12px/1.2 var(--mono); letter-spacing: .06em;
+                color: var(--dim); white-space: nowrap; }
+#fold { grid-column: 3; justify-self: end; font: 400 13px/1.2 var(--mono); }
 
-#list li { display: block; width: 100%; padding: 9px 12px; cursor: pointer;
-           font: 400 12.5px/1.45 var(--mono); color: var(--dim);
-           border-left: 2px solid transparent;
-           /* One line, clipped. The mark is part of the text and is cut with it. */
-           white-space: nowrap; overflow: hidden; }
-#list li:hover { color: var(--ink); background: var(--bg); }
-#list li[aria-current="true"] { color: var(--ink); border-left-color: var(--accent);
-                                background: var(--accent-bg); }
-#list .fork { font-family: var(--fork-face); color: var(--accent); }
-#list .none { color: var(--dim); cursor: default; font-style: italic;
-              font-family: var(--serif); white-space: normal; }
-#list .none:hover { background: none; }
+#roots { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; }
+#roots li { display: block; width: 100%; padding: 9px 12px; cursor: pointer;
+            font: 400 12.5px/1.45 var(--mono); color: var(--dim);
+            border-left: 2px solid transparent;
+            /* One line, clipped. The mark is part of the text and is cut with it. */
+            white-space: nowrap; overflow: hidden; }
+#roots li:hover { color: var(--ink); background: var(--bg); }
+#roots li[aria-current="true"] { color: var(--ink); border-left-color: var(--accent);
+                                 background: var(--accent-bg); }
+#roots .fork { font-family: var(--fork-face); color: var(--accent); }
+#roots .none { color: var(--dim); cursor: default; font-style: italic;
+               font-family: var(--serif); white-space: normal; }
+#roots .none:hover { background: none; }
 
-body.folded #roots { width: 3.25rem; }
-body.folded #roots .head { flex-direction: column; }
-body.folded #list { display: none; }
-body.folded main, body.folded footer { margin-left: 3.25rem; }
-body.folded #fold { transform: rotate(180deg); }
+/* Last in the list, which is the row the root it makes will occupy. */
+#roots .new { padding: 0; }
+#roots .new:hover { background: none; }
+#roots .new button { width: 100%; text-align: left; border: none; border-radius: 0;
+                     padding: 9px 12px; font: 400 13px/1.45 var(--mono); }
+#roots .new button:hover { color: var(--ink); background: var(--bg); }
+
+body.folded #side { width: var(--fold); }
+body.folded #side .head { grid-template-columns: 1fr; }
+body.folded #side .head b { display: none; }
+body.folded #fold { grid-column: 1; justify-self: center; transform: rotate(180deg); }
+body.folded #roots { display: none; }
+body.folded main { margin-left: var(--fold); }
+body.folded footer { left: var(--fold); }  /* it is placed, not inset */
 
 /* ---- the reading column ---- */
 

@@ -38,27 +38,43 @@ async function ask(path, body) {
 /** A label is one line and the column cuts it, so a newline is shown rather than obeyed. */
 const oneLine = text => text.replace(/\n/g, "\\n");
 
+function rootRow(root, current) {
+  const li = document.createElement("li");
+  li.append(oneLine(root.label));
+  if (root.forked) {
+    // It stopped where the tree parts rather than for room, and the two read the same in
+    // the text. Part of the line, so it is clipped with it.
+    const mark = document.createElement("span");
+    mark.className = "fork";
+    mark.textContent = " ⑂";
+    mark.title = "the tree parts here";
+    li.append(mark);
+  }
+  li.dataset.node = root.id;
+  li.setAttribute("aria-current", String(root.id === current));
+  li.onclick = () => show(root.id);
+  return li;
+}
+
+/** Last in the list, which is the row the root it makes will occupy. */
+function newRow() {
+  const li = document.createElement("li");
+  li.className = "new";
+  const go = document.createElement("button");
+  go.textContent = "+";
+  go.title = "start something new";
+  go.onclick = () => stage(null);
+  li.append(go);
+  return li;
+}
+
 function drawRoots(tree, current) {
-  $("list").replaceChildren(...(tree.roots.length ? tree.roots.map(root => {
-    const li = document.createElement("li");
-    li.append(oneLine(root.label));
-    if (root.forked) {
-      // It stopped where the tree parts rather than for room, and the two read the same in
-      // the text. Part of the line, so it is clipped with it.
-      const mark = document.createElement("span");
-      mark.className = "fork";
-      mark.textContent = " ⑂";
-      mark.title = "the tree parts here";
-      li.append(mark);
-    }
-    li.dataset.node = root.id;
-    if (root.id === current) li.setAttribute("aria-current", "true");
-    li.onclick = () => show(root.id);
-    return li;
-  }) : [Object.assign(document.createElement("li"), {
+  const rows = tree.roots.map(root => rootRow(root, current));
+  if (!rows.length) rows.push(Object.assign(document.createElement("li"), {
     className: "none",
     textContent: "Nothing here yet.",
-  })]));
+  }));
+  $("roots").replaceChildren(...rows, newRow());
 }
 
 async function refresh(current) {
@@ -92,7 +108,7 @@ async function show(node) {
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
   const root = read.segments[0].nodes[0].id;
-  for (const li of $("list").children)
+  for (const li of $("roots").querySelectorAll("li[data-node]"))
     li.setAttribute("aria-current", String(Number(li.dataset.node) === root));
 }
 
@@ -159,7 +175,6 @@ function say(text, bad) {
   $("status").className = bad ? "fault" : "";
 }
 
-$("new").onclick = () => stage(null);
 $("fold").onclick = () => {
   const folded = document.body.classList.toggle("folded");
   $("fold").setAttribute("aria-pressed", String(folded));
