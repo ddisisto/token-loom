@@ -145,6 +145,21 @@ def test_the_tree_read_names_its_roots_and_its_vocabulary(client):
     assert body["counts"]["nodes"] == 6
 
 
+def test_a_root_is_named_by_what_it_opens_with_and_by_what_is_live(client):
+    """A label is drawn from the live tree, so deleting an arm lengthens one and undeleting
+    it cuts it back. The text alone cannot say which stop it was, which is what `forked` is
+    for: here it turns over without the label ever being wrong about the characters."""
+    before = {r["id"]: r for r in client.get("/tree").json()["roots"]}
+    assert (before[1]["label"], before[1]["forked"]) == ("The sky is blue", False)
+    assert (before[6]["label"], before[6]["forked"]) == (" grey", False)
+
+    assert client.post("/undelete", json={"node": 5}).status_code == 201
+
+    after = {r["id"]: r for r in client.get("/tree").json()["roots"]}
+    assert (after[1]["label"], after[1]["forked"]) == ("The sky", True)
+    assert after[6] == before[6]
+
+
 def test_a_path_runs_to_the_leaf_the_rule_chooses(client):
     body = client.get("/path/2").json()
     assert body["leaf"] == 4

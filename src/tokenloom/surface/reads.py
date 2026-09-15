@@ -6,6 +6,10 @@ core answers questions about the record and stops there.
 
 Nothing here is an interface. The document states the three as what must be answerable from
 one descent, and this is that; what an API or a command line hands a client is its own.
+
+`label` is not a fourth. A list of roots is a point read the core already answers, and what
+it cannot answer is what to call them; that is bounded by a budget and costs nothing like a
+read.
 """
 
 from __future__ import annotations
@@ -262,3 +266,51 @@ def branches(
         for child, at in reversed(shown):
             stack.append((child, at, branch.branches))
     return top
+
+
+# ---- naming a root -------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Label:
+    """What a root opens with, and whether the tree parts where that stops."""
+
+    segments: list[Segment[R.Node]]
+    forked: bool  #: it stopped where the tree parts, rather than at a leaf or for room
+
+
+def label(conn: sqlite3.Connection, node: int, budget: int) -> Label:
+    """The run from `node` down to where it first parts, or to `budget` characters.
+
+    This is not a fourth read. A list of roots is a point read that `docs/CORE.md` already
+    answers, and what it cannot answer is what to call them; this is that, and it is bounded
+    so that naming a root never costs what reading one does. Children and bytes are asked a
+    node at a time, which is what keeps the walk proportional to the budget rather than to
+    the tree: a root of a twelve-thousand-node trie is named from about twenty of them.
+
+    It stops where the tree parts because that is the last text belonging to the root rather
+    than to one continuation of it -- reading past a fork would follow whichever rule was
+    live, and the rule is a parameter of every other read. `forked` says it was that stop
+    and not one of the other two, since a caller marking a divergence must not mark a leaf.
+
+    A segment is atomic and the first is always taken, as in `branches`, so a label can
+    exceed the budget only by its own opening segment. The anchor is always taken and a root
+    has no incoming edge, so a root cannot be the divergence and a label is never empty.
+    """
+    run, buf, forked = [R.get_node(conn, node)], R.node_bytes(conn, node), False
+    while len(buf.decode("utf-8", "replace")) <= budget:
+        live = [k for k in R.children(conn, run[-1].id) if not k.deleted]
+        if len(live) != 1:
+            forked = len(live) > 1
+            break
+        run.append(live[0])
+        buf += R.node_bytes(conn, live[0].id)
+
+    spell = R.token_bytes(conn, (n.token_id for n in run))
+    kept, width = [], 0
+    for cell in segments(run, lambda n: spell[n.token_id]):
+        if kept and width + len(cell.text) > budget:
+            return Label(kept, False)  # it stopped for room, whatever the tree does below
+        kept.append(cell)
+        width += len(cell.text)
+    return Label(kept, forked)

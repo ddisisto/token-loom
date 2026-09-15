@@ -48,6 +48,10 @@ RULES: dict[str, S.Rule] = {"longest": S.longest}
 
 PAGE = Path(__file__).parent / "page"
 
+#: Characters of a root's opening text. It bounds what naming every root costs, and the
+#: client cuts it again to whatever column it has.
+LABEL = 120
+
 
 class Busy(Exception):
     """A write was asked for while one was in flight. There is no queue."""
@@ -214,7 +218,9 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                     table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
                     for table in ("nodes", "edges", "acts")
                 },
-                "roots": [wire.node(n) for n in R.roots(conn)],
+                "roots": [
+                    wire.root(n, S.label(conn, n.id, LABEL)) for n in R.roots(conn)
+                ],
                 "sources": wire.source_names(conn),
             })
 

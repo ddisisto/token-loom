@@ -440,3 +440,81 @@ def test_a_path_costs_the_same_whatever_its_length(tmp_path):
             assert sum(len(c.nodes) for c in cells) == length + 1
             counts.append(seen)
     assert counts[0] == counts[1]
+
+
+# ---- naming a root ---------------------------------------------------------------------
+
+
+def reading_label(name):
+    return "".join(cell.text for cell in name.segments)
+
+
+def test_a_label_stops_where_the_tree_parts_and_says_it_did(tree):
+    """Node 2 has two live children, so the text belonging to the root alone ends there."""
+    name = S.label(tree.conn, 1, 100)
+    assert reading_label(name) == "The sky"
+    assert name.forked is True
+
+
+def test_a_label_cut_for_room_does_not_claim_the_tree_parts(tree):
+    """The two stops read the same in the text and do not mean the same thing, which is the
+    whole reason `forked` is carried separately."""
+    name = S.label(tree.conn, 1, 3)
+    assert reading_label(name) == "The"
+    assert name.forked is False
+
+
+def test_a_label_that_reaches_a_leaf_does_not_claim_the_tree_parts(tree):
+    name = S.label(tree.conn, 9, 100)
+    assert reading_label(name) == " grey"
+    assert name.forked is False
+
+
+def test_a_deleted_arm_does_not_part_a_label(tree):
+    """Node 4 has two children and one is deleted, so the walk goes through it. Liveness is
+    what parts a label, and a label that counted the record's children would stop here."""
+    name = S.label(tree.conn, 3, 100)
+    assert reading_label(name) == " is blue is"
+    assert name.forked is False
+
+
+def test_no_root_parts_at_itself_however_many_there_are(tree):
+    """A root has no incoming edge, so it cannot be the node a parent parts at, and a label
+    is never empty. Two roots in one store are not siblings of each other."""
+    for root in R.roots(tree.conn):
+        assert reading_label(S.label(tree.conn, root.id, 100)) != ""
+
+
+def test_a_label_parting_inside_a_character_keeps_the_mark(tmp_path):
+    """A segment cannot be split, so a divergence inside one leaves a label ending in the
+    bytes that do not decode -- shown as U+FFFD, as everywhere else. The tree does part
+    there, and `forked` says so."""
+    with Store.initialise(tmp_path / "f", vocabulary="toy") as store:
+        v = ToyVocabulary()
+        store.create(None, "The", vocabulary=v, actor=USER)  # 1
+        store.create(1, "é", vocabulary=v, actor=USER)  # 2 hi, 3 lo
+        store.create(2, " sky", vocabulary=v, actor=USER)  # 4, parts inside the character
+        name = S.label(store.conn, 1, 100)
+        assert reading_label(name) == "The�"
+        assert [cell.decodes for cell in name.segments] == [True, False]
+        assert name.forked is True
+
+
+def test_naming_a_root_does_not_cost_what_reading_one_does(tmp_path):
+    """The walk asks for children a node at a time and stops, so what it reads is set by the
+    budget and not by the tree. The invariant is that a longer chain costs the same."""
+    counts = []
+    for length in (4, 40):
+        with Store.initialise(tmp_path / f"n{length}", vocabulary="toy") as store:
+            chain(store, length)
+            seen = 0
+
+            def count(statement):
+                nonlocal seen
+                seen += 1
+
+            store.conn.set_trace_callback(count)
+            S.label(store.conn, 1, 12)
+            store.conn.set_trace_callback(None)
+            counts.append(seen)
+    assert counts[0] == counts[1]

@@ -42,6 +42,21 @@ def node(item: R.Node) -> dict[str, Any]:
     }
 
 
+def root(item: R.Node, name: S.Label) -> dict[str, Any]:
+    """A root with what a list of them is drawn from: its opening text, and whether the
+    tree parts where that text stops.
+
+    `forked` is a fact about the tree and the text is not enough to carry it -- a label cut
+    for room and one cut at a divergence read the same. What marks it, and how far the text
+    is cut again to fit, are the client's: it has the column and the server does not.
+    """
+    return {
+        **node(item),
+        "label": "".join(cell.text for cell in name.segments),
+        "forked": name.forked,
+    }
+
+
 def path_node(mark: R.PathNode) -> dict[str, Any]:
     """A node of a path with what is derived at it: whether it is live, what the ranking
     above gave it, and whether its parent parts here."""
