@@ -21,8 +21,8 @@ import sqlite3
 from collections.abc import Callable
 from typing import Any
 
-from .. import surface as S
 from ..core import reads as R
+from . import reads as S
 
 
 def spelled(data: bytes) -> dict[str, Any]:

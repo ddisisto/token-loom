@@ -307,7 +307,7 @@ def cmd_serve(args) -> int:
     """
     import uvicorn
 
-    from .api.server import Backend, Writer, build_app
+    from .surface.app import Backend, Writer, build_app
 
     writer = Writer(args.tree)
     print(f"{writer.store.path}  vocabulary {writer.store.vocabulary}  "

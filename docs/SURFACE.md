@@ -340,8 +340,10 @@ when it is settled.
 
 ## Status
 
-**A server with no page.** `tokenloom serve` holds one tree for as long as it runs and serves the
-three reads, the path predicate and the five acts over HTTP, each act under its own verb. What
-does not exist is the page: nothing reads any of it. What else exists is the core, the llama.cpp
+**A process with a placeholder where the page goes.** `tokenloom serve` holds one tree for as
+long as it runs and serves the three reads, the path predicate and the five acts over HTTP, each
+act under its own verb, with the page mounted at the root so that what it reads and the page
+itself arrive from one origin. What does not exist is the page: `/` answers with a sentence
+saying so, and nothing reads any of the rest. What else exists is the core, the llama.cpp
 adapter, the command line, and a throwaway probe that reads a static projection of a tree and
 cannot write — which is what demonstrated the band.

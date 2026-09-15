@@ -15,7 +15,7 @@ import sqlite3
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from .core import reads as R
+from ..core import reads as R
 
 # ---- segments ------------------------------------------------------------------------
 

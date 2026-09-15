@@ -21,9 +21,9 @@ import tempfile
 import time
 from pathlib import Path
 
-from tokenloom import surface as S
 from tokenloom.core import Store, violations
 from tokenloom.core import reads as R
+from tokenloom.surface import reads as S
 
 VOCAB_SIZE = 300
 

@@ -21,6 +21,18 @@ carried forward, all of which would have to come apart anyway.
 
 **No build step.** The probe needed none for the hardest thing in the document.
 
+**Where it goes, and what is already there.** `src/tokenloom/surface/page/` is mounted at the
+root of the process that answers the reads, so the page and what it reads arrive from one origin
+and there is nothing between them to arrange. What is there now is a sentence saying the page is
+not built, which gets replaced whole.
+
+**The reading view renders no act but the one in flight.** An act originates at a node or an edge
+regardless of what produced either, and what it leaves behind is nodes and paths — which are what
+is read. A generation still running is the exception, because it is the one act whose absence from
+the record is something the reader is waiting on. `/acts` answers the whole list unfiltered and
+should keep doing so: the rest of it belongs behind a log view, hidden by default, which is worth
+having while the page is being built and is not part of reading.
+
 **The continuation rule is a parameter of the read, and the page must not put it back.**
 `docs/SURFACE.md` names a family of them and settles none, because they are compared by use.
 `longest` is the only member built, a second is a function and an entry in `RULES`, and what the
@@ -52,12 +64,6 @@ bytes never change, because `put_token` refuses a vocabulary that disagrees at a
 held; and a ranking only grows, because `_extend_ranking` appends and never rewrites. Spellings
 and rankings are therefore cacheable for the life of the page, and liveness is the only thing
 that has to be asked again.
-
-**A delta is a different idea and does not follow from either.** A band is computed whole from
-one descent, so diffing two costs what computing one costs — there is nothing cheap for the
-server to send. What is naturally deltaic is the act, which a write already answers with; but a
-page that applies acts to a cached tree and recomputes the band from it is a page holding
-`surface.branches` itself, which is another architecture rather than a cache over this one.
 
 ## Loose ends
 

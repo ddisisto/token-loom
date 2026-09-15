@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import pytest
 
-from tokenloom import surface as S
 from tokenloom.core import Store
 from tokenloom.core import reads as R
+from tokenloom.surface import reads as S
 from toy import FRAG_HI, FRAG_LO, MODEL, OTHER, USER, ToyAdapter, ToyVocabulary, drew
 
 

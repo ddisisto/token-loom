@@ -1,9 +1,11 @@
-"""The server: one tree, claimed for as long as the process runs.
+"""The process: one tree, claimed for as long as it runs, and the page read against it.
 
 `docs/SURFACE.md` has the surface claiming its tree and verifying once for the life of the
 process rather than before every write, and this is that process. It serves the three reads
-`surface.py` answers, the path predicate an adapter provides, and the five acts -- each under
-its own verb, since a surface write with no verb would be a new kind of write.
+`reads.py` answers, the path predicate an adapter provides, and the five acts -- each under
+its own verb, since a surface write with no verb would be a new kind of write -- and it
+serves `page/` at the root, so what the page reads and the page itself arrive from one place
+and there is no origin to arrange between them.
 
 **Reads run on connections of their own and writes on a thread of their own, and neither is
 a concurrency scheme.** A sqlite3 connection cannot leave the thread that made it, and a read
@@ -31,17 +33,20 @@ from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.routing import Route
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
-from .. import surface as S
 from ..core import Rejected, Source, Store, StoreError
 from ..core import reads as R
 from ..core.ports import Adapter
+from . import reads as S
 from . import wire
 
 #: The family `docs/SURFACE.md` names, as far as it is built. A second member is a function
 #: and an entry here; what settles which is right is reading one tree under two of them.
 RULES: dict[str, S.Rule] = {"longest": S.longest}
+
+PAGE = Path(__file__).parent / "page"
 
 
 class Busy(Exception):
@@ -362,6 +367,9 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             Route("/realise", realise, methods=["POST"]),
             Route("/delete", _liveness(False), methods=["POST"]),
             Route("/undelete", _liveness(True), methods=["POST"]),
+            # Last: the page is what is left over, and a named route is never shadowed by a
+            # file that happens to share its path.
+            Mount("/", StaticFiles(directory=PAGE, html=True)),
         ],
         exception_handlers=HANDLERS,
     )

@@ -1,10 +1,11 @@
-"""The server: one tree, claimed for as long as it runs.
+"""The routes: one tree, claimed for as long as the process runs.
 
 What is worth testing here is not that the routes return JSON. It is the three things the
 process model claims and nothing before it could: that a read is served while a write is in
 flight, that a second write is refused rather than queued, and that a failure says which of
 the three kinds it was. The rest is projection, which is tested where a shape would
-otherwise be silently wrong -- a token that spells no character, a source that is an id.
+otherwise be silently wrong -- a token that spells no character, a source that is an id --
+and the page, where the order of the route list is the whole of what it rests on.
 """
 
 from __future__ import annotations
@@ -14,9 +15,9 @@ import threading
 import pytest
 from starlette.testclient import TestClient
 
-from tokenloom.api.server import Backend, Writer, build_app
 from tokenloom.core import Generation, Store, StoreError
 from tokenloom.core import reads as R
+from tokenloom.surface.app import Backend, Writer, build_app
 from toy import FRAG_HI, FRAG_LO, MODEL, USER, ToyAdapter, ToyVocabulary, drew
 
 
@@ -397,3 +398,24 @@ def test_the_path_predicate_is_asked_of_the_backend_and_writes_nothing(client, w
     }
     assert client.get("/evaluable").json() == {"node": None, "evaluable": True}
     assert client.get("/acts").json()["acts"] == before
+
+
+# ---- and the page, served from the same process ---------------------------------------
+
+
+def test_the_page_is_at_the_root_and_shadows_none_of_the_routes(client):
+    """The mount is last, so a named route is reached and the page is what is left over.
+
+    Were it first, every route below would answer 404 from the file system instead, which is
+    a failure that looks like a missing tree rather than a misordered list.
+    """
+    page = client.get("/")
+    assert page.status_code == 200
+    assert page.headers["content-type"].startswith("text/html")
+    assert client.get("/tree").json()["vocabulary"] == "toy"
+
+
+def test_a_path_that_is_neither_a_route_nor_a_file_is_not_the_page(client):
+    """`html=True` serves the index for a directory and not for anything else, so a client
+    asking for a route this server does not have is told so rather than handed the page."""
+    assert client.get("/nope").status_code == 404
