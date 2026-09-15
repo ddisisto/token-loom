@@ -26,6 +26,10 @@ rather than of its subject. What gets set as prose is whatever the path holds, d
 
 **One tree at a time, and the surface is its sole writer.**
 
+**The tree is made here as well as read.** Every path the surface reads across is one a reader
+made from it, and the acts that make them are as much the instrument as the column is. Where a
+tree comes from is where that starts.
+
 ## Units
 
 **A token is not the display unit.** A token spells several characters in ordinary English, and a
@@ -48,6 +52,61 @@ character it is several.
 - **A newline is a newline** in the reading column. Where a construct of the surface is one line
   by its own construction — a preview line in The band — a newline is shown as a glyph rather
   than obeyed, because obeying it carries everything below out of alignment.
+
+## Where a tree comes from
+
+**A tree starts empty and the reader makes it.** The surface opens against a tree with no nodes
+as readily as against one with thousands, and what a reader does from there is a loop: put
+something in, continue it, take a position the model offered and did not take, and write one it
+would not have offered at all.
+
+**An empty tree is a state and not an error.** There are no roots, so there is no path and the
+reading column has nothing to set. What the surface offers is composition, and the tree's name
+and vocabulary — which a reader about to write into it needs and cannot read off an empty page.
+
+**A root is a `create` with no parent**, and nothing else about it is special. It is the act the
+reader makes at every other position, which is why a seed and a branch are one thing the record
+does not distinguish.
+
+**There is no cursor.** Any live node can be written at, and continuing is writing at the leaf of
+the path being read. The tip is where a reader usually is; it is not something the record holds.
+
+**The gestures and the acts are not one to one.**
+
+| what the reader means | acts | what it leaves |
+| --- | --- | --- |
+| start something | `create` with no parent | a root, and the first path |
+| continue what is read | `generate` at the leaf | nodes under it, and a ranking at each |
+| take what was offered and not taken | `realise`, then `generate` | a fork, and a path under it |
+| write what was not offered | `create` at a live node | a fork with no ranking behind it |
+| set aside | `delete`, `undelete` | a fork that stops being one, or resumes |
+
+Taking an alternative the model ranked and did not sample is one intent and two acts — `realise`
+makes the node and `generate` continues from it, which is the cost Rankings states for that
+row. The reader means one thing and the record keeps two, and neither layer is wrong about it.
+
+**A `create` at a node that already has a live child is a branch with no ranking behind it.**
+Every other fork stands on something the model offered; this one stands on nothing but the
+reader, which is what makes it the control case — a path the model would not have produced, read
+against the ones it did. The record does not distinguish it from any other `create`, and whether
+the surface should is in What is not decided here.
+
+**A composition affordance belongs at the position it will write into**, for the reason Writing
+gives for the placeholder: a request appears where its result will. What summons it, what it
+looks like, and whether the surface holds one that moves or one at each position are settled by
+use and not by prose, and are in What is not decided here.
+
+**The reader names the `generate` parameters.** `docs/ADAPTER.md` requires them of every caller
+and the server names none it was not given, so a surface that fills them in is deciding what the
+store keeps one layer up from where that document forbids it. An adapter that needs one it did
+not get says so — as a refusal, naming what it wants, in the record like any other. **A draw the
+page does not seed is one nothing can replay**, which is why the command line seeds and why the
+surface does.
+
+**A refusal about parameters is where they are edited.** Writing offers a retry exactly where
+the same request could succeed and an edit everywhere else, and a request refused for what it
+asked for is the second kind: the parameters come back under the reader's hand with the adapter's
+own words beside them.
 
 ## The path
 
@@ -169,8 +228,8 @@ nonetheless mark where the model *was* unsure is in What is not decided here.
 
 ## Writing
 
-The surface offers the five acts and nothing else. What each one is, is `docs/CORE.md`; what it
-costs is here.
+The surface offers the five acts and nothing else. What each one is, is `docs/CORE.md`; what a
+reader means by one is Where a tree comes from; what it costs is here.
 
 | operation | needs | can fail as |
 | --- | --- | --- |
@@ -178,10 +237,6 @@ costs is here.
 | `generate` | a model | refused by the adapter, or failed mid-call, or rejected before the call |
 | `realise` | neither | rejected — no such edge, or the node is not live |
 | `delete` / `undelete` | neither | rejected — no such node |
-
-**The surface names the parameters a `generate` requires**, since `docs/ADAPTER.md` requires them
-of every caller. It names what the command line names. Putting them under the reader's hand is
-wanted and is not what a first build is for.
 
 **One write is in flight at a time, and while one is, no other may be requested.** There is no
 queue.
@@ -291,6 +346,24 @@ them. Three things hold it in place:
 **Questions prose cannot close.** Each says what would settle it, and moves into the body above
 when it is settled.
 
+- **How composition is summoned, and how many there are.** A request appears where its result
+  will, which places the affordance and says nothing about what opens it, what it looks like, or
+  whether the surface holds one that moves between positions or one at each. Continuing at the
+  leaf and branching at a node several segments back are the same act and may not want the same
+  gesture. What settles it is writing into a tree at both, and finding which of the two the
+  other's gesture reads wrong at.
+- **Whether a branch with no ranking behind it is marked.** A `create` at a node that already has
+  a live child makes a fork the model had no part in, and the record holds the source that says
+  so. Marking it puts a second kind of mark in a column *Between forks, nothing is drawn* keeps
+  bare; not marking it leaves a reader to open the band to find out. What settles it is a tree
+  with both kinds of fork in it, read for whether the difference is wanted at the fork or only
+  inside the band.
+- **Which `generate` parameters the reader sees.** The adapter requires several and refuses
+  naming any it did not get, so the floor is whatever the backend at hand demands. Whether the
+  rest — `length`, `record_rows`, the temperature, the seed — sit under the reader's hand at
+  every request, persist for the session, or are set once and edited on refusal is a question
+  about how often a reader changes them, and nothing has measured that. What settles it is
+  running the loop and watching which get touched.
 - **Which continuation rule.** Longest, first, last, most-recently-used, cumulative open time —
   each is defensible and they are comparable only by use. `longest` is the first implementation
   because it is the one member that needs nothing but the tree; ties bite only for it, and are

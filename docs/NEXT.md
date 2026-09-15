@@ -14,10 +14,24 @@ that relation to the others is a bullet at the end rather than a number.
 
 ## 1. The page
 
-**A skeleton, lifting from the probe rather than growing out of it.** `probe/index.html` holds the
-band's measured layout, which is the part of `docs/SURFACE.md` nothing else has demonstrated. It
-also holds its own CSS, its own reads against a static projection, and controls that are not
-carried forward, all of which would have to come apart anyway.
+**Built in the order a reader meets it, which is the order it is written in.** A tree starts
+empty, so the first thing the page needs is a way to make one, and each rendering after that is
+built once there is a way to produce what it renders from the page itself. The band is the far
+end: it needs a fork, a fork needs a second live child, and that needs a `realise` and a
+`generate` or a second `create`. Building it last is what puts the gesture that makes forks in
+hand before the thing that displays them is designed.
+
+**A page grown against an empty tree risks a column shaped by the degenerate case.**
+`data/continuations` is twelve thousand nodes and costs nothing to point at, so each increment is
+read against a tree the page could not yet have made.
+
+**The band lifts from the probe rather than growing out of it.** `probe/index.html` holds the
+band's measured layout, which is the part of `docs/SURFACE.md` nothing else has demonstrated —
+about sixty lines of it, since the tree-walking around it is what `/path` and `/branches` answer
+now. It also holds its own CSS, its own reads against a static projection, and controls that are
+not carried forward, all of which would have to come apart anyway. One adaptation is not
+cosmetic: the probe placed a preview line by segment index, and `parts_at` is characters into the
+line above, so the column carries a running offset onto each segment.
 
 **No build step.** The probe needed none for the hardest thing in the document.
 
@@ -37,12 +51,6 @@ having while the page is being built and is not part of reading.
 `docs/SURFACE.md` names a family of them and settles none, because they are compared by use.
 `longest` is the only member built, a second is a function and an entry in `RULES`, and what the
 page owes the question is a way to swap them over one tree.
-
-**The page names the `generate` parameters.** The server names none it was not given: an adapter
-that requires one says so itself, as a refusal, and a server filling them in would be deciding
-what the store keeps one layer up from where `docs/ADAPTER.md` forbids it. A stochastic draw the
-page does not seed is one nothing can replay, which is the command line's reason for seeding and
-becomes the page's.
 
 **What the band costs is now measurable and has not been measured against a page.** `/branches`
 is bounded by a line's width and by nothing vertical, so on the synthetic twenty-thousand-node
