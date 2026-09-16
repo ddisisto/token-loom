@@ -14,6 +14,9 @@ const $ = id => document.getElementById(id);
 /** The reader's position: a node, or nothing at all before there is a tree. */
 let position = null;
 
+/** The end of the path being read, which is where a continuation hangs. */
+let leaf = null;
+
 // ---- the wire -------------------------------------------------------------------------
 
 class Fault extends Error {
@@ -101,6 +104,7 @@ function spans(segments) {
 async function show(node) {
   const read = await ask(`/path/${node}`);
   position = node;
+  leaf = read.leaf;
   const flow = document.createElement("div");
   flow.className = "flow";
   flow.append(...spans(read.segments));
@@ -164,8 +168,134 @@ function compose(at) {
 }
 
 function stage(at) {
+  position = leaf = null;
   $("column").replaceChildren(compose(at));
   $("column").querySelector("textarea").focus();
+}
+
+// ---- continuing ------------------------------------------------------------------------
+
+/* The gesture is the scroll: reaching the end of what there is to read asks for more of it,
+ * at the end of the path, where the reader is already looking.
+ *
+ * A downward move *at* the end counts as well as an arrival there. Under about a thousand
+ * characters the column sits at its minimum height, so text that lands does not make the
+ * page any taller -- the room above it shrinks instead -- and a reader who stayed at the end
+ * would have nowhere left to scroll and no way to ask again.
+ */
+
+/* A first pass, and sent rather than left out: what the surface defaults to lands in the
+ * act's `params`, where a value the sampler chain picked would not. `top_k` is here because
+ * the adapter requires `record_rows >= top_k > 0`, and `cache_prompt` because this backend
+ * declares it required -- which is the page knowing a backend, and wants a better answer. */
+const DRAW = {
+  length: 80,
+  temperature: 0,
+  top_k: 10,
+  record_rows: 10,
+  record_mass: 0.9,
+  cache_prompt: true,
+};
+
+const SETTLE = 140;  // ms of quiet before a scroll counts, so momentum is not a request
+const REST = 450;    // ms after one lands, so a held key is one request and not twenty
+
+let working = false;
+let quiet = 0;
+let timer = null;
+
+const atEnd = () =>
+  window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+
+function pending(...what) {
+  const box = document.createElement("div");
+  box.className = "pending";
+  box.append(...what);
+  const had = $("column").querySelector(".pending");
+  if (had) had.replaceWith(box); else $("column").append(box);
+  return box;
+}
+
+function waiting() {
+  pending(Object.assign(document.createElement("span"), {
+    className: "wait", textContent: "\u2026",
+  }));
+}
+
+/** A failure is dismissable and says which kind it was, because the record does. */
+function failed(why) {
+  const box = pending(Object.assign(document.createElement("span"), {
+    className: "grow", textContent: `${why.kind}: ${why.message}`,
+  }));
+  box.classList.add("fault");
+  const go = document.createElement("button");
+  go.textContent = "dismiss";
+  go.onclick = () => box.remove();
+  box.append(go);
+}
+
+/** Ask for more of the path. One at a time: there is no queue, and the server says so too. */
+async function more() {
+  if (working || leaf === null) return;
+  working = true;
+  waiting();
+  try {
+    // A path whose bytes end mid-character is a legal path a backend may decline to
+    // evaluate, and `generate` is offered as unavailable there rather than issued and
+    // refused. Asking writes nothing. `create` and `realise` call no model and still
+    // stand -- neither has a gesture on this page yet, which is what makes it a stop.
+    if (!(await ask(`/evaluable?node=${leaf}`)).evaluable) {
+      pending(Object.assign(document.createElement("span"), {
+        textContent: "This position ends inside a character, and the model will not " +
+                     "continue from it.",
+      }));
+      return;
+    }
+    const act = await ask("/generate", { at: leaf, params: DRAW });
+    await refresh();
+    await show(act.tip);
+  } catch (why) {
+    failed(why);
+  } finally {
+    working = false;
+    quiet = Date.now() + REST;
+    wasAtEnd = atEnd();  // what landed moved the end; an arrival at it is a fresh one
+  }
+}
+
+/** Reached the end, and stayed there long enough to have meant it. */
+function asked() {
+  if (working || Date.now() < quiet) return;
+  clearTimeout(timer);
+  timer = setTimeout(() => { if (atEnd()) more(); }, SETTLE);
+}
+
+let wasAtEnd = false;
+addEventListener("scroll", () => {
+  const now = atEnd();
+  if (now && !wasAtEnd) asked();
+  wasAtEnd = now;
+}, { passive: true });
+
+// Already at the end, and still going down. Every way of moving the page is one of these.
+addEventListener("wheel", event => { if (event.deltaY > 0 && atEnd()) asked(); },
+                { passive: true });
+addEventListener("keydown", event => {
+  if (event.target.closest("textarea, input")) return;
+  if (["ArrowDown", "PageDown", "End", " "].includes(event.key) && atEnd()) asked();
+});
+
+/** An act with no terminator is a generation in flight, so a reload draws it rather than
+ *  losing it. One writer means there is at most one. */
+async function resume() {
+  const { acts } = await ask("/acts?in_flight=1");
+  if (!acts.length) return false;
+  working = true;
+  waiting();
+  while ((await ask("/acts?in_flight=1")).acts.length)
+    await new Promise(again => setTimeout(again, 700));
+  working = false;
+  return true;
 }
 
 // ---- the page -------------------------------------------------------------------------
@@ -184,8 +314,16 @@ try {
   const tree = await refresh();
   // With nothing yet chosen the first root is what is read; with no roots at all the page
   // is never a bare one, because the only thing to do here is the only thing offered.
-  if (tree.roots.length) await show(tree.roots[0].id);
-  else stage(null);
+  if (!tree.roots.length) stage(null);
+  else {
+    await show(tree.roots[0].id);
+    // Something another page started, or this one was reloaded out from under.
+    if (await resume()) {
+      await refresh();
+      await show(position);
+    }
+  }
+  wasAtEnd = atEnd();
 } catch (why) {
   say(`${why.kind || "unreachable"}: ${why.message}`, true);
 }

@@ -74,8 +74,18 @@ body.folded footer { left: var(--fold); }  /* it is placed, not inset */
 /* ---- the reading column ---- */
 
 main { margin-left: var(--nav); transition: margin-left .14s ease; }
-#column { --col: min(34em, 44vw); box-sizing: content-box; width: calc(var(--col) * 2);
-          margin: 0 auto; padding: 72px 24px 45vh;
+
+/* `--space` is the room below the last line when the scroll is at its end, and it is where
+   what comes next appears. `--runway` is how far there is to scroll whatever the path's
+   length: a path shorter than the window would otherwise leave nowhere to scroll to, and
+   under about a thousand characters that is every path. The column takes what the path does
+   not provide as room above it, so the last line arrives at the same place either way. */
+#column { --col: min(34em, 44vw); --space: 45vh; --runway: 20vh; --top: 72px;
+          box-sizing: content-box; width: calc(var(--col) * 2);
+          min-height: calc(100vh + var(--runway) - var(--space) - var(--top));
+          margin: 0 auto; padding: var(--top) 24px var(--space);
+          display: flex; flex-direction: column; justify-content: flex-end;
+          align-items: flex-start;
           font-size: 21px; line-height: 1.75; letter-spacing: .002em; }
 .flow { width: var(--col); white-space: pre-wrap; overflow-wrap: break-word; }
 /* Bytes that do not decode. Marked rather than hidden, as everywhere else. */
@@ -102,3 +112,15 @@ footer { position: fixed; left: var(--nav); right: 0; bottom: 0; z-index: 10;
          backdrop-filter: blur(8px); border-top: 1px solid var(--rule);
          transition: left .14s ease; }
 footer .fault { color: var(--accent); }
+
+/* ---- what is on its way ----
+   A request appears where its result will, so this stands at the end of the path, in the
+   room the next text lands in. It is read from the record rather than remembered: an act
+   with no terminator is a generation in flight, so a reload does not lose one. */
+
+.pending { width: var(--col); color: var(--dim); font-style: italic; }
+.pending.fault { color: var(--accent); font-style: normal; display: flex; gap: 12px;
+                 align-items: baseline; font: 400 13px/1.6 var(--mono); }
+.pending .grow { flex: 1; }
+@keyframes breathe { 50% { opacity: .35; } }
+.pending .wait { animation: breathe 1.6s ease-in-out infinite; }
