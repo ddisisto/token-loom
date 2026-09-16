@@ -90,6 +90,10 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
 .flow { width: var(--col); white-space: pre-wrap; overflow-wrap: break-word; }
 /* Bytes that do not decode. Marked rather than hidden, as everywhere else. */
 .seg.raw { color: var(--accent); background: var(--accent-bg); border-radius: 2px; }
+/* At the end of a path they are bytes waiting for the rest of their character, which the
+   next continuation supplies -- and the segment carries whatever whole characters came with
+   them. Still shown, because the column's text is the path's, but not as a fault. */
+.flow .seg.raw:last-child { color: var(--dim); background: none; }
 
 /* ---- the composer ----
    A request appears where its result will, so this stands in the column at the position it

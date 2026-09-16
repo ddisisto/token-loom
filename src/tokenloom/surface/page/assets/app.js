@@ -14,8 +14,11 @@ const $ = id => document.getElementById(id);
 /** The reader's position: a node, or nothing at all before there is a tree. */
 let position = null;
 
-/** The end of the path being read, which is where a continuation hangs. */
-let leaf = null;
+/* Where a continuation hangs: the last node whose path has a string form, which is the leaf
+ * unless the path ends mid-character. A segment cannot be split and nothing is addressed
+ * inside one, so trailing bytes waiting for the rest of their character are not a position
+ * the surface acts at -- and a draw that repeats them merges onto the same nodes. */
+let addressable = null;
 
 // ---- the wire -------------------------------------------------------------------------
 
@@ -104,7 +107,8 @@ function spans(segments) {
 async function show(node) {
   const read = await ask(`/path/${node}`);
   position = node;
-  leaf = read.leaf;
+  const closed = read.segments.filter(cell => cell.decodes);
+  addressable = closed.length ? closed[closed.length - 1].nodes.at(-1).id : null;
   const flow = document.createElement("div");
   flow.className = "flow";
   flow.append(...spans(read.segments));
@@ -168,7 +172,7 @@ function compose(at) {
 }
 
 function stage(at) {
-  position = leaf = null;
+  position = addressable = null;
   $("column").replaceChildren(compose(at));
   $("column").querySelector("textarea").focus();
 }
@@ -236,22 +240,20 @@ function failed(why) {
 
 /** Ask for more of the path. One at a time: there is no queue, and the server says so too. */
 async function more() {
-  if (working || leaf === null) return;
+  if (working || addressable === null) return;
   working = true;
   waiting();
   try {
-    // A path whose bytes end mid-character is a legal path a backend may decline to
-    // evaluate, and `generate` is offered as unavailable there rather than issued and
-    // refused. Asking writes nothing. `create` and `realise` call no model and still
-    // stand -- neither has a gesture on this page yet, which is what makes it a stop.
-    if (!(await ask(`/evaluable?node=${leaf}`)).evaluable) {
+    // Ending mid-character is not the only reason a backend may decline a path, so the
+    // predicate is asked at the position the act would use. Asking writes nothing, and the
+    // answer is advisory -- what it saves is a refusal nobody needed to see.
+    if (!(await ask(`/evaluable?node=${addressable}`)).evaluable) {
       pending(Object.assign(document.createElement("span"), {
-        textContent: "This position ends inside a character, and the model will not " +
-                     "continue from it.",
+        textContent: "The model will not continue from this position.",
       }));
       return;
     }
-    const act = await ask("/generate", { at: leaf, params: DRAW });
+    const act = await ask("/generate", { at: addressable, params: DRAW });
     await refresh();
     await show(act.tip);
   } catch (why) {

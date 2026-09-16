@@ -80,7 +80,7 @@ reader makes at every other position, which is why a seed and a branch are one t
 does not distinguish — and why the gesture that starts one stands in the list at the row the new
 root will occupy, a request appearing where its result will.
 
-**There is no cursor.** Any live node can be written at, and continuing is writing at the leaf of
+**There is no cursor.** Any live node can be written at, and continuing is writing at the end of
 the path being read. The tip is where a reader usually is; it is not something the record holds.
 
 **The gestures and the acts are not one to one.**
@@ -260,13 +260,20 @@ reader means by one is Where a tree comes from; what it costs is here.
 **One write is in flight at a time, and while one is, no other may be requested.** There is no
 queue.
 
-**Not every position can be generated from, and the surface asks rather than finds out.** A path
-whose bytes end mid-character is a legal path that a backend may decline to evaluate, so at such a
-position `generate` is offered as unavailable while `create` and `realise` — which call no model —
-are not. `docs/ADAPTER.md` provides for exactly this: asking is not declining, it writes nothing,
-and the real request still goes through `generate`. **The answer is advisory**: a request that
-goes anyway is refused by the adapter and recorded, and the surface shows that refusal rather than
-suppressing one it predicted.
+**The surface writes at the last addressable position, which is not always the last node.** A
+path may end mid-character, and those trailing bytes are a segment that has not closed — inside
+which, by Units, nothing is addressed. So a continuation hangs under the last node whose path has
+a string form, and the nodes past it are not a position the surface acts at. What the record does
+with the ones it re-draws is the merge key's business: under a draw that repeats them they are the
+same nodes, and under one that does not they are a sibling, which is a fork like any other.
+
+**Not every position can be generated from, and the surface asks rather than finds out.** Ending
+mid-character is not the only reason a backend may decline a path, so the predicate is asked at
+the position the act would use. `docs/ADAPTER.md` provides for exactly this: asking is not
+declining, it writes nothing, and the real request still goes through `generate`. **The answer is
+advisory**: a request that goes anyway is refused by the adapter and recorded, and the surface
+shows that refusal rather than suppressing one it predicted. `create` and `realise` call no model
+and are never gated by it.
 
 **A request appears where its result will.** An inline placeholder at the position the act will
 occupy, replaced by the nodes when they land — not a spinner elsewhere on the page, and not
