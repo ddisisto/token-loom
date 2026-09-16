@@ -15,8 +15,8 @@ no queue.
 
 **The server names no parameter a `generate` did not arrive with.** Defaults for those live
 where a human types them, and an adapter that requires one says so itself -- as a refusal,
-which is in the record. A server filling them in would be deciding what the store keeps,
-one layer up from the place `docs/ADAPTER.md` forbids it.
+which is in the record. What a value chosen here would cost is in `docs/SURFACE.md`: the
+record would hold it as the caller's, and nothing could tell the two apart.
 """
 
 from __future__ import annotations

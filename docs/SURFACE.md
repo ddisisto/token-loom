@@ -64,9 +64,21 @@ would not have offered at all.
 reading column has nothing to set. What the surface offers is composition, and the tree's name
 and vocabulary — which a reader about to write into it needs and cannot read off an empty page.
 
+**A tree holds several roots and the surface lists them.** `docs/CORE.md` has each beginning its
+own trie, so the list is of separate readings that happen to share a store and a vocabulary.
+Moving between them is a selection: nothing is written, and the position becomes the root taken.
+
+**A root is named by what it opens with** — enough of its first text to be known again, stopping
+where the tree first parts. Past a divergence a name would follow whichever continuation rule was
+live and change under a parameter of every other read, which is not something a name may do. The
+list cuts it again to the room it has, so a name is a line and never a paragraph, and a newline
+is shown rather than obeyed. **Where a name stopped is worth marking**, since one cut for room
+and one cut at a divergence read the same.
+
 **A root is a `create` with no parent**, and nothing else about it is special. It is the act the
 reader makes at every other position, which is why a seed and a branch are one thing the record
-does not distinguish.
+does not distinguish — and why the gesture that starts one stands in the list at the row the new
+root will occupy, a request appearing where its result will.
 
 **There is no cursor.** Any live node can be written at, and continuing is writing at the leaf of
 the path being read. The tip is where a reader usually is; it is not something the record holds.
@@ -96,12 +108,19 @@ gives for the placeholder: a request appears where its result will. What summons
 looks like, and whether the surface holds one that moves or one at each position are settled by
 use and not by prose, and are in What is not decided here.
 
-**The reader names the `generate` parameters.** `docs/ADAPTER.md` requires them of every caller
-and the server names none it was not given, so a surface that fills them in is deciding what the
-store keeps one layer up from where that document forbids it. An adapter that needs one it did
-not get says so — as a refusal, naming what it wants, in the record like any other. **A draw the
-page does not seed is one nothing can replay**, which is why the command line seeds and why the
-surface does.
+**A complete request leaves the surface, and what completes it is in the record.**
+`docs/ADAPTER.md` requires every parameter that something other than the caller would otherwise
+decide, and what it forbids is the layers *below* the caller supplying one, where nothing records
+it. The surface is a caller. A value it defaults to is a value it sends, so the act's `params`
+hold it and what was asked for stays readable; what it may never do is leave a parameter out and
+let the sampler chain decide in silence. An adapter that needs one it did not get says so, as a
+refusal naming what it wants, in the record like any other.
+
+**The reader is not asked for a seed.** What that costs is replay, which `docs/ADAPTER.md`
+already states and which the record stays honest about: no seed was asked for, and that is what
+it says. The surface is a playground — it is where a question worth asking under control might be
+found, and not where it is answered — and an act that has to be replayed is one the command line
+makes, naming its seed.
 
 **A refusal about parameters is where they are edited.** Writing offers a retry exactly where
 the same request could succeed and an edit everywhere else, and a request refused for what it
@@ -346,24 +365,25 @@ them. Three things hold it in place:
 **Questions prose cannot close.** Each says what would settle it, and moves into the body above
 when it is settled.
 
-- **How composition is summoned, and how many there are.** A request appears where its result
-  will, which places the affordance and says nothing about what opens it, what it looks like, or
-  whether the surface holds one that moves between positions or one at each. Continuing at the
-  leaf and branching at a node several segments back are the same act and may not want the same
-  gesture. What settles it is writing into a tree at both, and finding which of the two the
-  other's gesture reads wrong at.
+- **How composition is summoned at a position.** Starting a root is answered: a row where the
+  root will appear, staging a composer in the column that a submit turns into the act, so the
+  gesture that offers a place to write is not the write. Whether continuing at a leaf and
+  branching at a node several segments back want that same gesture is not answered — they are
+  the same act and may not read the same, and the surface may hold one composer that moves or
+  one at each position. What settles it is writing into a tree at both, and finding which of the
+  two the other's gesture reads wrong at.
 - **Whether a branch with no ranking behind it is marked.** A `create` at a node that already has
   a live child makes a fork the model had no part in, and the record holds the source that says
   so. Marking it puts a second kind of mark in a column *Between forks, nothing is drawn* keeps
   bare; not marking it leaves a reader to open the band to find out. What settles it is a tree
   with both kinds of fork in it, read for whether the difference is wanted at the fork or only
   inside the band.
-- **Which `generate` parameters the reader sees.** The adapter requires several and refuses
-  naming any it did not get, so the floor is whatever the backend at hand demands. Whether the
-  rest — `length`, `record_rows`, the temperature, the seed — sit under the reader's hand at
-  every request, persist for the session, or are set once and edited on refusal is a question
-  about how often a reader changes them, and nothing has measured that. What settles it is
-  running the loop and watching which get touched.
+- **Which `generate` parameters come under the reader's hand, and when.** A complete request
+  leaves the surface whatever the reader does, so this is a question about what is exposed and
+  never about what is sent. Whether `length`, `record_rows`, the recording bounds and the
+  temperature sit under the reader's hand at every request, persist across a session, or are set
+  once and edited on refusal is a question about how often a reader changes them, and nothing
+  has measured that. What settles it is running the loop and watching which get touched.
 - **Which continuation rule.** Longest, first, last, most-recently-used, cumulative open time —
   each is defensible and they are comparable only by use. `longest` is the first implementation
   because it is the one member that needs nothing but the tree; ties bite only for it, and are
@@ -413,10 +433,12 @@ when it is settled.
 
 ## Status
 
-**A process with a placeholder where the page goes.** `tokenloom serve` holds one tree for as
+**A page that starts a tree and reads one path of it.** `tokenloom serve` holds one tree for as
 long as it runs and serves the three reads, the path predicate and the five acts over HTTP, each
 act under its own verb, with the page mounted at the root so that what it reads and the page
-itself arrive from one origin. What does not exist is the page: `/` answers with a sentence
-saying so, and nothing reads any of the rest. What else exists is the core, the llama.cpp
-adapter, the command line, and a throwaway probe that reads a static projection of a tree and
-cannot write — which is what demonstrated the band.
+itself arrive from one origin. The page lists the tree's roots and names each by what it opens
+with, starts new ones through a composer that a submit turns into a `create`, and sets one path
+as prose. What does not exist is everything past that first gesture: no `generate`, no marks in
+the column, no band and no rankings. What else exists is the core, the llama.cpp adapter, the
+command line, and a throwaway probe that reads a static projection of a tree and cannot write —
+which is what demonstrated the band.

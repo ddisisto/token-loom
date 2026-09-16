@@ -35,10 +35,16 @@ line above, so the column carries a running offset onto each segment.
 
 **No build step.** The probe needed none for the hardest thing in the document.
 
-**Where it goes, and what is already there.** `src/tokenloom/surface/page/` is mounted at the
-root of the process that answers the reads, so the page and what it reads arrive from one origin
-and there is nothing between them to arrange. What is there now is a sentence saying the page is
-not built, which gets replaced whole.
+**What stands.** `src/tokenloom/surface/page/` is mounted at the root of the process that answers
+the reads, so the page and what it reads arrive from one origin and there is nothing between them
+to arrange. It lists the roots, starts new ones, and sets one path as prose. The composer it does
+that with is the piece the rest reuses: what changes between starting a root and writing at a
+position is which node the text hangs under.
+
+**The `generate` parameters are defaulted for a first pass and not exposed.** A complete request
+has to leave the surface, so the values live where the code is; which of them come under the
+reader's hand is an open question in `docs/SURFACE.md` and is not what the next increment is
+about.
 
 **The reading view renders no act but the one in flight.** An act originates at a node or an edge
 regardless of what produced either, and what it leaves behind is nodes and paths — which are what
