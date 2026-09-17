@@ -92,3 +92,38 @@ Not in the ordering; each stands on its own.
   answer about nonsense. `put_token` is what catches the mismatch on a write, at the first id the
   two disagree on; a read has no such moment. Harmless while a server is started against the tree
   it matches, and wrong the first time one is not.
+
+## 2. The next marker
+
+**A marker bump is what makes an older reader wrong rather than merely incomplete, so it is paid
+once and carries everything that wants it.** A new table or column does not change `marker`;
+changing what an existing one means does. That makes this a bundle and not a task — items land
+here as they are found, and it is opened when something in it is worth the bump on its own.
+
+**It sits last because everything in it buys clarity and no capability.** Nothing becomes
+reachable that is not reachable now, and the cost of waiting is accretion rather than a cliff: a
+tree built meanwhile is not wrong, it spells a column differently. So new work is scoped ahead of
+this rather than behind it, and being pushed down is the expected thing to happen to it.
+
+### `rank` → `ordinal`, on `edges` and on `acts`
+
+**The column holds arrival order and is named for the model's ranking.** *Rankings* spends a
+paragraph un-teaching it — *rank means the k-th alternative recorded here, not the model's k-th
+choice* — and the two readings coincide right up until a second generation extends a node, which
+is the merge this format exists for. A name that is right until the central case is the wrong
+name, and it is close enough to the term every inference setting uses that a reader will not
+notice they have the other one.
+
+**The column stays; only the name moves.** `UNIQUE (node, source, token_id)` already identifies a
+row, so nothing needs it for that. It earns its place twice over anyway: `realise` addresses an
+edge by a small readable integer rather than by an opaque id, and contiguity from `0` is what
+keeps accumulation order recoverable.
+
+**`ordinal`, not `index`.** SQLite parses `index` as a keyword and refuses it as a bare column
+name, and *On disk* is DDL a reader implements from — a column needing quotes everywhere is a
+cost carried for the life of the format. `ordinal` means arrival position and nothing else.
+
+**What it reaches**: the `edges` and `acts` DDL, `INV-RANK-DENSE`, `INV-RANK-ANCHORED` and
+`INV-RANK-UNIQUE`, the reads and the checker that name them, the `--rank` argument and the
+surface's use of it, and `docs/CORE.md` throughout. Every existing tree is rebuilt or migrated;
+`data/` is disposable, so that is free now and less free the longer the bundle stays shut.
