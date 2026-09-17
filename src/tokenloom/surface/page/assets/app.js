@@ -189,9 +189,10 @@ function stage(at) {
  */
 
 /* A first pass, and sent rather than left out: what the surface defaults to lands in the
- * act's `params`, where a value the sampler chain picked would not. `top_k` is here because
- * the adapter requires `record_rows >= top_k > 0`, and `cache_prompt` because this backend
- * declares it required -- which is the page knowing a backend, and wants a better answer. */
+ * act's `params`, where a value the sampler chain picked would not. Naming a sampler is what
+ * puts it in the chain, so `top_k` here is a choice about how wide to draw. `cache_prompt` is
+ * here because this backend declares it required, which is the page knowing a backend and
+ * wants a better answer. What these values should be is not settled. */
 const DRAW = {
   length: 80,
   temperature: 0,

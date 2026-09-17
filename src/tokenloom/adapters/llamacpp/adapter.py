@@ -10,9 +10,10 @@ record that is *quietly wrong* rather than an error:
 3. A prompt plus a requested length that will not fit is silently truncated -- and the
    response still says `stop_type: limit`, which in the core means "it drew the requested
    length". Refused before it can happen, and cross-checked after.
-4. The server's default sampler chain applies whatever this adapter does not set, so a
+4. The server's default sampler chain joins any request that does not name one, so a
    request naming `top_k` and `temperature` would also get `min_p`, `top_p` and repetition
-   penalties nobody asked for. Every sampler not exposed is neutralised explicitly.
+   penalties nobody asked for. Every request names its own chain, and every parameter set
+   is checked against what the server reports resolving.
 """
 
 from __future__ import annotations
@@ -42,38 +43,40 @@ KNOWN = frozenset(
     }
 )
 
-#: Required is what something other than the caller would otherwise decide. Leave `top_k`
-#: or `temperature` unnamed and the server's own sampler chain joins the request; leave
-#: `cache_prompt` unnamed and it picks a cache state, which moves the logprobs; leave
-#: `record_rows` or `record_mass` unnamed and *this adapter* would be deciding what the
-#: store keeps for good.
+#: The samplers this adapter exposes, in the order the server applies them. A request's
+#: chain is built from the ones the caller named, so naming a sampler and activating it are
+#: the same act and one left out is left out of the chain.
+SAMPLERS = ("top_k", "top_p", "min_p", "temperature")
+
+#: Required is what something other than the caller would otherwise decide. Leave
+#: `temperature` unnamed and a chain without it draws at 1.0; leave `cache_prompt` unnamed
+#: and the server picks a cache state, which moves the logprobs; leave `record_rows` or
+#: `record_mass` unnamed and *this adapter* would be deciding what the store keeps for
+#: good.
+#:
+#: `top_k` is not here. A chain holds what the caller named, so omitting it omits it from
+#: the chain rather than letting the server's own value apply, and requiring it would
+#: protect nothing.
 #:
 #: `seed` is deliberately **not** here, and that is not an oversight to repair. A seed is
 #: not a policy: there is no value the server imposes and none it substitutes, so a caller
 #: who does not ask for reproducibility has had nothing adjusted. `docs/ADAPTER.md` states
 #: what it costs -- a stochastic act naming no seed cannot be replayed, and nothing in the
 #: record marks it as one that cannot.
-REQUIRED = ("length", "record_rows", "record_mass", "top_k", "temperature", "cache_prompt")
+REQUIRED = ("length", "record_rows", "record_mass", "temperature", "cache_prompt")
 
-#: Every sampler this adapter does not expose, set to its identity. Without these the
-#: server's own defaults -- `min_p` 0.05, `top_p` 0.95, a repetition window of 64 -- would
-#: silently join the request.
-NEUTRAL = {
-    "top_p": 1.0,
-    "min_p": 0.0,
-    "typical_p": 1.0,
-    "top_n_sigma": -1.0,
-    "xtc_probability": 0.0,
-    "repeat_penalty": 1.0,
-    "presence_penalty": 0.0,
-    "frequency_penalty": 0.0,
-    "dry_multiplier": 0.0,
-    "mirostat": 0,
-}
+#: Set on every request because the `samplers` list does not gate them: `mirostat` replaces
+#: the chain wholesale when it is non-zero, and `dynatemp_range` lives inside the chain's
+#: `temperature` entry. Both are measured; `README.md` has the rest.
+UNGATED = {"mirostat": 0, "dynatemp_range": 0.0}
 
 #: `0xFFFFFFFF` is llama.cpp's "choose one for me". A seed it would replace is a seed it
 #: cannot honour, and an adapter whose backend cannot seed its sampler refuses.
 MAX_SEED = 2**32 - 2
+
+#: Reported for a key the server did not echo at all, which is a disagreement like any
+#: other. A sentinel rather than `None`, so that a genuine null would still be compared.
+MISSING = "<not reported>"
 
 
 class Refused(Exception):
@@ -154,6 +157,7 @@ class LlamaCppAdapter:
                 ) from exc
             raise
 
+        self._check(payload, answer, len(ids))
         if answer.get("truncated"):
             raise AssertionError(
                 "the server truncated a request that was checked for room; "
@@ -176,17 +180,21 @@ class LlamaCppAdapter:
         if missing:
             raise Refused(f"parameters this backend requires: {missing}")
 
-        length, top_k = params["length"], params["top_k"]
+        length = params["length"]
         rows, mass = params["record_rows"], params["record_mass"]
         if not isinstance(params["cache_prompt"], bool):
             raise Refused(f"cache_prompt must be a bool, not {params['cache_prompt']!r}")
-        if not isinstance(top_k, int) or top_k < 1:
-            raise Refused(f"top_k must be a positive integer, not {top_k!r}")
-        if not isinstance(rows, int) or isinstance(rows, bool) or rows < max(2, top_k):
-            raise Refused(
-                f"record_rows >= top_k > 0 and record_rows >= 2; "
-                f"asked record_rows {rows!r}, top_k {top_k}"
-            )
+        if not isinstance(rows, int) or isinstance(rows, bool) or rows < 2:
+            raise Refused(f"record_rows must be an integer of at least 2; asked {rows!r}")
+        if "top_k" in params:
+            top_k = params["top_k"]
+            if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
+                raise Refused(f"top_k must be a positive integer, not {top_k!r}")
+            if rows < top_k:
+                raise Refused(
+                    "record_rows must cover a top_k the request named; "
+                    f"asked record_rows {rows}, top_k {top_k}"
+                )
         if rows > len(self.vocabulary):
             # The server reports the whole vocabulary and calls it n_probs; that is a
             # parameter adjusted rather than met.
@@ -215,17 +223,75 @@ class LlamaCppAdapter:
                 f"{len(ids)} prompt + {length} requested = {room} exceeds n_ctx {self.n_ctx}"
             )
 
+        named = [sampler for sampler in SAMPLERS if sampler in params]
         return {
-            **NEUTRAL,
+            **UNGATED,
+            "samplers": named,
             "n_predict": length,
             # The ceiling is what the server is asked for; `record_mass` cuts what comes
             # back, and the server has no way to express it.
             "n_probs": rows,
-            "top_k": top_k,
-            "temperature": params["temperature"],
-            **{k: params[k] for k in ("top_p", "min_p", "seed") if k in params},
+            **{sampler: params[sampler] for sampler in named},
+            **({"seed": params["seed"]} if "seed" in params else {}),
             "cache_prompt": params["cache_prompt"],
         }
+
+    def _check(self, payload: dict, answer: dict, prompt_length: int) -> None:
+        """Every parameter this adapter set, against what the server reports resolving.
+
+        **What comes back is what the server accepted, not everything it then did**, so
+        this is a net under the refusals and not a replacement for them: a request for
+        200000 rows echoes back as 200000 and returns 152064. The row count is therefore
+        checked against what came back rather than against the echo.
+
+        `cache_prompt` is the one parameter not echoed at all. Its effect is visible
+        instead in `timings.prompt_n`, which is the whole prompt exactly when the cache is
+        off.
+        """
+        settings = answer.get("generation_settings", {})
+        settings = settings.get("params", settings)
+        wrong = [
+            f"{key}: sent {value!r}, resolved {settings.get(key, MISSING)!r}"
+            for key, value in payload.items()
+            if key != "cache_prompt" and not resolved_as(value, settings.get(key, MISSING))
+        ]
+        widest = max(
+            (len(group["top_logprobs"]) for group in answer.get("completion_probabilities", ())),
+            default=0,
+        )
+        if widest > payload["n_probs"]:
+            wrong.append(f"n_probs: sent {payload['n_probs']}, and a position reports {widest}")
+        if not payload["cache_prompt"]:
+            evaluated = answer.get("timings", {}).get("prompt_n")
+            if evaluated != prompt_length:
+                wrong.append(
+                    f"cache_prompt: sent False, and {evaluated} of {prompt_length} "
+                    "prompt tokens were evaluated"
+                )
+        if wrong:
+            raise AssertionError(
+                "the server did not resolve what this adapter set: " + "; ".join(wrong)
+            )
+
+
+# ---- comparing what came back --------------------------------------------------------
+
+
+def resolved_as(sent, got) -> bool:
+    """Whether what the server reports is what was sent.
+
+    Floats come back at the single precision the server holds them in -- `0.8` reports as
+    `0.800000011920929` -- so they are compared to that and not for equality. Bools are
+    compared by identity, since `0` and `False` are equal in Python and are different
+    answers here.
+    """
+    if isinstance(sent, bool) or isinstance(got, bool):
+        return sent is got
+    if isinstance(sent, float) or isinstance(got, float):
+        return isinstance(got, int | float) and math.isclose(
+            sent, got, rel_tol=1e-6, abs_tol=1e-9
+        )
+    return sent == got
 
 
 # ---- the recording bounds ------------------------------------------------------------

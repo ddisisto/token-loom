@@ -25,6 +25,63 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   at least `k` alternatives makes it always present — 64/64 measured at `top_k == n_probs`,
   at temperature 0.9 and 1.5 alike — but still unmarked, so it is found by id and never by
   rank.
+
+  **`top_k` is the only knob here that settles this in advance, and `n_probs` cannot be
+  traded for it.** `top_k` is the one sampler in the chain whose support has a size fixed
+  before the position is evaluated; `top_p`, `min_p` and `top_n_sigma` admit a prefix of
+  unknown length, and `typical_p`, `xtc` and the penalties admit sets that are not prefixes
+  at all — `xtc` removes top tokens outright, and a penalty reweights by what was generated
+  rather than by probability, so no row count bounds either. Recording more rows
+  does not close the gap either. Fraction of draws landing outside the top `n` raw ranks,
+  `top_k` off, ~860 positions per row over five unalike prompts and three seeds:
+
+  | temperature | outside top 10 | 20 | 40 | 80 | 200 |
+  | --- | --- | --- | --- | --- | --- |
+  | 0.8 | 3.3% | 1.9% | 0.9% | 0.7% | 0.2% |
+  | 1.0 | 10.1% | 7.1% | 4.5% | 3.1% | 1.8% |
+  | 1.2 | 41.2% | 36.7% | 33.6% | 29.8% | 25.2% |
+
+  At 1.2 a twentyfold wider record moves it 41% → 25%: the tail is fat enough that coverage
+  has to be bought from the sampler or given up. **`docs/ADAPTER.md` gives it up** — a draw
+  past `record_rows` is one of the ways *Rankings* already allows a node to have no covering
+  ranked edge — so `record_rows >= top_k` is a check this adapter makes on a request that
+  names `top_k`, and not an obligation on anything else. Note what buying it costs: at
+  temperature 1.2, `top_k` 80 makes the 30% of draws living past rank 80 unreachable by
+  construction, and those are the draws a reading instrument exists to find.
+- **`samplers` decides which sampler runs; the value decides nothing on its own.** A request
+  naming `samplers: ["temperature"]` and omitting `top_k` draws identically to one sending
+  `top_k: 0`, while the response still *reports* `top_k: 40` — inert. Sending `min_p: 0.9`
+  inside a chain that does not list `min_p` changes nothing; outside one, it rewrites the
+  continuation. Measured inert this way when out of the chain: `top_n_sigma`, `min_keep`,
+  `repeat_last_n`, `xtc_threshold`, `dynatemp_exponent`, `adaptive_target`. Naming the chain
+  closes over samplers a later build adds.
+
+  **Two escape the list, and one of them escapes an identity-value list too.** `mirostat`
+  replaces the chain wholesale when it is non-zero, and `dynatemp_range` lives *inside* the
+  chain's `temperature` entry — at `2.0` both change the continuation with the chain pinned
+  to `["top_k","temperature"]`. `dynatemp_range` is also absent from any plausible list of
+  neutralised samplers, and `--dynatemp-range` is a launch flag, so a server started with it
+  joins every request silently. Both are set explicitly on every request.
+
+  **The residual risk is a future sampler that is neither in the chain nor set here.** The
+  echo below catches a parameter resolved differently from how it was sent; it cannot catch
+  one that was never sent. That is the reason to re-read this file against a new build.
+- **The response echoes the settings it accepted — which is not everything it then did.**
+  `generation_settings` is a flat dict carrying `samplers` and every sampling and recording
+  parameter, so a request can be checked against it rather than trusted, which is what the
+  adapter's `_check` is. Floats come back at single precision (`0.8` as
+  `0.800000011920929`), so they are compared to that.
+
+  **The echo is a net under the refusals and not a replacement for them.** `n_probs`
+  200000 echoes back as `200000` while 152064 rows actually arrive — the clamp happens
+  after the settings are recorded and nothing in the echo shows it. So the row count is
+  cross-checked against `completion_probabilities` and not against the echo, the same way
+  `truncated` is cross-checked rather than inferred.
+
+  **`cache_prompt` is not echoed at all.** Its effect is visible in `timings.prompt_n`,
+  which equals the whole prompt exactly when the cache is off — measured at 2, 3, 251 and
+  2001 tokens. `tokens_evaluated` is *not* the signal: it reports the prompt length either
+  way.
 - **`completion_probabilities` is a window onto the raw distribution, and the whole sampler
   chain is invisible to it.** The values are pre-temperature *and* pre-truncation: the full
   softmax over the vocabulary. Measured at `top_k = n_probs = 10`, prompt `The capital of
@@ -171,6 +228,22 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   cache state is internally reproducible, so this is a second variable rather than noise: a
   ranking recorded with the cache on is a function of the model, the path, *and* what was
   generated before it.
+
+  **How large it looks depends on how deep it was measured, and a partial hit is worse than
+  a full one.** Greedy, `top_k` 1, 80 rows, 20 positions, five prompts:
+
+  | comparison | path agreed through | max abs Δlogprob, p50 / max | positions reordered |
+  | --- | --- | --- | --- |
+  | cold vs cold | 20/20 | 0.000000 / 0.000000 | 0/20 |
+  | full-warm vs full-warm | 20/20 | 0.000000 / 0.000000 | 0/20 |
+  | cold vs full-warm | 20/20 | 0.059 / 0.259 | 20/20 |
+  | cold vs **partial**-warm | **11/20** | 0.153 / 0.580 | 11/11 |
+
+  The 0.056 above was five rows deep; eighty rows deep the same comparison reaches 0.26. A
+  *partial* hit — the cache holding some prefix of an unrelated path, which is what
+  branching produces — reaches 0.58 and moved a **greedy** path off its cold course at
+  position 11 of 20. **Cold is the only state that reproduces**, and it reproduces exactly,
+  which is what makes a first-written value in the core a value and not a coin toss.
 - **Continuing inside one call and starting a fresh call at the same path are not the same
   measurement**, and the cache does not decide it. Prompt `The sky`, `top_k` 1 so the path is
   forced, `n_probs` 5, temperature 1.0: sixteen tokens drawn in one call, against the same

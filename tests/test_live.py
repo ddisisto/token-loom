@@ -148,6 +148,47 @@ def test_record_rows_at_least_top_k_keeps_the_drawn_token_in_its_own_ranking(ada
             assert position.token_id in [r.token_id for r in position.ranking]
 
 
+def test_a_draw_with_no_top_k_is_met_and_the_chain_does_not_acquire_one(adapter):
+    """Omitting `top_k` leaves it out of the sampler chain rather than letting the server's
+    own 40 apply. Nothing in the answer reports the chain, so what stands for it is that the
+    request was met at all: the adapter checks every parameter it set against the settings
+    the server reports resolving, and a chain it did not ask for would be one of them."""
+    answer = adapter.generate(
+        [785, 12884],
+        {"length": 4, "record_rows": 8, "record_mass": 1.0,
+         "temperature": 1.0, "cache_prompt": False, "seed": 3},
+    )
+    assert answer.terminator == "limit"
+    assert len(answer.positions) == 4
+
+
+def test_a_draw_can_land_outside_the_alternatives_recorded_for_its_position(adapter):
+    """The fourth way a node arrives with no covering ranked edge, reached on purpose.
+
+    Ordinary use does not reach it -- a bounded `top_k` makes it unreachable and a cold
+    temperature makes it vanishingly rare -- so it is provoked here with nothing bounding
+    the draw and a narrow record. The assertion is that the record stays coherent when it
+    happens: a ranking is reported, the drawn token is simply not in it, and the adapter
+    neither invents a row nor refuses.
+    """
+    outside = ranked = 0
+    for seed in range(16):
+        answer = adapter.generate(
+            [785, 12884],
+            {"length": 6, "record_rows": 5, "record_mass": 1.0,
+             "temperature": 1.5, "cache_prompt": False, "seed": seed},
+        )
+        for position in answer.positions:
+            if position.ranking is None:
+                continue
+            ranked += 1
+            assert len(position.ranking) == 5  # the ceiling bound, not the drawn token
+            if position.token_id not in [row.token_id for row in position.ranking]:
+                outside += 1
+    assert ranked > 50, "too few ranked positions for this to mean anything"
+    assert outside > 0, "nothing landed outside its ranking; the provocation is too weak"
+
+
 # ---- the recording bounds -----------------------------------------------------------
 
 
@@ -218,13 +259,14 @@ def test_a_path_that_ends_mid_character_is_refused_and_the_predicate_agrees(adap
 @pytest.mark.parametrize(
     ("params", "why"),
     [
-        ({**DRAW, "length": 2, "record_rows": 3}, "record_rows >= top_k"),
-        ({**DRAW, "length": 2, "top_k": 1, "record_rows": 1}, "record_rows >= 2"),
+        ({**DRAW, "length": 2, "record_rows": 3}, "must cover a top_k"),
+        ({**DRAW, "length": 2, "top_k": 1, "record_rows": 1}, "at least 2"),
         ({**DRAW, "length": 2, "top_k": 0}, "positive integer"),
+        ({**DRAW, "length": 2, "top_k": True}, "positive integer"),
         ({**DRAW, "length": 2, "record_rows": 10**9}, "exceeds the vocabulary"),
         ({**DRAW, "length": 2, "record_mass": 0.0}, "record_mass must be a probability"),
         ({**DRAW, "length": 2, "record_mass": 1.5}, "record_mass must be a probability"),
-        ({"length": 2, "top_k": 5, "record_rows": 5, "record_mass": 1.0,
+        ({"length": 2, "record_rows": 5, "record_mass": 1.0,
           "cache_prompt": False}, "['temperature']"),
         ({"length": 2, "top_k": 5, "record_rows": 5, "record_mass": 1.0,
           "temperature": 1.0}, "['cache_prompt']"),

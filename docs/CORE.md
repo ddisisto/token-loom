@@ -113,6 +113,11 @@ generation recording twenty alternatives after one recorded five may contribute 
 would outrank a stored one; it is appended below it regardless. A node's recorded depth is
 whatever has accumulated there, and is not derivable from any one generation's parameters.
 
+**Two generations may report one row differently, and the value first written stands.** This is
+what *never rewritten* means where observations disagree, and it is how they are reconciled: a
+reader gets one value per edge, and no record of whether another was ever seen. How far apart two
+observations can be is a property of the backend and lives in that backend's notes.
+
 **A node's own logprob is not stored.** It is the ranked edge at its parent, for its source,
 carrying its `token_id`. What a node was worth and what its alternatives were worth cannot drift
 apart, because there is only one record of both.
@@ -123,10 +128,11 @@ position was computed at, and for that position there is none. The distribution 
 context is a real thing this format does not hold.
 
 **A node may be absent from its parent's ranking.** A generation that can give no ranking for a
-position declines rather than guesses, and a backend may emit a token on a stop condition
-without it passing through a sampler. Such a node has no derivable logprob until a later
-generation supplies the covering edge — which extension then does, with no further mechanism.
-The store does not require the covering edge.
+position declines rather than guesses, a backend may emit a token on a stop condition without it
+passing through a sampler, and a draw may land outside the alternatives that were recorded for its
+position. Such a node has no derivable logprob until a later generation supplies the covering edge
+— which extension then does, with no further mechanism. The store does not require the covering
+edge.
 
 **Nothing records why an edge is missing.** A declination is not distinguished from a position
 nothing has generated at; in both the absence is the whole record.

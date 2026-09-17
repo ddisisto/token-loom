@@ -62,20 +62,27 @@ together in the row it interns to, so the distinction has to be legible in the k
 recoverable from knowing which is which: `top_p` and `record_mass` are both thresholds on
 cumulative probability, and they do entirely different things.
 
-**`record_rows >= top_k > 0`, and `record_rows >= 2`.** `top_k` confines the draw to raw ranks
-`0…k−1`; `record_rows` is the most ranked ids that will be reported for a position. A drawn token
-is therefore always among the alternatives reported for its position, which is what makes a node's
-logprob derivable in the ordinary case. The core does not require it — *Rankings* provides for a
-node with no covering ranked edge and states that nothing records why one is missing — so this is
-an obligation here and not an invariant there. An adapter that cannot report at least `top_k`
-refuses.
+**`record_rows >= 2`.** `record_rows` is the most ranked ids that will be reported for a
+position, and two is what makes every position offer an alternative to branch into.
+
+**A drawn token may be absent from the alternatives reported for its position.** *Rankings*
+provides for a node with no covering ranked edge, and a draw landing past `record_rows` is one
+more way to arrive there; nothing here obliges a backend to prevent it. Whether it *can* be
+prevented is a question about the sampler and not about `record_rows`: only a sampler whose
+support has a size fixed before the position is evaluated can be covered by a row count decided
+in advance, and recording more rows does not converge on coverage — the fraction of draws landing
+outside the top `n` can be near flat in `n`, which is a thing to measure rather than to assume.
+**Where a backend can settle it in advance, that backend's notes say how.** Naming the sampler
+here instead would put one backend's parameters in every backend's contract, and a backend
+without that parameter would carry the rule vacuously while the guarantee it was written for
+quietly lapsed.
 
 **`record_mass` bounds the same set by probability, and the two bounds compose.** What is reported
 for a position is the shortest prefix of the ranking whose probabilities reach `record_mass`,
 extended to two rows and to include the token actually drawn, and cut at `record_rows`. Three
 lower bounds and one upper: two rows so that every position offers at least one alternative to
-branch into, and the drawn token so that a stochastic draw landing past the mass bound cannot
-leave a node with no derivable logprob — which `record_rows >= top_k` is what makes reachable.
+branch into, and the drawn token so that a stochastic draw landing past the mass bound does not
+leave a node with no derivable logprob where the ranking in fact holds one.
 **Failing to reach `record_mass` is not a failure.** Where the ceiling binds first, the recorded
 set is what the ceiling allowed; that is an outcome and never a refusal, and no request is unmet
 by it.
@@ -248,13 +255,16 @@ together, which is where most of this class of nondeterminism comes from in the 
 
 **The cache is the variable that was being held still, and it is worth more than the last decimal
 places.** Cold against cold is bit-identical and warm against warm is bit-identical, but cold
-against warm differs by up to 0.056 in logprob at the top of a five-row ranking — enough to
-reorder a near-tie. That adapter's notes have the numbers. Because each state is internally
-reproducible this is a *second variable* rather than noise, and a ranking recorded with the cache
-on is a function of the model, the path and what was generated before it. That is the thing
-obligation 5 asks a backend not to be. The format would survive either way — ranks are recorded in
-the order presented and nothing is ever rewritten — but what survives corruption is not the same
-as what is worth recording.
+against warm differs — by up to 0.056 in logprob at the top of a five-row ranking and 0.26 across
+eighty, so how large it looks is partly how deep it was measured. **A partial hit is worse again**,
+and it is the case a tree produces rather than an exotic one: branching generates at a node whose
+prefix the cache is holding only part of. Measured at 0.58 across eighty rows, with a *greedy* path
+that left the cold one at position 11 of 20. That adapter's notes have the numbers. Because each
+state is internally reproducible this is a *second variable* rather than noise, and a ranking
+recorded with the cache on is a function of the model, the path and what was generated before it.
+That is the thing obligation 5 asks a backend not to be. The format would survive either way —
+ranks are recorded in the order presented and nothing is ever rewritten — but what survives
+corruption is not the same as what is worth recording.
 
 **It is not contamination between calls, which is why either setting is defensible.** The cache is
 a pure function of the prompt tokens and no seed reaches it, so warm and cold are two draws from
@@ -282,9 +292,9 @@ next paragraph.
 
 **`cache_prompt` is a per-call parameter, and required.** It changes the draw, and a backend
 handed a request that does not name it applies its own — which is precisely the policy the rule
-above requires a parameter against, and the failure the neutralised-sampler list exists to
-prevent. It is a parameter and not adapter
-configuration because callers differ within one process: the command line asks for correctness and
+above requires a parameter against, and the failure a request naming its own sampler chain exists
+to prevent. It is a parameter and not adapter configuration because callers differ within one
+process: the command line asks for correctness and
 sends `false`, a reading surface issuing chunked continuations asks for tractable latency and sends
 `true`, and one adapter serves both. The core reads only `length` and interns the rest, so this
 costs a second `params` row and no change to any table.

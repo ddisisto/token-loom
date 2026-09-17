@@ -121,10 +121,13 @@ def cmd_generate(args) -> int:
         "length": args.length,
         "record_rows": args.record_rows,
         "record_mass": args.record_mass,
-        "top_k": args.top_k,
         "temperature": args.temperature,
         "cache_prompt": args.cache_prompt,
     }
+    if args.top_k is not None:
+        # Naming a sampler is what puts it in the chain, so an unnamed `top_k` is a draw
+        # with no such bound rather than a draw at whatever the backend would pick.
+        params["top_k"] = args.top_k
     if args.seed is not None:
         params["seed"] = args.seed
     elif args.temperature > 0:
@@ -383,10 +386,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("tree", type=Path)
     p.add_argument("--at", type=int, required=True)
     p.add_argument("--length", type=int, default=16)
-    p.add_argument("--top-k", type=int, default=20, dest="top_k")
+    p.add_argument("--top-k", type=int, dest="top_k",
+                   help="confine the draw to the k most probable tokens. Omit and no such "
+                        "bound joins the sampler chain, which is what lets a draw land "
+                        "outside the alternatives recorded for its position.")
     p.add_argument("--record-rows", type=int, default=80, dest="record_rows",
                    help="at most this many alternatives recorded per position. Must be at "
-                        "least top_k, so the drawn token is inside its own ranking.")
+                        "least a top_k this draw names.")
     p.add_argument("--record-mass", type=float, default=0.9, dest="record_mass",
                    help="stop recording alternatives once their probabilities reach this. "
                         "1.0 records every row --record-rows allows.")

@@ -14,13 +14,18 @@ import math
 import pytest
 
 from tokenloom.adapters.llamacpp.adapter import (
+    MISSING,
+    LlamaCppAdapter,
+    Refused,
     bound,
     ends_mid_character,
     reaches,
+    resolved_as,
     terminator_for,
     walk,
 )
-from tokenloom.core import Position, Ranked
+from tokenloom.adapters.llamacpp.client import Props
+from tokenloom.core import Position, Ranked, Source
 
 #: Real bytes off `tokenizer.ggml.tokens`, for the ids the measured response below carries.
 SPELL: dict[int, bytes] = {
@@ -45,6 +50,9 @@ class Spelling:
 
     def bytes_for(self, token_id):
         return SPELL[token_id]
+
+    def __len__(self):
+        return len(SPELL)
 
 
 def group(token_id: int, data: bytes, ranked=((1, -1.0),)) -> dict:
@@ -221,3 +229,136 @@ def test_bound_passes_a_declination_through():
     empty ranking. Nothing here fills it."""
     declined = Position(RANKING[0].token_id, None)
     assert bound([declined], 0.9) == [declined]
+
+
+# ---- the sampler chain and the echo check --------------------------------------------
+
+
+class FakeClient:
+    """Enough of the client for the constructor. `_request` and `_check` decide everything
+    from the request and this adapter's own configuration, so neither reaches a server."""
+
+    def props(self):
+        return Props(n_ctx=64, model_alias="fake", model_path="fake")
+
+
+def offline() -> LlamaCppAdapter:
+    return LlamaCppAdapter(Source("model", "fake"), Spelling(), FakeClient())
+
+
+PROMPT = [3555, 374]  # " What is" -- spelled by SPELL and not ending mid-character
+
+ASK = {"length": 2, "record_rows": 4, "record_mass": 1.0,
+       "temperature": 0.8, "cache_prompt": False}
+
+
+@pytest.mark.parametrize(
+    ("named", "chain"),
+    [
+        ({}, ["temperature"]),
+        ({"top_k": 3}, ["top_k", "temperature"]),
+        ({"min_p": 0.1}, ["min_p", "temperature"]),
+        ({"top_k": 3, "top_p": 0.9, "min_p": 0.1}, ["top_k", "top_p", "min_p", "temperature"]),
+    ],
+)
+def test_the_chain_is_the_samplers_the_request_named_in_the_server_s_order(named, chain):
+    """Naming a sampler is what activates it, so the chain and the named set are one thing.
+    The order is the server's own and not the caller's: a chain is applied in sequence."""
+    payload = offline()._request(PROMPT, {**ASK, **named})
+    assert payload["samplers"] == chain
+    for sampler in ("top_k", "top_p", "min_p"):
+        assert (sampler in payload) is (sampler in named)
+
+
+def test_the_ungated_samplers_are_sent_whatever_the_chain_holds():
+    """`mirostat` replaces the chain and `dynatemp_range` lives inside its `temperature`
+    entry, so neither is gated by `samplers` and both are set on every request."""
+    payload = offline()._request(PROMPT, ASK)
+    assert payload["mirostat"] == 0
+    assert payload["dynatemp_range"] == 0.0
+
+
+def test_a_named_top_k_must_be_covered_and_an_unnamed_one_constrains_nothing():
+    """The coupling is a check on a request that names `top_k`, not a rule about draws."""
+    narrow = {**ASK, "record_rows": 2}
+    assert offline()._request(PROMPT, narrow)["n_probs"] == 2
+    with pytest.raises(Refused, match="must cover a top_k"):
+        offline()._request(PROMPT, {**narrow, "top_k": 3})
+
+
+@pytest.mark.parametrize(
+    ("sent", "got", "same"),
+    [
+        (0.8, 0.800000011920929, True),   # the single precision the server holds it in
+        (0.0, 0.0, True),
+        (0.8, 0.9, False),
+        (0, 0.0, True),
+        (10, 10, True),
+        (10, 11, False),
+        (False, False, True),
+        (0, False, False),                # equal in Python, different answers here
+        (1, True, False),
+        (["top_k"], ["top_k"], True),
+        (["top_k"], ["top_k", "min_p"], False),
+        (0.8, MISSING, False),
+    ],
+)
+def test_resolved_as(sent, got, same):
+    """Float tolerance is the derived value here: too tight and every request fails, too
+    loose and a resolved-differently parameter passes. It is set to single precision."""
+    assert resolved_as(sent, got) is same
+
+
+def echoed(params, *, prompt_n=2, rows=1):
+    """The server reports `generation_settings` flat; the adapter also accepts it nested,
+    which is why both shapes are read the same way."""
+    return {
+        "generation_settings": params,
+        "timings": {"prompt_n": prompt_n},
+        "completion_probabilities": [{"top_logprobs": [{}] * rows}],
+    }
+
+
+def test_check_passes_when_the_server_reports_what_was_sent():
+    payload = {"temperature": 0.8, "samplers": ["temperature"], "n_probs": 4,
+               "cache_prompt": False}
+    offline()._check(payload, echoed({"temperature": 0.800000011920929, "n_probs": 4,
+                                      "samplers": ["temperature"]}), 2)
+
+
+@pytest.mark.parametrize(
+    ("reported", "why"),
+    [
+        ({"temperature": 1.0, "samplers": ["temperature"], "n_probs": 4}, "temperature"),
+        ({"temperature": 0.8, "samplers": ["top_k", "temperature"], "n_probs": 4}, "samplers"),
+        ({"temperature": 0.8, "n_probs": 4}, "samplers: .*not reported"),
+    ],
+)
+def test_check_is_a_fault_when_the_server_resolved_something_else(reported, why):
+    """Not a refusal: a refusal is decided before the call, and this is the call already
+    answered. It is the same shape as the `truncated` cross-check."""
+    payload = {"temperature": 0.8, "samplers": ["temperature"], "n_probs": 4,
+               "cache_prompt": False}
+    with pytest.raises(AssertionError, match=why):
+        offline()._check(payload, echoed(reported), 2)
+
+
+def test_check_reads_cache_prompt_off_the_prompt_tokens_evaluated():
+    """The one parameter the server does not echo. With the cache off the whole prompt is
+    evaluated, and anything less means a cache state the record does not name."""
+    payload = {"samplers": [], "n_probs": 4, "cache_prompt": False}
+    offline()._check(payload, echoed({"samplers": [], "n_probs": 4}, prompt_n=2), 2)
+    with pytest.raises(AssertionError, match="cache_prompt"):
+        offline()._check(payload, echoed({"samplers": [], "n_probs": 4}, prompt_n=1), 2)
+    # With the cache on, a short prompt_n is the point of it and not a fault.
+    offline()._check({**payload, "cache_prompt": True},
+                     echoed({"samplers": [], "n_probs": 4}, prompt_n=1), 2)
+
+def test_check_reads_the_row_count_off_what_came_back_and_not_off_the_echo():
+    """`n_probs` above the vocabulary echoes back unclamped while fewer rows arrive, so the
+    echo cannot see that fault. Counting the rows is what does -- a net under the refusal
+    that normally prevents it, in the shape the `truncated` cross-check already uses."""
+    payload = {"samplers": [], "n_probs": 4, "cache_prompt": False}
+    offline()._check(payload, echoed({"samplers": [], "n_probs": 4}, rows=4), 2)
+    with pytest.raises(AssertionError, match="a position reports 5"):
+        offline()._check(payload, echoed({"samplers": [], "n_probs": 4}, rows=5), 2)
