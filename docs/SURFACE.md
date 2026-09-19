@@ -387,10 +387,10 @@ when it is settled.
   inside the band.
 - **Which `generate` parameters come under the reader's hand, and when.** A complete request
   leaves the surface whatever the reader does, so this is a question about what is exposed and
-  never about what is sent. Whether `length`, `record_rows`, the recording bounds and the
-  temperature sit under the reader's hand at every request, persist across a session, or are set
-  once and edited on refusal is a question about how often a reader changes them, and nothing
-  has measured that. What settles it is running the loop and watching which get touched.
+  never about what is sent. Whether `length`, the recording bounds, and the samplers a draw
+  names sit under the reader's hand at every request, persist across a session, or are set once
+  and edited on refusal is a question about how often a reader changes them, and nothing has
+  measured that. What settles it is running the loop and watching which get touched.
 - **Which continuation rule.** Longest, first, last, most-recently-used, cumulative open time —
   each is defensible and they are comparable only by use. `longest` is the first implementation
   because it is the one member that needs nothing but the tree; ties bite only for it, and are
