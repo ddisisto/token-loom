@@ -387,10 +387,13 @@ when it is settled.
   inside the band.
 - **Which `generate` parameters come under the reader's hand, and when.** A complete request
   leaves the surface whatever the reader does, so this is a question about what is exposed and
-  never about what is sent. Whether `length`, the recording bounds, and the samplers a draw
-  names sit under the reader's hand at every request, persist across a session, or are set once
-  and edited on refusal is a question about how often a reader changes them, and nothing has
-  measured that. What settles it is running the loop and watching which get touched.
+  never about what is sent. The first pass puts all of them under it at once — `length`, the
+  recording bounds, and the samplers a draw names, in a panel that holds them for as long as the
+  page is open — because that is the arrangement that shows which ones a reader actually reaches
+  for. What it does not settle is whether they survive a reload, whether the ones nobody touches
+  should be on the page at all, and whether a refusal is better met by editing them in place
+  than in a panel elsewhere. What settles those is running the loop and watching which get
+  touched.
 - **Which continuation rule.** Longest, first, last, most-recently-used, cumulative open time —
   each is defensible and they are comparable only by use. `longest` is the first implementation
   because it is the one member that needs nothing but the tree; ties bite only for it, and are
@@ -440,12 +443,14 @@ when it is settled.
 
 ## Status
 
-**A page that starts a tree and reads one path of it.** `tokenloom serve` holds one tree for as
-long as it runs and serves the three reads, the path predicate and the five acts over HTTP, each
-act under its own verb, with the page mounted at the root so that what it reads and the page
-itself arrive from one origin. The page lists the tree's roots and names each by what it opens
-with, starts new ones through a composer that a submit turns into a `create`, and sets one path
-as prose. What does not exist is everything past that first gesture: no `generate`, no marks in
-the column, no band and no rankings. What else exists is the core, the llama.cpp adapter, the
-command line, and a throwaway probe that reads a static projection of a tree and cannot write —
-which is what demonstrated the band.
+**A page that starts a tree, reads one path of it, and asks for more.** `tokenloom serve` holds
+one tree for as long as it runs and serves the three reads, the path predicate and the five acts
+over HTTP, each act under its own verb, with the page mounted at the root so that what it reads
+and the page itself arrive from one origin. The page lists the tree's roots and names each by
+what it opens with, starts new ones through a composer that a submit turns into a `create`, sets
+one path as prose, and continues it at the end — reaching the end of what there is to read is
+how more of it is asked for, and what the draw asks for is set in a panel at the foot of the
+side. What does not exist is everything past that: no marks in the column, no band and no
+rankings, and no `realise` or `delete` reachable from the page. What else exists is the core,
+the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
+a tree and cannot write — which is what demonstrated the band.

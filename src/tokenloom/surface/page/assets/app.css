@@ -63,11 +63,40 @@ button:hover { color: var(--ink); border-color: var(--dim); }
                      padding: 9px 12px; font: 400 13px/1.45 var(--mono); }
 #roots .new button:hover { color: var(--ink); background: var(--bg); }
 
+/* ---- the draw ----
+   What a continuation is asked for, at the foot of the side and out of the roots' way. It is
+   where the values are set and not where they live: closed, the summary is enough to read
+   them off, and folding the side away does not change what a draw asks for. */
+
+#draw { border-top: 1px solid var(--rule); font: 400 11.5px/1.45 var(--mono); }
+#draw .head { display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
+              font: inherit; border: none; border-radius: 0; padding: 10px 12px; }
+#draw .head:hover { background: var(--bg); }
+#draw .head .name { letter-spacing: .06em; }
+#draw .head .sum { flex: 1; text-align: right; }
+#draw .body { display: none; max-height: 44vh; overflow-y: auto; padding: 0 12px 12px; }
+#draw.open .body { display: block; }
+
+#draw .group { margin: 11px 0 5px; font: italic 400 12px/1.4 var(--serif); color: var(--dim); }
+#draw .row { margin: 7px 0; }
+#draw .row .top { display: flex; align-items: baseline; gap: 7px; }
+#draw .row .name { display: flex; align-items: center; gap: 6px; color: var(--dim); }
+#draw .row.opt .name { cursor: pointer; }
+#draw .row .val { flex: 1; text-align: right; color: var(--ink); }
+#draw .row.off .val { color: var(--faint); }
+#draw input { accent-color: var(--accent); }
+#draw input[type="checkbox"] { margin: 0; }
+#draw input[type="range"] { display: block; width: 100%; height: 15px; margin: 2px 0 0; }
+#draw input[type="number"] { width: 100%; margin-top: 3px; padding: 3px 6px; font: inherit;
+                             color: var(--ink); background: var(--bg);
+                             border: 1px solid var(--rule); border-radius: 3px; }
+#draw .row.off input:disabled { opacity: .35; }
+
 body.folded #side { width: var(--fold); }
 body.folded #side .head { grid-template-columns: 1fr; }
 body.folded #side .head b { display: none; }
 body.folded #fold { grid-column: 1; justify-self: center; transform: rotate(180deg); }
-body.folded #roots { display: none; }
+body.folded #roots, body.folded #draw { display: none; }
 body.folded main { margin-left: var(--fold); }
 body.folded footer { left: var(--fold); }  /* it is placed, not inset */
 

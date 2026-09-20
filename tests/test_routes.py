@@ -17,7 +17,7 @@ from starlette.testclient import TestClient
 
 from tokenloom.core import Generation, Store, StoreError
 from tokenloom.core import reads as R
-from tokenloom.surface.app import Backend, Writer, build_app
+from tokenloom.surface.app import PAGE, Backend, Writer, build_app
 from toy import FRAG_HI, FRAG_LO, MODEL, USER, ToyAdapter, ToyVocabulary, drew
 
 
@@ -430,11 +430,15 @@ def test_the_page_is_at_the_root_and_shadows_none_of_the_routes(client):
     assert client.get("/tree").json()["vocabulary"] == "toy"
 
     # What the page pulls for itself comes off the same mount, so a file left out of the
-    # package is a 404 here rather than a page that loads and does nothing.
-    for asset, kind in (("app.css", "text/css"), ("app.js", "text/javascript")):
-        served = client.get(f"/assets/{asset}")
-        assert served.status_code == 200, asset
-        assert served.headers["content-type"].startswith(kind)
+    # package is a 404 here rather than a page that loads and does nothing. Every file that
+    # ships is checked rather than a list of them, which would go stale as the page grows.
+    kinds = {".css": "text/css", ".js": "text/javascript"}
+    assets = sorted((PAGE / "assets").iterdir())
+    assert assets, "the page has no assets, which is not a state it has ever been in"
+    for asset in assets:
+        served = client.get(f"/assets/{asset.name}")
+        assert served.status_code == 200, asset.name
+        assert served.headers["content-type"].startswith(kinds[asset.suffix]), asset.name
 
 
 def test_a_path_that_is_neither_a_route_nor_a_file_is_not_the_page(client):

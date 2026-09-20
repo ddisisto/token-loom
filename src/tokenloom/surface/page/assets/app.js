@@ -9,6 +9,8 @@
  * live, what parts and what a ranking holds are read from the store every time.
  */
 
+import { draw, panel } from "./draw.js";
+
 const $ = id => document.getElementById(id);
 
 /** The reader's position: a node, or nothing at all before there is a tree. */
@@ -188,20 +190,6 @@ function stage(at) {
  * would have nowhere left to scroll and no way to ask again.
  */
 
-/* A first pass, and sent rather than left out: what the surface defaults to lands in the
- * act's `params`, where a value the sampler chain picked would not. Naming a sampler is what
- * puts it in the chain, so `top_k` here is a choice about how wide to draw. `cache_prompt` is
- * here because this backend declares it required, which is the page knowing a backend and
- * wants a better answer. What these values should be is not settled. */
-const DRAW = {
-  length: 80,
-  temperature: 0,
-  top_k: 10,
-  record_rows: 10,
-  record_mass: 0.9,
-  cache_prompt: true,
-};
-
 const SETTLE = 140;  // ms of quiet before a scroll counts, so momentum is not a request
 const REST = 450;    // ms after one lands, so a held key is one request and not twenty
 
@@ -254,7 +242,9 @@ async function more() {
       }));
       return;
     }
-    const act = await ask("/generate", { at: addressable, params: DRAW });
+    // Asked for at the moment of the act, so what the panel holds now is what is sent and
+    // what the record keeps. Nothing here caches it.
+    const act = await ask("/generate", { at: addressable, params: draw() });
     await refresh();
     await show(act.tip);
   } catch (why) {
@@ -307,6 +297,8 @@ function say(text, bad) {
   $("status").textContent = text;
   $("status").className = bad ? "fault" : "";
 }
+
+$("draw").replaceChildren(panel());
 
 $("fold").onclick = () => {
   const folded = document.body.classList.toggle("folded");
