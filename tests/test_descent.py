@@ -14,7 +14,7 @@ import pytest
 
 from tokenloom.core import Store
 from tokenloom.core import reads as R
-from toy import USER, ToyAdapter, ToyVocabulary, drew
+from toy import OTHER, USER, ToyAdapter, ToyVocabulary, drew
 
 
 @pytest.fixture
@@ -161,6 +161,70 @@ def test_unrealised_counts_agrees_with_unrealised_edges_at_every_node(tmp_path):
         }
         assert counts == {1: 2, 2: 1}  # and node 3, the tip, is absent rather than 0
         assert R.unrealised_counts(store.conn, [3]) == {}
+
+
+def test_a_recorded_depth_is_what_accumulated_and_not_what_any_act_asked_for(tmp_path):
+    """Two generations at one node, each asking for a different number of rows.
+
+    Rows already present keep their values and new tokens append below, so the depth is the
+    union and is neither generation's parameter. Nothing in the record carries the union, so
+    a reader that reached for an act's `record_rows` would be wrong here by 2 and by 1.
+    """
+    with Store.initialise(tmp_path / "d", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(
+            1, {"length": 1, "record_rows": 3},
+            adapter=ToyAdapter([drew((101, [(101, -0.1), (102, -0.5), (103, -1.0)]))]),
+            actor=USER,
+        )
+        store.generate(
+            1, {"length": 1, "record_rows": 4},
+            adapter=ToyAdapter([
+                drew((101, [(101, -0.1), (102, -0.5), (104, -2.0), (105, -2.5)])),
+            ]),
+            actor=USER,
+        )
+        model = next(iter(R.recorded_depths(store.conn, [1])[1]))
+        assert R.recorded_depths(store.conn, [1]) == {1: {model: 5}}
+        assert len(R.ranking(store.conn, 1)) == 5  # the read it has to agree with
+
+
+def test_a_depth_is_per_source_because_two_rankings_are_not_one(tmp_path):
+    """A node two sources ranked holds two rankings. Summing them counts rows of different
+    distributions together, which is the number a single `COUNT` would return."""
+    with Store.initialise(tmp_path / "s", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(
+            1, {"length": 1},
+            adapter=ToyAdapter([drew((101, [(101, -0.1), (102, -0.5), (103, -1.0)]))]),
+            actor=USER,
+        )
+        store.generate(
+            1, {"length": 1},
+            adapter=ToyAdapter([drew((105, [(105, -0.2), (106, -0.9)]))], source=OTHER),
+            actor=USER,
+        )
+        depths = R.recorded_depths(store.conn, [1])[1]
+        assert sorted(depths.values()) == [2, 3]
+        assert len(depths) == 2, "one entry here would be a depth of 5, which nothing has"
+
+
+def test_a_node_nothing_ranked_is_absent_and_deleting_a_child_changes_no_depth(tmp_path):
+    """Two traps in one fixture. A tip has no ranking and is left out rather than reported
+    as zero; and an edge is not a child, so marking the node that realised one does not take
+    the row away -- a reader that joined depth to `nodes` would lose it."""
+    with Store.initialise(tmp_path / "n", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(
+            1, {"length": 1},
+            adapter=ToyAdapter([drew((101, [(101, -0.1), (102, -0.5)]))]),
+            actor=USER,
+        )
+        assert R.recorded_depths(store.conn, [2]) == {}
+        before = R.recorded_depths(store.conn, [1])
+
+        store.delete(2, actor=USER)
+        assert R.recorded_depths(store.conn, [1]) == before
 
 
 def test_token_bytes_agrees_with_node_bytes(tree):

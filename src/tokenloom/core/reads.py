@@ -365,6 +365,33 @@ def unrealised_edges(conn: sqlite3.Connection, node: int) -> list[Edge]:
     return [Edge(*r) for r in rows]
 
 
+def recorded_depths(
+    conn: sqlite3.Connection, nodes: Iterable[int]
+) -> dict[int, dict[int, int]]:
+    """How many ranked edges stand at each of `nodes`, per source.
+
+    Keyed by node and then by source, because a node two sources ranked holds two rankings
+    and one count over both is a depth of nothing. A node nothing has ranked is absent
+    rather than empty, the same shape `unrealised_counts` answers in and for the same
+    reason: most of a tree has no ranking at all.
+
+    This is what anything read off a ranking has to be read against. Rankings accumulate and
+    are never rewritten, so what is stored at a node is not recoverable from the parameters
+    of any generation that passed through it -- a quantity computed over a ranking is a
+    quantity over however many rows have landed, and `docs/CORE.md` says so under *Derived
+    reads*. Nothing here interprets them.
+    """
+    out: dict[int, dict[int, int]] = {}
+    for holes, part in _chunks(nodes):
+        for node, source, rows in conn.execute(
+            f"SELECT node, source, COUNT(*) FROM edges WHERE node IN ({holes}) "
+            "GROUP BY node, source",
+            part,
+        ):
+            out.setdefault(node, {})[source] = rows
+    return out
+
+
 def unrealised_counts(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, int]:
     """How large the branchable set is at each of `nodes`, for those where it is not empty.
 

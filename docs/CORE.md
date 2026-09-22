@@ -460,6 +460,12 @@ else the tables admit is a query rather than a fact about the format.
 - **A node's bytes** — its `vocab` entry.
 - **A path's bytes** — the bytes of each node from the root down, in order.
 - **A node's logprob** — the ranked edge at its parent, for its source, with its `token_id`.
+- **A node's recorded depth** — how many ranked edges stand at it, counted **per source**. It is
+  not the `record_rows` of any act: *Rankings* is why, since rows accumulate and what has landed
+  is not recoverable from the parameters of any one generation that passed. One count over a node
+  two sources ranked adds two rankings together and is a depth of nothing. Depth is a count of
+  rows and not a share of the distribution — the rows carry the probabilities, they reach no
+  particular total, and anything read off a ranking is read off what this count says is there.
 - **An act's tokens** — the path from `origin` exclusive to `tip` inclusive.
 - **Whether a node is live** — neither it nor any ancestor carries `deleted`. A descent from the
   root carries the answer down.
