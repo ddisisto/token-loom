@@ -96,14 +96,21 @@ class Subtree:
     know how far each child reaches, so the descent is made once and kept. Dead nodes are
     dropped as they arrive: liveness carries down, so a dead node takes its children with
     it and what is left is still a tree.
+
+    `hidden` keeps them instead, which is for descending ground that is dead throughout --
+    below a live leaf, where there is nothing live left to pass over. A rule handed both
+    kinds at one parent would be choosing between them, which is what `docs/SURFACE.md`'s
+    *Hidden* forbids, so nothing hands it both.
     """
 
-    def __init__(self, conn: sqlite3.Connection, anchor: int | None = None) -> None:
+    def __init__(
+        self, conn: sqlite3.Connection, anchor: int | None = None, hidden: bool = False
+    ) -> None:
         self.anchor = anchor
         self.children: dict[int | None, list[R.Node]] = {}
         order: list[R.Node] = []
         for _, node, live in R.descend(conn, anchor):
-            if not live:
+            if not live and not hidden:
                 continue
             self.children.setdefault(node.parent, []).append(node)
             order.append(node)
@@ -138,13 +145,18 @@ def longest(tree: Subtree, candidates: list[R.Node]) -> R.Node:
 
 
 def continuation(
-    conn: sqlite3.Connection, node: int | None = None, rule: Rule = longest
+    conn: sqlite3.Connection,
+    node: int | None = None,
+    rule: Rule = longest,
+    hidden: bool = False,
 ) -> list[R.Node]:
     """The rest of a path below `node`, chosen a step at a time by `rule`.
 
-    Live nodes only, so a node that is itself out of the live tree continues nowhere.
+    Live nodes only, so a node that is itself out of the live tree continues nowhere --
+    unless `hidden`, which follows what has been set aside and is how such a node is reached
+    at all.
     """
-    return _continue(Subtree(conn, node), node, rule)
+    return _continue(Subtree(conn, node, hidden), node, rule)
 
 
 def _continue(tree: Subtree, node: int | None, rule: Rule) -> list[R.Node]:
@@ -160,16 +172,32 @@ def _continue(tree: Subtree, node: int | None, rule: Rule) -> list[R.Node]:
 
 
 def path(
-    conn: sqlite3.Connection, node: int, rule: Rule | None = longest
+    conn: sqlite3.Connection,
+    node: int,
+    rule: Rule | None = longest,
+    hidden: bool = False,
 ) -> list[Segment[R.PathNode]]:
     """Root to a leaf through `node`, in segments, each carrying its nodes' marks.
 
     `rule` picks what comes below `node`. Pass `None` for the ancestry alone, which is what
     a surface holding its own path wants once it already knows the leaf.
+
+    `hidden` carries the path on past the live leaf into what has been set aside, which is
+    how a reader reaches a tail they hid in order to bring it back. **It appends and never
+    chooses**: the live path is picked first and is the same path either way, so what the
+    second pass adds begins where the first ran out. Nothing live lies below that point --
+    a live leaf has no live children -- so the rule is never offered a live node and a
+    hidden one together.
+
+    A node that is itself hidden continues nowhere without this, which is why asking for the
+    path *through* one shows it alone until the toggle is on.
     """
     leaf = node
-    if rule is not None and (rest := continuation(conn, node, rule)):
-        leaf = rest[-1].id
+    if rule is not None:
+        if rest := continuation(conn, node, rule):
+            leaf = rest[-1].id
+        if hidden and (more := continuation(conn, leaf, rule, hidden=True)):
+            leaf = more[-1].id
     marks = R.annotated_path(conn, leaf)
     spell = R.token_bytes(conn, (m.node.token_id for m in marks))
     return segments(marks, lambda m: spell[m.node.token_id])

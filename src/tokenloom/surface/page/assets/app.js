@@ -22,6 +22,11 @@ let position = null;
  * the surface acts at -- and a draw that repeats them merges onto the same nodes. */
 let addressable = null;
 
+/* Whether what has been set aside is drawn. A way of looking: it records nothing, the
+ * continuation rule follows liveness either way, and what it reveals it never selects --
+ * hidden nodes only ever carry the path on from where the live one ran out. */
+let showHidden = false;
+
 // ---- the wire -------------------------------------------------------------------------
 
 class Fault extends Error {
@@ -58,6 +63,20 @@ function rootRow(root, current) {
     mark.title = "the tree parts here";
     li.append(mark);
   }
+  // Over the clipped text rather than in it, so it stops the click that would select the
+  // root: the row and the control are two gestures in one place and only one is meant.
+  const go = document.createElement("button");
+  go.className = "flip";
+  go.textContent = root.deleted ? "restore" : "hide";
+  go.title = root.deleted ? "bring this root back" : "set this root aside";
+  go.onclick = event => {
+    event.stopPropagation();
+    // Restoring lands on the root it brought back; hiding lands wherever there is
+    // something to read, since a root has no parent to fall back to.
+    flip(root.deleted, root.id, root.deleted ? root.id : null);
+  };
+  li.append(go);
+  if (root.deleted) li.classList.add("hidden");
   li.dataset.node = root.id;
   li.setAttribute("aria-current", String(root.id === current));
   li.onclick = () => show(root.id);
@@ -77,13 +96,18 @@ function newRow() {
 }
 
 function drawRoots(tree, current) {
-  const rows = tree.roots.map(root => rootRow(root, current));
+  const rows = live(tree).map(root => rootRow(root, current));
+  // An empty list and a list emptied by the toggle are different states, and a reader who
+  // has set everything aside would otherwise be told the tree is new.
   if (!rows.length) rows.push(Object.assign(document.createElement("li"), {
     className: "none",
-    textContent: "Nothing here yet.",
+    textContent: tree.roots.length ? "Everything here is set aside." : "Nothing here yet.",
   }));
   $("roots").replaceChildren(...rows, newRow());
 }
+
+/** The roots the toggle admits. */
+const live = tree => tree.roots.filter(root => showHidden || !root.deleted);
 
 async function refresh(current) {
   const tree = await ask("/tree");
@@ -95,31 +119,108 @@ async function refresh(current) {
 
 // ---- the reading column ---------------------------------------------------------------
 
+/** A segment is set aside if any of its nodes is. It is the addressable unit and cannot be
+ *  split, so a character spelled across the boundary goes with the part that is hidden. */
+const aside = cell => cell.nodes.some(n => !n.live);
+
+/** Where the path leaves what is live, and the way back. One of these: what is hidden is a
+ *  suffix, because the rule picks the live path first. */
+function boundary(cell) {
+  const mark = document.createElement("span");
+  mark.className = "cut";
+  const go = document.createElement("button");
+  go.textContent = "restore";
+  go.title = "bring this back into the live tree";
+  go.onclick = () => restore(cell);
+  mark.append("set aside", go);
+  return mark;
+}
+
 function spans(segments) {
-  return segments.map(cell => {
+  const out = [];
+  let cut = false;
+  for (const cell of segments) {
+    const hidden = aside(cell);
+    if (hidden && !cut) { cut = true; out.push(boundary(cell)); }
     const el = document.createElement("span");
-    el.className = cell.decodes ? "seg" : "seg raw";
+    el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`;
     el.textContent = cell.text;
     el.dataset.node = cell.nodes[cell.nodes.length - 1].id;
-    return el;
-  });
+    // A plain click is spoken for -- `docs/SURFACE.md` has it opening a ranking -- so the
+    // one gesture that changes the tree from here asks for a modifier and says so.
+    el.onclick = event => {
+      if (!event.altKey) return;
+      if (hidden) restore(cell);
+      else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
+    };
+    out.push(el);
+  }
+  return out;
 }
 
 /** Draw the path through a node and make it the position. */
 async function show(node) {
-  const read = await ask(`/path/${node}`);
+  const read = await ask(`/path/${node}?hidden=${showHidden ? 1 : 0}`);
+  let cells = read.segments;
+  if (!showHidden) {
+    // The read carries a hidden ancestry whatever the toggle says, since a path through a
+    // node that was set aside still reaches it. With the toggle off none of that is drawn,
+    // and a reader left standing in it falls back to where the live tree ends.
+    const stop = cells.findIndex(aside);
+    if (stop === 0) return land(null);
+    if (stop > 0) cells = cells.slice(0, stop);
+  }
   position = node;
-  const closed = read.segments.filter(cell => cell.decodes);
+  const closed = cells.filter(cell => cell.decodes && !aside(cell));
   addressable = closed.length ? closed[closed.length - 1].nodes.at(-1).id : null;
   const flow = document.createElement("div");
   flow.className = "flow";
-  flow.append(...spans(read.segments));
+  flow.append(...spans(cells));
   $("column").replaceChildren(flow);
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
-  const root = read.segments[0].nodes[0].id;
+  const root = cells[0].nodes[0].id;
   for (const li of $("roots").querySelectorAll("li[data-node]"))
     li.setAttribute("aria-current", String(Number(li.dataset.node) === root));
+}
+
+// ---- setting aside, and bringing back ---------------------------------------------------
+
+/* `delete` sets a flag on one node and `undelete` clears it. Nothing leaves the store, so
+ * both are ordinary acts under their own verbs and the page reads the record again after
+ * either -- what changed is liveness, which is derived and never held here.
+ */
+
+/** Where to look once what was being read is no longer drawn. */
+async function land(prefer) {
+  if (prefer !== null) return show(prefer);
+  const rows = live(await ask("/tree"));
+  if (rows.length) return show(rows[0].id);
+  stage(null);  // everything is set aside, and the only thing to do is the thing offered
+}
+
+async function flip(undo, node, then) {
+  if (working) return;
+  working = true;
+  try {
+    await ask(undo ? "/undelete" : "/delete", { node });
+    await refresh();
+    await land(then);
+  } catch (why) {
+    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  } finally {
+    working = false;
+    wasAtEnd = atEnd();  // the path just got shorter or longer; an arrival is a fresh one
+  }
+}
+
+/** The node to bring back is the one that carries the flag, which is not always the first
+ *  of the segment: below the boundary a node is out of the live tree on its ancestor's
+ *  account, and clearing its own flag would change nothing and say it had. */
+function restore(cell) {
+  const back = cell.nodes.find(n => n.deleted);
+  if (!back) return say("nothing here carries the flag; what hides it is further up");
+  flip(true, back.id, back.id);
 }
 
 // ---- the composer ---------------------------------------------------------------------
@@ -300,18 +401,35 @@ function say(text, bad) {
 
 $("draw").replaceChildren(panel());
 
+/* One state for the whole page, so the roots and the column always say the same thing about
+ * what has been set aside. Flipping it re-reads rather than filtering what is already drawn:
+ * the column's hidden tail is not in the response until it is asked for. */
+$("hidden").onchange = async () => {
+  showHidden = $("hidden").checked;
+  try {
+    await refresh();
+    if (position !== null) await show(position);
+  } catch (why) {
+    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  }
+};
+
 $("fold").onclick = () => {
   const folded = document.body.classList.toggle("folded");
   $("fold").setAttribute("aria-pressed", String(folded));
 };
 
 try {
+  // A reload restores a checkbox in some browsers, and nothing here is remembered between
+  // loads -- so what the box says is what the page believes, rather than the other way.
+  showHidden = $("hidden").checked;
   const tree = await refresh();
   // With nothing yet chosen the first root is what is read; with no roots at all the page
   // is never a bare one, because the only thing to do here is the only thing offered.
-  if (!tree.roots.length) stage(null);
+  const rows = live(tree);
+  if (!rows.length) stage(null);
   else {
-    await show(tree.roots[0].id);
+    await show(rows[0].id);
     // Something another page started, or this one was reloaded out from under.
     if (await resume()) {
       await refresh();

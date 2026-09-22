@@ -196,6 +196,33 @@ def test_a_path_carries_what_is_derived_at_each_node(client):
     assert [i for i, n in after.items() if n["fork"]] == [3]
 
 
+def test_the_hidden_toggle_carries_a_path_past_what_was_set_aside(client):
+    """A tail set aside truncates the path, which is what a reader pruning one wants. What
+    the toggle does is bring it back into view without bringing it back into the tree, so
+    there is somewhere to undo it from."""
+    assert client.post("/delete", json={"node": 4}).status_code == 201
+
+    plain = client.get("/path/3").json()
+    assert [n["id"] for cell in plain["segments"] for n in cell["nodes"]] == [1, 2, 3]
+    assert plain["hidden"] is False
+
+    shown = client.get("/path/3", params={"hidden": 1}).json()
+    marks = [n for cell in shown["segments"] for n in cell["nodes"]]
+    assert [n["id"] for n in marks] == [1, 2, 3, 4]
+    assert [n["live"] for n in marks] == [True, True, True, False]
+    assert marks[-1]["deleted"] is True, "revealing it is not restoring it"
+    assert shown["hidden"] is True
+    assert shown["leaf"] == 4
+
+
+def test_the_toggle_is_off_by_being_absent_and_by_being_denied(client):
+    """A bare `?hidden` is the reader meaning it; `hidden=0` is a client saying so."""
+    client.post("/delete", json={"node": 4})
+    assert client.get("/path/3").json()["leaf"] == 3
+    assert client.get("/path/3", params={"hidden": 0}).json()["leaf"] == 3
+    assert client.get("/path/3?hidden").json()["leaf"] == 4
+
+
 def test_a_ranking_says_which_rows_have_been_realised(client):
     body = client.get("/ranking/2").json()
     rows = {row["token"]: row for row in body["rows"]}

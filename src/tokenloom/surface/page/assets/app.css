@@ -43,8 +43,8 @@ button:hover { color: var(--ink); border-color: var(--dim); }
 #fold { grid-column: 3; justify-self: end; font: 400 13px/1.2 var(--mono); }
 
 #roots { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; }
-#roots li { display: block; width: 100%; padding: 9px 12px; cursor: pointer;
-            font: 400 12.5px/1.45 var(--mono); color: var(--dim);
+#roots li { position: relative; display: block; width: 100%; padding: 9px 12px;
+            cursor: pointer; font: 400 12.5px/1.45 var(--mono); color: var(--dim);
             border-left: 2px solid transparent;
             /* One line, clipped. The mark is part of the text and is cut with it. */
             white-space: nowrap; overflow: hidden; }
@@ -55,6 +55,18 @@ button:hover { color: var(--ink); border-color: var(--dim); }
 #roots .none { color: var(--dim); cursor: default; font-style: italic;
                font-family: var(--serif); white-space: normal; }
 #roots .none:hover { background: none; }
+
+/* A root that is set aside, and the control that puts it there or brings it back. The
+   control sits over the clipped text rather than in it, so a long label does not push it
+   out of the row. It is out of the way until the row is pointed at -- except on a row that
+   is already set aside, where it is the only way back. */
+#roots li.hidden { opacity: .5; font-style: italic; }
+#roots .flip { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+               display: none; padding: 2px 7px; font: 400 11px/1.4 var(--mono);
+               background: var(--panel); }
+#roots li:hover .flip, #roots li.hidden .flip { display: block; }
+#roots li:hover .flip { background: var(--bg); }
+#roots li[aria-current="true"] .flip { background: var(--accent-bg); }
 
 /* Last in the list, which is the row the root it makes will occupy. */
 #roots .new { padding: 0; }
@@ -123,6 +135,34 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
    next continuation supplies -- and the segment carries whatever whole characters came with
    them. Still shown, because the column's text is the path's, but not as a fault. */
 .flow .seg.raw:last-child { color: var(--dim); background: none; }
+
+/* ---- what is set aside ----
+   `delete` is one flag on one node and nothing leaves the store, so whether it is drawn is
+   a way of looking. The toggle says so for the whole page at once, the roots and the column
+   together, because a reader asking what they have set aside is asking it of the tree. */
+
+#aside { position: fixed; top: 0; right: 0; z-index: 30; cursor: pointer;
+         display: flex; align-items: center; gap: 7px; padding: 10px 15px;
+         font: 400 11.5px/1.4 var(--mono); color: var(--dim);
+         background: color-mix(in srgb, var(--bg) 88%, transparent);
+         backdrop-filter: blur(8px);
+         border-left: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+         border-bottom-left-radius: 5px; }
+#aside:hover { color: var(--ink); }
+#aside input { margin: 0; accent-color: var(--accent); }
+
+/* Shown and marked, never passed off as ordinary -- but still read, so what marks it is a
+   weight and a tint rather than anything struck through. */
+.seg.hidden { color: var(--dim);
+              background: color-mix(in srgb, var(--faint) 50%, transparent); }
+
+/* Where the path leaves what is live. One of these, since what is hidden is a suffix: the
+   rule picks the live path first and a hidden pass only carries it on from the end. */
+.cut { display: inline-flex; align-items: baseline; gap: 8px; vertical-align: baseline;
+       margin: 0 7px 0 3px; padding: 1px 4px 2px 9px;
+       font: 400 11px/1.6 var(--mono); font-style: normal; color: var(--dim);
+       border: 1px dashed var(--rule); border-radius: 4px; }
+.cut button { font: inherit; padding: 1px 6px; }
 
 /* ---- the composer ----
    A request appears where its result will, so this stands in the column at the position it

@@ -241,6 +241,57 @@ def test_a_path_below_a_deleted_node_is_marked_dead_without_carrying_the_flag(tr
     assert marks[8] == (True, False)
 
 
+# ---- what is hidden ------------------------------------------------------------------
+
+
+def ids(cells):
+    return [m.node.id for cell in cells for m in cell.nodes]
+
+
+def test_a_hidden_pass_carries_the_path_on_from_where_the_live_one_ran_out(tree):
+    """Node 4's arms are 7 and 8, and 8 is already set aside. Setting 7 aside as well
+    leaves the live path ending at 4, which is the tail a reader truncated; asking for what
+    is hidden reaches it again, marked, so there is somewhere to undo it from."""
+    tree.delete(7, actor=USER)
+    assert ids(S.path(tree.conn, 4)) == [1, 2, 3, 4]
+
+    marks = [m for cell in S.path(tree.conn, 4, hidden=True) for m in cell.nodes]
+    assert [m.node.id for m in marks] == [1, 2, 3, 4, 7]
+    assert [m.live for m in marks] == [True, True, True, True, False]
+
+
+def test_a_hidden_pass_appends_and_never_chooses(tree):
+    """The trap. Node 8 is set aside and made the deeper arm below node 4, so a rule handed
+    both arms at once would take it -- and the reader would be moved by a toggle that only
+    says what to draw. The live path is picked first and is the same path either way.
+    """
+    tree.undelete(8, actor=USER)  # an act begins at a live node
+    tree.create(8, " is blue red grey", vocabulary=ToyVocabulary(), actor=USER)
+    tree.delete(8, actor=USER)
+
+    # What the rule does when it is offered both, which is what must not happen.
+    assert S.continuation(tree.conn, 4, hidden=True)[0].id == 8
+    assert ids(S.path(tree.conn, 4, hidden=True)) == [1, 2, 3, 4, 7]
+    assert ids(S.path(tree.conn, 4, hidden=True)) == ids(S.path(tree.conn, 4))
+
+
+def test_a_node_that_is_hidden_continues_nowhere_until_it_is_asked_for(tree):
+    """Node 6 was set aside with a tail below it. The path through it stops there, because
+    a continuation follows liveness; the toggle is what carries it down."""
+    tree.undelete(6, actor=USER)
+    tree.create(6, " is blue", vocabulary=ToyVocabulary(), actor=USER)  # 10, 11
+    tree.delete(6, actor=USER)
+
+    assert ids(S.path(tree.conn, 6)) == [1, 2, 6]
+    assert ids(S.path(tree.conn, 6, hidden=True)) == [1, 2, 6, 10, 11]
+
+
+def test_the_ancestry_alone_is_the_ancestry_whatever_the_toggle_says(tree):
+    """`rule=None` asks for what is above a node and nothing below it, so there is no pass
+    for a hidden one to follow."""
+    assert S.path(tree.conn, 6, rule=None, hidden=True) == S.path(tree.conn, 6, rule=None)
+
+
 # ---- 2. a ranking --------------------------------------------------------------------
 
 

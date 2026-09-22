@@ -165,7 +165,21 @@ what the toggle is for, and it is why it comes before anything that makes hiding
 
 It is a way of looking and records nothing. What is live is read from the store either way, and
 the continuation rule follows liveness whether or not the reader can see what it stepped past —
-so showing what is hidden reveals it and never selects it.
+so **showing what is hidden reveals it and never selects it.** In the column that is a rule about
+where hidden text may appear: the live path is chosen first and is the same path either way, and
+what is hidden only ever carries it on from where the live one ran out. A hidden node is never
+preferred to a live one, because it is never offered beside one.
+
+**Nothing the reader did not ask for need arrive live.** A stub is inference the instrument
+spent rather than a continuation the reader chose, so it can be born set aside and be reached the
+way everything else set aside is reached. That costs no new field and no new state.
+
+**It does load one flag with two meanings**, and they are near enough to share it: *I have put
+this away*, and *nobody has taken this up yet*. What tells them apart is the act and not the
+node — an act carries its actor — so a reader who needs the difference has it and the column
+does not have to draw it. What it does not reach is *where* such a node sits: a stub hangs beside
+a path rather than below its end, and the rule above only carries a path on from the end. Seeing
+one is Rankings' business or the band's, and not the column's.
 
 ## Forks and the band
 
@@ -562,7 +576,10 @@ and the page itself arrive from one origin. The page lists the tree's roots and 
 what it opens with, starts new ones through a composer that a submit turns into a `create`, sets
 one path as prose, and continues it at the end — reaching the end of what there is to read is
 how more of it is asked for, and what the draw asks for is set in a panel at the foot of the
-side. What does not exist is everything past that: no overlays, no band and no rankings, and no
-`realise` or `delete` reachable from the page. What else exists is the core,
+side. A root or a tail can be set aside and brought back, and one toggle says whether what has
+been is drawn. What does not exist is everything past that: no overlays, no band and no
+rankings, and no `realise` reachable from the page. **The gesture that sets a segment aside is a
+modifier-click and is the weakest part of this**, chosen because a plain click is already spoken
+for above and not because it is right. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
 a tree and cannot write — which is what demonstrated the band.

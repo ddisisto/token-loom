@@ -170,6 +170,13 @@ def _rule(request: Request, *, bare: bool = False) -> S.Rule | None:
     return RULES[named]
 
 
+def _flag(request: Request, name: str) -> bool:
+    """A query parameter that is on by being there. Bare `?hidden` counts, since a reader
+    typing a URL means it and a client that sends one sends a value."""
+    raw = request.query_params.get(name)
+    return raw is not None and raw not in ("0", "false")
+
+
 def _int(request: Request, name: str) -> int:
     raw = request.query_params.get(name)
     if raw is None:
@@ -225,14 +232,18 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             })
 
     def path(request: Request) -> JSONResponse:
+        """`hidden` carries the path past its live leaf into what was set aside. It is
+        echoed because a client drawing hidden nodes distinctly has to know it asked."""
         node = request.path_params["node"]
         rule = _rule(request, bare=True)
+        hidden = _flag(request, "hidden")
         with reading(writer) as conn:
-            cells = S.path(conn, node, rule)
+            cells = S.path(conn, node, rule, hidden)
             return JSONResponse({
                 "node": node,
                 "leaf": cells[-1].nodes[-1].node.id,
                 "rule": request.query_params.get("rule", "longest"),
+                "hidden": hidden,
                 "segments": [wire.segment(cell, wire.path_node) for cell in cells],
                 "sources": wire.source_names(conn),
             })
