@@ -95,6 +95,11 @@ rather than a fault to correct.
   settled from what is open, and does each open question say what would settle it — because a
   design in progress fails by writing an open question down as a rule. It moves until the surface
   is built.
+- **`docs/flagged-spine.md`** is the analysis the surface is built toward — a sampled path read as
+  the record of where sampling did work against the model, and a loop that spends further
+  inference only where that record says something happened. It names *spine*, *flag*, *overlay*
+  and *stub*, which `docs/SURFACE.md` uses, and it carries the continuation probe's measurements
+  under *Evidence in hand*. It supersedes `docs/CONTROLLER.md`, which is in the history.
 - **`docs/NEXT.md`** is what gets built next and why in that order. **It is living**: items are
   added as they come up and deleted once they close or fall out of scope, so it never
   accumulates a history of itself. Nothing cites it, and nothing should — it is the one document
