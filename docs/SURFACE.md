@@ -147,6 +147,26 @@ reader is looking at when it lands.
 **Between forks, nothing is drawn.** A stretch where nothing is offered should look like prose,
 so the visible object is the fork and the column is otherwise text.
 
+## Hidden
+
+**Deleted is the surface's *hidden*, and whether it is shown is one toggle.** `docs/CORE.md` has
+`delete` setting a flag on one node and `undelete` clearing it, with liveness derived and nothing
+leaving the store — so what a reader means by one is *set this aside*: a root not being read, a
+tail that went nowhere. Grown and pruned is the whole of it, and the record needs no other
+notion to serve it.
+
+**The toggle governs the page at once**, the list of roots and the reading column together, and a
+hidden node that is shown is visually distinct rather than silently ordinary. One state, because
+a reader asking *what have I set aside* is asking it of the tree and not of one column.
+
+**Without it, hiding is one-way.** A reader who sets a root aside and cannot list it again cannot
+take it back, and an act with a verb of its own would be reachable in one direction only. That is
+what the toggle is for, and it is why it comes before anything that makes hiding pleasant.
+
+It is a way of looking and records nothing. What is live is read from the store either way, and
+the continuation rule follows liveness whether or not the reader can see what it stepped past —
+so showing what is hidden reveals it and never selects it.
+
 ## Forks and the band
 
 **A fork is a node whose parent has more than one live child.** In the reading column it carries a
@@ -247,10 +267,12 @@ from those rows without being asked about a position is Overlays.
 
 ## Overlays
 
-`docs/SPINE.md` names these objects and this section takes its words: a **spine** is a
-sampled path read as the record of the decisions that made it, a **flag** marks a position where
-the draw went somewhere the model would not have, an **overlay** is a per-position quantity drawn
-along the path, and a **stub** is a short greedy rollout from what the draw passed over.
+`docs/SPINE.md` names the objects: a **spine** is a sampled path read as the record of the
+decisions that made it, a **flag** marks a position where the draw went somewhere the model would
+not have, and a **stub** is a short greedy rollout from what the draw passed over. An **overlay**
+is this document's word, and it is the machinery rather than a measure — a per-position quantity
+drawn along the path, whatever computed it. A flag is one, and so is anything read off a ranking
+without regard to what the draw did.
 
 **An overlay is asked for, and the column draws none until one is.** This is what keeps *The
 floor case is a text reader* and *Between forks, nothing is drawn* — they describe the column a
@@ -273,6 +295,13 @@ the top-1 to top-2 gap. The depth-bound ones read a tail: entropy, the mass in t
 options were live. These are not decoration; the distinction between *a decision*, split strongly
 between few options, and *a scramble*, where the model had no opinion, is the one `docs/SPINE.md`
 turns on, and only a tail tells them apart.
+
+**That is not the division `docs/SPINE.md` makes, and the two cross.** That one sorts measures by
+what the draw did — a flag is draw-relative and is silent wherever the draw did not go, while
+anything read off a ranking alone is indifferent to it. This one sorts them by how much of a
+ranking they need. The top-1 to top-2 gap is the witness that these are different cuts, being
+draw-independent by the first and robust by this, and an overlay declares both: one says where it
+has no value at all, and the other says what its values may be compared with.
 
 **A depth-bound overlay carries the depth it was computed over.** `docs/CORE.md` derives a node's
 recorded depth and states why it is not any act's `record_rows`: rankings accumulate. So a path
@@ -420,8 +449,8 @@ A long generation stopped by declining to issue the next act is consecutive `tok
 and so is deepening a ranking.
 
 Everything else here is a way of looking. The reading column, the band, a ranking on demand,
-moving between forks, and whatever comparison across branches turns out to be are the surface's
-own, record nothing, and are owed no counterpart.
+moving between forks, whether what is hidden is drawn, and whatever comparison across branches
+turns out to be are the surface's own, record nothing, and are owed no counterpart.
 
 **Reader state is a third thing.** A continuation rule that follows what the reader most recently
 took is neither a write nor a way of looking that records nothing: it is state that decides what
@@ -511,8 +540,10 @@ when it is settled.
   same characters. Whether the reader should is a question about honesty against clutter, and what
   settles it is a tree with control tokens in ordinary positions, read both ways.
 - **Whether a hidden fork is announced.** A deleted sibling makes a fork vanish. Saying nothing is
-  consistent; saying something may be truer. What settles it is using `delete` in earnest and
-  seeing whether a tree becomes unreadable without the mark.
+  consistent; saying something may be truer. Hidden's toggle is not the answer — it is page-wide
+  and shows everything set aside, where this asks for a mark at one position while the rest stays
+  out of sight. What settles it is using `delete` in earnest and seeing whether a tree becomes
+  unreadable without the mark.
 - **Cadence.** Text arrives in whole acts. Whether the surface reveals a block at once or paces it
   out — which invents a timing the record does not hold — is a choice, and no measurement has been
   taken. Nothing is lost by waiting: chunk length *is* `length` in `params`, recorded per act, so

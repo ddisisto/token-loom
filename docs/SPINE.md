@@ -30,16 +30,16 @@ Three properties fall out immediately:
 - **Per-flag prices sum to the path's accumulated deviation** — the summed log-ratio of every divergence against the token it displaced. The path's total distance from the model's preferred continuation is not a caption on it but a decomposition over it: the reader sees not only how far this generation wandered but exactly where every unit of the wandering was spent.
 - **Paths drawn under different samplers remain comparable**, because deviation is measured in the model's own units, not the sampler's nominal settings. A draw at high temperature that happened to hug the argmax path sits low on the axis; a mild draw that hit an unstable region sits high. The realised perturbation is what is measured; the intended one is metadata.
 
-## Two maps, not one
+## Two families of measure, not one
 
-**Flags mark where sampling did work. Overlays mark where work was available.** These are different maps and both are needed, because a flag can only appear where the draw happened to diverge — and a position where the model was genuinely torn, but the draw took the argmax anyway, is invisible to flags while being precisely the kind of position worth knowing about.
+**A flag marks where sampling did work. A distribution measure marks where work was available.** These are different maps and both are needed, because a flag can only appear where the draw happened to diverge — and a position where the model was genuinely torn, but the draw took the argmax anyway, is invisible to flags while being precisely the kind of position worth knowing about.
 
-Overlays are per-position quantities rendered independently of what the draw did: entropy at the position, the gap between the top two tokens, the probability mass of the head of the distribution, whatever else the recorded distributions support. They are toggled and thresholded at read time, and they distinguish the two populations flags alone conflate:
+A flag is **draw-relative**: it reads the row the draw took against the row the model preferred, and it is silent wherever the draw did not go. A **distribution measure** reads the ranking alone and is indifferent to what was drawn — entropy at the position, the gap between the top two tokens, the probability mass of the head, whatever else the recorded distributions support. Both are per-position quantities drawn along the path, toggled and thresholded at read time; `docs/SURFACE.md` calls that machinery an **overlay** and takes either kind. What they do not share is what makes a position worth marking, and only the second distinguishes the two populations flags alone conflate:
 
 - **A decision** is a position split strongly between a small number of options — the second token carries real mass. Divergence here is the model entertaining an alternative.
 - **A scramble** is a position where the model has no opinion — many near-equal options, a flat head. Divergence here is a die roll. Temperature buys most of its flags at scrambles, because that is where flattening the distribution has the most effect; the decisions are rarer and are the ones that matter.
 
-The overlay layer is where that distinction lives, and it is a read-time distinction: nothing about the generation depends on it, and the threshold that separates the two can be moved with a slider, wrong at zero cost.
+That distinction is a read-time one: nothing about the generation depends on it, and the threshold that separates the two can be moved with a slider, wrong at zero cost.
 
 ## Stubs
 
@@ -51,17 +51,19 @@ Whether a stub has re-converged is left to the reader's judgement, deliberately.
 
 Stub mechanics, first cut: a flat 20 tokens, greedy, generated on demand for flags the reader touches. Greedy rollouts are deterministic — a pure function of the position — so each is generated once ever, and every stub deepens the record for any later reading of the same region. A stub that immediately cycles is not a failure but a diagnosis, delivered exactly where it applies: *from here, the model's preference is a loop.* Attractor detection arrives as a per-position annotation, free.
 
-## The reading surface
+## What this asks of a reading surface
 
-**Text with a margin, not a chart.** The reader is reading; the instrument annotates. Flag glyphs sit inline; magnitude appears on hover or as a toggleable heat-strip; overlays switch on and off; stubs unfold as ghost text beneath the line and fold away. Ghost text should render as *the model's habit*, visually recessive — the instrument wants a reader who was moved off the greedy continuation to notice they were moved, not to defer to greedy as the right answer.
+**Text with a margin, not a chart.** The reader is reading; the instrument annotates. How that is drawn is `docs/SURFACE.md`'s and is not answered here — what this asks for is that the annotation stay subordinate to the prose, since a reader who has to leave the text to consult the instrument is reading the instrument.
 
-The first working version is one screen: paste a context, sample once, read the output with the flags on.
+One demand is not cosmetic. **A stub should read as the model's habit and not as the right answer.** The instrument wants a reader who was moved off the greedy continuation to notice they were moved, not to defer to greedy; recessive rendering is what that comes to, and it is the one place where getting the visual weight wrong changes what a reader concludes.
+
+**Nothing here needs more than one screen.** A context, one draw, and the flags on is already the loop; everything past that is the loop used more.
 
 ## Continuation and recursion
 
 The loop above is one spine, read. What follows from it is chosen by the reader, and every choice decomposes into the same three moves:
 
-- **Select positions to inflate** — by touching flags directly, or by thresholding overlays (every flag above this deviation, every position above this entropy). What was a generation-time policy problem in a controller becomes a read-time filter.
+- **Select positions to inflate** — by touching flags directly, or by thresholding an overlay (every flag above this deviation, every position above this entropy). What was a generation-time policy problem in a controller becomes a read-time filter.
 - **Choose how to inflate** — greedy stubs are the default and the cheapest, but a stub is just a short generation and other policies are admissible where they earn their spend.
 - **Analyse what came back** — re-convergence, n-gram structure, embedding distance between chains — producing further overlays, returned to the same margin.
 
@@ -122,6 +124,6 @@ Each of these is left to be settled by use of the instrument, and each names wha
 
 - **Whether re-convergence has a workable formal measure.** Settled by comparing candidate measures against reader judgements over recorded chains — no generation required.
 - **Stub policy beyond a flat 20.** Settled by where readers actually stop reading stubs, and which stubs they extend.
-- **Which overlay best predicts the flags that turn out to matter** — entropy, gap, head-mass, or something composite. *Evidence in hand* rules out the obvious answer for selection and leaves the question. Settled by the fork map: aggregate which positions produced lasting divergence, and score each overlay as a predictor of them.
+- **Which distribution measure best predicts the flags that turn out to matter** — entropy, gap, head-mass, or something composite. *Evidence in hand* rules out the obvious answer for selection and leaves the question. Settled by the fork map: aggregate which positions produced lasting divergence, and score each measure as a predictor of them.
 - **Whether automated inflation earns its place** — thresholds that spawn stubs unprompted, or policies that spend ahead of the reader. Settled by whether readers, given the manual loop, converge on repetitive selection patterns a policy could serve.
 - **Which embeddings, if analysis wants them.** Settled by probing candidates against chains that already exist; nothing upstream depends on the choice.

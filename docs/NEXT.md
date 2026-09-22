@@ -16,14 +16,59 @@ that relation to the others is a bullet at the end rather than a number.
 
 **Built in the order a reader meets it, which is the order it is written in.** A tree starts
 empty, so the first thing the page needs is a way to make one, and each rendering after that is
-built once there is a way to produce what it renders from the page itself. The band is the far
-end: it needs a fork, a fork needs a second live child, and that needs a `realise` and a
-`generate` or a second `create`. Building it last is what puts the gesture that makes forks in
-hand before the thing that displays them is designed.
+built once there is a way to produce what it renders from the page itself.
 
 **A page grown against an empty tree risks a column shaped by the degenerate case.**
 `data/continuations` is twelve thousand nodes and costs nothing to point at, so each increment is
 read against a tree the page could not yet have made.
+
+**No build step.** The probe needed none for the hardest thing in the document.
+
+**What exists is `docs/SURFACE.md`'s Status and is not restated here.** What the page has arrived
+at is a composer that both starts a root and writes at a position, a column that sets one path as
+prose, a scroll at the end that asks for more of it, and a panel that says what the draw asks
+for. This section is what comes after that.
+
+### The increments, in order
+
+**1. Hidden shown or not.** A `delete` and an `undelete` reachable from the page, and one toggle
+for whether what is set aside is drawn. It is first because it is the smallest and because it is
+what makes everything below it readable against a real tree: until a reader can prune, the column
+sets whatever the continuation rule hands it. Without the toggle, hiding is reachable in one
+direction only — `docs/SURFACE.md`'s *Hidden* is what this builds. It stands alone on the page
+for now and joins the overlay controls once those have a panel.
+
+**2. The overlay, server half.** The path read grows a per-node aggregate of the ranking its
+*parent* held, and the recorded depth that aggregate was taken over — both as a parameter of the
+read, so the floor case pays for none of it. One bounded shape covers the first four measures:
+the top row's logprob, the second row's, the recorded depth and the recorded mass, from which
+come the flag, top-1 probability, the top-1 to top-2 gap, and where the mass runs out. Three of
+those are robust and one is depth-bound, which is enough of each to find out whether that
+distinction survives contact. It decorates the descent's output rather than joining its
+recursion, so it costs one query per path and not one per node.
+
+**3. The overlay, page half.** Measure, scale and unit kept apart, because the division is what
+lets a quantity some later analysis computes arrive the same way and be read the same way. Spans
+and not nodes; a multi-node segment marked rather than coloured; an authored token off the scale
+rather than at its end. **The first test case is a flag over a real tree**, which is the one
+overlay honest at whatever depth the tree happens to hold — so nothing has to be levelled before
+it means something.
+
+**4. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
+position, and the rows with no child are what a `realise` takes. This is where an overlay points:
+a position drawn as interesting is a position a reader then opens. It is also the cheapest thing
+that makes a fork, which is why it comes before the band rather than after it.
+
+**5. The band, when its need is as clear as theirs.** It displays forks, so until something makes
+them it has nothing to display — that was the argument for putting it last and it still holds.
+What has changed is that its need is the least established of these: a ranking on demand already
+answers *what else was here* at a position, and whether a reader also wants every continuation
+below a fork laid out at once is a question use has not asked yet. So it waits on that and not on
+its cost, which is known — `/branches` is bounded by a line's width and by nothing vertical, so
+on the synthetic twenty-thousand-node tree a band opened at a root reads in 110 ms and projects
+to about a megabyte of JSON. A band opens at a fork rather than at a root, so that is a ceiling
+and not a typical call, and whether it wants a bound in the other direction is an open question
+in `docs/SURFACE.md` that only a page settles.
 
 **The band lifts from the probe rather than growing out of it.** `probe/index.html` holds the
 band's measured layout, which is the part of `docs/SURFACE.md` nothing else has demonstrated —
@@ -33,18 +78,7 @@ not carried forward, all of which would have to come apart anyway. One adaptatio
 cosmetic: the probe placed a preview line by segment index, and `parts_at` is characters into the
 line above, so the column carries a running offset onto each segment.
 
-**No build step.** The probe needed none for the hardest thing in the document.
-
-**What stands.** `src/tokenloom/surface/page/` is mounted at the root of the process that answers
-the reads, so the page and what it reads arrive from one origin and there is nothing between them
-to arrange. It lists the roots, starts new ones, and sets one path as prose. The composer it does
-that with is the piece the rest reuses: what changes between starting a root and writing at a
-position is which node the text hangs under.
-
-**The `generate` parameters are defaulted for a first pass and not exposed.** A complete request
-has to leave the surface, so the values live where the code is; which of them come under the
-reader's hand is an open question in `docs/SURFACE.md` and is not what the next increment is
-about.
+### What holds across them
 
 **The reading view renders no act but the one in flight.** An act originates at a node or an edge
 regardless of what produced either, and what it leaves behind is nodes and paths — which are what
@@ -57,13 +91,6 @@ having while the page is being built and is not part of reading.
 `docs/SURFACE.md` names a family of them and settles none, because they are compared by use.
 `longest` is the only member built, a second is a function and an entry in `RULES`, and what the
 page owes the question is a way to swap them over one tree.
-
-**What the band costs is now measurable and has not been measured against a page.** `/branches`
-is bounded by a line's width and by nothing vertical, so on the synthetic twenty-thousand-node
-tree a band opened at a root reads in 110 ms and projects to about a megabyte of JSON. A band
-opens at a fork rather than at a root, so that is a ceiling and not a typical call — but whether
-a band wants a bound in the other direction is an open question in `docs/SURFACE.md`, and the
-page is what settles it.
 
 **Nothing can change the store under the page, and what to do with that is the page's to
 settle.** The server holds the claim, so it is the only writer there is — but that is true of
@@ -87,6 +114,11 @@ Not in the ordering; each stands on its own.
   writer, so each pays a whole-tree read — 330 ms at 20k nodes. The server pays it once for the
   life of the process, which is what a long-running session buys. Nothing forces the question
   yet.
+- **`scripts/check-draw.mjs` is run by hand or not at all.** It drives the draw panel against a
+  DOM stub of about twenty lines and caught a real clamp fault on its first run, so what it
+  checks is worth checking; nothing invokes it. Hooking it to pytest is a subprocess call and a
+  skip when `node` is absent, and the reason to wait is that one harness for one asset may not be
+  the shape a second one wants.
 - **The `/evaluable` read does not check that the adapter spells the tree's vocabulary.** It
   asks the backend about ids from a tree that may be in another vocabulary and gets a confident
   answer about nonsense. `put_token` is what catches the mismatch on a write, at the first id the
