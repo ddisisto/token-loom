@@ -69,6 +69,10 @@ rather than a fault to correct.
 
 ## The documents
 
+- **`docs/PREMISE.md`** is why any of this is worth building — a context as a shared vocabulary
+  between one reader and one model, and what follows for an instrument over it. **It is an essay
+  and it constrains nothing.** Nothing cites it and nothing should; it is wrong in the way an
+  argument can be, not in the way a specification goes out of date.
 - **`docs/CORE.md`** is what the format *is* — node, edge, source, ranking, act, the on-disk
   shape, the invariants, the operations. It carries no arguments and is written against one test:
   can someone implement a reader from it alone. **It moves only as its own deliberate piece of
