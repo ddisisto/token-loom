@@ -57,10 +57,38 @@ def root(item: R.Node, name: S.Label) -> dict[str, Any]:
     }
 
 
-def path_node(mark: R.PathNode) -> dict[str, Any]:
+def spread(item: R.Spread) -> dict[str, Any]:
+    """What one source's ranking says about the position a node stands at.
+
+    `top` and `second` are logprobs, as every such number here is: a probability is one
+    `exp` away for a client that wants one, and the reverse loses precision exactly where a
+    ranking's tail lives. `mass` is a probability, because a sum of them is not a logprob.
+    """
+    return {
+        "source": item.source,
+        "rows": item.rows,
+        "mass": item.mass,
+        "top": item.top,
+        "second": item.second,
+    }
+
+
+def path_node(
+    mark: R.PathNode, among: dict[int, list[R.Spread]] | None = None
+) -> dict[str, Any]:
     """A node of a path with what is derived at it: whether it is live, what the ranking
-    above gave it, and whether its parent parts here."""
-    return {**node(mark.node), "live": mark.live, "logprob": mark.logprob, "fork": mark.fork}
+    above gave it, and whether its parent parts here.
+
+    `among` is what that ranking says about the position as a whole, and it is present only
+    when the read was asked for it -- an absent key is *nobody asked*, an empty list is
+    *nothing ranked here*, and a reader that could not tell those apart would draw a hole
+    where an overlay was never computed. More than one entry is a position two sources
+    ranked, which is the case `docs/SURFACE.md` has the surface refuse rather than choose in.
+    """
+    out = {**node(mark.node), "live": mark.live, "logprob": mark.logprob, "fork": mark.fork}
+    if among is not None:
+        out["among"] = [spread(s) for s in among.get(mark.node.id, ())]
+    return out
 
 
 def segment[T](cell: S.Segment[T], project: Callable[[T], Any]) -> dict[str, Any]:

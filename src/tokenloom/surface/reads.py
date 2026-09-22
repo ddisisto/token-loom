@@ -203,6 +203,31 @@ def path(
     return segments(marks, lambda m: spell[m.node.token_id])
 
 
+def overlays(
+    conn: sqlite3.Connection, cells: list[Segment[R.PathNode]]
+) -> dict[int, list[R.Spread]]:
+    """What the ranking each node of a path stood in says about that position.
+
+    **It is the node's *parent's* ranking.** A node's own ranked edges are the alternatives
+    for what follows it, which is the same reason `docs/SURFACE.md` has selecting a token
+    ask about the ranking above. A root stood in none and is absent.
+
+    Keyed by the node and not by the parent, because what a column draws is the position the
+    node occupies and the parent is only where the answer was kept. It decorates a path the
+    descent has already produced rather than joining its recursion, so it is one query
+    whatever the path's length -- and it is asked for, so a column drawing no overlay pays
+    for none of this.
+    """
+    above = {
+        mark.node.id: mark.node.parent
+        for cell in cells
+        for mark in cell.nodes
+        if mark.node.parent is not None
+    }
+    held = R.spreads(conn, above.values())
+    return {node: held[parent] for node, parent in above.items() if parent in held}
+
+
 # ---- 2. a ranking --------------------------------------------------------------------
 
 

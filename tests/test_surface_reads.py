@@ -292,6 +292,95 @@ def test_the_ancestry_alone_is_the_ancestry_whatever_the_toggle_says(tree):
     assert S.path(tree.conn, 6, rule=None, hidden=True) == S.path(tree.conn, 6, rule=None)
 
 
+# ---- overlays ------------------------------------------------------------------------
+
+
+def test_what_a_node_stands_in_is_its_parents_ranking_and_not_its_own(ranked):
+    """The trap. A node's own ranked edges are the alternatives for what *follows* it, so
+    a read that attached them would describe the wrong position -- and would be right at
+    every node of a chain where each carries a ranking of the same width, which is most of
+    a generated path.
+    """
+    store, tip = ranked
+    child = R.children(store.conn, tip)[0]
+    cells = S.path(store.conn, child.id, rule=None)
+    drawn = S.overlays(store.conn, cells)
+
+    (stood,) = drawn[child.id]
+    assert stood.rows == len(R.ranking(store.conn, tip)), "the parent's ranking"
+    assert child.id not in R.spreads(store.conn, [child.id]), "the child ranked nothing"
+    assert stood.top == max(e.logprob for e in R.ranking(store.conn, tip))
+
+
+def test_a_root_stands_in_no_ranking_and_is_absent(ranked):
+    """A root has no parent, so there is no position above it to summarise. Absent rather
+    than empty: a reader drawing nothing and a reader drawing a zero are different."""
+    store, tip = ranked
+    cells = S.path(store.conn, tip, rule=None)
+    root = cells[0].nodes[0].node
+    assert root.parent is None
+    assert root.id not in S.overlays(store.conn, cells)
+
+
+def test_a_flag_is_the_node_against_the_top_of_what_it_stood_in(ranked):
+    """What the first overlay is made of, and it needs nothing the path does not carry: the
+    node's own logprob is on it already, and the top row comes from what it stood in. The
+    price is the two apart, so the node that took the top row is the one that pays nothing.
+
+    A deleted child is priced like any other. Liveness decides what is drawn; it has never
+    decided what a ranking recorded.
+    """
+    store, tip = ranked
+    rows = {edge.token_id: edge.logprob for edge in R.ranking(store.conn, tip)}
+    top = max(rows.values())
+
+    priced = {}
+    for child in R.children(store.conn, tip):
+        cells = S.path(store.conn, child.id, rule=None)
+        mark = cells[-1].nodes[-1]
+        (stood,) = S.overlays(store.conn, cells)[child.id]
+        assert stood.top == top
+        priced[child.token_id] = stood.top - mark.logprob
+
+    assert priced == pytest.approx({t: top - rows[t] for t in priced})
+    assert [t for t, cost in priced.items() if cost == 0] == [
+        max(rows, key=lambda t: rows[t])
+    ], "exactly the token that took the top row is unflagged"
+
+
+def test_an_authored_node_stands_in_a_ranking_it_has_no_row_in(ranked):
+    """Two ways to have no value, and they are not one. An authored token was never ranked,
+    so it is off the scale rather than at its end -- but the position it occupies still has
+    a distribution, which is why the spread is about the position and the flag is about the
+    node.
+    """
+    store, tip = ranked
+    written = tip_of(store, store.create(tip, " grey", vocabulary=ToyVocabulary(),
+                                         actor=USER))
+    cells = S.path(store.conn, written, rule=None)
+    mark = cells[-1].nodes[-1]
+
+    assert mark.logprob is None, "nothing ranked it, so it has no row"
+    assert written in S.overlays(store.conn, cells), "the position was ranked all the same"
+
+
+def test_overlays_are_one_query_whatever_the_path_holds(ranked):
+    """What decorating the output rather than joining the recursion is for. A spread per
+    node would be one statement each, which is the N+1 the three reads exist to avoid."""
+    store, tip = ranked
+    cells = S.path(store.conn, tip, rule=None)
+    counted = 0
+
+    def count(statement):
+        nonlocal counted
+        counted += 1
+
+    store.conn.set_trace_callback(count)
+    S.overlays(store.conn, cells)
+    store.conn.set_trace_callback(None)
+    assert counted == 1
+
+
 # ---- 2. a ranking --------------------------------------------------------------------
 
 

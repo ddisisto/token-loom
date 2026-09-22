@@ -31,35 +31,19 @@ for. This section is what comes after that.
 
 ### The increments, in order
 
-**1. Hidden shown or not.** A `delete` and an `undelete` reachable from the page, and one toggle
-for whether what is set aside is drawn. It is first because it is the smallest and because it is
-what makes everything below it readable against a real tree: until a reader can prune, the column
-sets whatever the continuation rule hands it. Without the toggle, hiding is reachable in one
-direction only — `docs/SURFACE.md`'s *Hidden* is what this builds. It stands alone on the page
-for now and joins the overlay controls once those have a panel.
-
-**2. The overlay, server half.** The path read grows a per-node aggregate of the ranking its
-*parent* held, and the recorded depth that aggregate was taken over — both as a parameter of the
-read, so the floor case pays for none of it. One bounded shape covers the first four measures:
-the top row's logprob, the second row's, the recorded depth and the recorded mass, from which
-come the flag, top-1 probability, the top-1 to top-2 gap, and where the mass runs out. Three of
-those are robust and one is depth-bound, which is enough of each to find out whether that
-distinction survives contact. It decorates the descent's output rather than joining its
-recursion, so it costs one query per path and not one per node.
-
-**3. The overlay, page half.** Measure, scale and unit kept apart, because the division is what
+**1. The overlay, page half.** Measure, scale and unit kept apart, because the division is what
 lets a quantity some later analysis computes arrive the same way and be read the same way. Spans
 and not nodes; a multi-node segment marked rather than coloured; an authored token off the scale
 rather than at its end. **The first test case is a flag over a real tree**, which is the one
 overlay honest at whatever depth the tree happens to hold — so nothing has to be levelled before
 it means something.
 
-**4. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
+**2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
 position, and the rows with no child are what a `realise` takes. This is where an overlay points:
 a position drawn as interesting is a position a reader then opens. It is also the cheapest thing
 that makes a fork, which is why it comes before the band rather than after it.
 
-**5. The band, when its need is as clear as theirs.** It displays forks, so until something makes
+**3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
 What has changed is that its need is the least established of these: a ranking on demand already
 answers *what else was here* at a position, and whether a reader also wants every continuation

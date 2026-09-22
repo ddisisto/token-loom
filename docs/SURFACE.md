@@ -532,10 +532,12 @@ when it is settled.
   reading a flag, where the same quantity is the honest price of a divergence already observed.
   What settles it is that document's fork map.
 - **Whether a depth-bound overlay is legible when depth varies along a path.** Carrying the depth
-  is what stops it lying; it is not what makes it readable. A path whose nodes were recorded two
-  ways may need a uniform-depth pass before an overlay over it means anything, and a pass is
-  cheap — deepening merges. What settles it is reading one tree with mixed depths and the same
-  tree levelled.
+  is what stops it lying; it is not what makes it readable. Depth varies without anyone having
+  moved the recording bounds, and it varies *with* the thing that makes depth matter —
+  `docs/SPINE.md`'s *Evidence in hand* measures a factor of five along one path, the rows spent
+  where the distribution is flat. So a uniform-depth pass is not the repair of an inconsistency
+  but a decision to buy depth the recording rule declined to, and a pass is cheap because
+  deepening merges. What settles it is reading one tree as recorded and the same tree levelled.
 - **What a node two sources ranked should show.** Refusing is what the surface does and not an
   answer. Their disagreement may be the interesting quantity, in which case the overlay is a
   measure over sources rather than one that has to pick among them. What settles it is a tree two

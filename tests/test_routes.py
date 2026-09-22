@@ -10,6 +10,7 @@ and the page, where the order of the route list is the whole of what it rests on
 
 from __future__ import annotations
 
+import math
 import threading
 
 import pytest
@@ -221,6 +222,41 @@ def test_the_toggle_is_off_by_being_absent_and_by_being_denied(client):
     assert client.get("/path/3").json()["leaf"] == 3
     assert client.get("/path/3", params={"hidden": 0}).json()["leaf"] == 3
     assert client.get("/path/3?hidden").json()["leaf"] == 4
+
+
+def test_a_path_carries_no_overlay_until_one_is_asked_for(client):
+    """The floor case is a text reader, so it does not pay for what it does not draw. An
+    absent key and an empty list are different answers: *nobody asked*, and *nothing ranked
+    this position* -- and a client that read them the same would draw a hole wherever the
+    read had simply not been told to compute one."""
+    plain = [n for cell in client.get("/path/2").json()["segments"] for n in cell["nodes"]]
+    assert all("among" not in n for n in plain)
+
+    body = client.get("/path/2", params={"overlays": 1}).json()
+    assert body["overlays"] is True
+    marks = {n["id"]: n for cell in body["segments"] for n in cell["nodes"]}
+    assert all("among" in n for n in marks.values())
+    assert marks[1]["among"] == [], "a root stood in no ranking"
+    assert marks[2]["among"] == [], "node 1 ranked nothing, so node 2 stood in nothing"
+
+
+def test_an_overlay_is_what_the_ranking_above_says_about_the_position(client):
+    """Node 2 carries the only ranking in this tree, so node 3 is the one node that stood
+    in one. What it reports has to agree with the rows the ranking read hands back, which
+    is the same answer at a different width."""
+    marks = {n["id"]: n for cell in
+             client.get("/path/2", params={"overlays": 1}).json()["segments"]
+             for n in cell["nodes"]}
+    (stood,) = marks[3]["among"]
+    rows = client.get("/ranking/2").json()["rows"]
+
+    assert stood["rows"] == len(rows)
+    assert stood["top"] == max(row["logprob"] for row in rows)
+    assert stood["second"] == sorted((row["logprob"] for row in rows), reverse=True)[1]
+    assert stood["mass"] == pytest.approx(sum(math.exp(row["logprob"]) for row in rows))
+    # The flag: what node 3 paid to be where it is, which here is nothing.
+    assert marks[3]["logprob"] == stood["top"]
+    assert stood["source"] == marks[3]["source"]
 
 
 def test_a_ranking_says_which_rows_have_been_realised(client):

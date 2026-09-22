@@ -10,6 +10,8 @@ The bulk reads that are not the descent are here for the same reason.
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from tokenloom.core import Store
@@ -225,6 +227,67 @@ def test_a_node_nothing_ranked_is_absent_and_deleting_a_child_changes_no_depth(t
 
         store.delete(2, actor=USER)
         assert R.recorded_depths(store.conn, [1]) == before
+
+
+def test_a_spread_summarises_the_rows_and_agrees_with_reading_them(tmp_path):
+    """Four rows recorded out of logprob order, which is what the store allows and what a
+    later act produces. Every field is computed from the rows rather than written down, so
+    a summary that sorted wrongly or counted the union would disagree here.
+    """
+    rows = [(101, -0.10), (104, -2.00), (102, -0.50), (105, -3.00)]
+    with Store.initialise(tmp_path / "p", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(
+            1, {"length": 1}, adapter=ToyAdapter([drew((101, rows))]), actor=USER
+        )
+        (spread,) = R.spreads(store.conn, [1])[1]
+
+        logprobs = sorted((lp for _, lp in rows), reverse=True)
+        assert spread.rows == len(rows)
+        assert spread.top == logprobs[0]
+        assert spread.second == logprobs[1]
+        assert spread.mass == pytest.approx(sum(math.exp(lp) for lp in logprobs))
+        assert spread.top > spread.second, "recorded order is not logprob order"
+
+        # The same numbers the row-by-row read gives, which is what it has to agree with.
+        read = R.ranking(store.conn, 1)
+        assert spread.rows == len(read)
+        assert spread.top == max(e.logprob for e in read)
+
+
+def test_a_spread_is_per_source_because_two_rankings_are_not_one(tmp_path):
+    """Summing two sources' rows would describe a distribution neither model produced, and
+    the mass of the union can exceed one while each part is a prefix of a distribution."""
+    with Store.initialise(tmp_path / "q", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(
+            1, {"length": 1},
+            adapter=ToyAdapter([drew((101, [(101, -0.1), (102, -0.5), (103, -1.0)]))]),
+            actor=USER,
+        )
+        store.generate(
+            1, {"length": 1},
+            adapter=ToyAdapter([drew((105, [(105, -0.2), (106, -0.9)]))], source=OTHER),
+            actor=USER,
+        )
+        found = R.spreads(store.conn, [1])[1]
+        assert [s.rows for s in found] == [3, 2]
+        assert len({s.source for s in found}) == 2
+        assert {s.source: s.rows for s in found} == R.recorded_depths(store.conn, [1])[1]
+
+
+def test_a_node_nothing_ranked_has_no_spread_and_one_row_has_no_second(tmp_path):
+    """A tip is absent rather than reported as an empty ranking, and a lone row leaves
+    `second` unset rather than repeating the first -- which a gap read off it would make
+    zero, saying the model was torn where it had one recorded option."""
+    with Store.initialise(tmp_path / "o", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        store.generate(
+            1, {"length": 1}, adapter=ToyAdapter([drew((101, [(101, -0.1)]))]), actor=USER
+        )
+        assert R.spreads(store.conn, [2]) == {}
+        (spread,) = R.spreads(store.conn, [1])[1]
+        assert (spread.rows, spread.second) == (1, None)
 
 
 def test_token_bytes_agrees_with_node_bytes(tree):

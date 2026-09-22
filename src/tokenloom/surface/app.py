@@ -233,18 +233,30 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
 
     def path(request: Request) -> JSONResponse:
         """`hidden` carries the path past its live leaf into what was set aside. It is
-        echoed because a client drawing hidden nodes distinctly has to know it asked."""
+        echoed because a client drawing hidden nodes distinctly has to know it asked.
+
+        `overlays` adds what the ranking each node stood in says about that position. It is
+        a flag while every measure comes out of one aggregate; when one wants a tail of its
+        own it becomes the names, which is what `docs/SURFACE.md` means by *which overlays
+        to compute is a parameter of the read*. Either way the floor case does not send it
+        and does not pay for it.
+        """
         node = request.path_params["node"]
         rule = _rule(request, bare=True)
         hidden = _flag(request, "hidden")
+        wanted = _flag(request, "overlays")
         with reading(writer) as conn:
             cells = S.path(conn, node, rule, hidden)
+            among = S.overlays(conn, cells) if wanted else None
             return JSONResponse({
                 "node": node,
                 "leaf": cells[-1].nodes[-1].node.id,
                 "rule": request.query_params.get("rule", "longest"),
                 "hidden": hidden,
-                "segments": [wire.segment(cell, wire.path_node) for cell in cells],
+                "overlays": wanted,
+                "segments": [
+                    wire.segment(cell, lambda m: wire.path_node(m, among)) for cell in cells
+                ],
                 "sources": wire.source_names(conn),
             })
 

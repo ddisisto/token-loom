@@ -11,6 +11,7 @@ nobody's to do silently.
 
 from __future__ import annotations
 
+import math
 import sqlite3
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
@@ -47,6 +48,27 @@ class PathNode:
     live: bool
     logprob: float | None
     fork: bool
+
+
+@dataclass(frozen=True, slots=True)
+class Spread:
+    """What one source's ranking says about the position it stands at, without the rows.
+
+    `top` and `second` are the two highest logprobs **recorded**; `second` is None only
+    where one row is all there is. Whether those are the model's own top two is an
+    obligation on whatever wrote them and not a fact about the record, so this says what is
+    stored and a reader wanting more reads `docs/ADAPTER.md`.
+
+    `rows` is the recorded depth and `mass` the probability those rows carry between them.
+    Both are what accumulated here and neither is any act's parameter, since rankings
+    extend -- so a reader comparing two positions carries `rows` along with what it read.
+    """
+
+    source: int
+    rows: int
+    mass: float
+    top: float
+    second: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -390,6 +412,42 @@ def recorded_depths(
         ):
             out.setdefault(node, {})[source] = rows
     return out
+
+
+def spreads(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, list[Spread]]:
+    """What each of `nodes` ranked, summarised per source and without the rows themselves.
+
+    A node several sources ranked gets several entries, in source order; one summary over
+    their union would describe a distribution nothing produced. A node nothing ranked is
+    absent rather than empty, as in `recorded_depths`, since most of a tree has no ranking.
+
+    **The rows are read and summarised here rather than aggregated in SQL.** The second
+    highest logprob is not an aggregate, and the mass wants `exp`, which SQLite has only
+    where it was compiled in. What that costs is the recorded depth times the nodes asked
+    about -- the record's own size over those nodes, and not a multiple of it -- in one
+    statement per batch.
+    """
+    held: dict[int, dict[int, list[float]]] = {}
+    for holes, part in _chunks(nodes):
+        for node, source, logprob in conn.execute(
+            f"SELECT node, source, logprob FROM edges WHERE node IN ({holes}) "
+            "ORDER BY node, source, logprob DESC",
+            part,
+        ):
+            held.setdefault(node, {}).setdefault(source, []).append(logprob)
+    return {
+        node: [
+            Spread(
+                source,
+                len(ranked),
+                sum(math.exp(p) for p in ranked),
+                ranked[0],
+                ranked[1] if len(ranked) > 1 else None,
+            )
+            for source, ranked in sorted(by_source.items())
+        ]
+        for node, by_source in held.items()
+    }
 
 
 def unrealised_counts(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, int]:

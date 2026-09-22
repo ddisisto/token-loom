@@ -114,6 +114,29 @@ twentieth row carried a median probability of 0.0054 — far below anything a se
 reaches. What a narrower record costs a different policy is untested, and rankings extend without
 being rewritten, so a later widening is paid for one generation at a time.
 
+**Recorded depth varies with the flatness it is measuring, by a factor of five.** Over the
+longest path in `data/continuations` — 392 nodes, 385 of them standing in a ranking, recorded at
+a mass of 0.9 and a ceiling of 10 — the 283 positions whose top token carried above 0.9 hold a
+median of 2 rows, which is the floor the rule sets; the 31 below 0.5 hold 10, the ceiling, having
+reached a median mass of only 0.882. The rule spends depth where there is spread, so a
+depth-bound measure is thin exactly where it has least to say and deep where it has most. Nothing
+has to move the bounds for this to happen, and that the variation is not arbitrary is what makes
+carrying it worth more than levelling it away.
+
+**It reproduces on a path five times longer whose confidence profile is the opposite.** Over
+2,036 ranked positions under the same bounds, positions above 0.9 again hold a median of 2 rows
+and those below 0.5 again hold 10. What differs is the mix: 74% of the first path sits above 0.9
+against 20% of the second, so one path is mostly floor-bound and the other mostly ceiling-bound
+while the rule's response to flatness is identical. **A path's recorded depth is therefore a
+reading of the path and not a setting of the session**, which is why an overlay carries it.
+
+**Temperature cannot be what flattens a ranking**, since
+`src/tokenloom/adapters/llamacpp/README.md` measures the recorded values as pre-temperature and
+bit-identical across a sweep of it. So a hotter draw does not widen the record at a position; it
+lands the path on positions that are wider. Which of those two paths is flatter *because* of how
+it was drawn, rather than because of where it went, is not settled by this and would want one
+context drawn several ways.
+
 **The frontier outruns any reader almost immediately.** One 150-token path contributes 14 candidate
 edges above probability 0.40, 25 above 0.30, and 118 above 0.10 — and each path those open
 contributes as many again. Readability is the binding constraint, not inference cost.
