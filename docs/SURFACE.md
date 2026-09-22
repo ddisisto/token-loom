@@ -242,8 +242,78 @@ than adding a child. It is a write with a verb of its own, so *Nothing written i
 holds.
 
 **Density stays behind intent.** A ranking can run to dozens of rows at a position the model was
-unsure of, and none is shown until that position is asked about. Whether the reading column should
-nonetheless mark where the model *was* unsure is in What is not decided here.
+unsure of, and none is shown until that position is asked about. What the reading column draws
+from those rows without being asked about a position is Overlays.
+
+## Overlays
+
+`docs/flagged-spine.md` names these objects and this section takes its words: a **spine** is a
+sampled path read as the record of the decisions that made it, a **flag** marks a position where
+the draw went somewhere the model would not have, an **overlay** is a per-position quantity drawn
+along the path, and a **stub** is a short greedy rollout from what the draw passed over.
+
+**An overlay is asked for, and the column draws none until one is.** This is what keeps *The
+floor case is a text reader* and *Between forks, nothing is drawn* — they describe the column a
+reader has not asked anything of, which is still the thing that opens. One overlay at a time.
+
+**An overlay is three separable things**: a **measure**, which is a per-position quantity that
+may be absent; a **scale**, which maps it to colour; and a **unit**, which is what a value is
+addressed to. Keeping them apart is what lets a quantity the record computes and a quantity some
+later analysis computes arrive through the same machinery and be read the same way.
+
+**A flag is the first overlay and it costs nothing the record does not already hold.** A flag is
+*the drawn token was not the top-ranked one*, and its magnitude is the log-ratio between them —
+what the draw paid to go where it went. Both rows are guaranteed: a recorded ranking is a prefix
+of the model's, so the top row is the model's top row, and the drawn token is in the set unless
+it fell past the ceiling. **So a flag is honest at any depth**, which no other overlay is.
+
+**Overlays divide into the robust and the depth-bound, and an overlay says which it is.** The
+robust ones read the top of a ranking and the row the draw took — the flag, top-1 probability,
+the top-1 to top-2 gap. The depth-bound ones read a tail: entropy, the mass in the head, how many
+options were live. These are not decoration; the distinction between *a decision*, split strongly
+between few options, and *a scramble*, where the model had no opinion, is the one `flagged-spine`
+turns on, and only a tail tells them apart.
+
+**A depth-bound overlay carries the depth it was computed over.** `docs/CORE.md` derives a node's
+recorded depth and states why it is not any act's `record_rows`: rankings accumulate. So a path
+can hold nodes recorded to different depths — a reader moving the recording bounds mid-session is
+enough to do it — and an overlay that did not say so would be colouring incomparable numbers side
+by side and looking uniform while it did. **Depth is inflated where it is wanted**, position by
+position, by the deepening write Rankings describes.
+
+**A position with no value is not a position with a low one**, and there are two ways to arrive
+there. An **authored** token has no ranking because nothing ever ranked it; it is off the scale
+rather than at its end. A **drawn** token can have none because it landed past the recorded depth,
+which is a hole in the record where the model had a number. `source` tells them apart and they do
+not get one mark.
+
+**A node two sources ranked has no single value, and the surface refuses rather than choosing
+one.** Picking a source silently would make an overlay mean different things at different
+positions with nothing saying so. Whether the interesting quantity there is their *disagreement*
+is in What is not decided here.
+
+**A value is addressed to a span of the path.** The record holds quantities per node; the column's
+display and addressable unit is the segment; and analysis over decoded text will want words and
+character ranges, which is the vocabulary the surface and a reader actually share. One node to one
+segment is the common case and not the definition, so the column takes spans and later data needs
+no second mechanism.
+
+**Where a segment holds more than one node, it is marked rather than coloured.** A character
+spelled across several tokens has as many values as it has nodes and no single one, and the path
+read already says where this is: a segment with more than one node that nonetheless decodes. The
+breakdown is shown on demand. *Nothing is addressed inside a segment* is why this cannot be
+resolved by colouring the part of it that a value belongs to.
+
+**A scale is fixed before it is relative.** A fixed domain makes a colour mean the same thing in
+every path and every tree; a path-relative one makes a single path maximally legible and
+comparable to nothing. The first is the default and the second is another scale, not another
+system. Linear against log is a choice on the same measure, since a logprob and a probability are
+one number read two ways.
+
+**A stub is an ordinary branch and needs no new field to find.** A greedy rollout is deterministic,
+so it merges rather than accumulating duplicates, and the stub at a flagged position is the child
+that realised the top row — which the ranking read already reports. What a stub costs is a
+`generate`, and *Nothing written is only here* holds for it like any other.
 
 ## Writing
 
@@ -322,9 +392,11 @@ must be answerable that way, not as an interface.
 
 **1. A path.** From the root to a node: the segments in order, each carrying the node ids it
 spells, and for each node its source, its logprob, whether it is live, and whether it is a fork.
-One descent, carrying liveness down rather than asking per node. **If the column comes to mark
-uncertainty this read grows a per-node measure of the ranking its *parent* held** — an aggregate
-over ranked edges, decorating the descent's output rather than joining its recursion.
+One descent, carrying liveness down rather than asking per node. **For an overlay it also carries
+a per-node aggregate of the ranking its *parent* held**, and the recorded depth that aggregate was
+taken over — decorating the descent's output rather than joining its recursion. **Which overlays
+to compute is a parameter of the read**, the way the continuation rule is, so the floor case pays
+for none of them.
 
 **2. A ranking.** Every ranked edge at one node, each with the bytes its token spells, its
 logprob, and **the child that realised it, if any**. Not the branchable set alone: a reader
@@ -409,16 +481,25 @@ when it is settled.
 - **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each reads
   differently at a sharp position than at a flat one, and a real ranking is often one and
   sometimes the other. What settles it is drawing a real tree several ways.
-- **Whether the reading column marks uncertainty.** A mark on the prose where the model was
-  undecided — top-1 probability, or the top-1 to top-2 margin, either of which is robust on a
-  truncated tail — would show a reader where branching is worth doing, instead of leaving them to
-  ask position by position. It cuts against *Between forks, nothing is drawn* and against *Density
-  stays behind intent*, and it is the one open question here that changes what a read must carry.
-  It is also not yet well posed: a node several models have ranked holds several rankings, and the
-  measure has to say whose — or whether the interesting quantity there is their disagreement.
-  What settles it is reading a real tree with the mark and without it, and what keeps that cheap
-  to try is that the measure decorates a descent already being made rather than needing one of its
-  own.
+- **Which overlay finds the positions worth branching at.** Entropy, the top-1 to top-2 gap, the
+  mass in the head, or something composite — Overlays says what each can be computed from and not
+  which is worth reading, and `flagged-spine`'s *Evidence in hand* already rules out the obvious
+  answer — selecting by the gap picks the flattest positions in the tree, which is the opposite of
+  what it looks like it does. That is a finding about choosing where to spend and not about
+  reading a flag, where the same quantity is the honest price of a divergence already observed.
+  What settles it is that document's fork map.
+- **Whether a depth-bound overlay is legible when depth varies along a path.** Carrying the depth
+  is what stops it lying; it is not what makes it readable. A path whose nodes were recorded two
+  ways may need a uniform-depth pass before an overlay over it means anything, and a pass is
+  cheap — deepening merges. What settles it is reading one tree with mixed depths and the same
+  tree levelled.
+- **What a node two sources ranked should show.** Refusing is what the surface does and not an
+  answer. Their disagreement may be the interesting quantity, in which case the overlay is a
+  measure over sources rather than one that has to pick among them. What settles it is a tree two
+  models have both ranked, which nothing has yet produced.
+- **Whether an overlay and the band are on at once.** Both answer *what else was here*, one along
+  the path and one at a position, and a reader with the band open may want the column plain
+  behind it. What settles it is having both.
 - **Keyboard.** The band's depth-first row order is already the natural arrow-key sequence, but
   what the whole reader does under a keyboard — moving between forks, into a ranking, back out
   without losing one's place — is unsettled. *Keyboard and mouse first* is the target and only
@@ -450,7 +531,7 @@ and the page itself arrive from one origin. The page lists the tree's roots and 
 what it opens with, starts new ones through a composer that a submit turns into a `create`, sets
 one path as prose, and continues it at the end — reaching the end of what there is to read is
 how more of it is asked for, and what the draw asks for is set in a panel at the foot of the
-side. What does not exist is everything past that: no marks in the column, no band and no
-rankings, and no `realise` or `delete` reachable from the page. What else exists is the core,
+side. What does not exist is everything past that: no overlays, no band and no rankings, and no
+`realise` or `delete` reachable from the page. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
 a tree and cannot write — which is what demonstrated the band.
