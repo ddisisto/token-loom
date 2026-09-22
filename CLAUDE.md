@@ -48,11 +48,10 @@ Two things pull on the design:
   each already has a verb. A surface write with no verb would be a new kind of write, which
   is a core change and gets read as one.
 
-Controlled research — attractors in the prior, how temperature gates access to them, framing
-as a change of basis, what survives repeated retransmission — is where this points, and the
-core should not preclude it. It is deliberately not being designed for now. The questions get
-better with more use of the instrument, and designing around an experiment nobody has
-specified yet is how a format acquires a base unit it does not need.
+**The core should not preclude the controlled research this points at, and is deliberately not
+designed for it.** The questions get better with more use of the instrument, and designing
+around an experiment nobody has specified yet is how a format acquires a base unit it does not
+need.
 
 ## Token replay is a fidelity property, not an optimisation
 
@@ -95,7 +94,7 @@ rather than a fault to correct.
   settled from what is open, and does each open question say what would settle it — because a
   design in progress fails by writing an open question down as a rule. It moves until the surface
   is built.
-- **`docs/flagged-spine.md`** is the analysis the surface is built toward — a sampled path read as
+- **`docs/SPINE.md`** is the analysis the surface is built toward — a sampled path read as
   the record of where sampling did work against the model, and a loop that spends further
   inference only where that record says something happened. It names *spine*, *flag*, *overlay*
   and *stub*, which `docs/SURFACE.md` uses, and it carries the continuation probe's measurements

@@ -103,6 +103,14 @@ The range is wide on purpose:
 For small models and simpler interactions, higher sampling rates. That is where it starts,
 because that is where a draw is cheap and a divergence is easy to see.
 
+**Where this points once the browsing has turned up something worth asking properly**: attractors
+in the prior and what it takes to leave one, how temperature gates access to them, framing as a
+change of basis, and what survives repeated retransmission. The third of those is this essay's
+own subject seen from the other side — a framing that takes hold *is* a change of basis, and the
+question is what it costs and what it makes reachable. None of them is being designed for, and
+they are written here rather than into the format so that they stay findable without becoming
+constraints.
+
 **The reader's judgement is the sensor**, and the honest version of that is: there is no external
 metric for a successful *context*, and inventing one would be smuggling in a proxy for the thing
 actually being measured. The metrics that suggest themselves — the code runs, the plan achieved
@@ -143,7 +151,7 @@ close it, it puts the two sides where they can be read against each other.
 
 An argument that names nothing that would unseat it is decoration. These are not a programme of
 work and carry no order; what gets built is `docs/NEXT.md`, and what has been measured is
-`docs/flagged-spine.md` under *Evidence in hand*.
+`docs/SPINE.md` under *Evidence in hand*.
 
 - **Crystallisation should be visible, and cheaply.** If a term acquires operational meaning
   through use, the same term should cost fewer nats late in a context than early — one token,

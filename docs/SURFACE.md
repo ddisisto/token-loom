@@ -247,7 +247,7 @@ from those rows without being asked about a position is Overlays.
 
 ## Overlays
 
-`docs/flagged-spine.md` names these objects and this section takes its words: a **spine** is a
+`docs/SPINE.md` names these objects and this section takes its words: a **spine** is a
 sampled path read as the record of the decisions that made it, a **flag** marks a position where
 the draw went somewhere the model would not have, an **overlay** is a per-position quantity drawn
 along the path, and a **stub** is a short greedy rollout from what the draw passed over.
@@ -271,7 +271,7 @@ it fell past the ceiling. **So a flag is honest at any depth**, which no other o
 robust ones read the top of a ranking and the row the draw took — the flag, top-1 probability,
 the top-1 to top-2 gap. The depth-bound ones read a tail: entropy, the mass in the head, how many
 options were live. These are not decoration; the distinction between *a decision*, split strongly
-between few options, and *a scramble*, where the model had no opinion, is the one `flagged-spine`
+between few options, and *a scramble*, where the model had no opinion, is the one `docs/SPINE.md`
 turns on, and only a tail tells them apart.
 
 **A depth-bound overlay carries the depth it was computed over.** `docs/CORE.md` derives a node's
@@ -483,7 +483,7 @@ when it is settled.
   sometimes the other. What settles it is drawing a real tree several ways.
 - **Which overlay finds the positions worth branching at.** Entropy, the top-1 to top-2 gap, the
   mass in the head, or something composite — Overlays says what each can be computed from and not
-  which is worth reading, and `flagged-spine`'s *Evidence in hand* already rules out the obvious
+  which is worth reading, and `docs/SPINE.md`'s *Evidence in hand* already rules out the obvious
   answer — selecting by the gap picks the flattest positions in the tree, which is the opposite of
   what it looks like it does. That is a finding about choosing where to spend and not about
   reading a flag, where the same quantity is the honest price of a divergence already observed.
