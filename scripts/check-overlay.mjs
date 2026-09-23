@@ -241,6 +241,73 @@ says("a depth-bound one carries the depths it was computed over", words(note), "
 apart(node({ among: [deep[1]] }), node({ among: [deep[1]] }));
 says("  and says so when there is only one of them", words(note), "10 rows throughout");
 
+// ---- what lies below --------------------------------------------------------------------
+
+/* A downward measure reads no ranking at all, which is what the third declaration buys: the
+ * states above cannot arise for one, and the one that can -- a node the descent never reached
+ * -- is a hole and not a zero, since nothing below is a count and this is the want of one.
+ */
+const grown = (over = {}, rest = {}) =>
+  node({ under: { height: 1, size: 1, forks: 0, run: 1, ...over }, among: [], ...rest });
+
+tap("measure", "size");
+is("a measure that looks down asks for a descent and not for rankings",
+   O.wants(), { overlays: false, beneath: true });
+tap("measure", "flag");
+is("  and one that looks up asks for the other", O.wants(), { overlays: true, beneath: false });
+tap("measure", "none");
+is("  and an unasked column asks for neither", O.wants(), { overlays: false, beneath: false });
+
+tap("measure", "size");
+const [tall, wide] = apart(grown({ height: 9, size: 9 }), grown({ height: 2, size: 40 }));
+is("a position no ranking speaks for still has a tree below it", [tall.cls, wide.cls],
+   ["val", "val"]);
+is("  and the larger subtree is the darker", wide.t > tall.t, true);
+
+/* A count of what a reader has grown runs from one to the size of the tree and the tree
+ * grows, so there is no ceiling to place it against and asking for one changes nothing. */
+is("a count has no fixed domain, so the scale is the path's own", lit("domain"), ["path"]);
+is("  and fixed is not offered where there is nothing to fix it to",
+   groups.get("domain").map(chip => chip.disabled), [true, false]);
+
+const missed = apart(node({ under: null, among: [] }))[0];
+is("a node the descent did not reach carries no value at all", missed.cls, "hole");
+says("  and says why, rather than reading as nothing below", missed.title,
+     "descent did not reach");
+
+const orders = [1, 12, 300].map(size => grown({ size }));
+tap("reading", "nodes");
+const flatly = apart(...orders).map(mark => mark.t);
+tap("reading", "ln nodes");
+const logly = apart(...orders).map(mark => mark.t);
+is("two readings of a count agree on order", order(flatly), order(logly));
+is("  and disagree on where the middle of the path sits", flatly[1] === logly[1], false);
+
+// ---- the rule is chosen from the same list -------------------------------------------------
+
+/* Every downward measure is a continuation rule, so the rules on offer are the measures and
+ * not a second list. They move apart, because reading a path one measure laid out while
+ * another is drawn over it is the case `docs/SURFACE.md` says a preset must leave reachable.
+ */
+is("the rules on offer are the downward measures",
+   groups.get("path").map(chip => chip.textContent), ["height", "size", "forks", "run"]);
+is("  and height's rule is sent under the name that is older than it", O.rule(), "longest");
+
+tap("measure", "run");
+const before = moved;
+tap("path", "forks");
+is("choosing a rule asks the page to read again", moved - before, 1);
+is("  and moves nothing about what is drawn over it", [O.rule(), head.textContent],
+   ["forks", "run"]);
+
+apart(grown({ run: 3 }), grown({ run: 1 }));
+says("the note says which rule laid the path out", words(note), "the path follows forks");
+tap("path", "run");
+apart(grown({ run: 3 }), grown({ run: 1 }));
+says("  and says so differently where the two are one measure", words(note),
+     "chose the path as well as drawing it");
+tap("path", "height");
+
 tap("measure", "none");
 is("putting it away leaves the column bare again",
    [O.asked(), head.textContent, words(note)], [false, "overlay", ""]);

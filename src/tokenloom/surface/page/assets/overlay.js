@@ -18,8 +18,16 @@
  *   whatever depth was recorded; a *tail* one reads what accumulated, so one path can hold its
  *   values at several depths and the panel says which.
  *
- * Those are the two divisions `docs/SURFACE.md` states, and they cross: the gap is
- * draw-independent and robust, the flag is draw-relative and robust.
+ * - `looks` is which way it reads. An *up* measure reads the ranking a node stood in, which
+ *   never changes again; a *down* one reads the tree below it, which changes with every act
+ *   the reader makes. A down measure declares neither of the other two, because both are
+ *   about a ranking and it reads none.
+ *
+ * The first two are the divisions `docs/SURFACE.md` states, and they cross: the gap is
+ * draw-independent and robust, the flag is draw-relative and robust. The third cuts deeper
+ * than either, and something follows from it that has nothing to do with drawing -- a measure
+ * that looks down is a continuation rule, being the same scalar read as an argmax over
+ * siblings. So the panel's path chips are this list read that way rather than a second list.
  */
 
 /** Every measure the page can draw, in the order it offers them.
@@ -29,9 +37,27 @@
  *  the same position is a different number in each; a domain that descends says so by running
  *  from high to low, and the scale needs nothing else to know the polarity.
  */
+/** The two readings every downward measure has, over a count of nodes.
+ *
+ *  The log one is of one plus the count, because a node with nothing below it parts nowhere
+ *  and none is a count rather than a gap. Both are monotone, so the two agree on order and
+ *  differ only in the middle -- which is the whole of it, and is what makes a subtree of
+ *  thousands legible beside a corridor of a dozen.
+ *
+ *  Neither carries a fixed domain. Subtree size runs from one to the size of the tree and the
+ *  tree grows, so a colour could not mean the same thing twice; `docs/SURFACE.md` has a depth
+ *  limit as what supplies a ceiling, and until there is one these are path-relative and the
+ *  panel says so.
+ */
+const counted = key => ({
+  log: { unit: "ln nodes", dp: 2, domain: null, of: u => Math.log1p(u[key]) },
+  linear: { unit: "nodes", dp: 0, domain: null, of: u => u[key] },
+});
+
 const MEASURES = [
   {
     key: "flag",
+    looks: "up",
     what: "what the draw paid to go where the model would not have",
     draw: "relative",
     needs: "top",
@@ -55,6 +81,7 @@ const MEASURES = [
   },
   {
     key: "gap",
+    looks: "up",
     what: "how far the top token stands above the next, drawn where it barely does",
     draw: "independent",
     needs: "top",
@@ -69,6 +96,7 @@ const MEASURES = [
   },
   {
     key: "mass",
+    looks: "up",
     what: "how much probability the recorded rows hold between them",
     draw: "independent",
     needs: "tail",
@@ -78,6 +106,58 @@ const MEASURES = [
       linear: { unit: "p", dp: 3, domain: [1, 0.5], of: a => a.mass },
     },
   },
+  /* ---- what lies below ----
+   *
+   * These read no ranking, so neither of the other declarations arises. What they read is the
+   * tree the reader has grown under a node rather than a model's opinion at it, which is a
+   * different kind of fact drawn the same way: a reader carrying *dark is interesting* across
+   * from the measures above has it wrong half the time, and the panel's own line is where
+   * that is said.
+   *
+   * `under` is what the path read carries when it was asked for one -- every measure at once,
+   * since one descent computes them all and a client choosing between them has the rest for
+   * nothing.
+   *
+   * `rule` is the continuation rule the measure generates, under the name the server knows
+   * it by. `longest` is older than the measure it turned out to be.
+   *
+   * Three of the four only fall as a path descends, so unbounded they draw as a gradient from
+   * the root and say nothing but where the steps are. Over the 266-node path of
+   * `data/continuations` the run to the next fork is the only one that rises, and it rises ten
+   * times. `docs/SURFACE.md` has the depth limit as what makes the other three local.
+   */
+  {
+    key: "height",
+    rule: "longest",
+    looks: "down",
+    what: "how far the longest descent from here reaches",
+    missing: () => "the descent did not reach this node",
+    reads: counted("height"),
+  },
+  {
+    key: "size",
+    rule: "size",
+    looks: "down",
+    what: "how much has been grown at or below here",
+    missing: () => "the descent did not reach this node",
+    reads: counted("size"),
+  },
+  {
+    key: "forks",
+    rule: "forks",
+    looks: "down",
+    what: "how many places below here the tree parts",
+    missing: () => "the descent did not reach this node",
+    reads: counted("forks"),
+  },
+  {
+    key: "run",
+    rule: "run",
+    looks: "down",
+    what: "how far there is to go from here before a choice",
+    missing: () => "the descent did not reach this node",
+    reads: counted("run"),
+  },
 ];
 
 /** What is chosen. Nothing, until a reader asks: the column that opens draws no overlay, and
@@ -86,9 +166,25 @@ let chosen = null;
 let reading = "log";
 let fixed = true;
 
+/* Which continuation rule the read follows, by the server's name for it. It is held here
+ * because it is chosen from the same list of scalars the measures are, and it moves
+ * independently of them: reading a path laid out by one measure while another is drawn over
+ * it is the case `docs/SURFACE.md` says a preset must not take away. */
+let taken = "longest";
+
 export const asked = () => chosen !== null;
 
+export const rule = () => taken;
+
 const pick = () => MEASURES.find(m => m.key === chosen) ?? null;
+
+/** What a read has to ask for. A measure that looks up rides on the ranking overlay and one
+ *  that looks down wants a second descent, which costs more than the path it decorates -- so
+ *  neither is asked for until something is chosen that reads it. */
+export const wants = () => {
+  const m = pick();
+  return { overlays: m?.looks === "up", beneath: m?.looks === "down" };
+};
 
 // ---- the measure, at one position -------------------------------------------------------
 
@@ -101,6 +197,16 @@ const pick = () => MEASURES.find(m => m.key === chosen) ?? null;
  * carries a value from one side and says so.
  */
 function at(mark, m) {
+  // A measure that looks down reads nothing a ranking holds, so none of the states below can
+  // arise for one. What can is that the descent did not reach the node, which is a hole --
+  // and not the same as nothing lying below it, since that is a value and it has one.
+  if (m.looks === "down") {
+    if (mark.under === undefined) return { mark, state: "none" };
+    if (mark.under === null) return { mark, state: "hole" };
+    const value = m.reads[reading].of(mark.under);
+    if (!Number.isFinite(value)) return { mark, state: "hole" };
+    return { mark, state: "value", value };
+  }
   const among = mark.among;
   if (!among || !among.length) return { mark, state: "none" };
   // Two sources ranked this position and neither is the answer. Choosing one silently would
@@ -134,12 +240,19 @@ function at(mark, m) {
  * nothing. The second is another scale and not another system, so it is the same two numbers.
  */
 function domain(m, values) {
-  const [lo, hi] = m.reads[reading].domain;
-  if (fixed || !values.length) return [lo, hi];
+  // A reading with no fixed domain is path-relative whether or not the chip says so, because
+  // there is no ceiling to place it against. That is not a gap to fill in: a count of what a
+  // reader has grown has no domain until a depth limit gives it one.
+  const fix = m.reads[reading].domain;
+  if (fix && (fixed || !values.length)) return fix;
+  if (!values.length) return [0, 1];
   let min = values[0], max = values[0];
   for (const v of values) { if (v < min) min = v; if (v > max) max = v; }
-  return hi < lo ? [max, min] : [min, max];
+  return fix && fix[1] < fix[0] ? [max, min] : [min, max];
 }
+
+/** Whether what was drawn took its range from the path rather than from the measure. */
+const relative = m => !(fixed && m.reads[reading].domain);
 
 const place = ([lo, hi], v) =>
   hi === lo ? 0 : Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
@@ -214,6 +327,9 @@ export function read(segments, sources) {
       if (p.state !== "value" && p.state !== "bound") continue;
       if (p.state === "bound") bounded += 1;
       values.push(p.value);
+      // Which depth a value came from is only ever asked of a measure that read a tail, and
+      // a measure that looks down read no ranking to have a depth in.
+      if (m.needs !== "tail") continue;
       const rank = p.among.rows;
       deep = deep === null ? [rank, rank] : [Math.min(deep[0], rank), Math.max(deep[1], rank)];
     }
@@ -249,8 +365,16 @@ function survey(m, values, bounded, deep, total) {
   const lines = [
     `${values.length} of ${total} positions`,
     `${min.toFixed(r.dp)} – ${max.toFixed(r.dp)} ${r.unit}`
-      + (fixed ? "" : " · the path's own range"),
+      + (relative(m) ? " · the path's own range" : ""),
   ];
+  // Which rule laid the path out, because a downward measure is drawn over a path some
+  // downward measure chose -- and when they are the same one, what is drawn is the choice
+  // rather than anything about it.
+  if (m.looks === "down") {
+    lines.push(m.rule === taken
+      ? "this measure chose the path as well as drawing it"
+      : `the path follows ${taken}`);
+  }
   // How much of that range is a bound and not a reading, which is the difference between
   // *the draw paid this* and *the draw paid at least this*.
   if (bounded) lines.push(`${bounded} of them are bounds · ${r.bound.word} and no nearer`);
@@ -270,6 +394,7 @@ function chips(name, items, get, set, changed) {
   for (const item of items) {
     const go = el("button", "chip");
     go.onclick = () => { set(item.value); settle(); changed(); };
+    if (item.title) go.title = item.title;
     sync.push(() => {
       go.textContent = typeof item.label === "function" ? item.label() : item.label;
       const on = get() === item.value;
@@ -304,8 +429,23 @@ export function panel(changed) {
     const m = pick();
     return m ? m.reads[which].unit : which;
   };
+  const anchored = () => {
+    const m = pick();
+    return m !== null && m.reads[reading].domain !== null;
+  };
+
+  /* Which path is read comes before what is drawn over it, and it is chosen from the same
+   * list: every downward measure is a rule, taking the child with the most of it. The two
+   * are set apart because reading a path one measure chose while another is drawn over it is
+   * the case that pays, and that is what a preset must leave reachable. */
+  const rules = MEASURES.filter(m => m.looks === "down").map(m => ({
+    label: m.key,
+    value: m.rule,
+    title: `continue into the child with the most ${m.key} below it`,
+  }));
 
   body.append(
+    chips("path", rules, () => taken, value => { taken = value; }, changed),
     chips("measure",
       [{ label: "none", value: null },
        ...MEASURES.map(m => ({ label: m.key, value: m.key }))],
@@ -315,10 +455,14 @@ export function panel(changed) {
       [{ label: reads("log"), value: "log", live: () => chosen !== null },
        { label: reads("linear"), value: "linear", live: () => chosen !== null }],
       () => reading, value => { reading = value; }, changed),
+    // `fixed` is not offered where there is nothing to fix it to, and what is lit is what the
+    // scale did rather than what was last asked for -- so a measure with no ceiling reads as
+    // path-relative instead of claiming a domain it has not got.
     chips("domain",
-      [{ label: "fixed", value: true, live: () => chosen !== null },
+      [{ label: "fixed", value: true, live: anchored },
        { label: "path", value: false, live: () => chosen !== null }],
-      () => fixed, value => { fixed = value; }, changed),
+      () => { const m = pick(); return m === null ? fixed : !relative(m); },
+      value => { fixed = value; }, changed),
     note,
   );
 

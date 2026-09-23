@@ -10,7 +10,9 @@
  */
 
 import { draw, panel } from "./draw.js";
-import { asked as overlaid, panel as overlayPanel, read as overlays } from "./overlay.js";
+import {
+  panel as overlayPanel, read as overlays, rule as taken, wants,
+} from "./overlay.js";
 
 const $ = id => document.getElementById(id);
 
@@ -172,9 +174,12 @@ function spans(segments, marks) {
 
 /** Draw the path through a node and make it the position. */
 async function show(node) {
-  // An overlay is asked for, and a read not asked for one carries none of it.
-  const read = await ask(
-    `/path/${node}?hidden=${showHidden ? 1 : 0}&overlays=${overlaid() ? 1 : 0}`);
+  // Each half of what the read can carry is asked for, and a read not asked for one carries
+  // none of it. The rule is a parameter of the read and never of the page: what is drawn is
+  // the path the server derived, so the page holds no opinion about where it went.
+  const want = wants();
+  const read = await ask(`/path/${node}?hidden=${showHidden ? 1 : 0}&rule=${taken()}`
+    + `&overlays=${want.overlays ? 1 : 0}&beneath=${want.beneath ? 1 : 0}`);
   let cells = read.segments;
   if (!showHidden) {
     // The read carries a hidden ancestry whatever the toggle says, since a path through a
@@ -417,10 +422,11 @@ function say(text, bad) {
 
 $("draw").replaceChildren(panel());
 
-/* The overlay and what is set aside are both ways of looking, and they share a panel because
- * they are the same question asked twice: what of the record is in front of me. Moving either
- * re-reads rather than repainting what is already drawn -- turning a measure on asks the
- * server for what the last read did not carry, and one path costs milliseconds. */
+/* The overlay, the continuation rule and what is set aside are all ways of looking, and they
+ * share a panel because they are one question asked three times: what of the record is in
+ * front of me. Moving any of them re-reads rather than repainting what is already drawn --
+ * turning a measure on asks the server for what the last read did not carry, and changing the
+ * rule asks for a different path entirely. One path costs milliseconds either way. */
 $("read").append(overlayPanel(async () => {
   try {
     await (position === null ? overlays([], {}) : show(position));

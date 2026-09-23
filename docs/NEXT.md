@@ -44,11 +44,18 @@ it and not a reason to defer it.
 the open question about which continuation rule can finally be answered by reading one tree under
 several — which is what that question says would settle it.
 
-The server half is done and the page half is what is left: the family in the panel, the depth
-limit, views as presets, and a way to swap the rule over one tree, which the read has taken as a
-parameter since before there was a second rule to pass it. Branching waits on what it counts and
-vocabulary on whether a scale with a middle earns its place; both are open questions in
-`docs/SURFACE.md`, and neither blocks anything here.
+The family reaches the panel and the rule is chosen beside it, from the same list. **What is
+left is the depth limit, and it turned out to be the whole of the increment rather than a
+parameter on the end of it.** Drawn unbounded, three of the four measures can only fall as a path
+descends — which `docs/SURFACE.md` now carries as the reason the limit is not a convenience —
+so the wash is a gradient from the root and only the run to the next fork reads as a measure.
+Bounding the fold to a depth is server work: height and the run to a fork cap, while size and
+forks within *d* want the counts by level that a single scalar per node cannot carry.
+
+Views follow it rather than accompany it, since a view is a rule, an overlay and a limit set
+together and two of the three exist. Branching waits on what it counts and vocabulary on whether
+a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
+blocks anything here.
 
 **2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
 position, and the rows with no child are what a `realise` takes. This is where an overlay points:

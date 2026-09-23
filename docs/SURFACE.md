@@ -407,6 +407,16 @@ ceiling, and the ceiling is the same in every tree. The limit also names what it
 distinct continuations reachable within it are what a slate of previews would hold, so the measure
 and the interaction reachable from it are one number.
 
+**Unbounded, three of the four are monotone along the path they are drawn over, and that is a
+theorem rather than a property of a tree.** A node's subtree contains its child's, so height,
+size and the count of forks below can only fall as a path descends. Drawn as a wash they are a
+gradient from the root, and everything they say is carried by where the steps are — which is
+where the tree parts, and the column has a mark for that already. Only the run to the next fork
+rises, resetting past every fork it reaches, and it is the one of the four that reads as a
+measure rather than as a ramp. **A depth limit is what makes the others local**: bounded to *d*,
+what lies below rises where the tree widens ahead and falls in a corridor, which is the quantity
+the wash was wanted for in the first place.
+
 **A downward measure reads the shape of what is below, or its substance.** Height, size, branching
 and the run to the next fork are properties of the tree alone: relabel every token and they do not
 move. What vocabulary lies below does move, and it is the only kind that can mark a repetition
@@ -703,8 +713,15 @@ A span of more than one node is marked and never coloured; a censored draw carri
 the panel says how much of the path the measure reached, at what depths, and how much of that is
 bound rather than read.
 
-What does not exist is everything past that: no band and no rankings, and no `realise` reachable
-from the page. **The gesture that sets a segment aside is a modifier-click and is the weakest
+**The family that looks down reaches the same panel, and the rule the path follows is chosen
+from the same list.** Height, subtree size, the forks below and the run to the next fork come
+from one descent the path read carries when it is asked for. Each is offered twice — as a
+measure to draw and as the rule to continue by — because they are one scalar read two ways, and
+the two are set separately, so a path laid out by one can be read under another. None of them
+carries a fixed domain, so the scale is the path's own and the panel does not offer to fix it.
+
+What does not exist is everything past that: no band and no rankings, no `realise` reachable
+from the page, no depth limit and so no view that presets one. **The gesture that sets a segment aside is a modifier-click and is the weakest
 part of this**, chosen because a plain click is already spoken for above and not because it is
 right. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
