@@ -143,8 +143,9 @@ studying are one signal here and the instrument does not try to tell them apart.
 always scroll back and reconsider; how carefully they went the first time is theirs.
 
 **Of the two that write, only one has a price.** A `realise` is scored against what the model
-thought of the choice. A `create` stands on nothing the model ranked, so it is off the scale
-rather than at its end, which `docs/SURFACE.md` says for an authored token generally. It follows
+thought of the choice. A `create` writes a token with no row in the ranking it stands in — which
+`docs/SURFACE.md` has as the ordinary case rather than a fault, since a reader writes at a
+position a model ranked — so it is off the scale rather than at its end. It follows
 that a document's measured deviation covers the part of the reader's intent the model had
 anticipated, and the rest is unpriced. That is honest rather than defective, and it is worth
 knowing which kind of intervention a passage was built from.
@@ -242,8 +243,16 @@ it is measured, and windowing is what makes it legible instead of a total nobody
 
 **Flag density is the window's readable form.** Flags per unit of text, drawn along the column, is
 a map the reader builds by scrolling rather than by asking for it. Attention returns to dense
-regions when something meaningful is to be changed and passes over sparse ones, which are settled
-— and *settled* here means nothing more than that the draw and the model's preference agreed.
+regions when something meaningful is to be changed and passes over sparse ones, where the draw and
+the model's preference agreed.
+
+**Sparse is not the same as settled, and the exception is the one that matters.** A repetition
+loop is confident at every position, so it flags rarely and reads as the calmest stretch on the
+page. `docs/SPINE.md` has this as a property of both measure families rather than a fault in
+either — they read confidence, and a loop is confident — and names the only kind of measure that
+can mark one: what vocabulary lies below. So the density map is trustworthy about where the drive
+did work and silent about where the model stopped doing any, and a reader navigating by it alone
+will skim straight over the region they most need to see.
 
 **Uniform high density is the dial gone too far.** A path flagged everywhere is one where the
 drive is buying scrambles rather than decisions, and the instrument gets harder to use in exact
@@ -295,6 +304,14 @@ turns out to be answerable from the store.
 | `length` | how much is read before the next decision |
 | `cache_prompt` | `false` near zero; *Determinism stops being a diagnostic* is why, and why it matters less under drive |
 | `seed` | nothing to seed at zero; under drive it is what makes a driven path replayable |
+
+**The aperture has to open with the dial, and the two are not independent.** Driving harder lands
+the draw further down the ranking, and a record sized for a colder draw censors it: the row the
+draw took falls past what was written, so the price of that flag comes back as a bound rather than
+a reading. `docs/SPINE.md` measures exactly this — every censored position in `data/continuations`
+came from one hot draw recorded to a depth that earlier, equally hot draws had exceeded, so a
+draw censors not by being hot but by being recorded for something colder. Turning one dial without
+the other buys deviation the record cannot price.
 
 **Preferred, and not required.** The band answers *what lies below this fork*, which is reading
 across branches and a different activity from composing along one.
