@@ -369,6 +369,84 @@ comparable to nothing. The first is the default and the second is another scale,
 system. Linear against log is a choice on the same measure, since a logprob and a probability are
 one number read two ways.
 
+**Where a measure looks is the next thing it declares, and it cuts deeper than either division
+above.** Everything so far reads the ranking a node stood in, which is to look *up*. A measure can
+instead read the tree below a node — how far it reaches, how much of it there is, how often it
+parts, how far it runs before it parts at all. Three things follow at once, which is why this is
+a declaration and not a remark. One that looks up rides on the path read; one that looks down
+wants a descent. One that looks up never changes again, while one that looks down changes every
+time the reader generates. And **only a measure that looks down can be a continuation rule**,
+because a rule chooses among children by what lies beneath them.
+
+**That last is not an analogy.** `longest` takes the child of greatest height, which is a measure
+of the subtree below each candidate used as an argmax over siblings. So every downward measure
+yields a rule, mechanically and with no second vocabulary — and the family of rules this document
+names and does not settle is the same family as the overlays. What read as two lists is one.
+
+**A rule and an overlay share the scalar and not the liveness.** *Hidden* has the rule take the
+live path first and admit what is set aside only below a live leaf, so it is never offered a live
+node and a hidden one at one parent. A measure drawn on the page has no such need and follows the
+toggle, since a reader asking how much is below here is asking it of the tree they are reading.
+**So the two disagree whenever what is hidden is shown, and the disagreement is the point**: the
+darkest child is not the one the path takes, which is how a reader sees what they pruned and how
+much of the tree it was.
+
+**A measure that looks down is about the reader and not about the model.** A flag is a fact about
+a draw and stays true for as long as the record holds it. What lies below a node is a fact about
+where the reader has been and what they have spent. Both arrive as a wash over the same text, so
+an overlay says which it is — *dark is interesting* means two different things across the two, and
+a reader carrying one reading into the other is wrong half the time.
+
+**A depth limit is a parameter of a downward measure and not a convenience.** Subtree size has no
+domain: it runs from one to the size of the tree and the tree grows, so *fixed before relative* is
+unavailable to it and a colour could not mean the same thing twice. Bounded to a depth it has a
+ceiling, and the ceiling is the same in every tree. The limit also names what it bounds — the
+distinct continuations reachable within it are what a slate of previews would hold, so the measure
+and the interaction reachable from it are one number.
+
+**A downward measure reads the shape of what is below, or its substance.** Height, size, branching
+and the run to the next fork are properties of the tree alone: relabel every token and they do not
+move. What vocabulary lies below does move, and it is the only kind that can mark a repetition
+loop, for the reason `docs/SPINE.md` gives.
+
+**Counting vocabulary is counting size unless the count is windowed.** Types grow with tokens, so
+a large subtree out-vocabularies a small one whatever is in either, and a plain count is subtree
+size arrived at expensively. A depth limit is the window that fixes it, and it is the limit the
+shape measures already carry.
+
+**A token is not a word, and where that breaks is where the measure is working.** A rare word is
+split, so it raises the count once by being split and again by being rare; a script away from the
+vocabulary's centre raises it far more, because the merges a vocabulary is made of are a
+compression of what the model saw most and they fit such text worst. That is not a bias to correct
+out. **Types accumulate fastest where the vocabulary fits worst** — and the surface is for an eye,
+which follows what it can read. Dense CJK, symbol runs and ASCII art are texture rather than text
+to a reader of prose, and a measure that marks them is marking something real about the reading.
+
+**Whether that is one fact or two is not settled here.** The vocabulary's fit and the reader's
+legibility agree for a reader whose language is the vocabulary's centre, and nothing in this
+document tells them apart; they would come apart for a reader whose language is not. So a measure
+of vocabulary is not script-neutral, and should not be offered as though it were.
+
+**A measure need not run from calm to hot, and one that does not wants another kind of scale.**
+Vocabulary below has both ends pathological — too little is repetition, too much is a scramble —
+so a scale running from one end to the other paints two opposite faults alike. That asks for a
+scale with a middle and two directions, a third kind beside fixed and path-relative. Measuring
+distance from what is typical gives one number back instead, at the cost of no longer saying which
+fault it found.
+
+**The one to try first is not the plain count.** Vocabulary below that is not already above is
+one-sided: it rises with departure and falls with recombination, so it needs no middle, and what
+it measures is whether a continuation is drawing on its context or leaving it. It also folds the
+script question into the thing it is for rather than beside it — where a context is already in one
+script its continuation's vocabulary is largely above it, so what lights up is a continuation that
+changes script partway, which is a departure and not a property of the script.
+
+**A view is a preset and not a mode.** A rule, an overlay and a depth limit set together make the
+page behave one way — stepping to the next decision, filling the screen with what could be chosen,
+or reading one document forward and back — and naming those saves setting three things to get one
+behaviour. Underneath they stay separately settable, because the case that pays is navigating by
+one measure while seeing another drawn over it, and a locked mode takes exactly that away.
+
 **A stub is an ordinary branch and needs no new field to find.** A greedy rollout is deterministic,
 so it merges rather than accumulating duplicates, and the stub at a flagged position is the child
 that realised the top row — which the ranking read already reports. What a stub costs is a
@@ -531,6 +609,21 @@ when it is settled.
   insertion order. What settles it is reading one tree under two of them, which is why the path
   read takes the rule as a parameter. A rule that reads what the reader did is what puts reader
   state in *Nothing written is only here*.
+- **What a branching measure counts.** Immediate children, forks below, forks per node, distinct
+  continuations within a depth — each answers a different question, and unqualified branching has
+  no scalar at all. The depth limit narrows it to one candidate, being the count of continuations
+  reachable within the limit, which is also what a slate of previews would hold. What settles it
+  is building that slate: the number that makes one legible is the number the measure wants.
+- **Whether a scale with a middle earns its place.** A measure with both ends pathological cannot
+  be drawn on a scale that runs from one end to the other, and vocabulary below is the first such
+  measure proposed. The alternative is to measure distance from what is typical, which restores
+  one direction and stops saying which fault was found. What settles it is whether a non-monotone
+  measure is kept at all once one has been read over a real tree.
+- **What a downward measure costs where the cost would bite.** Height, size, forks and the run to
+  the next fork accumulate in the descent the path read already makes, so they are cheaper than
+  the code they replace. A count of continuations within a depth does not: it is a fold over
+  depths and not over nodes. What settles it is measuring that one before it is offered, and the
+  numbers belong beside the code that pays them.
 - **Whether a band has a height.** Its width is a reading measure taken from the page; its depth
   is whatever the tree holds below the fork, which on a branchy tree is nearly all of it. A bound
   would have to say what it drops and where, the way the width already does, and a band that

@@ -31,12 +31,27 @@ another that says what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
+**1. Measures that look down.** `docs/SURFACE.md` has the design. What makes this first is that it
+costs less than the code it replaces: `path` builds a descent of the tree below a node once per
+continuation and keeps neither, and the measures want exactly what that descent already walks. One
+root-anchored descent, read by the rule and the overlay together, and `Subtree` accumulating size,
+forks and the run to the next fork in the reversed pass where it already accumulates height.
+
+**The rule list stops being written beside the measures and starts being generated from them.**
+`longest` is an argmax of a subtree scalar over siblings, so every downward measure is a rule, and
+the open question about which continuation rule can finally be answered by reading one tree under
+several — which is what that question says would settle it.
+
+Then the page half: the family in the panel, the depth limit, and views as presets. Branching
+waits on what it counts and vocabulary on whether a scale with a middle earns its place; both are
+open questions in `docs/SURFACE.md`, and neither blocks anything here.
+
+**2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
 position, and the rows with no child are what a `realise` takes. This is where an overlay points:
 a position drawn as interesting is a position a reader then opens. It is also the cheapest thing
 that makes a fork, which is why it comes before the band rather than after it.
 
-**2. The band, when its need is as clear as theirs.** It displays forks, so until something makes
+**3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
 What has changed is that its need is the least established of these: a ranking on demand already
 answers *what else was here* at a position, and whether a reader also wants every continuation
@@ -81,7 +96,10 @@ page pulls.** A node's parent, token and source never change and only `deleted` 
 bytes never change, because `put_token` refuses a vocabulary that disagrees at an id already
 held; and a ranking only grows, because `_extend_ranking` appends and never rewrites. Spellings
 and rankings are therefore cacheable for the life of the page, and liveness is the only thing
-that has to be asked again.
+that has to be asked again. **A measure that looks down joins liveness rather than the spellings.**
+What lies below a node changes every time the reader generates, so the structural family is the
+first thing the page draws that cannot be held across an act — which is a reason to keep the
+descent it rides on cheap, and not a reason to defer it.
 
 ## Loose ends
 

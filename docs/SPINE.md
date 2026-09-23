@@ -41,6 +41,8 @@ A flag is **draw-relative**: it reads the row the draw took against the row the 
 
 That distinction is a read-time one: nothing about the generation depends on it, and the threshold that separates the two can be moved with a slider, wrong at zero cost.
 
+**Neither family can see a loop, and the reason is that neither is wrong about it.** Both read confidence — one the draw against the model's preference, the other the ranking alone — and a repetition loop is confident: a model that has said a phrase three times ranks it highest the fourth, and every position inside the loop is a decision cleanly made. So a degenerate region reads as the calmest text on the page under either measure, correctly. What tells a loop from fluent prose is not in the distribution at all but in what the tokens are, which is why `docs/SURFACE.md` admits a measure of the vocabulary below a node and why that is the only kind of measure that could mark one. `data/continuations` holds the case: one path drawn at temperature zero settles into a single sentence repeated four times. What settles the claim is drawing each measure over that path and seeing which of them marks it.
+
 ## Stubs
 
 **A stub is a short greedy rollout from the token the sample displaced.** The spine shows where the sampled token went; the stub shows where the model wanted to go. Together with the flag they form a chain — sampled → argmax → stub — that turns a token-level event into a legible counterfactual: *here, the draw went one way; had it not, this is the continuation that was foregone.*
