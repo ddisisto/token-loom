@@ -89,6 +89,14 @@ rather than a fault to correct.
 - **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
   obligations behind them, and what to do when one cannot be met. **It moves as backends are
   met**, which is the point of the split, and it carries its own status inline.
+- **`docs/INTERFERENCE.md`** is the method — a person standing in the sampler's slot, and a
+  document grown by interference between two sources that meet on a vocabulary. **It is what
+  `docs/SURFACE.md` defers to whenever it says a question is settled by use**, which is the reason
+  it exists: that document had fifteen such questions and nothing in the tree said what use was.
+  It moves as the loop is run. Its premise — a sampler is a prosthesis for absent intent — is a
+  claim with teeth, since it decides what a draw asks for and what the surface has to make cheap.
+  **Greedy is the zero of a dial there and not a rule**, and reading it as a prohibition on
+  sampling is the misreading it was revised to prevent: what it refuses is the unread deviation.
 - **`docs/SURFACE.md`** is the reading surface's design and constraints, **drafted and not
   accepted**. It is written against a different test than the core's — can a reader tell what is
   settled from what is open, and does each open question say what would settle it — because a
