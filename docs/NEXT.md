@@ -108,6 +108,22 @@ Not in the ordering; each stands on its own.
   answer about nonsense. `put_token` is what catches the mismatch on a write, at the first id the
   two disagree on; a read has no such moment. Harmless while a server is started against the tree
   it matches, and wrong the first time one is not.
+- **What a node was drawn at is recorded and nothing reads it back.** Every `generate` carries
+  `model` and `params`, and an act's range is `origin` exclusive to `tip` inclusive, so the acts
+  covering a node are derivable and the sampler settings arrive with them. Nothing in the
+  numbers could stand in for that — `src/tokenloom/adapters/llamacpp/README.md` measures the
+  recorded logprobs as pre-temperature, so the act is the only place a draw's heat is written
+  down at all. It needs a read from node to acts, which is the direction `act_tokens` does not
+  go. **Acts overlap**, since the range is reckoned before merge, so a node reached twice has two
+  answers and whatever draws it must reduce them — and `min` is the reduction with a reading. It
+  is the floor: this token was reachable at *at least* this much noise, every other draw that
+  produced it having used strictly more.
+  It is **provenance and not measure** — `docs/SPINE.md` puts the realised perturbation on the
+  axis and calls the intended one metadata — and what it is provenance *of* is the sampler, not
+  the model. The learned part has no say in it: temperature scales a distribution the model has
+  already produced, which is the same fact the adapter's notes record as the logprobs being
+  pre-temperature. So beside a flag the two halve the question — one says how much noise was
+  permitted at a position, the other how far the draw then went.
 
 ## 2. The next marker
 
