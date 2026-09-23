@@ -380,8 +380,11 @@ because a rule chooses among children by what lies beneath them.
 
 **That last is not an analogy.** `longest` takes the child of greatest height, which is a measure
 of the subtree below each candidate used as an argmax over siblings. So every downward measure
-yields a rule, mechanically and with no second vocabulary — and the family of rules this document
-names and does not settle is the same family as the overlays. What read as two lists is one.
+yields a rule, mechanically and with no second vocabulary. **Neither family contains the other**:
+a rule may read insertion order or what the reader last took, and neither is a quantity worth
+drawing along a path, since every node on one is the node that was taken. What the two share is
+the part where a reader would otherwise set two things to get one behaviour, and that part is
+large enough that the rules are generated from the measures rather than listed beside them.
 
 **A rule and an overlay share the scalar and not the liveness.** *Hidden* has the rule take the
 live path first and admit what is set aside only below a live leaf, so it is never offered a live

@@ -658,3 +658,139 @@ def test_naming_a_root_does_not_cost_what_reading_one_does(tmp_path):
             store.conn.set_trace_callback(None)
             counts.append(seen)
     assert counts[0] == counts[1]
+
+
+# ---- what the tree below a node holds --------------------------------------------------
+
+
+@pytest.fixture
+def lopsided(tmp_path):
+    """One fork whose arms disagree about which is the bigger, so that a rule by one
+    measure and a rule by another cannot both be right.
+
+        1  The
+        2   sky        a chain: tall and thin
+        3    is
+        4     blue
+        5   is         a bush: short and wide
+        6    blue
+        7    red
+        8    grey
+    """
+    with Store.initialise(tmp_path / "l", vocabulary="toy") as store:
+        v = ToyVocabulary()
+        store.create(None, "The", vocabulary=v, actor=USER)     # 1
+        store.create(1, " sky is blue", vocabulary=v, actor=USER)  # 2, 3, 4
+        store.create(1, " is", vocabulary=v, actor=USER)        # 5
+        store.create(5, " blue", vocabulary=v, actor=USER)      # 6
+        store.create(5, " red", vocabulary=v, actor=USER)       # 7
+        store.create(5, " grey", vocabulary=v, actor=USER)      # 8
+        yield store
+
+
+def walk(tree, node, what):
+    """The same measure, computed by recursion rather than by the fold under test. Two
+    implementations of one number is the only way a fold that is wrong everywhere in the
+    same direction gets caught."""
+    kids = tree.below(node)
+    below = [walk(tree, k.id, what) for k in kids]
+    if what == "height":
+        return 1 + max(below, default=0)
+    if what == "size":
+        return 1 + sum(below)
+    if what == "forks":
+        return int(len(kids) > 1) + sum(below)
+    return 1 + (below[0] if len(kids) == 1 else 0)  # run
+
+
+def test_every_fold_agrees_with_walking_the_tree(tree):
+    """The fold runs once over a flat reversed list and is easy to get wrong in a way that
+    is consistent, so nothing else would disagree with it. This disagrees with it."""
+    for hidden in (False, True):
+        held = S.Subtree(tree.conn, None, hidden)
+        for node in held.nodes():
+            for name, read in S.DOWNWARD.items():
+                assert read(held, node.id) == walk(held, node.id, name), (
+                    f"{name} at {node.id}, hidden={hidden}"
+                )
+
+
+def test_the_run_stops_at_a_fork_and_at_a_leaf(tree):
+    """Both are places the walking stops, so the corridor is one node long at each. A run
+    that counted past a fork would say a reader could move without choosing."""
+    held = S.Subtree(tree.conn, None)
+    assert len(held.below(2)) > 1 and held.run(2) == 1, "a fork is the end of a corridor"
+    assert held.below(7) == [] and held.run(7) == 1, "and so is a leaf"
+    assert held.run(1) == 1 + held.run(2), "one child is no choice, so the corridor carries"
+
+
+def test_the_rules_are_the_measures_and_longest_is_the_height_one(lopsided):
+    """The relation the whole of this rests on. If `longest` were written separately it
+    could drift from the measure it is, and nothing but this would notice."""
+    assert set(S.RULES) == (set(S.DOWNWARD) - {"height"}) | {"longest"}
+    assert S.longest is S.RULES["longest"]
+    held = S.Subtree(lopsided.conn, None)
+    kids = held.below(1)
+    assert S.longest(held, kids) is S.argmax(S.Subtree.height)(held, kids)
+
+
+def test_a_rule_by_another_measure_takes_another_path(lopsided):
+    """Otherwise the family is decoration. The fork's tall arm and its wide arm are
+    different nodes, so a rule that reads height and one that reads size cannot agree."""
+    taken = {
+        name: ids(S.path(lopsided.conn, 1, rule))[1]
+        for name, rule in S.RULES.items()
+    }
+    assert taken["longest"] == 2, "the tall arm"
+    assert taken["size"] == 5 and taken["forks"] == 5, "the wide one"
+    assert taken["run"] == 2, "the corridor, which is the tall arm again"
+
+
+def test_what_is_beneath_reaches_the_ancestry_and_not_only_the_continuation(tree):
+    """The descent is anchored above the roots for this reason: what lies below an ancestor
+    is where the tree widened, which is the question a reader asks of what they have read.
+    A descent anchored at the node asked about would leave the root itself unmeasured."""
+    cells = S.path(tree.conn, 1)
+    under = S.beneath(tree.conn, cells)
+    assert set(under) == set(ids(cells))
+    assert under[1]["height"] == 5 and under[1]["size"] == 6
+    assert under[1]["forks"] == 1, "node 2 is the only live fork"
+
+
+def test_what_is_beneath_follows_the_toggle_where_the_rule_never_does(tree):
+    """The one place a measure and the rule it generates part company. `docs/SURFACE.md`
+    has the rule take the live path first and admit what is set aside only below a live
+    leaf, so it is never offered both at one parent; a measure only reports, so it counts
+    what the page is showing. The disagreement is how a reader sees what they pruned.
+    """
+    cells = S.path(tree.conn, 1)
+    live = S.beneath(tree.conn, cells, hidden=False)
+    shown = S.beneath(tree.conn, cells, hidden=True)
+
+    assert live[2]["size"] < shown[2]["size"], "what was set aside is counted when shown"
+    assert live[2]["forks"] == 1 and shown[2]["forks"] == 2, "and a hidden arm makes a fork"
+    # And the path itself does not move, whatever the measure says about it.
+    assert ids(S.path(tree.conn, 1)) == ids(cells)
+
+
+def test_what_is_beneath_costs_the_same_whatever_the_path_holds(tree):
+    """One descent and a couple of small reads around it, none of them per node -- which is
+    the property, and not the number. A measure asked for node by node would be the N+1 the
+    three reads exist to avoid, and would grow with the path where this does not.
+    """
+    def asked(node):
+        cells = S.path(tree.conn, node)
+        counted = 0
+
+        def count(statement):
+            nonlocal counted
+            counted += 1
+
+        tree.conn.set_trace_callback(count)
+        S.beneath(tree.conn, cells)
+        tree.conn.set_trace_callback(None)
+        return len(ids(cells)), counted
+
+    short, long = asked(9), asked(1)
+    assert short[0] < long[0], "the two paths are different lengths"
+    assert short[1] == long[1], "and cost the same to measure"

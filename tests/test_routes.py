@@ -511,3 +511,42 @@ def test_a_path_that_is_neither_a_route_nor_a_file_is_not_the_page(client):
     """`html=True` serves the index for a directory and not for anything else, so a client
     asking for a route this server does not have is told so rather than handed the page."""
     assert client.get("/nope").status_code == 404
+
+
+def test_a_path_carries_no_downward_measure_until_one_is_asked_for(client):
+    """The same discipline the ranking overlay keeps: an absent key is *nobody asked*, and
+    a read not asked for one makes no descent. Here it is the difference between one query
+    and two, which is why the flag exists rather than the measures always riding along."""
+    bare = client.get("/path/1").json()
+    assert bare["beneath"] is False
+    assert all("under" not in n for cell in bare["segments"] for n in cell["nodes"])
+
+    asked = client.get("/path/1", params={"beneath": 1}).json()
+    assert asked["beneath"] is True
+    under = {n["id"]: n["under"] for cell in asked["segments"] for n in cell["nodes"]}
+    assert set(under) == {1, 2, 3, 4}
+    assert under[1]["size"] == 4 and under[1]["height"] == 4
+    assert under[4]["size"] == 1 and under[4]["run"] == 1, "a leaf is its own corridor"
+    assert all(v["forks"] == 0 for v in under.values()), "the only fork's other arm is gone"
+
+
+def test_the_route_says_what_it_can_measure_and_what_it_can_follow(client):
+    """A client picking a rule or a measure should not have to be told the names out of
+    band, and the two lists are one fact: every downward measure makes a rule, so a server
+    that gained a measure and not its rule would be reporting an inconsistency it has."""
+    body = client.get("/path/1").json()
+    assert set(body["rules"]) == (set(body["measures"]) - {"height"}) | {"longest"}
+    for name in body["rules"]:
+        assert client.get("/path/1", params={"rule": name}).status_code == 200
+
+
+def test_a_measure_counts_what_is_set_aside_when_the_page_is_showing_it(client):
+    """Node 5 is deleted, so it is not in the tree the rule walks and is in the tree the
+    page draws when the toggle is on. The measure follows the toggle; the path does not."""
+    def under(**params):
+        body = client.get("/path/1", params={"beneath": 1, **params}).json()
+        return {n["id"]: n["under"] for cell in body["segments"] for n in cell["nodes"]}
+
+    live, shown = under(), under(hidden=1)
+    assert live[2]["size"] == 3 and shown[2]["size"] == 4, "the set-aside arm is counted"
+    assert live[2]["forks"] == 0 and shown[2]["forks"] == 1, "and it makes node 2 a fork"

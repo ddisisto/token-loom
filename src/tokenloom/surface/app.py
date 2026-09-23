@@ -42,9 +42,10 @@ from ..core.ports import Adapter
 from . import reads as S
 from . import wire
 
-#: The family `docs/SURFACE.md` names, as far as it is built. A second member is a function
-#: and an entry here; what settles which is right is reading one tree under two of them.
-RULES: dict[str, S.Rule] = {"longest": S.longest}
+#: The family `docs/SURFACE.md` names, as far as it is built. It is not listed here because
+#: it is not a list: every downward measure makes one, so the members arrive with the
+#: measures and what settles which is right is reading one tree under several.
+RULES: dict[str, S.Rule] = S.RULES
 
 PAGE = Path(__file__).parent / "page"
 
@@ -240,22 +241,33 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
         own it becomes the names, which is what `docs/SURFACE.md` means by *which overlays
         to compute is a parameter of the read*. Either way the floor case does not send it
         and does not pay for it.
+
+        `beneath` adds what the tree below each node holds, and is the one flag here that
+        costs a second descent. It takes `hidden` with it rather than the rule's liveness,
+        which is what makes a measure and the rule it generates disagree about a set-aside
+        arm -- `docs/SURFACE.md` has why that is the point and not a fault.
         """
         node = request.path_params["node"]
         rule = _rule(request, bare=True)
         hidden = _flag(request, "hidden")
         wanted = _flag(request, "overlays")
+        under = _flag(request, "beneath")
         with reading(writer) as conn:
             cells = S.path(conn, node, rule, hidden)
             among = S.overlays(conn, cells) if wanted else None
+            below = S.beneath(conn, cells, hidden) if under else None
             return JSONResponse({
                 "node": node,
                 "leaf": cells[-1].nodes[-1].node.id,
                 "rule": request.query_params.get("rule", "longest"),
                 "hidden": hidden,
                 "overlays": wanted,
+                "beneath": under,
+                "measures": sorted(S.DOWNWARD),
+                "rules": sorted(RULES),
                 "segments": [
-                    wire.segment(cell, lambda m: wire.path_node(m, among)) for cell in cells
+                    wire.segment(cell, lambda m: wire.path_node(m, among, below))
+                    for cell in cells
                 ],
                 "sources": wire.source_names(conn),
             })

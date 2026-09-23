@@ -101,24 +101,45 @@ class Subtree:
     below a live leaf, where there is nothing live left to pass over. A rule handed both
     kinds at one parent would be choosing between them, which is what `docs/SURFACE.md`'s
     *Hidden* forbids, so nothing hands it both.
+
+    What it folds is every downward measure `docs/SURFACE.md` names, in one reversed pass,
+    because they all want the same walk and a node's children are done before it is. Height
+    was the first because `longest` needed it; the rest cost the pass nothing more.
     """
 
     def __init__(
-        self, conn: sqlite3.Connection, anchor: int | None = None, hidden: bool = False
+        self,
+        conn: sqlite3.Connection,
+        anchor: int | None = None,
+        hidden: bool = False,
+        rooted: bool = False,
     ) -> None:
         self.anchor = anchor
         self.children: dict[int | None, list[R.Node]] = {}
         order: list[R.Node] = []
+        if rooted and anchor is not None:
+            # The anchor is in the tree rather than above it, which is what a measure drawn
+            # *at* a root needs and what continuing *from* a node does not. It goes in first
+            # so the reversed fold reaches it last, after everything below it.
+            top = R.get_node(conn, anchor)
+            if hidden or not top.deleted:
+                self.children.setdefault(top.parent, []).append(top)
+                order.append(top)
         for _, node, live in R.descend(conn, anchor):
             if not live and not hidden:
                 continue
             self.children.setdefault(node.parent, []).append(node)
             order.append(node)
         self._height: dict[int, int] = {}
+        self._size: dict[int, int] = {}
+        self._forks: dict[int, int] = {}
+        self._run: dict[int, int] = {}
         for node in reversed(order):  # depth-first, so a node's children are already done
-            self._height[node.id] = 1 + max(
-                (self._height[k.id] for k in self.children.get(node.id, ())), default=0
-            )
+            kids = self.children.get(node.id, ())
+            self._height[node.id] = 1 + max((self._height[k.id] for k in kids), default=0)
+            self._size[node.id] = 1 + sum(self._size[k.id] for k in kids)
+            self._forks[node.id] = int(len(kids) > 1) + sum(self._forks[k.id] for k in kids)
+            self._run[node.id] = 1 + (self._run[kids[0].id] if len(kids) == 1 else 0)
 
     def below(self, node: int | None) -> list[R.Node]:
         """The live children of a node, in insertion order."""
@@ -128,20 +149,80 @@ class Subtree:
         """How many nodes the longest descent from here spans, counting this one."""
         return self._height[node]
 
+    def holds(self, node: int) -> bool:
+        """Whether this descent reached a node. What it did not reach it says nothing
+        about, which is not the same as saying nothing is there."""
+        return node in self._height
+
+    def size(self, node: int) -> int:
+        """How many nodes lie at or below this one. What has been explored under it, which
+        is a fact about the reader's session and not about the model."""
+        return self._size[node]
+
+    def forks(self, node: int) -> int:
+        """How many nodes at or below this one have more than one child.
+
+        Nodes and not branches: a node with four children is one place a reader chose, not
+        three. What a slate of previews would hold is a different count and wants its own
+        measure, which `docs/SURFACE.md` leaves open.
+        """
+        return self._forks[node]
+
+    def run(self, node: int) -> int:
+        """How many nodes can be taken from here before a choice, counting this one.
+
+        One at a leaf and one at a fork -- both are places the walking stops -- so this is
+        the length of the corridor and not of what is past it. It is the measure behind
+        *how far can I move before a decision*, which subtree size cannot answer: size says
+        how much is below, never whether the next stretch is corridor or junction.
+        """
+        return self._run[node]
+
     def nodes(self) -> list[R.Node]:
         return [n for kids in self.children.values() for n in kids]
 
 
 type Rule = Callable[[Subtree, list[R.Node]], R.Node]
 
+type Scalar = Callable[[Subtree, int], int]
 
-def longest(tree: Subtree, candidates: list[R.Node]) -> R.Node:
-    """Deepest wins, ties go to insertion order.
+#: Every measure of the tree below a node that `docs/SURFACE.md` settles, by the name a
+#: client asks for it under. A measure of the *substance* below -- what vocabulary is down
+#: there -- is not here: it is open, and it does not fold over this pass.
+DOWNWARD: dict[str, Scalar] = {
+    "height": Subtree.height,
+    "size": Subtree.size,
+    "forks": Subtree.forks,
+    "run": Subtree.run,
+}
 
-    The one member of the family that needs nothing but the tree, which is why it is the
-    first implementation and not why it is right.
+
+def argmax(measure: Scalar) -> Rule:
+    """The rule a downward measure makes: the child with the most of it, ties to insertion
+    order.
+
+    This is the whole of the relation between rules and overlays. `longest` was written as
+    a function before it was understood as one of these, and every downward measure makes a
+    rule the same way -- which is why `RULES` is generated rather than listed. It does not
+    run the other way: a rule may read insertion order or what the reader last took, and
+    neither is a quantity worth drawing along a path.
     """
-    return max(candidates, key=lambda n: (tree.height(n.id), -n.id))
+
+    def rule(tree: Subtree, candidates: list[R.Node]) -> R.Node:
+        return max(candidates, key=lambda n: (measure(tree, n.id), -n.id))
+
+    return rule
+
+
+#: The family `docs/SURFACE.md` names, as far as it is built, one member per measure. Ties
+#: bite for all of them and are insertion order.
+RULES: dict[str, Rule] = {name: argmax(measure) for name, measure in DOWNWARD.items()}
+
+#: `longest` is the height rule under the name that is older than the measure it turned out
+#: to be, and the one `docs/SURFACE.md`'s open question argues about.
+RULES["longest"] = RULES.pop("height")
+
+longest: Rule = RULES["longest"]
 
 
 def continuation(
@@ -201,6 +282,47 @@ def path(
     marks = R.annotated_path(conn, leaf)
     spell = R.token_bytes(conn, (m.node.token_id for m in marks))
     return segments(marks, lambda m: spell[m.node.token_id])
+
+
+def beneath(
+    conn: sqlite3.Connection, cells: list[Segment[R.PathNode]], hidden: bool = False
+) -> dict[int, dict[str, int]]:
+    """What the tree below each node of a path holds, by measure.
+
+    **The descent is anchored at the path's own root and not at the node the read was asked
+    about.** A measure drawn along a whole path has to reach the ancestry, and what lies
+    below an ancestor is where the tree widened -- which is the question a reader asks of the
+    part they have already read. Where the reader is reading a root that is the descent the
+    rule made anyway; where they are not it is a larger one, which is why this is asked for.
+
+    `hidden` counts what has been set aside, and it follows the page's toggle rather than
+    the rule's liveness. `docs/SURFACE.md` has why: a rule handed a live child and a hidden
+    one would be choosing between them, while a measure only reports, so the two disagree
+    wherever what is hidden is shown and the disagreement is what shows a reader what they
+    pruned.
+
+    One descent whatever the path's length, and none at all unless a measure is wanted. It
+    is anchored at the path's own root and holds it, which is what `rooted` is for: a
+    `Subtree` otherwise holds what is *below* its anchor, and a path's first node is a root,
+    which would then be the one node on the path with no value.
+
+    **It is the one read here that costs more than the path it decorates.** Over a 266-node
+    path of `data/continuations`, `/path` answers in 5.4 ms, the ranking overlay adds 4.3,
+    and this adds 16.5 -- one descent of 2,953 nodes and the fold over them. Anchoring above
+    the roots instead would answer as well and descend all 13,595 to do it, which measured
+    at 88 ms for the same call. What it cannot be is cached: what lies below a node changes
+    with every act, which is why `docs/NEXT.md` puts it with liveness and not with the
+    spellings.
+    """
+    if not cells:
+        return {}
+    tree = Subtree(conn, cells[0].nodes[0].node.id, hidden, rooted=True)
+    return {
+        mark.node.id: {name: read(tree, mark.node.id) for name, read in DOWNWARD.items()}
+        for cell in cells
+        for mark in cell.nodes
+        if tree.holds(mark.node.id)
+    }
 
 
 def overlays(

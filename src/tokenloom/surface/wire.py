@@ -80,7 +80,9 @@ def spread(item: R.Spread) -> dict[str, Any]:
 
 
 def path_node(
-    mark: R.PathNode, among: dict[int, list[R.Spread]] | None = None
+    mark: R.PathNode,
+    among: dict[int, list[R.Spread]] | None = None,
+    under: dict[int, dict[str, int]] | None = None,
 ) -> dict[str, Any]:
     """A node of a path with what is derived at it: whether it is live, what the ranking
     above gave it, and whether its parent parts here.
@@ -90,10 +92,17 @@ def path_node(
     *nothing ranked here*, and a reader that could not tell those apart would draw a hole
     where an overlay was never computed. More than one entry is a position two sources
     ranked, which is the case `docs/SURFACE.md` has the surface refuse rather than choose in.
+
+    `under` is what the tree below the node holds, by measure, and crosses the same way --
+    present only when asked for, so an absent key is *nobody asked*. It is one object rather
+    than a key apiece because the measures are read from one descent and a client choosing
+    between them has them all for the cost of the one it wanted.
     """
     out = {**node(mark.node), "live": mark.live, "logprob": mark.logprob, "fork": mark.fork}
     if among is not None:
         out["among"] = [spread(s) for s in among.get(mark.node.id, ())]
+    if under is not None:
+        out["under"] = under.get(mark.node.id)
     return out
 
 

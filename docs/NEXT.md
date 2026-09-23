@@ -32,19 +32,23 @@ another that says what is drawn over it. This section is what comes after that.
 ### The increments, in order
 
 **1. Measures that look down.** `docs/SURFACE.md` has the design. What makes this first is that it
-costs less than the code it replaces: `path` builds a descent of the tree below a node once per
-continuation and keeps neither, and the measures want exactly what that descent already walks. One
-root-anchored descent, read by the rule and the overlay together, and `Subtree` accumulating size,
-forks and the run to the next fork in the reversed pass where it already accumulates height.
+is nearly free where it is not free outright. `Subtree` already folds height over the descent
+`path` makes; size, forks and the run to the next fork fold over the same pass and cost nothing
+more. What is not free is the descent's anchor: a measure drawn along a whole path wants the tree
+from the root, and `path` anchors below the node it was asked about. Where the reader is reading a
+root that is the same descent; where they are not it is a larger one, which is a reason to ask for
+it and not a reason to defer it.
 
 **The rule list stops being written beside the measures and starts being generated from them.**
 `longest` is an argmax of a subtree scalar over siblings, so every downward measure is a rule, and
 the open question about which continuation rule can finally be answered by reading one tree under
 several — which is what that question says would settle it.
 
-Then the page half: the family in the panel, the depth limit, and views as presets. Branching
-waits on what it counts and vocabulary on whether a scale with a middle earns its place; both are
-open questions in `docs/SURFACE.md`, and neither blocks anything here.
+The server half is done and the page half is what is left: the family in the panel, the depth
+limit, views as presets, and a way to swap the rule over one tree, which the read has taken as a
+parameter since before there was a second rule to pass it. Branching waits on what it counts and
+vocabulary on whether a scale with a middle earns its place; both are open questions in
+`docs/SURFACE.md`, and neither blocks anything here.
 
 **2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
 position, and the rows with no child are what a `realise` takes. This is where an overlay points:
