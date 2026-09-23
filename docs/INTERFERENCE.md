@@ -227,6 +227,16 @@ first**, so what the drive is answering is known, and the flags it opens are rea
 what happens when greedy was never run. Whether there are contexts on which zero is unusable
 throughout is in *Deliberately open*.
 
+**And a loop is not always a fault.** Refrain, anaphora, liturgy, mantra and a chorus are
+repetition doing work, and the reader is the only thing here qualified to tell one from a
+collapse. The instrument reports that a passage repeats; it never reports that it is broken.
+
+**Which is the sharper case against a penalty sampler.** Repetition penalties and their relatives
+compile that judgement into the decode loop, where it applies at every position whether the
+repetition was wanted or not, and the reader never sees the choice being made. *Determinism stops
+being a diagnostic* has the mechanical objection to them — that they may reshape what gets
+recorded. This is the one that would stand even if they left the record untouched.
+
 ## Cost is a rate, not a total
 
 **A total says less the longer the document runs.** Accumulated deviation over a whole path grows
@@ -246,13 +256,20 @@ a map the reader builds by scrolling rather than by asking for it. Attention ret
 regions when something meaningful is to be changed and passes over sparse ones, where the draw and
 the model's preference agreed.
 
-**Sparse is not the same as settled, and the exception is the one that matters.** A repetition
-loop is confident at every position, so it flags rarely and reads as the calmest stretch on the
-page. `docs/SPINE.md` has this as a property of both measure families rather than a fault in
-either — they read confidence, and a loop is confident — and names the only kind of measure that
-can mark one: what vocabulary lies below. So the density map is trustworthy about where the drive
-did work and silent about where the model stopped doing any, and a reader navigating by it alone
-will skim straight over the region they most need to see.
+**Density says nothing about a loop, in either direction.** `docs/SPINE.md` has this as a
+property of both measure families rather than a fault in either: they read confidence, and
+confidence does not locate a degenerate region — some run below the path around them and some
+above. So a loop may sit in a dense stretch or a sparse one and the map cannot be asked. The kind
+of measure that can mark one reads what the tokens are rather than what the distribution was.
+**More generally the map reads the sampler and not the text**: sparse says the draw and the
+model's preference agreed, and never that what they agreed on was worth keeping.
+
+**The prose is not silent, though, and that is most of the answer.** A loop is the least
+camouflaged thing a text can do, and a reader who is reading — which is the whole of this method —
+has seen it before any margin could say so. So the map's blindness costs nothing while someone is
+looking at the text, and costs something only where measures are read without it: an aggregate
+over many paths, a scan across trees, anything unattended. There a detector is cheap and needs no
+distribution at all, since a repeat is a match over token ids.
 
 **Uniform high density is the dial gone too far.** A path flagged everywhere is one where the
 drive is buying scrambles rather than decisions, and the instrument gets harder to use in exact
@@ -371,6 +388,10 @@ Each of these is left to use, and each names what would settle it.
   than merely having been applied. It is the question of where the cost was well spent rather than
   how much of it there was. Settled by reading driven paths whose densities match and whose
   distributions do not.
+- **Whether a repeat detector earns a place, and where.** It is cheap, needs no distribution, and
+  a reader sees a loop unaided — so its value is wherever the text is not being read: an
+  aggregate, a scan across trees, a selection made before anyone looks. What it must not do is
+  call a refrain a fault. Settled by whether anything here is ever read without prose.
 - **What window.** A rate needs one, and a fixed span of text, a paragraph, a single act and a
   decaying one all read differently over the same path. Settled by which one makes the map usable
   while scrolling.
