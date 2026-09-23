@@ -62,6 +62,12 @@ class Spread:
     `rows` is the recorded depth and `mass` the probability those rows carry between them.
     Both are what accumulated here and neither is any act's parameter, since rankings
     extend -- so a reader comparing two positions carries `rows` along with what it read.
+
+    `least` is the lowest logprob recorded, and it is here because a token absent from the
+    rows is not a token nothing is known about. Where what was written is a prefix of what
+    the model ranked -- which `docs/ADAPTER.md` obliges and this cannot check -- anything
+    the rows do not hold sits at or below `least`. So an absent row is a bound rather than a
+    hole, and a reader that has `least` can say how far a draw went at minimum.
     """
 
     source: int
@@ -69,6 +75,7 @@ class Spread:
     mass: float
     top: float
     second: float | None
+    least: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -443,6 +450,7 @@ def spreads(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, list[Sp
                 sum(math.exp(p) for p in ranked),
                 ranked[0],
                 ranked[1] if len(ranked) > 1 else None,
+                ranked[-1],
             )
             for source, ranked in sorted(by_source.items())
         ]

@@ -10,6 +10,7 @@
  */
 
 import { draw, panel } from "./draw.js";
+import { asked as overlaid, panel as overlayPanel, read as overlays } from "./overlay.js";
 
 const $ = id => document.getElementById(id);
 
@@ -136,16 +137,27 @@ function boundary(cell) {
   return mark;
 }
 
-function spans(segments) {
+/** `marks` is what the overlay made of each span, or null where none is drawn -- which is
+ *  the column a reader has not asked anything of, and is why the mark is applied here rather
+ *  than being something a span always carries. */
+function spans(segments, marks) {
   const out = [];
   let cut = false;
-  for (const cell of segments) {
+  for (const [i, cell] of segments.entries()) {
     const hidden = aside(cell);
     if (hidden && !cut) { cut = true; out.push(boundary(cell)); }
     const el = document.createElement("span");
     el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`;
     el.textContent = cell.text;
     el.dataset.node = cell.nodes[cell.nodes.length - 1].id;
+    const mark = marks?.[i];
+    if (mark) {
+      el.classList.add(mark.cls);
+      el.title = mark.title;
+      // The scale hands over a place and the stylesheet owns the colour, so a palette stays
+      // in one file and a theme changes nothing here.
+      if (mark.t !== undefined) el.style.setProperty("--t", mark.t.toFixed(3));
+    }
     // A plain click is spoken for -- `docs/SURFACE.md` has it opening a ranking -- so the
     // one gesture that changes the tree from here asks for a modifier and says so.
     el.onclick = event => {
@@ -160,7 +172,9 @@ function spans(segments) {
 
 /** Draw the path through a node and make it the position. */
 async function show(node) {
-  const read = await ask(`/path/${node}?hidden=${showHidden ? 1 : 0}`);
+  // An overlay is asked for, and a read not asked for one carries none of it.
+  const read = await ask(
+    `/path/${node}?hidden=${showHidden ? 1 : 0}&overlays=${overlaid() ? 1 : 0}`);
   let cells = read.segments;
   if (!showHidden) {
     // The read carries a hidden ancestry whatever the toggle says, since a path through a
@@ -175,7 +189,9 @@ async function show(node) {
   addressable = closed.length ? closed[closed.length - 1].nodes.at(-1).id : null;
   const flow = document.createElement("div");
   flow.className = "flow";
-  flow.append(...spans(cells));
+  // Read over what is drawn and not over what came back, so a path-relative scale takes its
+  // range from the text in front of the reader.
+  flow.append(...spans(cells, overlays(cells, read.sources)));
   $("column").replaceChildren(flow);
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
@@ -400,6 +416,18 @@ function say(text, bad) {
 }
 
 $("draw").replaceChildren(panel());
+
+/* The overlay and what is set aside are both ways of looking, and they share a panel because
+ * they are the same question asked twice: what of the record is in front of me. Moving either
+ * re-reads rather than repainting what is already drawn -- turning a measure on asks the
+ * server for what the last read did not carry, and one path costs milliseconds. */
+$("read").append(overlayPanel(async () => {
+  try {
+    await (position === null ? overlays([], {}) : show(position));
+  } catch (why) {
+    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  }
+}));
 
 /* One state for the whole page, so the roots and the column always say the same thing about
  * what has been set aside. Flipping it re-reads rather than filtering what is already drawn:

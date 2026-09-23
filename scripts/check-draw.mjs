@@ -6,28 +6,11 @@
  * which means the browser reports this bug by writing an act into the store. It found one
  * the first time it ran, in the direction a toggle moves.
  *
- * The stub is the few DOM calls the panel makes and nothing more. It is not a test harness
+ * The stub is `stub-dom.mjs`, which the overlay's check drives too. It is not a test harness
  * for the page, and the reading column is not driven from here.
  */
 
-class El {
-  constructor(tag) {
-    this.tag = tag; this.className = ""; this.textContent = ""; this.children = [];
-    this.parentElement = null;
-    this.classList = {
-      toggle: (name, on) => { this._cls = on; return on; },
-      add: () => {},
-    };
-  }
-  append(...kids) { for (const k of kids) { if (k instanceof El) k.parentElement = this; this.children.push(k); } }
-  prepend(...kids) { for (const k of kids) { if (k instanceof El) k.parentElement = this; } this.children.unshift(...kids); }
-  setAttribute() {}
-  replaceChildren(...kids) { this.children = kids; }
-}
-class Frag extends El { constructor() { super("#fragment"); } }
-
-globalThis.document = { createElement: tag => new El(tag) };
-globalThis.DocumentFragment = Frag;
+import { El } from "./stub-dom.mjs";
 
 const { draw, panel } = await import(
   new URL("../src/tokenloom/surface/page/assets/draw.js", import.meta.url));

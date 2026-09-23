@@ -137,6 +137,27 @@ lands the path on positions that are wider. Which of those two paths is flatter 
 it was drawn, rather than because of where it went, is not settled by this and would want one
 context drawn several ways.
 
+**A ranking says most about what it left out where it holds least.** A draw that landed outside
+the recorded rows is censored rather than missing — what was written is a prefix, so the token
+taken sits at or below the lowest row — and how much that says is the span from the top row to
+the last, which `docs/SURFACE.md` draws as a bound. Over the 13,315 ranked positions of
+`data/continuations`, that span is **widest at the shallowest depth**: the 4,553 positions holding
+two rows, which is the floor the rule sets, span a median of 5.81 nats, against 3.1 to 4.4 across
+every depth from three to nine. The rule is the reason. Two rows suffice only where one token
+already carried the mass, and those positions carry a median top probability of 0.991, so the
+second row is far beneath the first. Where the rule ran to its ceiling instead the position was
+flat — median top probability 0.26 at ten rows and 0.28 at twenty — and the rows are packed, 2.46
+nats across ten of them and 3.95 across twenty. **So a bound is strong exactly where a reader
+would expect the record to be weak**, and the deepest records give the loosest ones.
+
+**Censoring is the draw read against the record, and not either one alone.** The same tree holds
+62 censored positions in 13,595 nodes, and every one came from a single 90-token draw at
+temperature 1.4 recorded to ten rows — 62 of that act's 90 tokens, against none at all from the
+sixteen earlier acts at the same temperature that recorded to twenty. So a hot draw does not
+censor by being hot; it censors where the record was sized for a colder one. That makes
+`record_rows` a choice about how much of a hot path stays readable rather than only a cost, and
+it is the one parameter whose right value cannot be known before the draw it is recording.
+
 **The frontier outruns any reader almost immediately.** One 150-token path contributes 14 candidate
 edges above probability 0.40, 25 above 0.30, and 118 above 0.10 — and each path those open
 contributes as many again. Readability is the binding constraint, not inference cost.

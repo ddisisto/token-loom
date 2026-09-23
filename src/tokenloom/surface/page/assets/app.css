@@ -13,12 +13,16 @@
      as corruption rather than as a mark. These are the families that carry it. */
   --fork-face: "DejaVu Sans", "Symbola", "Segoe UI Symbol", "Noto Sans Symbols2", sans-serif;
   --nav: 15.5rem; --fold: 3.25rem;
+  /* How much colour the top of an overlay's scale is worth. The scale hands over a place
+     between 0 and 1 and this is what it is multiplied by, so the palette stays here. */
+  --wash: 46%;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14130f; --ink: #eae5d8; --dim: #8f8878; --faint: #33302a;
     --rule: #2a2721; --accent: #d98a55; --accent-bg: #33251b;
     --panel: #1c1a15;
+    --wash: 34%;
   }
 }
 
@@ -136,20 +140,46 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
    them. Still shown, because the column's text is the path's, but not as a fault. */
 .flow .seg.raw:last-child { color: var(--dim); background: none; }
 
-/* ---- what is set aside ----
-   `delete` is one flag on one node and nothing leaves the store, so whether it is drawn is
-   a way of looking. The toggle says so for the whole page at once, the roots and the column
-   together, because a reader asking what they have set aside is asking it of the tree. */
+/* ---- how the record is read ----
+   The two ways of looking that are not the column itself: whether what has been set aside is
+   drawn, and what is drawn along the path. They share a panel because they are one question
+   asked twice -- what of the record is in front of me -- and neither records anything.
 
-#aside { position: fixed; top: 0; right: 0; z-index: 30; cursor: pointer;
-         display: flex; align-items: center; gap: 7px; padding: 10px 15px;
-         font: 400 11.5px/1.4 var(--mono); color: var(--dim);
-         background: color-mix(in srgb, var(--bg) 88%, transparent);
-         backdrop-filter: blur(8px);
-         border-left: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
-         border-bottom-left-radius: 5px; }
+   What is set aside is a toggle and stays one: it governs the roots and the column at once,
+   so a reader asking what they have put away is asking it of the tree. It is in the head
+   rather than the body because it is one click and reaching it should stay one. */
+
+#read { position: fixed; top: 0; right: 0; z-index: 30;
+        display: flex; flex-wrap: wrap; justify-content: flex-end;
+        font: 400 11.5px/1.4 var(--mono); color: var(--dim);
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        backdrop-filter: blur(8px);
+        border-left: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+        border-bottom-left-radius: 5px; }
+#read.open { width: 19.5rem; }
+
+#aside { display: flex; align-items: center; gap: 7px; padding: 10px 6px 10px 14px;
+         cursor: pointer; }
 #aside:hover { color: var(--ink); }
 #aside input { margin: 0; accent-color: var(--accent); }
+
+#read .head { font: inherit; color: inherit; letter-spacing: .06em;
+              border: none; border-radius: 0; padding: 10px 14px 10px 8px; }
+#read .head:hover, #read.open .head { color: var(--ink); }
+#read .body { display: none; flex-basis: 100%; padding: 3px 14px 14px;
+              border-top: 1px solid var(--rule); }
+#read.open .body { display: block; }
+
+#read .pick { margin-top: 11px; }
+#read .what { margin-bottom: 5px; font: italic 400 12px/1.4 var(--serif); }
+#read .pick .row { display: flex; flex-wrap: wrap; gap: 5px; }
+#read .chip { font: inherit; padding: 2px 8px; }
+#read .chip.on { color: var(--ink); border-color: var(--accent); background: var(--accent-bg); }
+#read .chip:disabled { opacity: .35; cursor: default; }
+#read .chip:disabled:hover { color: var(--dim); border-color: var(--rule); }
+#read .says { margin-top: 8px; font: italic 400 12px/1.5 var(--serif); }
+#read .note { margin-top: 13px; padding-top: 10px; border-top: 1px solid var(--rule); }
+#read .note:empty { display: none; }
 
 /* Shown and marked, never passed off as ordinary -- but still read, so what marks it is a
    weight and a tint rather than anything struck through. */
@@ -163,6 +193,36 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
        font: 400 11px/1.6 var(--mono); font-style: normal; color: var(--dim);
        border: 1px dashed var(--rule); border-radius: 4px; }
 .cut button { font: inherit; padding: 1px 6px; }
+
+/* ---- what an overlay draws ----
+   A place on the scale arrives as `--t` and the colour is made here, so a measure computed
+   anywhere reaches the column the same way. Nothing is drawn at the foot of the scale: a
+   position the measure found unremarkable is the column a reader did not ask anything of.
+
+   It comes after what is set aside so that it wins the background where both apply: a hidden
+   segment a reader is measuring should read as measured, and what says it is hidden is the
+   weight it keeps and the boundary above it, which is drawn once and says so for the rest. */
+
+.seg.val { border-radius: 2px;
+           background: color-mix(in srgb,
+                                 var(--accent) calc(var(--t) * var(--wash)), transparent); }
+
+/* A draw that fell past what was recorded is bounded rather than blank: the wash says how far
+   it went at minimum and the line says the record stops there, so the colour is not read as a
+   reading. It is the one mark that carries both. */
+.seg.bound { border-radius: 2px;
+             background: color-mix(in srgb,
+                                   var(--accent) calc(var(--t) * var(--wash)), transparent); }
+
+/* A position with no value is not a position with a low one, and the ways to arrive there are
+   marked apart. Each is a line under the text rather than a wash, so none can be read as a
+   place on the scale, and each is a different line, so none can be read as another. */
+.seg.off, .seg.hole, .seg.bound, .seg.split, .seg.clash { text-underline-offset: 3px; }
+.seg.off   { text-decoration: underline dotted var(--faint); }  /* not this source's draw */
+.seg.bound { text-decoration: underline solid var(--accent); }  /* known from one side only */
+.seg.hole  { text-decoration: underline double var(--accent); } /* nothing bounds it either */
+.seg.split { text-decoration: underline dashed var(--dim); }    /* more nodes than values */
+.seg.clash { text-decoration: underline wavy var(--accent); }   /* two sources, no answer */
 
 /* ---- the composer ----
    A request appears where its result will, so this stands in the column at the position it

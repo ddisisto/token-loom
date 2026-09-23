@@ -249,10 +249,13 @@ def test_a_spread_summarises_the_rows_and_agrees_with_reading_them(tmp_path):
         assert spread.mass == pytest.approx(sum(math.exp(lp) for lp in logprobs))
         assert spread.top > spread.second, "recorded order is not logprob order"
 
+        assert spread.least == logprobs[-1]
+
         # The same numbers the row-by-row read gives, which is what it has to agree with.
         read = R.ranking(store.conn, 1)
         assert spread.rows == len(read)
         assert spread.top == max(e.logprob for e in read)
+        assert spread.least == min(e.logprob for e in read)
 
 
 def test_a_spread_is_per_source_because_two_rankings_are_not_one(tmp_path):
@@ -288,6 +291,33 @@ def test_a_node_nothing_ranked_has_no_spread_and_one_row_has_no_second(tmp_path)
         assert R.spreads(store.conn, [2]) == {}
         (spread,) = R.spreads(store.conn, [1])[1]
         assert (spread.rows, spread.second) == (1, None)
+        assert spread.least == spread.top, "one row is both ends of the ranking"
+
+
+def test_what_the_rows_do_not_hold_sits_at_or_below_the_least_of_them(tmp_path):
+    """The bound a censored draw rests on: every token absent from a recorded ranking is at
+    or below its lowest row, wherever the rows are a prefix of the model's.
+
+    The core cannot check that they are -- `docs/ADAPTER.md` obliges it -- so what is
+    asserted here is what the store can answer: that `least` is the floor of what was
+    written, and that a token the ranking does not hold is not in it at any logprob. A
+    reader that took `least` for the drawn token's own value rather than for a bound on it
+    would pass every other check and be wrong at exactly these positions.
+    """
+    rows = [(101, -0.10), (102, -0.50), (104, -2.00)]
+    with Store.initialise(tmp_path / "c", vocabulary="toy") as store:
+        store.create(None, "The", vocabulary=ToyVocabulary(), actor=USER)
+        # The draw takes a token the ranking does not carry, which is what a ceiling does.
+        store.generate(
+            1, {"length": 1}, adapter=ToyAdapter([drew((105, rows))]), actor=USER
+        )
+        (spread,) = R.spreads(store.conn, [1])[1]
+        written = {e.token_id: e.logprob for e in R.ranking(store.conn, 1)}
+
+        assert spread.least == min(written.values())
+        assert 105 not in written, "the drawn token is the censored case this is about"
+        assert R.node_logprob(store.conn, 2) is None, "and nothing records what it cost"
+        assert all(lp >= spread.least for lp in written.values())
 
 
 def test_token_bytes_agrees_with_node_bytes(tree):

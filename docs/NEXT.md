@@ -26,24 +26,17 @@ read against a tree the page could not yet have made.
 
 **What exists is `docs/SURFACE.md`'s Status and is not restated here.** What the page has arrived
 at is a composer that both starts a root and writes at a position, a column that sets one path as
-prose, a scroll at the end that asks for more of it, and a panel that says what the draw asks
-for. This section is what comes after that.
+prose, a scroll at the end that asks for more of it, a panel that says what the draw asks for and
+another that says what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. The overlay, page half.** Measure, scale and unit kept apart, because the division is what
-lets a quantity some later analysis computes arrive the same way and be read the same way. Spans
-and not nodes; a multi-node segment marked rather than coloured; an authored token off the scale
-rather than at its end. **The first test case is a flag over a real tree**, which is the one
-overlay honest at whatever depth the tree happens to hold — so nothing has to be levelled before
-it means something.
-
-**2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
+**1. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
 position, and the rows with no child are what a `realise` takes. This is where an overlay points:
 a position drawn as interesting is a position a reader then opens. It is also the cheapest thing
 that makes a fork, which is why it comes before the band rather than after it.
 
-**3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
+**2. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
 What has changed is that its need is the least established of these: a ranking on demand already
 answers *what else was here* at a position, and whether a reader also wants every continuation
@@ -94,15 +87,15 @@ that has to be asked again.
 
 Not in the ordering; each stands on its own.
 
+- **One colour scale, chosen without comparison.** A place on the scale reaches the column as a
+  number between 0 and 1 and the stylesheet makes the colour, so a second scale is a rule and not
+  a rewrite — but only one has been tried, against one palette, in two themes. What would settle
+  which are worth keeping is reading the same path under several, since a scale is judged by what
+  it lets a reader see and not by anything the code can check.
 - **Whether the command line should keep verifying on every write.** Each invocation is its own
   writer, so each pays a whole-tree read — 330 ms at 20k nodes. The server pays it once for the
   life of the process, which is what a long-running session buys. Nothing forces the question
   yet.
-- **`scripts/check-draw.mjs` is run by hand or not at all.** It drives the draw panel against a
-  DOM stub of about twenty lines and caught a real clamp fault on its first run, so what it
-  checks is worth checking; nothing invokes it. Hooking it to pytest is a subprocess call and a
-  skip when `node` is absent, and the reason to wait is that one harness for one asset may not be
-  the shape a second one wants.
 - **The `/evaluable` read does not check that the adapter spells the tree's vocabulary.** It
   asks the backend about ids from a tree that may be in another vocabulary and gets a confident
   answer about nonsense. `put_token` is what catches the mismatch on a write, at the first id the

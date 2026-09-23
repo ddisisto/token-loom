@@ -254,9 +254,12 @@ def test_an_overlay_is_what_the_ranking_above_says_about_the_position(client):
     assert stood["top"] == max(row["logprob"] for row in rows)
     assert stood["second"] == sorted((row["logprob"] for row in rows), reverse=True)[1]
     assert stood["mass"] == pytest.approx(sum(math.exp(row["logprob"]) for row in rows))
+    assert stood["least"] == min(row["logprob"] for row in rows)
     # The flag: what node 3 paid to be where it is, which here is nothing.
     assert marks[3]["logprob"] == stood["top"]
     assert stood["source"] == marks[3]["source"]
+    # What a draw the rows do not hold is bounded by, which is the reason `least` crosses.
+    assert stood["least"] <= stood["top"]
 
 
 def test_a_ranking_says_which_rows_have_been_realised(client):

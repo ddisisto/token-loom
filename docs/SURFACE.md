@@ -324,11 +324,27 @@ enough to do it — and an overlay that did not say so would be colouring incomp
 by side and looking uniform while it did. **Depth is inflated where it is wanted**, position by
 position, by the deepening write Rankings describes.
 
-**A position with no value is not a position with a low one**, and there are two ways to arrive
-there. An **authored** token has no ranking because nothing ever ranked it; it is off the scale
-rather than at its end. A **drawn** token can have none because it landed past the recorded depth,
-which is a hole in the record where the model had a number. `source` tells them apart and they do
-not get one mark.
+**A position with no value is not a position with a low one**, and what goes missing is the row
+the draw took rather than the ranking. So whether that costs a value is a question about the
+measure: a draw-relative one is silent, and a draw-independent one reads the ranking and is not.
+
+An **authored** token stands in a ranking it has no row in, which is the ordinary case and not a
+fault — a reader writes at a position a model ranked. It is off the scale rather than at its end.
+A **drawn** token can have no row because it landed past the recorded depth, and that one is not
+absent but **censored**: what was written is a prefix of what the model ranked, so the token taken
+sits at or below the lowest row written, which bounds what the draw paid from one side. The bound
+is tight — it is exactly where a draw that took the last recorded row would sit — so an overlay
+says *at least this much and no nearer* rather than saying nothing. `source` tells the two apart,
+they do not get one mark, and a bound is marked apart from a reading because what a reader may
+conclude from the two is not the same.
+
+**A bound rests on the obligation a flag already rests on**, which is that a recorded ranking is
+a prefix of the model's. Nothing in the record can check it and `docs/ADAPTER.md` carries it, so
+the two fail together rather than one being safe while the other is not — which is the right
+coupling, since they are two readings of one prefix. What a bound is worth varies with the record
+and not with the draw, and **it says most where the record holds least**: the rule stops at its
+floor of two rows only where one token already carried the mass, which is exactly where the
+second row is far below the first. `docs/SPINE.md` measures it.
 
 **A node two sources ranked has no single value, and the surface refuses rather than choosing
 one.** Picking a source silently would make an overlay mean different things at different
@@ -579,9 +595,21 @@ what it opens with, starts new ones through a composer that a submit turns into 
 one path as prose, and continues it at the end — reaching the end of what there is to read is
 how more of it is asked for, and what the draw asks for is set in a panel at the foot of the
 side. A root or a tail can be set aside and brought back, and one toggle says whether what has
-been is drawn. What does not exist is everything past that: no overlays, no band and no
-rankings, and no `realise` reachable from the page. **The gesture that sets a segment aside is a
-modifier-click and is the weakest part of this**, chosen because a plain click is already spoken
-for above and not because it is right. What else exists is the core,
+been is drawn.
+
+**An overlay is drawn over that column and is chosen in a panel beside the toggle**, which holds
+what is read as the other holds what is written. Three measures stand in the three corners the
+two divisions make — the flag, the top-to-second gap, and the mass the recorded rows hold — and
+each declares both its sides, so the machinery is exercised rather than described. A scale is
+fixed or path-relative and is read in log or in linear, and a measure carries both readings with
+a domain apiece, a domain running high to low being how a descending reading states its polarity.
+A span of more than one node is marked and never coloured; a censored draw carries its bound; and
+the panel says how much of the path the measure reached, at what depths, and how much of that is
+bound rather than read.
+
+What does not exist is everything past that: no band and no rankings, and no `realise` reachable
+from the page. **The gesture that sets a segment aside is a modifier-click and is the weakest
+part of this**, chosen because a plain click is already spoken for above and not because it is
+right. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
 a tree and cannot write — which is what demonstrated the band.
