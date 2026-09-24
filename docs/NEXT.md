@@ -25,34 +25,26 @@ read against a tree the page could not yet have made.
 **No build step.** The probe needed none for the hardest thing in the document.
 
 **What exists is `docs/SURFACE.md`'s Status and is not restated here.** What the page has arrived
-at is a composer that both starts a root and writes at a position, a column that sets one path as
-prose, a scroll at the end that asks for more of it, a panel that says what the draw asks for and
-another that says what is drawn over it. This section is what comes after that.
+at is a composer that starts a root, a column that sets one path as prose, a caret that says
+where the reader is pointing and takes a draw there, a scroll at the end that asks for more, and
+two panels saying what the draw asks for and what is drawn over it. This section is what comes
+after that.
 
 ### The increments, in order
 
-**1. Measures that look down.** `docs/SURFACE.md` has the design. What makes this first is that it
-is nearly free where it is not free outright. `Subtree` already folds height over the descent
-`path` makes; size, forks and the run to the next fork fold over the same pass and cost nothing
-more. What is not free is the descent's anchor: a measure drawn along a whole path wants the tree
-from the root, and `path` anchors below the node it was asked about. Where the reader is reading a
-root that is the same descent; where they are not it is a larger one, which is a reason to ask for
-it and not a reason to defer it.
+**1. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+from the same list, so what is left of this is the bound. It is not a parameter on the end of the
+increment: three of the five measures can only fall as a path descends, which makes them a
+gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
+What the limit buys is the two things the drop does not — a fixed domain, which none of these
+has and which *fixed before relative* needs, and a name for what branching counts, since the
+distinct continuations within *d* are what a slate would hold.
 
-**The rule list stops being written beside the measures and starts being generated from them.**
-`longest` is an argmax of a subtree scalar over siblings, so every downward measure is a rule, and
-the open question about which continuation rule can finally be answered by reading one tree under
-several — which is what that question says would settle it.
-
-The family reaches the panel, the rule is chosen beside it from the same list, and what the rule
-passed over is drawn as a fifth measure that is no rule. That last one came out of reading the
-others against a real tree: three of the four can only fall as a path descends, so unbounded they
-are a gradient, and a gradient restates what the scrollbar and the page's length say already.
-**What is left is the depth limit**, and what it is for has narrowed to two things worth having
-rather than to rescuing the wash — a fixed domain, which none of these has, and a name for what
-branching counts, since the distinct continuations within *d* are what a slate would hold.
-Bounding the fold is server work: height and the run to a fork cap, while size and forks within
-*d* want the counts by level that a single scalar per node cannot carry.
+**It is server work and it is not one more fold.** Height and the run to a fork cap at *d* and
+cost nothing. Size and forks within *d* do not: a single scalar per node cannot answer at two
+depths, so the fold carries counts by level and the descent pays O(*n·d*) for it. Whether the
+limit rides on the existing `beneath` flag or becomes its own parameter is decided by whether a
+page ever wants two depths at once.
 
 Views follow it rather than accompany it, since a view is a rule, an overlay and a limit set
 together and two of the three exist. Branching waits on what it counts and vocabulary on whether
@@ -61,8 +53,9 @@ blocks anything here.
 
 **2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
 position, and the rows with no child are what a `realise` takes. This is where an overlay points:
-a position drawn as interesting is a position a reader then opens. It is also the cheapest thing
-that makes a fork, which is why it comes before the band rather than after it.
+a position drawn as interesting is a position a reader then opens. **The caret is already the
+anchor it needs** — pointing at a segment puts the caret at exactly the node whose ranking holds
+the alternatives to it — so what is left here is the rows themselves and the act that takes one.
 
 **3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
@@ -118,6 +111,12 @@ descent it rides on cheap, and not a reason to defer it.
 
 Not in the ordering; each stands on its own.
 
+- **The composer cannot open at the caret, so writing at a position is not offered.** `create`
+  takes a node and `compose` takes one, so the act is there; what is missing is somewhere to put
+  the box. Staging one replaces the column, which is right for a root and wrong in the middle of
+  something being read — *a request appears where its result will*, and a reader who backed out
+  of one would have lost their place. It wants an inline composer at the caret, which is the
+  same shape a ranking opened there will want, so the two are worth doing together.
 - **One colour scale, chosen without comparison.** A place on the scale reaches the column as a
   number between 0 and 1 and the stylesheet makes the colour, so a second scale is a rule and not
   a rewrite — but only one has been tried, against one palette, in two themes. What would settle

@@ -5,10 +5,17 @@
  * would be two pieces of state that can disagree, and `/path/{node}` already answers from
  * a node what the surface needs.
  *
+ * That node is the caret, which `cursor.js` holds. It sits after a token and is what every
+ * act at a position takes, so pointing at a segment and asking for a draw are one node apart
+ * and not two states. A path is drawn *through* it in both directions, so moving it along
+ * what is already drawn returns the same text -- which is why it costs a read and needs no
+ * second way of redrawing.
+ *
  * Nothing here is remembered between loads. Reader state lives in the session, and what is
  * live, what parts and what a ranking holds are read from the store every time.
  */
 
+import * as cursor from "./cursor.js";
 import { draw, panel } from "./draw.js";
 import {
   panel as overlayPanel, read as overlays, rule as taken, wants,
@@ -16,14 +23,13 @@ import {
 
 const $ = id => document.getElementById(id);
 
-/** The reader's position: a node, or nothing at all before there is a tree. */
-let position = null;
+const { aside } = cursor;
 
-/* Where a continuation hangs: the last node whose path has a string form, which is the leaf
- * unless the path ends mid-character. A segment cannot be split and nothing is addressed
- * inside one, so trailing bytes waiting for the rest of their character are not a position
- * the surface acts at -- and a draw that repeats them merges onto the same nodes. */
-let addressable = null;
+/* Where the end of the path is, which is not always where the reader is pointing. The scroll
+ * gesture asks for more of what is being read and lands at the end of it; the caret asks for
+ * a draw at a position and lands there. They are the same act at the same node whenever the
+ * caret has not been moved, and that is the ordinary case. */
+let tail = null;
 
 /* Whether what has been set aside is drawn. A way of looking: it records nothing, the
  * continuation rule follows liveness either way, and what it reveals it never selects --
@@ -122,10 +128,6 @@ async function refresh(current) {
 
 // ---- the reading column ---------------------------------------------------------------
 
-/** A segment is set aside if any of its nodes is. It is the addressable unit and cannot be
- *  split, so a character spelled across the boundary goes with the part that is hidden. */
-const aside = cell => cell.nodes.some(n => !n.live);
-
 /** Where the path leaves what is live, and the way back. One of these: what is hidden is a
  *  suffix, because the rule picks the live path first. */
 function boundary(cell) {
@@ -136,6 +138,22 @@ function boundary(cell) {
   go.title = "bring this back into the live tree";
   go.onclick = () => restore(cell);
   mark.append("set aside", go);
+  return mark;
+}
+
+/** Where the reader is pointing, and what can be done there.
+ *
+ *  It stands in the text rather than beside it, because what it offers writes at this
+ *  position and a request appears where its result will.
+ */
+function caret() {
+  const mark = document.createElement("span");
+  mark.className = "caret";
+  const go = document.createElement("button");
+  go.textContent = "draw";
+  go.title = "sample a continuation from this position";
+  go.onclick = () => more(cursor.node());
+  mark.append(go);
   return mark;
 }
 
@@ -160,20 +178,46 @@ function spans(segments, marks) {
       // in one file and a theme changes nothing here.
       if (mark.t !== undefined) el.style.setProperty("--t", mark.t.toFixed(3));
     }
-    // A plain click is spoken for -- `docs/SURFACE.md` has it opening a ranking -- so the
-    // one gesture that changes the tree from here asks for a modifier and says so.
+    // A plain click points at this token, which puts the caret where an alternative to it
+    // would stand. `docs/SURFACE.md` has that same gesture opening a ranking, and it is the
+    // same selection: the rows it would show are the rows at the node the caret lands on.
+    // The one gesture that changes the tree from here asks for a modifier and says so.
     el.onclick = event => {
-      if (!event.altKey) return;
+      if (!event.altKey) return point(i);
       if (hidden) restore(cell);
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
     };
     out.push(el);
+    if (cell.nodes.at(-1).id === cursor.node()) out.push(caret());
   }
   return out;
 }
 
-/** Draw the path through a node and make it the position. */
-async function show(node) {
+/** Point at a segment, which moves the caret before it. It re-reads rather than redrawing
+ *  what is in front of the reader: the path through the node the caret lands on is the path
+ *  already drawn, so what comes back is the same text, and one path costs milliseconds. */
+function point(i) {
+  const to = cursor.chosen(drawn, i);
+  if (to === null) return;
+  show(to, to).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+}
+
+/* What is drawn, kept so that pointing at a segment knows which one was chosen. It is the
+ * last response and not a second opinion about the tree: nothing is decided from it that the
+ * next read would decide differently. */
+let drawn = [];
+
+/** Draw the path through a node, and leave the caret at `where` -- or at the end of what is
+ *  drawn, which is where a reader who has not pointed at anything is.
+ *
+ *  So a draw at the end carries the caret along with it, by as much as it drew. That is the
+ *  batch discipline `docs/INTERFERENCE.md` names rather than a convenience of the code:
+ *  asking for the next batch is a deliberate act taken after reading the last, so it carries
+ *  acceptance of everything above it -- or at least a wish to see past it -- and the caret
+ *  standing at the new end is what that looks like. A reader who did not accept it moves the
+ *  caret back, which is the same gesture as pointing at anything else.
+ */
+async function show(node, where) {
   // Each half of what the read can carry is asked for, and a read not asked for one carries
   // none of it. The rule is a parameter of the read and never of the page: what is drawn is
   // the path the server derived, so the page holds no opinion about where it went.
@@ -189,9 +233,9 @@ async function show(node) {
     if (stop === 0) return land(null);
     if (stop > 0) cells = cells.slice(0, stop);
   }
-  position = node;
-  const closed = cells.filter(cell => cell.decodes && !aside(cell));
-  addressable = closed.length ? closed[closed.length - 1].nodes.at(-1).id : null;
+  drawn = cells;
+  tail = cursor.resting(cells);
+  cursor.place(where === undefined ? tail : where);
   const flow = document.createElement("div");
   flow.className = "flow";
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
@@ -296,7 +340,9 @@ function compose(at) {
 }
 
 function stage(at) {
-  position = addressable = null;
+  drawn = [];
+  tail = null;
+  cursor.place(null);
   $("column").replaceChildren(compose(at));
   $("column").querySelector("textarea").focus();
 }
@@ -349,16 +395,18 @@ function failed(why) {
   box.append(go);
 }
 
-/** Ask for more of the path. One at a time: there is no queue, and the server says so too. */
-async function more() {
-  if (working || addressable === null) return;
+/** Ask for more of the path, at a node. The scroll gesture passes the end of what is being
+ *  read; the caret passes wherever the reader put it, and a draw there is what makes a fork
+ *  -- the tokens either merge onto what already follows or part from it. */
+async function more(where = tail) {
+  if (working || where === null || where === undefined) return;
   working = true;
   waiting();
   try {
     // Ending mid-character is not the only reason a backend may decline a path, so the
     // predicate is asked at the position the act would use. Asking writes nothing, and the
     // answer is advisory -- what it saves is a refusal nobody needed to see.
-    if (!(await ask(`/evaluable?node=${addressable}`)).evaluable) {
+    if (!(await ask(`/evaluable?node=${where}`)).evaluable) {
       pending(Object.assign(document.createElement("span"), {
         textContent: "The model will not continue from this position.",
       }));
@@ -366,7 +414,7 @@ async function more() {
     }
     // Asked for at the moment of the act, so what the panel holds now is what is sent and
     // what the record keeps. Nothing here caches it.
-    const act = await ask("/generate", { at: addressable, params: draw() });
+    const act = await ask("/generate", { at: where, params: draw() });
     await refresh();
     await show(act.tip);
   } catch (why) {
@@ -429,7 +477,8 @@ $("draw").replaceChildren(panel());
  * rule asks for a different path entirely. One path costs milliseconds either way. */
 $("read").append(overlayPanel(async () => {
   try {
-    await (position === null ? overlays([], {}) : show(position));
+    const here = cursor.node();
+    await (here === null ? overlays([], {}) : show(here, here));
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   }
@@ -442,7 +491,7 @@ $("hidden").onchange = async () => {
   showHidden = $("hidden").checked;
   try {
     await refresh();
-    if (position !== null) await show(position);
+    if (cursor.node() !== null) await show(cursor.node());
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   }
@@ -467,7 +516,7 @@ try {
     // Something another page started, or this one was reloaded out from under.
     if (await resume()) {
       await refresh();
-      await show(position);
+      await show(cursor.node());
     }
   }
   wasAtEnd = atEnd();

@@ -147,6 +147,25 @@ reader is looking at when it lands.
 **Between forks, nothing is drawn.** A stretch where nothing is offered should look like prose,
 so the visible object is the fork and the column is otherwise text.
 
+**Where the reader is pointing is a caret, and it sits after a node.** That node is the anchor
+every act and every question at a position takes: the ranking to open, the sibling a `realise`
+would make, and the branch a draw from here would start are one node and not three. Pointing at
+a segment puts the caret *before* it, so what the reader points at is the token they are
+reconsidering and the caret lands where an alternative to it would stand — which is the same
+node Rankings already names, arrived at from the other end. A root has nothing before it and
+nothing acts under what is set aside, so neither takes the caret.
+
+**It is the reader's one piece of state, and the path is drawn through it.** A path read answers
+from a node in both directions, so moving the caret along what is already drawn returns the same
+text; a second node held beside it would be a second thing that can disagree about where the
+reader is.
+
+**Left alone it follows the end, which is the batch discipline and not a convenience.** A draw at
+the end carries the caret along by as much as it drew, because asking for the next batch is a
+deliberate act taken after reading the last — `docs/INTERFERENCE.md` has it carrying acceptance
+of everything above it, or at least a wish to see past it. A reader who did not accept it moves
+the caret back, which is the same gesture as pointing anywhere else.
+
 ## Hidden
 
 **Deleted is the surface's *hidden*, and whether it is shown is one toggle.** `docs/CORE.md` has
@@ -751,8 +770,16 @@ carries a fixed domain, so the scale is the path's own and the panel does not of
 A fifth is drawn and is not offered as a rule: what the rule passed over, which is nothing along
 a corridor and the size of the declined arm at every fork.
 
+**A caret says where the reader is pointing, and a draw can be taken there.** Pointing at a
+segment puts it before that segment, and what it offers is a `generate` at that node — which is
+the first act the page can make that produces a fork, the tokens either merging onto what
+already follows or parting from it. The scroll gesture is unchanged and stays bound to the end
+of what is being read.
+
 What does not exist is everything past that: no band and no rankings, no `realise` reachable
-from the page, no depth limit and so no view that presets one. **The gesture that sets a segment aside is a modifier-click and is the weakest
+from the page, no depth limit and so no view that presets one. **Writing at the caret is not
+offered either**, though `create` takes a position and the composer takes a node: it would
+replace the column with a box, and a request should appear where its result will. **The gesture that sets a segment aside is a modifier-click and is the weakest
 part of this**, chosen because a plain click is already spoken for above and not because it is
 right. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
