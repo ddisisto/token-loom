@@ -353,6 +353,34 @@ def overlays(
 # ---- 2. a ranking --------------------------------------------------------------------
 
 
+def under(
+    conn: sqlite3.Connection, node: int, hidden: bool = False
+) -> dict[int, dict[str, int]]:
+    """What the tree below each child of a node holds, by measure.
+
+    `beneath` is the downward family read along a path; this is the same family read across
+    the alternatives at one position. They are one quantity on two axes, which is what
+    `docs/SURFACE.md` means by an overlay and a ranking being the same thing transposed: a
+    band draws a measure down the page and this draws it across the rows, and a reader
+    comparing the two is comparing a subtree against its siblings rather than against its
+    ancestors.
+
+    Only the children, because that is what a ranking's rows realise -- a row carries the
+    node that took it and that node hangs directly here. The descent that answers them is
+    the one below the node, which is bounded by exactly the subtree the rows partition.
+
+    `hidden` follows the page's toggle and not the rule's liveness, for the reason
+    `beneath` does: an arm the reader set aside weighs nothing while it is hidden and its
+    own size while it is shown, and that disagreement is what shows a reader what they
+    pruned.
+    """
+    tree = Subtree(conn, node, hidden)
+    return {
+        kid.id: {name: read(tree, kid.id) for name, read in DOWNWARD.items()}
+        for kid in tree.below(node)
+    }
+
+
 def ranking(conn: sqlite3.Connection, node: int) -> list[R.RankedEdge]:
     """Every ranked edge at a node, in the order the surface shows them.
 

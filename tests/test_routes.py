@@ -271,6 +271,48 @@ def test_a_ranking_says_which_rows_have_been_realised(client):
     assert body["sources"][str(rows[102]["source"])] == str(MODEL)
 
 
+def test_a_ranking_carries_what_was_grown_from_each_row_only_when_asked(client):
+    """The second axis of a list of rows: the order is the model's and this is the reader's.
+
+    An absent key is *nobody asked*, which a client has to tell apart from a row that was
+    never realised -- both draw at the floor of the axis and only one of them is somewhere a
+    reader could have gone and did not.
+    """
+    plain = {row["token"]: row for row in client.get("/ranking/2").json()["rows"]}
+    assert all("under" not in row for row in plain.values())
+
+    body = client.get("/ranking/2", params={"beneath": "1"}).json()
+    assert body["beneath"] is True and body["measures"] == ["forks", "height", "run", "size"]
+    rows = {row["token"]: row for row in body["rows"]}
+    # Node 3 was realised and node 4 hangs under it, so the arm the path took holds two.
+    assert rows[102]["under"] == {"height": 2, "size": 2, "forks": 0, "run": 2}
+    # Nothing realised this one, so there is no node to measure rather than an empty one.
+    assert rows[103]["child"] is None and rows[103]["under"] is None
+
+
+def test_what_a_row_weighs_is_what_the_toggle_admits(client):
+    """The disagreement `beneath` has along a path, across the rows at one position: an arm
+    the reader set aside weighs nothing while it is hidden and its own size while it is
+    shown.
+
+    Node 3 realised row 102 and node 4 hangs under it. Setting node 3 aside leaves the row
+    realised -- the record still names the node it made -- and empties what the row weighs,
+    which is the one case a client cannot read off `child`.
+    """
+    assert client.post("/delete", json={"node": 3}).status_code == 201
+
+    def rows(**over):
+        body = client.get("/ranking/2", params={"beneath": "1", **over}).json()
+        return {row["token"]: row for row in body["rows"]}
+
+    hidden, shown = rows(), rows(hidden="1")
+    assert hidden[102]["child"] == 3 and hidden[102]["under"] is None
+    assert shown[102]["under"] == {"height": 2, "size": 2, "forks": 0, "run": 2}
+    # A row nothing ever realised weighs nothing under either, which is what makes the two
+    # cases worth telling apart: only one of them is somewhere the reader has already been.
+    assert shown[103]["child"] is None and shown[103]["under"] is None
+
+
 def test_a_node_with_no_ranking_is_not_the_same_as_no_node(client):
     assert client.get("/ranking/4").json()["rows"] == []
     assert client.get("/ranking/9999").status_code == 404

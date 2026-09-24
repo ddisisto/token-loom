@@ -291,6 +291,29 @@ would sit rows side by side that were never alternatives to each other.
 **Each row shows its logprob.** How — a number, a bar, a ramp, a share of the recorded mass — is
 in What is not decided here.
 
+**A list of rows has two axes, and the order is only one of them.** The order is the model's
+opinion of the position and so is whatever draws each row's logprob; what neither says is what
+the reader made of any of it. That is the downward family read across the siblings at one
+position instead of down a path — an overlay and a ranking transposed, which is the same
+identity Overlays states from the other side — and it is drawn as how much room the token takes.
+So the two axes of a row are the two families of measure, and neither needed a name it did not
+already have. A row's rank is fixed the moment it is recorded and its weight moves with every
+act, so the two disagreeing is the whole of what there is to see: **where the heaviest row is
+not the top one is where the reader steered.** Over the 53 forks of `data/continuations` that is
+17 of them, which `docs/SPINE.md` records along with what it does and does not settle.
+
+**Which downward measure weighs the rows follows the overlay, and rests on size.** They are one
+quantity, so a reader comparing along the path and across it should be reading the same thing —
+and where the panel has no answer, because nothing is chosen or because what is chosen looks up,
+the rows still have the axis. A measure read against its parent is not one of these: across
+siblings its argmax is *take the smallest arm*, which is the same reason it generates no rule.
+
+**A row weighs nothing for two reasons and they are not one.** Nothing realised it, so there is
+no node to measure; or what realised it is set aside and the toggle is hiding it. Both sit at the
+floor of the axis and only one of them is somewhere the reader has already been, so the row says
+which. It is the disagreement the downward family already has with the continuation rule, read
+across a position rather than along a path.
+
 **The rows hold less than the whole distribution.** They sum to less than one because the rest of
 the vocabulary was never recorded, not because anything was truncated, so *where the recorded mass
 runs out* is a quantity the surface can draw, labelled as being over the recorded mass. It belongs
@@ -858,6 +881,17 @@ the path took is where the reader already is, one realised elsewhere is a select
 way back to an arm a draw parted from, and one nothing took is the only one that writes. A row
 shows its probability against a bar scaled to the top row of its source, which is one answer to
 *how* and not the settled one.
+
+**The rows carry the other axis too, and it is the downward family transposed.** How much room
+a token takes is what has been grown from it, over the heaviest row of its source, by whichever
+downward measure the panel is on and resting on size. Two channels and not one, because the
+reading is usually the log of a count and a log over a log is narrow: an arm three times another
+draws two pixels above it on size alone. It is the same descent the path read asks for, anchored
+at the node the rows belong to and so bounded by the subtree they partition, and it costs 3–5 ms
+at an ordinary position and 20 at the root of a fourteen-thousand-node tree. The reading is the
+whole trade and the panel already owns it: log keeps a small explored arm legible beside a large
+one, linear states the ratio honestly and puts the small one on the floor beside the arms nobody
+ever took.
 
 What does not exist is everything past that: no band, no `realise` reachable from the page, no
 depth limit and so no view that presets one. **Writing at the caret is not

@@ -273,12 +273,24 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             })
 
     def ranking(request: Request) -> JSONResponse:
+        """`beneath` adds what the tree below each realised row holds, which is the second
+        axis a list of rows has: the order is a model's opinion and this is what the reader
+        grew from each of them. It is the same flag `/path` carries and the same descent,
+        anchored here at the node the rows belong to -- so it is bounded by the subtree the
+        rows partition. It takes `hidden` with it for the reason that read does.
+        """
         node = request.path_params["node"]
+        hidden = _flag(request, "hidden")
+        below = _flag(request, "beneath")
         with reading(writer) as conn:
             R.get_node(conn, node)  # a node that is not there is not an empty ranking
+            grown = S.under(conn, node, hidden) if below else None
             return JSONResponse({
                 "node": node,
-                "rows": [wire.ranked(row) for row in S.ranking(conn, node)],
+                "hidden": hidden,
+                "beneath": below,
+                "measures": sorted(S.DOWNWARD),
+                "rows": [wire.ranked(row, grown) for row in S.ranking(conn, node)],
                 "sources": wire.source_names(conn),
             })
 

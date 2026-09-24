@@ -272,13 +272,29 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
 .rows .bar { position: absolute; left: 0; top: 1px; bottom: 1px; z-index: -1;
              width: calc(var(--p) * 100%); border-radius: 3px;
              background: color-mix(in srgb, var(--accent) 16%, transparent); }
-.rows .spell { flex: 1; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+/* How much room the token takes is the second axis: the order of the rows is the model's
+   opinion of the position and this is what the reader grew from each of them, which is the
+   downward family read across the siblings rather than down the page.
+
+   Two channels and not one, because the reading is usually the log of a count and a log
+   divided by a log is a narrow number -- an arm three times another's size lands two pixels
+   above it. Size and weight move together over the same value, so what one channel
+   compresses the other still carries. Only the spelling takes them: the probability keeps
+   its own size so the right edge stays a column to read down, and the bar keeps its own
+   height because it draws the other axis. */
+.rows .spell { flex: 1; white-space: pre; overflow: hidden; text-overflow: ellipsis;
+               font-size: calc(12px + var(--w, 0) * 9px); line-height: 1.35;
+               font-weight: calc(400 + var(--w, 0) * 300); }
 .rows .spell.raw { color: var(--accent); }
 .rows .p { color: var(--faint); font-size: 11px; }
 
+/* Weight is the other axis now, so what the path took is marked by its colour and by the
+   place it holds in the list, and not by being the heavy one. */
 .rows li.took { color: var(--ink); }
-.rows li.took .spell { font-weight: 600; }
 .rows li.unrealised .spell { font-style: italic; }
+/* Nothing was grown from it, whether because nothing took it or because what did is hidden.
+   The floor of the size axis is the same place for both and the title is where they part. */
+.rows li.bare .spell { color: var(--faint); }
 /* A node exists for it, off the path -- so it is somewhere to go and not something to make. */
 .rows li.elsewhere::after { content: "\2197"; color: var(--accent); font-size: 11px; }
 

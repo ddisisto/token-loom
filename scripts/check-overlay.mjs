@@ -342,6 +342,33 @@ says("  and says so differently where the two are one measure", words(note),
      "chose the path as well as drawing it");
 tap("path", "height");
 
+// ---- and the rows are weighed by one too ----------------------------------------------------
+
+/* A ranking has two axes and one of them is this family, read across the siblings at a
+ * position rather than down a path. So the measure the rows are sized by comes from here, and
+ * the resting answer has to be a real one: a list that drew nothing until a measure was
+ * chosen would have half of what it is for behind a switch nobody touched.
+ */
+tap("measure", "none");
+is("with nothing chosen the rows are still weighed, and by how much is there",
+   O.weighed().key, "size");
+tap("measure", "flag");
+is("  and a measure that looks up weighs no siblings, so it is that one again",
+   O.weighed().key, "size");
+tap("measure", "forks");
+is("a downward measure is what the rows take", O.weighed().key, "forks");
+is("  in the reading the panel is in", O.weighed().unit, "ln nodes");
+tap("reading", "nodes");
+is("  and it moves with it", O.weighed().unit, "nodes");
+near("  reading the value the panel would read", O.weighed().of({ forks: 7 }), 7);
+tap("reading", "ln nodes");
+
+/* Its argmax over siblings is *take the smallest arm*, which is the reason it generates no
+ * rule -- and sizing rows by it would draw the least-grown of them as the heaviest. */
+tap("measure", "passed");
+is("a measure read against its parent would invert the axis, so the rows do not take it",
+   O.weighed().key, "size");
+
 tap("measure", "none");
 is("putting it away leaves the column bare again",
    [O.asked(), head.textContent, words(note)], [false, "overlay", ""]);

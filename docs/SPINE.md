@@ -160,6 +160,17 @@ censor by being hot; it censors where the record was sized for a colder one. Tha
 `record_rows` a choice about how much of a hot path stays readable rather than only a cost, and
 it is the one parameter whose right value cannot be known before the draw it is recording.
 
+**A steered tree disagrees with its own top rows at a third of its forks.** Over the 53 forks
+of `data/continuations`, the most-grown arm is the model's top-ranked token at 36 of them and
+is not at 17 — at ranks 1 through 16, and at six of the seventeen the top row holds nothing at
+all. So the aggregate is not a restatement of the ranking, and the channel that draws it has
+something to show. **It does not settle whether a well-sampled tree is its own reference arm**,
+because this tree was steered rather than sampled: it carries authored roots, `create` acts,
+deletions and deliberate forks, and every one of those puts weight somewhere the sampler would
+not have. What the number measures is where the reader departed from the model, which is the
+other thing the same quantity reads — and the measurement that separates them is still the one
+below, how realisation falls with rank.
+
 **The frontier outruns any reader almost immediately.** One 150-token path contributes 14 candidate
 edges above probability 0.40, 25 above 0.30, and 118 above 0.10 — and each path those open
 contributes as many again. Readability is the binding constraint, not inference cost.

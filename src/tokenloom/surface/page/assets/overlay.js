@@ -234,6 +234,33 @@ export const wants = () => {
   return { overlays: m?.looks === "up", beneath: m?.looks === "down" };
 };
 
+/** Which downward measure a list of rows weighs itself by, and how to read it.
+ *
+ *  A ranking already draws one family: its order is the model's opinion of the position, and
+ *  the bar behind each row is a draw's flag for taking it, which is the same quantity this
+ *  file draws along a path. What it has no channel for is the other family -- what the reader
+ *  grew from each of those rows -- and that is a fact of a different kind about the same
+ *  siblings. So the two axes of a row are the two families, and neither needs a name it did
+ *  not already have.
+ *
+ *  It follows the panel where the panel has an answer, so the column and the rows say the
+ *  same thing and a reader can compare along the path and across it in one reading. Where it
+ *  has none -- nothing chosen, or a measure that looks up -- the rows still have the axis and
+ *  the resting answer is size, which is the one that means *how much is here*.
+ *
+ *  A measure read against its parent is not one of these. Across siblings its argmax is *take
+ *  the smallest arm*, so weighing rows by it would draw the least-grown of them as the
+ *  heaviest -- the same reason it generates no rule.
+ */
+export function weighed() {
+  const m = pick();
+  const use = m && m.looks === "down" && m.from === undefined
+    ? m
+    : MEASURES.find(x => x.key === "size");
+  const r = use.reads[reading];
+  return { key: use.key, what: use.what, unit: r.unit, dp: r.dp, of: r.of };
+}
+
 // ---- the measure, at one position -------------------------------------------------------
 
 /* A position with no value is not a position with a low one, and the ways to arrive there are

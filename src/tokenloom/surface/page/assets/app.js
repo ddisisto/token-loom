@@ -18,7 +18,7 @@
 import * as cursor from "./cursor.js";
 import { draw, panel } from "./draw.js";
 import {
-  panel as overlayPanel, read as overlays, rule as taken, wants,
+  panel as overlayPanel, read as overlays, rule as taken, wants, weighed,
 } from "./overlay.js";
 import * as ranking from "./ranking.js";
 
@@ -233,12 +233,20 @@ async function opened(node, anchor) {
   if (!ranking.asked() || node === null || anchor === null) return shut();
   let payload = ranking.recall(node);
   if (payload === undefined) {
-    payload = await ask(`/ranking/${node}`);
+    // What lies below each row is always asked for, because it is one of the list's two axes
+    // and not a way of looking at it. The descent it costs is the one below this node, which
+    // is bounded by the subtree the rows partition -- unlike the path's, which is anchored
+    // at a root. It takes the toggle with it, so what is cached is cached per toggle: an act
+    // drops the lot and so does flipping it, both through `refresh`.
+    payload = await ask(`/ranking/${node}?beneath=1&hidden=${showHidden ? 1 : 0}`);
     ranking.remember(node, payload);
   }
   if (showing !== node) return;  // the pointer moved on while this was in the air
   const after = drawn.flatMap(cell => cell.nodes).find(mark => mark.parent === node);
-  const box = ranking.list(payload, after ? after.id : null, took);
+  // The measure is read at the moment of drawing rather than being sent with the read: the
+  // response carries every downward measure, so changing which one the rows are sized by
+  // costs a redraw and never a request.
+  const box = ranking.list(payload, after ? after.id : null, took, weighed());
   // Placed against the column rather than the window, so it scrolls with the text it is
   // about and nothing here listens for a scroll.
   const seat = $("column").getBoundingClientRect();

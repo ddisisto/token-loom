@@ -114,10 +114,19 @@ def segment[T](cell: S.Segment[T], project: Callable[[T], Any]) -> dict[str, Any
     }
 
 
-def ranked(row: R.RankedEdge) -> dict[str, Any]:
+def ranked(
+    row: R.RankedEdge, under: dict[int, dict[str, int]] | None = None
+) -> dict[str, Any]:
     """One row of a ranking. `child` is the node that realised it, and its absence is what
-    makes the row branchable."""
-    return {
+    makes the row branchable.
+
+    `under` is what the tree below that child holds, by measure, and crosses the same way
+    `path_node`'s does -- present only when the read was asked for it, so an absent key is
+    *nobody asked*. Null is *no measures here*, and the row already says which of the two
+    reasons it is: a row nothing realised has no node to measure, while a row whose node the
+    descent did not reach has one the toggle is hiding.
+    """
+    out = {
         "source": row.edge.source,
         "rank": row.edge.rank,
         "token": row.edge.token_id,
@@ -125,6 +134,9 @@ def ranked(row: R.RankedEdge) -> dict[str, Any]:
         **spelled(row.spelling),
         "child": row.child.id if row.child is not None else None,
     }
+    if under is not None:
+        out["under"] = under.get(row.child.id) if row.child is not None else None
+    return out
 
 
 def branch(line: S.Branch) -> dict[str, Any]:
