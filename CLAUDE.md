@@ -188,6 +188,26 @@ about so that reading it first is where you already are.
 - **`uv run pytest` needs no server.** The live tests skip without one; `-m live` runs only
   those, and they are the ones that can tell you the docs have gone stale.
 
+## The page is ES modules with no build step, and node is what checks them
+
+`src/tokenloom/surface/page/` is served as it is written — no bundler, no transpile, and nothing
+to run before a reload. The server sends it `no-store`, because a browser holding one module of
+it while the others are new fails silently rather than loudly.
+
+**What the page decides past the wire gets a driver under `scripts/`, run by
+`tests/test_page_assets.py`.** Everything else in the suite reaches the surface through its reads
+and its routes, which stop at the wire; the rest is arithmetic nothing disagrees with — a scale
+read from the wrong end, a caret one node late, a row marked as the wrong kind. Each driver is
+plain node against `scripts/stub-dom.mjs` and says its checks in the language the code under it
+is written in. `test_every_driver_under_scripts_is_run` fails on a driver that was added and not
+hooked up, which is the half that can be enforced; writing one for a new module is the half that
+cannot.
+
+**Geometry belongs to the page and the arithmetic over it does not.** Where a caret may sit, what
+a row weighs, where a scale puts a value — these take the measurements as arguments and are
+checked without a browser. A module that reaches for `getBoundingClientRect` has put something
+untestable where something testable was.
+
 ## Writing code and tests
 
 - **Fix root causes.** A workaround that leaves the original fault in place is not a fix.

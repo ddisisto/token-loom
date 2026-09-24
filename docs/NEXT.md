@@ -32,7 +32,94 @@ for and what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**1. Length and temperature, out of the panel and always on the page.** They are the two an
+operator moves per draw, because they are the two that change what *kind* of act it is —
+sampling the model, or running the greedy path out where that is cheap to read. Everything else
+in the panel is set once a session. The cut is along what each thing governs: **what is drawn**
+is `length` and `temperature`, **what is kept** is `record_rows` and `record_mass`, then the
+chain and the backend. Only the first pair leaves.
+
+**It is first because it is the one the operator asked for, and because it is cheaper before the
+next.** Nothing reads a `generate`'s `params` back out of the record yet, and both this and the
+item below need that read — this from the act, that from the node.
+
+**`docs/INTERFERENCE.md` already argues the shape.** Greedy is the zero of a dial there and not a
+rule, and the panel makes it a slider value indistinguishable in kind from 0.35. A control whose
+end *is* greedy — a place to slam into rather than a number to find — is that claim built rather
+than described.
+
+**Two axes and not one pad.** Both carry a load-bearing value at an end: temperature zero is
+deterministic and merges, which is a different thing from 0.05 rather than a bit less of it, and
+a length-1 `generate` is how *Rankings* says a ranking is deepened. A pad reaches corners and
+fumbles edges. It also shows a position where what is needed is a number: the gesture that draws
+is a scroll, so there is no submit to disable and no moment to object in, and what a draw will
+cost has to be legible before it is spent. The two modes named above are attractors and not a
+plane to roam, which is what a pad would be for. If the strip reads as two controls rather than
+one, the pad is what to try next.
+
+**It belongs in the footer.** What makes these inaccessible now is not the panel but the nav: the
+panel sits inside it, the fold takes them together, and the fold is what the overflow below
+forces. The footer is already always there — *what this is* on the left, *what a draw will be* on
+the right.
+
+**`record_rows` goes with them as a readout and not as a dial.** `docs/SPINE.md` measured the
+coupling: 62 censored positions in one tree, every one from a 90-token draw at temperature 1.4
+recorded to ten rows, against none from sixteen earlier acts at the same heat recorded to twenty.
+Making temperature the easiest thing on the page to move while the row count stays behind a fold
+is how a reader shreds their own record without being told. What it is not yet is a threshold:
+one data point is not a rule, so the surface shows the pair rather than inventing a line between
+them.
+
+**`length` starts at 8 and steps by 8, which forbids the length-1 draw the design names.** It
+also spends fifty positions on a linear range whose useful values cluster low — one to deepen a
+ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
+out. The axis wants a floor of 1 and a spacing that is not linear.
+
+**Past settings accumulate, and they are read rather than remembered.** Every `generate` records
+its `params`, so what has been used is derivable from the tree and is not a second thing the page
+holds. That makes the list per-tree, proof against a reload, and inclusive of draws made from the
+command line. It also makes the recency free: using a setting writes the act that puts it at the
+head, and forgetting one is only how far back the read goes, so there is no bookkeeping to get
+wrong.
+
+**Collapsing runs only where they are adjacent is what makes it more than a shortcut bar.** A set
+of recents says what has been used; a run-length encoding of the acts says what was *done* —
+greedy twelve times, then 1.1 three times, then greedy again — which is the alternation
+`docs/INTERFERENCE.md`'s loop consists of. The count is free once the runs are collapsed, so the
+strip is a thin record of method and not only a way back to a setting.
+
+Four things it has to settle. **A chip applies and does not draw**, because a one-click
+`generate` makes *no submit and no moment to object* worse rather than better. **Only acts that
+produced nodes count**, since a refusal records its params too and re-applying a rejected pair is
+not a shortcut. **Identity is the whole `params` blob**, which is what makes adjacency mean
+anything, and whether incidental nudges fragment the list is a question for use. **A chip can
+carry what the readout cannot show** — a chain sampler switched on is invisible in
+`80 tok · 1.10° · 10 rows` — so it is marked, and the blob is in its title.
+
+**Seeds are a different kind of thing from recents and should look like one.** A seed is not in
+the record and cannot be derived; it is a constant the page offers. A recent is what the tree
+remembers. Pinning the first and letting the second flow past keeps the page from writing
+anything to fake a history it does not have.
+
+**2. A way back to where an act began, so one draw can be taken again.** A reader who wants a
+different continuation at a position should not have to find that position again: what they want
+is the boundary of the act they just read, to draw from it under different settings, at a higher
+sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
+page cannot run it yet — the caret follows the tip of what lands, so taking one draw again means
+scrolling back and pointing, which is a search where it should be a gesture.
+
+**The record already answers it and nothing reads it back.** An act's range is `origin` exclusive
+to `tip` inclusive, so the boundary above any node is derivable — the same read *What a node was
+drawn at* wants under Loose ends, and the other half of the one the strip above needs. The same
+reason it is not free, either: acts overlap, so a node reached twice has two answers. Here the
+reduction has a reading of its own, since what a reader means by *this draw* is the one they just
+watched land.
+
+What it does not need is a decision about the tree. Arms accumulate at the position and are
+consolidated, pruned or divided out later — the five acts already do all three, and nothing about
+drawing repeatedly at one node asks the format for anything it does not have.
+
+**3. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
@@ -51,24 +138,7 @@ together and two of the three exist. Branching waits on what it counts and vocab
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
 
-**2. A way back to where an act began, so one draw can be taken again.** A reader who wants a
-different continuation at a position should not have to find that position again: what they want
-is the boundary of the act they just read, to draw from it under different settings, at a higher
-sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
-page cannot run it yet — the caret follows the tip of what lands, so taking one draw again means
-scrolling back and pointing, which is a search where it should be a gesture.
-
-**The record already answers it and nothing reads it back.** An act's range is `origin` exclusive
-to `tip` inclusive, so the boundary above any node is derivable — the same read *What a node was
-drawn at* wants under Loose ends, and the same reason it is not free: acts overlap, so a node
-reached twice has two answers. Here the reduction has a reading of its own, since what a reader
-means by *this draw* is the one they just watched land.
-
-What it does not need is a decision about the tree. Arms accumulate at the position and are
-consolidated, pruned or divided out later — the five acts already do all three, and nothing about
-drawing repeatedly at one node asks the format for anything it does not have.
-
-**3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
+**4. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
 What has changed is that its need is the least established of these: a ranking on demand already
 answers *what else was here* at a position, and whether a reader also wants every continuation

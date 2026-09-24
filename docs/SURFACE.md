@@ -198,11 +198,12 @@ one.** Clear and not merely whole: a caret hard against a border is one the read
 for, and the line it marks is worth a line or so of context either side — so the band is a line
 and a half in from each edge, reckoned in lines so that it holds whatever the column is set in.
 The foot of the page is not a problem for it, the column's own bottom space being deeper than the
-band. The rest is two reasons that are one reason. The caret is the frontier of what has been read, so the edge it belongs
-against is the one the reader has read down to — which at the foot of the page is the end of the
-path, which is what the gesture there has always meant. The nearest seat would be the *first* in
-the window on the way down: it would draw thousands of tokens above the foot of a page the reader
-scrolled to the foot of, and it would subdue every line they were looking at.
+band. The rest is two reasons that are one reason. The caret is the frontier of what has been
+read, so the edge it belongs against is the one the reader has read down to — which at the foot of
+the page is the end of the path, which is what the gesture there has always meant. The nearest
+seat would be the *first* in the window on the way down: it would draw thousands of tokens above
+the foot of a page the reader scrolled to the foot of, and it would subdue every line they were
+looking at.
 
 **An act at a position may arm it, and then reading on is what asks.** The ordinary gesture is
 the end of the page, and what makes that deliberate is that the reader had to arrive there. A
@@ -931,9 +932,10 @@ downward move fires it, and anything that moves what a draw would land on clears
 
 **A caret the reader placed follows the window, to the last segment it shows clear of its
 edges** — a line and a half in, so there is context around it rather than a mark on the border.
-One at rest does not follow, and neither does an armed one. So a reader who pointed at something and then scrolled
-to the foot of the page draws at the foot and not where they were pointing, which is what that
-gesture meant before there was a caret to disagree with it.
+One at rest does not follow, and neither does an armed one. So a reader who
+pointed at something and then scrolled to the foot of the page draws at the foot and not where
+they were pointing, which is what that gesture meant before there was a caret to disagree with
+it.
 
 **The page is served `no-store`.** Its files are the surface's own source and they change while
 it is being written, so a browser holding one holds a version nobody is looking at — and the
@@ -961,10 +963,10 @@ one, linear states the ratio honestly and puts the small one on the floor beside
 ever took.
 
 What does not exist is everything past that: no band, no depth limit and so no view that presets
-one, and no way back to the boundary of an act to take one draw again. **Writing at the caret is not
-offered either**, though `create` takes a position and the composer takes a node: it would
-replace the column with a box, and a request should appear where its result will. **The gesture that sets a segment aside is a modifier-click and is the weakest
-part of this**, chosen because a plain click is already spoken for above and not because it is
-right. What else exists is the core,
+one, and no way back to the boundary of an act to take one draw again. **Writing at the caret is
+not offered either**, though `create` takes a position and the composer takes a node: it would
+replace the column with a box, and a request should appear where its result will. **The gesture
+that sets a segment aside is a modifier-click and is the weakest part of this**, chosen because a
+plain click is already spoken for above and not because it is right. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
 a tree and cannot write — which is what demonstrated the band.
