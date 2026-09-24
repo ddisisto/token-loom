@@ -123,6 +123,19 @@ Not in the ordering; each stands on its own.
   a rewrite — but only one has been tried, against one palette, in two themes. What would settle
   which are worth keeping is reading the same path under several, since a scale is judged by what
   it lets a reader see and not by anything the code can check.
+- **A 500 the adapter blames on the predicate, at a position the predicate was right about.**
+  A `generate` of 256 tokens at temperature 2.0 or 1.65 against `data/logozoa` fails repeatedly
+  with `the server refused a path 'will_evaluate' accepted`, and the same position at
+  temperature 0 succeeds. The predicate cannot be what moved, since the path it was asked about
+  is the same one at both settings, so the prompt is not what the server is objecting to.
+  `src/tokenloom/adapters/llamacpp/README.md` records that error for a prompt ending inside a
+  character, which is where it was first met — but **the message says the model produced the
+  output**, and a hot draw is exactly what ends a completion on an under-filled multi-byte
+  sequence. That is a hypothesis and not a finding. What would settle it is one request at a
+  position known to decode, at a length and temperature that reproduce it, read against whether
+  the server's own response is what it could not format. If it holds, the adapter is accusing
+  the wrong half: the case is a generation that failed and should be recorded as one, the
+  predicate is not wrong, and the assertion says it is.
 - **Whether the command line should keep verifying on every write.** Each invocation is its own
   writer, so each pays a whole-tree read — 330 ms at 20k nodes. The server pays it once for the
   life of the process, which is what a long-running session buys. Nothing forces the question
