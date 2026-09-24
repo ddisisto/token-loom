@@ -417,6 +417,35 @@ measure rather than as a ramp. **A depth limit is what makes the others local**:
 what lies below rises where the tree widens ahead and falls in a corridor, which is the quantity
 the wash was wanted for in the first place.
 
+**What the rule passed over is the transition drawn on its own, and it is the downward analogue
+of a flag.** Its value at a position is the total size of the arms the rule did not take there —
+none in a corridor, and the whole of a declined subtree at a fork. The parallel is exact: a flag
+prices the draw against what the model offered and this prices the rule against what the tree
+offered, and both are placed on the node the choice selected, because a node stands among its
+parent's alternatives the same way it stands in its parent's ranking. Read in log it is nothing
+where there was no choice, so it draws across a corridor exactly as much as a flag draws at a
+token that took the top row.
+
+**An overlay should not spend the column on what the page says already.** How far along a path a
+reader is, and how much is still below them, is told by the text around them, by the length of
+the page and by the scrollbar — so a wash that restates it has spent the column's one channel and
+added nothing. That is why the transitions carry the signal where the levels do not, and it is a
+constraint on every measure here rather than on these.
+
+**Its support is the fork mark, and what it adds is what the mark could not carry.** A drop is
+non-zero exactly where a node's parent parts, which the path read already reports, so this puts a
+size on a mark the column could make without it. What it is not is *how many* ways the tree parts
+there, which is the branching measure and still open.
+
+**It is also where the toggle's disagreement becomes a quantity.** What the rule passed over
+counts only what the liveness the measure follows admits, so an arm the reader set aside is worth
+nothing with hidden off and its own size with hidden on. The difference between the two readings
+at one position is what the reader pruned there, and how much of the tree it was.
+
+**And it is a measure that is not a rule**, which is the half of *neither family contains the
+other* that had no instance. It is not a scalar of the subtree below a node at all but of that
+subtree against its parent's, and its argmax over siblings would be *take the smallest arm*.
+
 **A downward measure reads the shape of what is below, or its substance.** Height, size, branching
 and the run to the next fork are properties of the tree alone: relabel every token and they do not
 move. What vocabulary lies below does move, and it is the only kind that can mark a repetition
@@ -719,6 +748,8 @@ from one descent the path read carries when it is asked for. Each is offered twi
 measure to draw and as the rule to continue by — because they are one scalar read two ways, and
 the two are set separately, so a path laid out by one can be read under another. None of them
 carries a fixed domain, so the scale is the path's own and the panel does not offer to fix it.
+A fifth is drawn and is not offered as a rule: what the rule passed over, which is nothing along
+a corridor and the size of the declined arm at every fork.
 
 What does not exist is everything past that: no band and no rankings, no `realise` reachable
 from the page, no depth limit and so no view that presets one. **The gesture that sets a segment aside is a modifier-click and is the weakest

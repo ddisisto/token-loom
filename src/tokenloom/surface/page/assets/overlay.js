@@ -25,9 +25,11 @@
  *
  * The first two are the divisions `docs/SURFACE.md` states, and they cross: the gap is
  * draw-independent and robust, the flag is draw-relative and robust. The third cuts deeper
- * than either, and something follows from it that has nothing to do with drawing -- a measure
- * that looks down is a continuation rule, being the same scalar read as an argmax over
- * siblings. So the panel's path chips are this list read that way rather than a second list.
+ * than either, and something follows from it that has nothing to do with drawing -- a scalar of
+ * the subtree below a node is a continuation rule, being the same quantity read as an argmax
+ * over siblings. So the panel's path chips are the measures that are one, read that way, rather
+ * than a second list. Not every down measure is: one that reads the subtree against its
+ * parent's is a measure and no rule, and it declares that by carrying no rule to be.
  */
 
 /** Every measure the page can draw, in the order it offers them.
@@ -53,6 +55,32 @@ const counted = key => ({
   log: { unit: "ln nodes", dp: 2, domain: null, of: u => Math.log1p(u[key]) },
   linear: { unit: "nodes", dp: 0, domain: null, of: u => u[key] },
 });
+
+/** The same two readings, of what the rule passed over: the arms at a node's parent it did
+ *  not take, which is the parent's subtree less this one and less the parent itself.
+ *
+ *  None in a corridor, since there was nothing to pass over, and the whole of a declined
+ *  subtree at a fork. The log reading of none is none, so a corridor draws nothing at all --
+ *  the same place a flag sits where the draw took the top row. Over the 266-node path of
+ *  `data/continuations` fourteen positions carry one, which is every fork on that path and
+ *  nothing else, the largest of them 899 nodes.
+ *
+ *  It is where the toggle's disagreement becomes a number. What was passed over counts only
+ *  what the liveness the measure follows admits, so an arm the reader set aside is worth
+ *  nothing with hidden off and its own size with hidden on: over one path of `data/hidden`,
+ *  one position carries a drop of 6 with what is set aside hidden, and eight carry one with
+ *  it shown, the largest 112.
+ */
+const forgone = {
+  log: {
+    unit: "ln nodes", dp: 2, domain: null,
+    of: (u, before) => Math.log1p(before.size - u.size - 1),
+  },
+  linear: {
+    unit: "nodes", dp: 0, domain: null,
+    of: (u, before) => before.size - u.size - 1,
+  },
+};
 
 const MEASURES = [
   {
@@ -158,6 +186,26 @@ const MEASURES = [
     missing: () => "the descent did not reach this node",
     reads: counted("run"),
   },
+  /* What the rule passed over, which is the downward measure the others are a gradient
+   * instead of. The parallel with the flag is exact and is the reason it is placed where it
+   * is: a flag prices the draw against what the model offered and this prices the rule
+   * against what the tree offered, both on the node the choice selected, because a node
+   * stands among its parent's alternatives either way.
+   *
+   * `from` is what it reads against, and it is the only measure here that reads anything but
+   * the node it belongs to. It carries no `rule`, being the half of *neither family contains
+   * the other* the code had no instance of: it is not a scalar of the subtree below a node at
+   * all but of that subtree against its parent's, and its argmax over siblings would be *take
+   * the smallest arm*.
+   */
+  {
+    key: "passed",
+    looks: "down",
+    from: "parent",
+    what: "how much of the tree the rule passed over to arrive here",
+    missing: () => "the descent did not reach this node",
+    reads: forgone,
+  },
 ];
 
 /** What is chosen. Nothing, until a reader asks: the column that opens draws no overlay, and
@@ -196,14 +244,28 @@ export const wants = () => {
  * recorded is *censored* rather than missing: the rows that were written bound it, so it
  * carries a value from one side and says so.
  */
-function at(mark, m) {
+function at(mark, m, prev) {
   // A measure that looks down reads nothing a ranking holds, so none of the states below can
   // arise for one. What can is that the descent did not reach the node, which is a hole --
   // and not the same as nothing lying below it, since that is a value and it has one.
   if (m.looks === "down") {
-    if (mark.under === undefined) return { mark, state: "none" };
-    if (mark.under === null) return { mark, state: "hole" };
-    const value = m.reads[reading].of(mark.under);
+    const u = mark.under;
+    if (u === undefined) return { mark, state: "none" };
+    if (u === null) return { mark, state: "hole" };
+    let value;
+    if (m.from === "parent") {
+      // A path is a chain, so the node before is the parent -- checked rather than assumed,
+      // because differencing against the wrong node would be arithmetic over two unrelated
+      // subtrees and would look like a reading. Where there is no node before, the path
+      // begins: nothing was passed over to arrive, which is off the scale and not a hole,
+      // for the reason an authored token is.
+      if (!prev || prev.under == null || prev.id !== mark.parent) {
+        return { mark, state: "off" };
+      }
+      value = m.reads[reading].of(u, prev.under);
+    } else {
+      value = m.reads[reading].of(u);
+    }
     if (!Number.isFinite(value)) return { mark, state: "hole" };
     return { mark, state: "value", value };
   }
@@ -276,7 +338,9 @@ function tell(m, p, sources) {
         + ` · the draw fell past the ${p.among.rows} rows recorded here`;
     }
     case "off":
-      return `no draw to read: ${named(sources, p.mark.source)} put this token here`;
+      return m.looks === "down"
+        ? "nothing was passed over to arrive here: the path begins"
+        : `no draw to read: ${named(sources, p.mark.source)} put this token here`;
     case "hole":
       return `no value: ${m.missing(p.among)}`;
     case "clash":
@@ -313,7 +377,16 @@ function paint(m, row, span, sources) {
 export function read(segments, sources) {
   const m = pick();
   if (!m) return survey(null);
-  const rows = segments.map(cell => cell.nodes.map(mark => at(mark, m)));
+  // One flat walk, keeping the node before: a path is a chain, so that node is the parent,
+  // and it is what a measure read against the parent needs. Segments are a grouping of the
+  // walk and not a break in it, so it is carried across their boundaries.
+  const rows = [];
+  let prev = null;
+  for (const cell of segments) {
+    const row = [];
+    for (const mark of cell.nodes) { row.push(at(mark, m, prev)); prev = mark; }
+    rows.push(row);
+  }
 
   // A bound places on the same scale as a value and is counted apart from one, because what
   // a reader may conclude from the two is not the same.
@@ -435,10 +508,10 @@ export function panel(changed) {
   };
 
   /* Which path is read comes before what is drawn over it, and it is chosen from the same
-   * list: every downward measure is a rule, taking the child with the most of it. The two
+   * list: a scalar of what is below is a rule, taking the child with the most of it. The two
    * are set apart because reading a path one measure chose while another is drawn over it is
    * the case that pays, and that is what a preset must leave reachable. */
-  const rules = MEASURES.filter(m => m.looks === "down").map(m => ({
+  const rules = MEASURES.filter(m => m.rule).map(m => ({
     label: m.key,
     value: m.rule,
     title: `continue into the child with the most ${m.key} below it`,

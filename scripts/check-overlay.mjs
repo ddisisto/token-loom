@@ -283,6 +283,38 @@ const logly = apart(...orders).map(mark => mark.t);
 is("two readings of a count agree on order", order(flatly), order(logly));
 is("  and disagree on where the middle of the path sits", flatly[1] === logly[1], false);
 
+// ---- what the rule passed over --------------------------------------------------------------
+
+/* The downward analogue of a flag, and checked like one: what matters is not the arithmetic
+ * but that a position where the rule had no choice is the one at the foot of the scale, and
+ * that what a fork carries is the arm declined rather than the step in size -- the two differ
+ * by the parent itself, which nobody passed over.
+ */
+const chain = (...sizes) => {
+  let before = null;
+  return sizes.map(size => {
+    const one = grown({ size }, { parent: before });
+    before = one.id;
+    return one;
+  });
+};
+
+tap("measure", "passed");
+const walk = apart(...chain(100, 99, 60, 59));
+is("the first node of a path was chosen over nothing", walk[0].cls, "off");
+says("  and says so rather than reading as a hole", walk[0].title, "the path begins");
+is("a corridor is a value and it is the foot of the scale",
+   [walk[1].cls, walk[1].t], ["val", 0]);
+is("  so nothing is drawn where the rule had no choice", walk[3].t, 0);
+is("a fork is the top of it", walk[2].t, 1);
+says("  carrying the arm declined and not the step in size", walk[2].title,
+     `${Math.log1p(38).toFixed(2)} ln nodes`);
+
+tap("reading", "nodes");
+says("read as a count it is the size of what was not taken",
+     apart(...chain(100, 99, 60))[2].title, "passed · 38 nodes");
+tap("reading", "ln nodes");
+
 // ---- the rule is chosen from the same list -------------------------------------------------
 
 /* Every downward measure is a continuation rule, so the rules on offer are the measures and
@@ -292,6 +324,8 @@ is("  and disagree on where the middle of the path sits", flatly[1] === logly[1]
 is("the rules on offer are the downward measures",
    groups.get("path").map(chip => chip.textContent), ["height", "size", "forks", "run"]);
 is("  and height's rule is sent under the name that is older than it", O.rule(), "longest");
+is("  while a measure that is no rule is not among them",
+   groups.get("path").map(chip => chip.textContent).includes("passed"), false);
 
 tap("measure", "run");
 const before = moved;
