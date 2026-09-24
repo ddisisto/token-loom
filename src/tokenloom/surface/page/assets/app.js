@@ -150,17 +150,11 @@ function boundary(cell) {
 function spans(segments, marks) {
   const out = [];
   let cut = false;
-  // Everything after the caret is drawn because the rule reaches it and not because the
-  // reader accepted it -- the caret is the frontier of what they have, and what lies past it
-  // is derived and never remembered. So it is subdued, which says so without hiding it and
-  // without costing a second read to find out.
-  let past = false;
   for (const [i, cell] of segments.entries()) {
     const hidden = aside(cell);
     if (hidden && !cut) { cut = true; out.push(boundary(cell)); }
     const el = document.createElement("span");
-    el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`
-      + (past ? " past" : "");
+    el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`;
     el.textContent = cell.text;
     el.dataset.node = cell.nodes[cell.nodes.length - 1].id;
     const mark = marks?.[i];
@@ -185,14 +179,30 @@ function spans(segments, marks) {
     // in the flow moves the text around it, and text that shifts as the reader points at it
     // is friction in the one thing this page is for. A rule on an inside edge costs no
     // layout at all, which is the same reason the hover mark is one.
-    if (cell.nodes.at(-1).id === cursor.node()) {
-      el.classList.add("at");
-      if (cursor.armed()) el.classList.add("armed");
-      past = true;
-    }
     out.push(el);
   }
   return out;
+}
+
+/** Say where the caret stands, over what is already drawn.
+ *
+ *  Its own pass and not something a span is built with, because the caret moves without the
+ *  text doing: a path through any node of the path already drawn is that same path, so
+ *  putting the caret somewhere else along it is a mark to move and never a read.
+ *
+ *  Everything after it is drawn because the rule reaches it and not because the reader
+ *  accepted it -- the caret is the frontier of what they have, and what lies past it is
+ *  derived and never remembered. So it is subdued, which says so without hiding it.
+ */
+function frontier() {
+  let past = false;
+  for (const el of $("column").querySelectorAll(".flow .seg")) {
+    const here = Number(el.dataset.node) === cursor.node();
+    el.classList.toggle("past", past);
+    el.classList.toggle("at", here);
+    el.classList.toggle("armed", here && cursor.armed());
+    if (here) past = true;
+  }
 }
 
 /** Point at a segment, which moves the caret before it. It re-reads rather than redrawing
@@ -287,9 +297,7 @@ async function realise(row, payload) {
     await refresh();
     await show(act.tip, act.tip);
     cursor.arm();
-    // Placed by `show` and armed after it, so the mark the page is already drawing is the one
-    // that has to say so. One read redraws it and there is no second state to keep in step.
-    $("column").querySelector(".seg.at")?.classList.add("armed");
+    frontier();  // placed by `show` and armed after it, so the mark is remade and not patched
     say("realised \u00b7 scroll down to draw from here");
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
@@ -356,6 +364,7 @@ async function show(node, where) {
   // range from the text in front of the reader.
   flow.append(...spans(cells, overlays(cells, read.sources)));
   $("column").replaceChildren(flow);
+  frontier();
   settled();
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
@@ -556,11 +565,55 @@ async function more(where = cursor.node()) {
  *  once the caret has been armed. */
 const ready = () => cursor.armed() || atEnd();
 
-/** Moved down somewhere that counts, and stayed long enough to have meant it. */
-function asked() {
-  if (working || Date.now() < quiet) return;
+/** Put the caret back in the window, if scrolling has carried it out.
+ *
+ *  The gesture that asks for a draw is the scroll and the draw lands at the caret, so a caret
+ *  off the screen aims an act at a position nobody is looking at. Following the window is
+ *  what keeps *the draw lands where you are looking* true rather than usually true -- and it
+ *  is what makes the end of the page and the caret agree again, since a reader who pointed
+ *  somewhere and then scrolled to the foot was drawing thousands of tokens above it.
+ *
+ *  **An armed caret does not move.** It is the one the reader chose, on a row drawn in front
+ *  of them, and the next downward scroll is the draw -- so there is no reading to keep up
+ *  with, and drifting off it would both aim the act elsewhere and disarm it on the way.
+ *
+ *  It costs no read. A path through any node of the path already drawn is that same path, so
+ *  this is a mark that moves over text that does not.
+ */
+function dodge() {
+  if (working || cursor.armed() || cursor.node() === null) return;
+  const segs = $("column").querySelectorAll(".flow .seg");
+  if (segs.length !== drawn.length) return;  // the composer, or a read in flight
+  const room = window.innerHeight;
+  const to = cursor.seated(drawn, cursor.node(), i => {
+    // Whole and not merely touching: a segment clipped by an edge is one the reader is only
+    // half looking at, and the edges are where a scroll is about to take it anyway.
+    const box = segs[i].getBoundingClientRect();
+    if (box.top < 0) return -1;
+    if (box.bottom > room) return 1;
+    return 0;
+  });
+  if (to === null || to === cursor.node()) return;
+  cursor.place(to);
+  frontier();
+  settled();
+}
+
+/* One settle for both, because they are one gesture read twice and the order between them
+ * matters: the caret goes back in the window first, and what is asked for is asked at where
+ * it ended up. Two timers would race, and the losing order draws at a position that was about
+ * to move. */
+let wanted = false;
+
+function moved(counts) {
+  wanted = wanted || counts;
   clearTimeout(timer);
-  timer = setTimeout(() => { if (ready()) more(); }, SETTLE);
+  timer = setTimeout(() => {
+    const ask = wanted;
+    wanted = false;
+    dodge();
+    if (ask && !working && Date.now() >= quiet && ready()) more();
+  }, SETTLE);
 }
 
 let wasAtEnd = false;
@@ -571,19 +624,22 @@ addEventListener("scroll", () => {
   // so an arrival there is the gesture; an armed caret has no such place, so the direction is
   // all there is -- and what lands after an act can shorten the page and move the window on
   // its own, which would otherwise read as a reader asking for the next one.
-  const down = window.scrollY > wasAt;
-  if ((cursor.armed() && down) || (now && !wasAtEnd)) asked();
+  const asks = (cursor.armed() && window.scrollY > wasAt) || (now && !wasAtEnd);
   wasAtEnd = now;
   wasAt = window.scrollY;
+  // Every scroll settles, because the caret follows the window whichever way it went. Only
+  // some of them ask for anything.
+  moved(asks);
 }, { passive: true });
 
 // Already somewhere that counts, and still going down. Every way of moving the page is one
 // of these.
-addEventListener("wheel", event => { if (event.deltaY > 0 && ready()) asked(); },
-                { passive: true });
+addEventListener("wheel", event => { moved(event.deltaY > 0 && ready()); }, { passive: true });
 addEventListener("keydown", event => {
   if (event.target.closest("textarea, input")) return;
-  if (["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready()) asked();
+  if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))
+    return;
+  moved(["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready());
 });
 
 /** An act with no terminator is a generation in flight, so a reload draws it rather than

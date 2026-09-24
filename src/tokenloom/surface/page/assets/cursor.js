@@ -60,6 +60,50 @@ export function resting(cells) {
   return null;
 }
 
+/** Where the window seats the caret, given where each segment stands in it.
+ *
+ *  `place` answers -1, 0 or 1 for a segment above the window, inside it, or below it. The
+ *  geometry is the caller's, because this file has no DOM and the arithmetic is the part that
+ *  goes quietly wrong.
+ *
+ *  A caret off the screen is a caret the reader cannot see a draw land on, and the gesture
+ *  that asks for one is the scroll -- so scrolling away from it would aim an act at a
+ *  position nobody is looking at. Following the window is what makes *the draw lands where
+ *  you are looking* true rather than usually true.
+ *
+ *  **A caret already in the window does not move.** Pointing somewhere is deliberate and a
+ *  scroll is not a retraction of it, so this rescues a caret that has left rather than
+ *  dragging one that has not.
+ *
+ *  **Neither does one at rest.** A caret nobody has placed follows the end of the path and
+ *  not the window -- that is the batch discipline and not a default, and the gesture that
+ *  draws at it needs the foot of the page, where the end of the path is on the screen anyway.
+ *  So a reader who has pointed at nothing scrolls without moving anything, and the one who
+ *  has keeps a caret they can see. Resting is read from the path rather than remembered,
+ *  which is why it cannot fall out of step with where the caret actually is.
+ *
+ *  **What it lands on is the last whole segment, and not the nearest one.** Two reasons, and
+ *  they are the same reason: the caret is the frontier of what has been read, so the edge it
+ *  belongs against is the one the reader has read down to -- and at the end of the page that
+ *  edge is the end of the path, which is what the scroll gesture there has always meant. The
+ *  nearest seat would be the first in the window on the way down, which would draw thousands
+ *  of tokens above the foot of a page the reader scrolled to the foot of, and would subdue
+ *  every line they were looking at.
+ *
+ *  Null where there is nowhere: a window showing no whole segment, or showing only what is
+ *  set aside or waiting for its character. The caret then stays where it was, which is wrong
+ *  in a way the reader can see and fix, rather than moving somewhere no act can be taken.
+ */
+export function seated(cells, node, place) {
+  if (node === resting(cells)) return node;
+  const at = cells.findIndex(cell => cell.nodes.at(-1).id === node);
+  if (at >= 0 && place(at) === 0) return node;
+  for (let i = cells.length - 1; i >= 0; i -= 1) {
+    if (place(i) === 0 && cells[i].decodes && !aside(cells[i])) return cells[i].nodes.at(-1).id;
+  }
+  return null;
+}
+
 /** Where choosing a segment puts the caret: immediately before it, which is the node its
  *  first token hangs from.
  *

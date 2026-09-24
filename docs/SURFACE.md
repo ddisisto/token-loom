@@ -184,6 +184,22 @@ segment it follows, which costs no layout at all, and what it offers is the gest
 already there: the scroll, at the caret. One anchor and one gesture, rather than a control per
 position.
 
+**It follows the window once it has been placed, and not before.** The gesture that asks for a
+draw is the scroll and the draw lands at the caret, so a caret scrolled off the screen would aim
+an act at a position nobody is looking at. Three things bound that. A caret already in the window
+does not move, because pointing somewhere is deliberate and a scroll is not a retraction of it.
+A caret **at rest** does not move either: left alone it follows the end of the path, and the
+gesture that draws at it needs the foot of the page, where the end of the path is on the screen
+anyway — so a reader who has pointed at nothing scrolls without moving anything. And it costs no
+read, because the path through any node of the path already drawn is that same path.
+
+**Where it lands is the last whole segment in the window, and not the nearest one.** Two reasons
+that are one reason. The caret is the frontier of what has been read, so the edge it belongs
+against is the one the reader has read down to — which at the foot of the page is the end of the
+path, which is what the gesture there has always meant. The nearest seat would be the *first* in
+the window on the way down: it would draw thousands of tokens above the foot of a page the reader
+scrolled to the foot of, and it would subdue every line they were looking at.
+
 **An act at a position may arm it, and then reading on is what asks.** The ordinary gesture is
 the end of the page, and what makes that deliberate is that the reader had to arrive there. A
 `realise` has no such place to offer — it writes one node in the middle of something being read —
@@ -191,7 +207,10 @@ so what stands in for the arrival is the click that made it, on a row drawn wher
 already looking. The next downward scroll then asks for the draw wherever the page is standing,
 and asking disarms it. **Nothing else may arm it**: anything that moves what a draw would land
 on clears it, so a page left alone is never a page that will write, and the direction matters
-because what lands after an act can shorten the page and move the window on its own.
+because what lands after an act can shorten the page and move the window on its own. An armed
+caret does not follow the window either — it is the one the reader chose, the next downward
+scroll is the draw, and drifting off it would both aim the act elsewhere and disarm it on the
+way.
 
 ## Hidden
 
@@ -905,6 +924,17 @@ writes one node and calls no model, so the caret lands on the sibling with nothi
 armed: the arrival at the end of the page that makes an ordinary scroll deliberate is spent
 instead on the click, on a row drawn in front of the reader. Only that act arms it, only a
 downward move fires it, and anything that moves what a draw would land on clears it.
+
+**A caret the reader placed follows the window, to the last whole segment it shows.** One at rest
+does not, and neither does an armed one. So a reader who pointed at something and then scrolled
+to the foot of the page draws at the foot and not where they were pointing, which is what that
+gesture meant before there was a caret to disagree with it.
+
+**The page is served `no-store`.** Its files are the surface's own source and they change while
+it is being written, so a browser holding one holds a version nobody is looking at — and the
+failure is silent, since the modules that did load are the new ones calling into the stale one.
+Nothing here is worth a cache: a handful of files, from the process that holds the tree, over a
+loopback socket, once per load.
 
 **What else was live is shown on demand, and all three of its rows can be taken.** The rows stand
 in the half the column leaves empty, at the line they are about, following the caret and softly

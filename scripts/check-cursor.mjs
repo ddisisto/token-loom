@@ -98,6 +98,68 @@ const wide = { text: "⚕", decodes: true, nodes: [
 is("a character spelled by several tokens takes the caret before all of them",
    C.chosen([wide], 0), 42);
 
+// ---- following the window ---------------------------------------------------------------------
+
+/* The gesture that asks for a draw is the scroll and the draw lands at the caret, so a caret
+ * scrolled off the screen aims an act at a position nobody is looking at. What is derived here
+ * is which seat the window leaves it on, and it is wrong in three directions that all look
+ * right: one that lands on a seat no act can be taken at, one that drags a caret the reader
+ * placed on purpose, and one that draws at the top of the last screenful of a page the reader
+ * scrolled to the foot of.
+ *
+ * The geometry belongs to the page. What arrives is where each segment stands: above the
+ * window, inside it, or below.
+ */
+const band = (from, to) => i => (i < from ? -1 : i > to ? 1 : 0);
+
+const nine = path(9);
+const idAt = i => nine[i].nodes[0].id;
+
+/* Pointing somewhere is deliberate and a scroll is not a retraction of it. */
+is("a caret already in the window does not move",
+   C.seated(nine, idAt(4), band(2, 6)), idAt(4));
+is("  even where it is the very first thing shown",
+   C.seated(nine, idAt(2), band(2, 6)), idAt(2));
+
+/* A caret nobody has placed follows the end of the path and not the window. The gesture that
+ * draws at it needs the foot of the page, where the end of the path is on the screen anyway,
+ * so there is nothing to rescue -- and dragging it would turn *left alone it follows the end*
+ * into *it follows whatever is on the screen*, which is a different rule. */
+is("a caret at rest stays at the end of the path, however far off the screen that is",
+   C.seated(nine, idAt(8), band(0, 3)), idAt(8));
+is("  and it is the resting seat and not the last cell that is exempt",
+   C.seated(ragged, ragged[2].nodes[0].id, band(0, 1)), ragged[2].nodes[0].id);
+
+/* The edge it belongs against is the one the reader has read down to, which at the end of the
+ * page is the end of the path -- and that is what the scroll gesture there has always meant.
+ * The nearest seat on the way down would be the first in the window, which draws at the top of
+ * the screenful the reader is looking at the bottom of. */
+is("one scrolled off the top comes back to the last whole segment shown",
+   C.seated(nine, idAt(0), band(3, 7)), idAt(7));
+is("and one placed below it comes back to the same place",
+   C.seated(nine, idAt(7), band(1, 5)), idAt(5));
+
+/* The seats are the ones an act can be taken at, which is the same rule the resting position
+ * follows -- a window showing trailing bytes offers nowhere the backend will evaluate. */
+const ragged2 = [...path(4), cell({ decodes: false })];
+is("trailing bytes at the foot of the window are not the seat",
+   C.seated(ragged2, ragged2[0].nodes[0].id, band(3, 4)), ragged2[3].nodes[0].id);
+is("  and a window holding nothing else has none at all",
+   C.seated(ragged2, ragged2[0].nodes[0].id, band(4, 4)), null);
+const shut = [...path(2), cell({ live: false }), cell({ live: false })];
+is("what is set aside is not a seat either",
+   C.seated(shut, shut[0].nodes[0].id, band(2, 3)), null);
+
+/* Null and not a guess. A window showing no whole segment leaves the caret where it was,
+ * which is wrong in a way the reader can see and fix. */
+is("a window with nothing whole in it moves nothing", C.seated(nine, idAt(4), () => -1), null);
+is("and so does a path with nothing in it", C.seated([], null, band(0, 9)), null);
+
+/* A caret that is not on what is drawn at all -- taking a row lands it wherever the row went,
+ * which need not be a seat on this path. */
+is("a caret that is nowhere on the path is seated like one that has left the window",
+   C.seated(nine, 99999, band(4, 8)), idAt(8));
+
 // ---- what is held ---------------------------------------------------------------------------------
 
 is("nothing is pointed at before a tree is read", C.node(), null);

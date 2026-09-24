@@ -49,6 +49,28 @@ RULES: dict[str, S.Rule] = S.RULES
 
 PAGE = Path(__file__).parent / "page"
 
+
+class Page(StaticFiles):
+    """The page, served so that a reload is a reload.
+
+    The files are the surface's own source and they change while it is being written, so a
+    browser holding one is holding a version of the page nobody is looking at -- and the
+    failure is silent: the modules that did load are the new ones, and what they call in the
+    stale one is a function with a different signature. An afternoon went into a fault that
+    was a cached file.
+
+    Nothing here is worth a cache. The page is a handful of files served from the same
+    process that holds the tree, over a loopback socket, once per load.
+    """
+
+    def is_not_modified(self, *args, **kwargs) -> bool:
+        return False
+
+    async def get_response(self, path: str, scope):
+        answer = await super().get_response(path, scope)
+        answer.headers["cache-control"] = "no-store"
+        return answer
+
 #: Characters of a root's opening text. It bounds what naming every root costs, and the
 #: client cuts it again to whatever column it has.
 LABEL = 120
@@ -422,7 +444,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             Route("/undelete", _liveness(True), methods=["POST"]),
             # Last: the page is what is left over, and a named route is never shadowed by a
             # file that happens to share its path.
-            Mount("/", StaticFiles(directory=PAGE, html=True)),
+            Mount("/", Page(directory=PAGE, html=True)),
         ],
         exception_handlers=HANDLERS,
     )

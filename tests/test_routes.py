@@ -313,6 +313,20 @@ def test_what_a_row_weighs_is_what_the_toggle_admits(client):
     assert shown[103]["child"] is None and shown[103]["under"] is None
 
 
+def test_the_page_is_served_so_that_a_reload_is_one(client):
+    """The page's files are the surface's own source and they change while it is being
+    written. A browser holding one holds a version nobody is looking at, and the failure is
+    silent -- the modules that did load are the new ones, calling into the stale one."""
+    for path in ("/", "/assets/app.js"):
+        answer = client.get(path)
+        assert answer.status_code == 200, path
+        assert answer.headers["cache-control"] == "no-store", path
+    # And a conditional request is answered with the file rather than with 304.
+    tagged = client.get("/assets/app.js")
+    again = client.get("/assets/app.js", headers={"if-none-match": tagged.headers["etag"]})
+    assert again.status_code == 200 and again.content == tagged.content
+
+
 def test_a_node_with_no_ranking_is_not_the_same_as_no_node(client):
     assert client.get("/ranking/4").json()["rows"] == []
     assert client.get("/ranking/9999").status_code == 404
