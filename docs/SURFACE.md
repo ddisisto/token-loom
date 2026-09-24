@@ -160,6 +160,17 @@ from a node in both directions, so moving the caret along what is already drawn 
 text; a second node held beside it would be a second thing that can disagree about where the
 reader is.
 
+**It is the frontier of what has been accepted.** Above it is read and taken; below it is
+whatever the tree still holds there, drawn subdued, because the reader has not stood at its end.
+Asking for more happens at the frontier rather than at the foot of the page, which is what makes
+the gesture work in the middle of something as well as at the end of it.
+
+**What is drawn below the caret is derived and never remembered.** The rule's continuation from
+the caret carries it where there is one, and from the caret's parent where there is not — which
+is the case a `realise` makes, the new node being one token long and the arm it was chosen
+against being what the reader was looking at a moment before. Holding the last view instead would
+be a second thing that can disagree about where the reader is.
+
 **Left alone it follows the end, which is the batch discipline and not a convenience.** A draw at
 the end carries the caret along by as much as it drew, because asking for the next batch is a
 deliberate act taken after reading the last — `docs/INTERFERENCE.md` has it carrying acceptance
@@ -309,6 +320,36 @@ shows what pointing there would give — by the same rule, the ranking at the no
 the click that places the caret is what commits it. So a reader sweeping the column reads the
 alternatives along it without moving from where they are, and nothing new is named to allow it.
 
+**A row can carry what follows it, and where that comes from is the realised line again.** A row
+some node realised has a continuation the store already holds, so showing it follows the same
+rule selecting it would and costs nothing — which is what The band says a preview is. A row
+nothing realised has nothing to follow, so showing it is a stub: inference the instrument spends,
+and an act. The two wear one appearance and are not one thing, so a row says which it is rather
+than leaving a reader to infer it from whether anything appeared.
+
+**So the band and the rankings are one mechanism split by that line, and what is left between
+them is a width budget.** The band lays previews out at a fork, a line apiece; a ranking lays
+rows out at a position, with whatever room is left beside the token and its number. Both follow
+the continuation rule below a node that exists. Whether the band is a second surface or the rows
+given more room is now a question about how much text a reader wants at once, which is a smaller
+question than it was.
+
+**Clicking inside what follows a row is placing the caret inside it.** Once a stub has landed its
+nodes are ordinary nodes, so what a row shows is the record drawn ahead of where the reader
+stands rather than a picture of it, and moving into one asks for no operation that does not
+already exist.
+
+**Whether looking may spend inference is not settled.** Rolling a row out while the pointer rests
+on it would make the model's own continuation visible wherever the reader looked, continuously
+and without running a second arm — and it is the one thing that shows a repetition loop, which
+`docs/SPINE.md` has no measure able to mark. What it costs is the page's own rule that a way of
+looking is free. Three things make that smaller than it sounds: a greedy rollout is deterministic
+and merges, so resting on the same row again spends nothing and the total is bounded by how much
+has ever been revealed rather than by how long a pointer sat there; *Hidden* already has a stub
+born set aside, so what it writes enters neither the live path nor the rule; and it can be asked
+for rather than assumed. What would settle it is whether a reader with it on can still tell what
+they chose from what the instrument spent.
+
 **A ranking read earlier stops being true when an act lands, and not because the rows changed.**
 Rankings only grow, so what a position holds keeps for the life of the page; what does not keep
 is which rows a node has realised. Hovering is what makes this load-bearing, since it is what
@@ -404,6 +445,12 @@ comparable to nothing. The first is the default and the second is another scale,
 system. Linear against log is a choice on the same measure, since a logprob and a probability are
 one number read two ways.
 
+**An overlay and a ranking are one quantity read along different axes.** A row's logprob against
+the top row is exactly the flag a draw taking that row would pay. So an overlay draws one row's
+value along the text and a ranking draws every row's value at one position, and what follows is
+that the measure a reader has chosen is the number the rows should show — not a second scale to
+reconcile with it.
+
 **Where a measure looks is the next thing it declares, and it cuts deeper than either division
 above.** Everything so far reads the ranking a node stood in, which is to look *up*. A measure can
 instead read the tree below a node — how far it reaches, how much of it there is, how often it
@@ -420,6 +467,18 @@ a rule may read insertion order or what the reader last took, and neither is a q
 drawing along a path, since every node on one is the node that was taken. What the two share is
 the part where a reader would otherwise set two things to get one behaviour, and that part is
 large enough that the rules are generated from the measures rather than listed beside them.
+
+**The rules divide again, into those that aggregate and those that do not.** Size and the count
+of forks below sum over everything a subtree holds, so they are estimators: draw a position often
+enough and the arm with the most below it is the arm most often taken, which is the model's modal
+token — the one a greedy draw would have picked. Height and the run to a fork are extremal, set
+by one long descent whoever made it, so no amount of sampling moves them toward anything. That is
+the sharpest thing yet said about which continuation rule is right, and it is not an argument
+from use: a rule that aggregates tells a reader about the model, and one that does not tells them
+about their own exploration. What muddies it is that a subtree's size is draw counts multiplied
+by how far each draw was carried, and how far to carry one is the reader's decision — so the
+estimate holds where they are not steering, and `docs/SPINE.md` has what the disagreement is
+worth where they are.
 
 **A rule and an overlay share the scalar and not the liveness.** *Hidden* has the rule take the
 live path first and admit what is set aside only below a live leaf, so it is never offered a live

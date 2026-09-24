@@ -51,12 +51,17 @@ together and two of the three exist. Branching waits on what it counts and vocab
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
 
-**2. `realise`, which is the one row that writes.** The rows are shown and two of the three kinds
-can be taken; the third makes a node for a row nothing ever took, and then a `generate` continues
-it. It is the last thing the page needs before every fork in a tree is one it could have made.
-Where it wants to put the reader afterwards is the open part: a realised node is one token long,
-so landing on it is landing at a dead end, and whether the act should be followed by a draw or
-should leave the caret there for the reader to choose is a question use answers.
+**2. `realise`, and the caret as a frontier.** Clicking a row nothing ever took is the act, and
+that is its primary meaning rather than one entry on a menu; the caret then stays on the sibling
+it made. It is the last thing the page needs before every fork in a tree is one it could have
+made.
+
+What it drags in is the rest of the shape. A realised node is one token long, so the caret lands
+somewhere with nothing below it — and what is drawn below it is the arm it was chosen against,
+subdued, derived from the rule at the caret's parent rather than remembered from the last view.
+Asking for more then happens at the caret and not at the foot of the page, which is what makes
+the scroll gesture work in the middle of a document as well as at the end of one. `docs/SURFACE.md`
+has all of this as the caret being the frontier of what has been accepted.
 
 **3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
@@ -112,6 +117,11 @@ descent it rides on cheap, and not a reason to defer it.
 
 Not in the ordering; each stands on its own.
 
+- **How realisation falls with rank, measured before anything spends inference on hover.**
+  `docs/SPINE.md` has the question and what it would settle; what makes it urgent rather than
+  interesting is that rolling rows out on a hover would drive the top row's share to one and
+  leave the curve measuring a pointer. One query over `data/continuations`, and the tree is
+  innocent until it is not.
 - **The container is two measures wide and does not fit beside the list of roots.** `--col` is
   `min(34em, 44vw)`, so two of them plus the gutters want 88vw where the nav has already taken
   about 17, and the page has been scrolling sideways since the column was built. Nothing showed
