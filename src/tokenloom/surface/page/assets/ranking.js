@@ -143,8 +143,12 @@ const says = (w, weigh) => {
 /** The rows at one node, as they stand beside the column.
  *
  *  `next` is the node the path takes from here, which is what makes one row the one taken.
- *  `pick` is handed a row and does whatever taking it means; nothing here decides that,
- *  because two of the three kinds cost nothing and the third is an act. `weigh` is the
+ *  `pick` is handed a row and the payload it came from, and does whatever taking it means;
+ *  nothing here decides that, because two of the three kinds cost nothing and the third is an
+ *  act. It gets the payload and not the row alone because an act needs what the row does not
+ *  carry -- the node these are the alternatives at, and the source's name rather than the id
+ *  the wire keys them by. Both are already here, and re-deriving either from where the reader
+ *  is would be a second answer to a question the response has settled. `weigh` is the
  *  downward measure the rows are sized by, which arrives rather than being chosen here for
  *  the same reason the rule does -- the panel is where a way of looking is chosen.
  */
@@ -183,7 +187,7 @@ export function list(payload, next, pick, weigh) {
         if (told) li.title = `${weigh.key} · ${told}`;
         if (weights[i].state !== "value") li.classList.add("bare");
       }
-      li.onclick = () => pick(row);
+      li.onclick = () => pick(row, payload);
       out.append(li);
     }
     box.append(out);

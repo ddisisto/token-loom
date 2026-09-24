@@ -26,12 +26,6 @@ const $ = id => document.getElementById(id);
 
 const { aside } = cursor;
 
-/* Where the end of the path is, which is not always where the reader is pointing. The scroll
- * gesture asks for more of what is being read and lands at the end of it; the caret asks for
- * a draw at a position and lands there. They are the same act at the same node whenever the
- * caret has not been moved, and that is the ordinary case. */
-let tail = null;
-
 /* Whether what has been set aside is drawn. A way of looking: it records nothing, the
  * continuation rule follows liveness either way, and what it reveals it never selects --
  * hidden nodes only ever carry the path on from where the live one ran out. */
@@ -49,10 +43,15 @@ async function ask(path, body) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const shape = await answer.json();
+  // A server that fell over before it could phrase an answer sends no JSON at all, and
+  // reading it as JSON would report the parse rather than the fault.
+  const shape = await answer.json().catch(() => null);
   // A fault says which kind it was because the record does: a refusal and a rejection are
   // answers about the request, and only a failure is worth repeating unchanged.
-  if (!answer.ok) throw new Fault(shape.error || "error", shape.message || answer.statusText);
+  if (!answer.ok) {
+    throw new Fault(shape?.error || "error", shape?.message || answer.statusText);
+  }
+  if (shape === null) throw new Fault("error", "the server sent something that is not JSON");
   return shape;
 }
 
@@ -145,33 +144,23 @@ function boundary(cell) {
   return mark;
 }
 
-/** Where the reader is pointing, and what can be done there.
- *
- *  It stands in the text rather than beside it, because what it offers writes at this
- *  position and a request appears where its result will.
- */
-function caret() {
-  const mark = document.createElement("span");
-  mark.className = "caret";
-  const go = document.createElement("button");
-  go.textContent = "draw";
-  go.title = "sample a continuation from this position";
-  go.onclick = () => more(cursor.node());
-  mark.append(go);
-  return mark;
-}
-
 /** `marks` is what the overlay made of each span, or null where none is drawn -- which is
  *  the column a reader has not asked anything of, and is why the mark is applied here rather
  *  than being something a span always carries. */
 function spans(segments, marks) {
   const out = [];
   let cut = false;
+  // Everything after the caret is drawn because the rule reaches it and not because the
+  // reader accepted it -- the caret is the frontier of what they have, and what lies past it
+  // is derived and never remembered. So it is subdued, which says so without hiding it and
+  // without costing a second read to find out.
+  let past = false;
   for (const [i, cell] of segments.entries()) {
     const hidden = aside(cell);
     if (hidden && !cut) { cut = true; out.push(boundary(cell)); }
     const el = document.createElement("span");
-    el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`;
+    el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`
+      + (past ? " past" : "");
     el.textContent = cell.text;
     el.dataset.node = cell.nodes[cell.nodes.length - 1].id;
     const mark = marks?.[i];
@@ -192,8 +181,16 @@ function spans(segments, marks) {
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
     };
     el.onmouseenter = () => peek(i, el);
+    // The caret is drawn *on* the segment it follows and never between segments. An element
+    // in the flow moves the text around it, and text that shifts as the reader points at it
+    // is friction in the one thing this page is for. A rule on an inside edge costs no
+    // layout at all, which is the same reason the hover mark is one.
+    if (cell.nodes.at(-1).id === cursor.node()) {
+      el.classList.add("at");
+      if (cursor.armed()) el.classList.add("armed");
+      past = true;
+    }
     out.push(el);
-    if (cell.nodes.at(-1).id === cursor.node()) out.push(caret());
   }
   return out;
 }
@@ -259,17 +256,54 @@ const shut = () => $("column").querySelector(".rows")?.remove();
 
 /** Taking a row. Two of the three kinds cost nothing: the one the path took is where the
  *  reader already is, and one realised elsewhere is a selection -- which is the way back to
- *  an arm a draw parted from. The third writes and is not offered yet. */
-function took(row) {
-  if (row.child === null) return say("nothing has realised this row yet");
+ *  an arm a draw parted from. The third is an act. */
+function took(row, payload) {
+  if (row.child === null) return realise(row, payload);
   show(row.child, row.child).catch(
     why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+}
+
+/** Make the node a row names, and stand the caret on it armed.
+ *
+ *  `realise` writes one node and calls no model, so what it leaves is a position with nothing
+ *  under it -- the alternative made real and not yet followed. Asking for the continuation is
+ *  the separate act it already was, and the caret being armed is what makes the next scroll
+ *  down that ask, wherever the page is standing. So the reader takes an alternative and keeps
+ *  reading, and the act that costs inference is still one gesture of their own.
+ *
+ *  The source is sent rather than inferred: a rank alone names nothing at a node two models
+ *  have ranked. The row carries the id the wire keys sources by and the act wants the name,
+ *  which the payload the row came from already holds -- as it holds the node these are the
+ *  alternatives at. That node and not the caret: with the rows shown, the pointer moves them
+ *  ahead of the caret, and clicking one is the click that commits that move.
+ */
+async function realise(row, payload) {
+  if (working) return;
+  working = true;
+  try {
+    const act = await ask("/realise", {
+      at: payload.node, source: payload.sources[String(row.source)], rank: row.rank,
+    });
+    await refresh();
+    await show(act.tip, act.tip);
+    cursor.arm();
+    // Placed by `show` and armed after it, so the mark the page is already drawing is the one
+    // that has to say so. One read redraws it and there is no second state to keep in step.
+    $("column").querySelector(".seg.at")?.classList.add("armed");
+    say("realised \u00b7 scroll down to draw from here");
+  } catch (why) {
+    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  } finally {
+    working = false;
+    wasAtEnd = atEnd();
+    wasAt = window.scrollY;
+  }
 }
 
 /** Show the rows the caret is at, which is where they sit when nothing is hovered. */
 function settled() {
   showing = cursor.node();
-  const mark = $("column").querySelector(".caret");
+  const mark = $("column").querySelector(".seg.at");
   if (!ranking.asked() || mark === null) return shut();
   opened(showing, mark).catch(() => shut());
 }
@@ -309,8 +343,10 @@ async function show(node, where) {
     if (stop > 0) cells = cells.slice(0, stop);
   }
   drawn = cells;
-  tail = cursor.resting(cells);
-  cursor.place(where === undefined ? tail : where);
+  // Where the reader has not pointed, the caret rests at the end of what is drawn -- so the
+  // gesture that asks for more of a path and the gesture that asks for a draw at a position
+  // are the same act at the same node, which is the ordinary case and not a coincidence.
+  cursor.place(where === undefined ? cursor.resting(cells) : where);
   const flow = document.createElement("div");
   flow.className = "flow";
   // Leaving the text puts the rows back where the reader is, so a peek never outlives the
@@ -355,6 +391,7 @@ async function flip(undo, node, then) {
   } finally {
     working = false;
     wasAtEnd = atEnd();  // the path just got shorter or longer; an arrival is a fresh one
+    wasAt = window.scrollY;
   }
 }
 
@@ -420,7 +457,6 @@ function compose(at) {
 
 function stage(at) {
   drawn = [];
-  tail = null;
   cursor.place(null);
   showing = null;
   $("column").replaceChildren(compose(at));
@@ -430,12 +466,19 @@ function stage(at) {
 // ---- continuing ------------------------------------------------------------------------
 
 /* The gesture is the scroll: reaching the end of what there is to read asks for more of it,
- * at the end of the path, where the reader is already looking.
+ * at the caret -- which is where the reader is already looking, because left alone it follows
+ * the end of the path. Pointing somewhere moves it, and then the same gesture asks there
+ * instead: one anchor for every act at a position, and not a second rule for this one.
  *
  * A downward move *at* the end counts as well as an arrival there. Under about a thousand
  * characters the column sits at its minimum height, so text that lands does not make the
  * page any taller -- the room above it shrinks instead -- and a reader who stayed at the end
  * would have nowhere left to scroll and no way to ask again.
+ *
+ * An armed caret drops the end of the page from the gesture. Arriving at the end is what
+ * makes an ordinary scroll deliberate; a caret armed by `realise` was placed by a click on a
+ * row drawn in front of the reader, which is the same deliberateness spent earlier -- so the
+ * next scroll down asks wherever the page is standing, and asking once disarms it.
  */
 
 const SETTLE = 140;  // ms of quiet before a scroll counts, so momentum is not a request
@@ -478,7 +521,7 @@ function failed(why) {
 /** Ask for more of the path, at a node. The scroll gesture passes the end of what is being
  *  read; the caret passes wherever the reader put it, and a draw there is what makes a fork
  *  -- the tokens either merge onto what already follows or part from it. */
-async function more(where = tail) {
+async function more(where = cursor.node()) {
   if (working || where === null || where === undefined) return;
   working = true;
   waiting();
@@ -502,30 +545,45 @@ async function more(where = tail) {
   } finally {
     working = false;
     quiet = Date.now() + REST;
-    wasAtEnd = atEnd();  // what landed moved the end; an arrival at it is a fresh one
+    // What landed moved the end and may have moved the window: an arrival at the end is a
+    // fresh one, and where the page now stands is not somewhere the reader scrolled to.
+    wasAtEnd = atEnd();
+    wasAt = window.scrollY;
   }
 }
 
-/** Reached the end, and stayed there long enough to have meant it. */
+/** Whether a downward move counts as a request: at the end of the page, or anywhere at all
+ *  once the caret has been armed. */
+const ready = () => cursor.armed() || atEnd();
+
+/** Moved down somewhere that counts, and stayed long enough to have meant it. */
 function asked() {
   if (working || Date.now() < quiet) return;
   clearTimeout(timer);
-  timer = setTimeout(() => { if (atEnd()) more(); }, SETTLE);
+  timer = setTimeout(() => { if (ready()) more(); }, SETTLE);
 }
 
 let wasAtEnd = false;
+let wasAt = 0;
 addEventListener("scroll", () => {
   const now = atEnd();
-  if (now && !wasAtEnd) asked();
+  // Downward and not merely different. At the end of the page there is nowhere below to go,
+  // so an arrival there is the gesture; an armed caret has no such place, so the direction is
+  // all there is -- and what lands after an act can shorten the page and move the window on
+  // its own, which would otherwise read as a reader asking for the next one.
+  const down = window.scrollY > wasAt;
+  if ((cursor.armed() && down) || (now && !wasAtEnd)) asked();
   wasAtEnd = now;
+  wasAt = window.scrollY;
 }, { passive: true });
 
-// Already at the end, and still going down. Every way of moving the page is one of these.
-addEventListener("wheel", event => { if (event.deltaY > 0 && atEnd()) asked(); },
+// Already somewhere that counts, and still going down. Every way of moving the page is one
+// of these.
+addEventListener("wheel", event => { if (event.deltaY > 0 && ready()) asked(); },
                 { passive: true });
 addEventListener("keydown", event => {
   if (event.target.closest("textarea, input")) return;
-  if (["ArrowDown", "PageDown", "End", " "].includes(event.key) && atEnd()) asked();
+  if (["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready()) asked();
 });
 
 /** An act with no terminator is a generation in flight, so a reload draws it rather than

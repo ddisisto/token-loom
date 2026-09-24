@@ -197,19 +197,33 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
 .cut button { font: inherit; padding: 1px 6px; }
 
 /* ---- where the reader is pointing ----
-   The caret stands in the text and not beside it, because what it offers writes at this
-   position and a request appears where its result will. It is a rule down the left of what
-   it offers, which is the edge the next token would start at.
+   A rule on the trailing edge of the segment the caret follows, which is the edge the next
+   token would start at. It is drawn *on* the segment and never between two, because an
+   element in the flow moves the text around it -- and text that shifts as a reader points at
+   it is friction in the one thing this page is for. An inside edge costs no layout.
 
-   A segment shows where the caret would land if it were chosen, on the same edge and in the
+   What it offers is not written beside it either. The gesture that asks for a draw is the
+   scroll, at the caret, so the request is already somewhere the reader can reach without a
+   control standing in the prose.
+
+   A segment shows where the caret would land if it were chosen, on the other edge and in the
    weight of something not yet done. */
 
-.caret { display: inline-flex; align-items: baseline; gap: 6px; vertical-align: baseline;
-         margin: 0 5px 0 3px; padding: 1px 5px 2px;
-         font: 400 11px/1.6 var(--mono); font-style: normal; color: var(--dim);
-         border-left: 2px solid var(--accent); }
-.caret button { font: inherit; padding: 1px 6px; }
+/* Past the caret: drawn because the rule reaches it and not because the reader accepted it.
+   Subdued and not hidden -- it is the continuation they are deciding about, and a reader who
+   could not read it would be deciding blind. It costs nothing at rest, where the caret
+   follows the end and there is nothing past it. */
+.flow .seg.past { color: var(--dim); }
+
+.flow .seg.at { box-shadow: inset -2px 0 0 var(--accent); }
 .flow .seg:hover { box-shadow: inset 2px 0 0 var(--faint); }
+.flow .seg.at:hover { box-shadow: inset -2px 0 0 var(--accent), inset 2px 0 0 var(--faint); }
+
+/* Armed: the next scroll down draws here, wherever the page is standing. It is the one state
+   in which reading on writes, so it is marked and not only remembered -- a wider rule and the
+   ground behind it, which no amount of scrolling past will hide. */
+.flow .seg.at.armed { box-shadow: inset -3px 0 0 var(--accent);
+                      background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
 /* ---- what an overlay draws ----
    A place on the scale arrives as `--t` and the colour is made here, so a measure computed

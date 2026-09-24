@@ -106,5 +106,29 @@ is("and what is placed is what is held", C.node(), 17);
 C.place(null);
 is("putting it nowhere is a place too", C.node(), null);
 
+/* Arming is the one state in which reading on writes: the next scroll down asks for a draw
+ * wherever the page is standing, rather than at the end where arriving is what makes the
+ * gesture deliberate. So nothing may arm it but the act that earns it, and anything that
+ * moves what a draw would land on has to clear it -- an arming made against the old position
+ * is a write at the new one that the reader never asked for.
+ */
+is("a caret is not armed until something arms it", C.armed(), false);
+C.place(17);
+C.arm();
+is("and the act that earns it is what does", C.armed(), true);
+C.place(18);
+is("moving it disarms, because what a draw would land on has moved", C.armed(), false);
+
+/* A read places the caret every time, so a page that redraws itself is a page that has
+ * disarmed -- which is what keeps the state from outliving the act it came from. */
+C.arm();
+C.place(18);
+is("and placing it where it already was disarms just the same", C.armed(), false);
+
+/* Nowhere is not somewhere to draw from, so arming there is not a thing that can be true. */
+C.place(null);
+C.arm();
+is("a caret that is nowhere cannot be armed", C.armed(), false);
+
 console.log(bad ? `\n${bad} failed` : "\nnothing failed");
 process.exit(bad ? 1 : 0);

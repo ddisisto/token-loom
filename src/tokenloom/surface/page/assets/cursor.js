@@ -21,10 +21,28 @@
 export const aside = cell => cell.nodes.some(n => !n.live);
 
 let at = null;
+let waiting = false;
 
 export const node = () => at;
 
-export const place = id => { at = id; };
+/** Put the caret somewhere. It disarms: what a draw would land on has just moved, so an
+ *  arming made against the old position is a write the reader did not ask for at the new
+ *  one. Only `arm` sets it, and only after the act that earned it. */
+export const place = id => { at = id; waiting = false; };
+
+/** Arm the caret: the next scroll down asks for a draw here, wherever the page is standing.
+ *
+ *  The ordinary gesture is the end of the page, which is a place the reader has to arrive at
+ *  and can therefore mean. This one has no such place, so what makes it deliberate is that
+ *  it is only ever set by a click on something in view -- `realise` is the act that sets it,
+ *  and the row clicked to make it was drawn where the reader was looking.
+ *
+ *  It survives exactly until something happens: the draw, or the caret moving, or any read
+ *  that places the caret again. So a page left alone is never a page that will write.
+ */
+export const arm = () => { waiting = at !== null; };
+
+export const armed = () => waiting;
 
 /** Where the caret rests when nothing has placed it: after the last segment that has a
  *  string form and is not set aside.

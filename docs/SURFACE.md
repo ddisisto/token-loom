@@ -177,6 +177,22 @@ deliberate act taken after reading the last — `docs/INTERFERENCE.md` has it ca
 of everything above it, or at least a wish to see past it. A reader who did not accept it moves
 the caret back, which is the same gesture as pointing anywhere else.
 
+**It carries no control, and the reason is reflow.** A thing to press has to occupy room in the
+line, so the text moves as the reader points along it — and text that shifts under the eye is
+friction in the one thing the surface is for. So the caret is a rule on the inside edge of the
+segment it follows, which costs no layout at all, and what it offers is the gesture that was
+already there: the scroll, at the caret. One anchor and one gesture, rather than a control per
+position.
+
+**An act at a position may arm it, and then reading on is what asks.** The ordinary gesture is
+the end of the page, and what makes that deliberate is that the reader had to arrive there. A
+`realise` has no such place to offer — it writes one node in the middle of something being read —
+so what stands in for the arrival is the click that made it, on a row drawn where the reader was
+already looking. The next downward scroll then asks for the draw wherever the page is standing,
+and asking disarms it. **Nothing else may arm it**: anything that moves what a draw would land
+on clears it, so a page left alone is never a page that will write, and the direction matters
+because what lands after an act can shorten the page and move the window on its own.
+
 ## Hidden
 
 **Deleted is the surface's *hidden*, and whether it is shown is one toggle.** `docs/CORE.md` has
@@ -372,6 +388,14 @@ has ever been revealed rather than by how long a pointer sat there; *Hidden* alr
 born set aside, so what it writes enters neither the live path nor the rule; and it can be asked
 for rather than assumed. What would settle it is whether a reader with it on can still tell what
 they chose from what the instrument spent.
+
+**Clicking a row nothing realised is the `realise`, and that is its primary meaning.** Not one
+entry on a menu the row might later carry: the row exists to be taken, and the only one of the
+three that needs an act is the one nothing has taken yet. What it writes is a node and no
+ranking, so the caret lands on the sibling it made with nothing below it, and the arm it was
+chosen against is drawn subdued below — derived from the rule at the caret's parent, as
+*The path* has it. Asking for the continuation is the act it always was, and the caret is armed
+so that reading on is what asks.
 
 **A ranking read earlier stops being true when an act lands, and not because the rows changed.**
 Rankings only grow, so what a position holds keeps for the life of the page; what does not keep
@@ -868,13 +892,21 @@ carries a fixed domain, so the scale is the path's own and the panel does not of
 A fifth is drawn and is not offered as a rule: what the rule passed over, which is nothing along
 a corridor and the size of the declined arm at every fork.
 
-**A caret says where the reader is pointing, and a draw can be taken there.** Pointing at a
-segment puts it before that segment, and what it offers is a `generate` at that node — which is
-the first act the page can make that produces a fork, the tokens either merging onto what
-already follows or parting from it. The scroll gesture is unchanged and stays bound to the end
-of what is being read.
+**A caret says where the reader is pointing, and every act at a position lands on it.** Pointing
+at a segment puts it before that segment; what is drawn past it is subdued, being the rule's
+continuation rather than anything the reader accepted. It carries no control — a thing to press
+in the line moves the text as the reader points along it, so it is a rule on the segment's inside
+edge and the gesture that asks for a draw is the scroll, at the caret. That is the first act the
+page can make that produces a fork, the tokens either merging onto what already follows or
+parting from it.
 
-**What else was live is shown on demand, and two of its three rows can be taken.** The rows stand
+**Clicking a row nothing realised makes it, and the next scroll down draws from there.** The act
+writes one node and calls no model, so the caret lands on the sibling with nothing below it and
+armed: the arrival at the end of the page that makes an ordinary scroll deliberate is spent
+instead on the click, on a row drawn in front of the reader. Only that act arms it, only a
+downward move fires it, and anything that moves what a draw would land on clears it.
+
+**What else was live is shown on demand, and all three of its rows can be taken.** The rows stand
 in the half the column leaves empty, at the line they are about, following the caret and softly
 following the pointer while they are shown. Each is marked by what taking it would cost: the one
 the path took is where the reader already is, one realised elsewhere is a selection and is the
@@ -893,8 +925,8 @@ whole trade and the panel already owns it: log keeps a small explored arm legibl
 one, linear states the ratio honestly and puts the small one on the floor beside the arms nobody
 ever took.
 
-What does not exist is everything past that: no band, no `realise` reachable from the page, no
-depth limit and so no view that presets one. **Writing at the caret is not
+What does not exist is everything past that: no band, no depth limit and so no view that presets
+one, and no way back to the boundary of an act to take one draw again. **Writing at the caret is not
 offered either**, though `create` takes a position and the composer takes a node: it would
 replace the column with a box, and a request should appear where its result will. **The gesture that sets a segment aside is a modifier-click and is the weakest
 part of this**, chosen because a plain click is already spoken for above and not because it is

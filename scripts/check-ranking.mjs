@@ -107,7 +107,8 @@ const payload = {
   sources: SOURCES,
 };
 let taken = null;
-const box = R.list(payload, TOOK, r => { taken = r; }, null);
+let from = null;
+const box = R.list(payload, TOOK, (r, p) => { taken = r; from = p; }, null);
 const list = box.children.find(kid => kid.classList.contains("list"));
 is("the rows are drawn in order and marked by kind",
    list.children.map(li => li.className), ["took", "elsewhere", "unrealised"]);
@@ -130,6 +131,13 @@ is("the bar is each row against the top one of its source", bars,
 list.children[1].onclick();
 is("taking a row hands it over whole and decides nothing about it",
    [taken.child, taken.text], [AWAY, "\nyes"]);
+
+/* And hands over what it came in, because an act at a row needs what the row does not carry:
+ * the node these are the alternatives at, and the source's name rather than the id the wire
+ * keys them by. Deriving either from where the reader is would be a second answer -- and a
+ * wrong one while the pointer has moved the rows ahead of the caret. */
+is("  along with the payload, which is what says where the row is and who ranked it",
+   [from.node, from.sources[String(taken.source)]], [9, "model:qwen"]);
 
 const bare = R.list({ node: 9, rows: [], sources: SOURCES }, null, () => {}, null);
 says("a position nothing ranked says so", words(bare), "nothing was ranked");

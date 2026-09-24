@@ -26,9 +26,9 @@ read against a tree the page could not yet have made.
 
 **What exists is `docs/SURFACE.md`'s Status and is not restated here.** What the page has arrived
 at is a composer that starts a root, a column that sets one path as prose, a caret that says
-where the reader is pointing and takes a draw there, a scroll at the end that asks for more, and
-two panels saying what the draw asks for and what is drawn over it. This section is what comes
-after that.
+where the reader is pointing and is where every act at a position lands, the rows at that
+position on demand, a scroll that asks for more there, and two panels saying what the draw asks
+for and what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
@@ -51,17 +51,22 @@ together and two of the three exist. Branching waits on what it counts and vocab
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
 
-**2. `realise`, and the caret as a frontier.** Clicking a row nothing ever took is the act, and
-that is its primary meaning rather than one entry on a menu; the caret then stays on the sibling
-it made. It is the last thing the page needs before every fork in a tree is one it could have
-made.
+**2. A way back to where an act began, so one draw can be taken again.** A reader who wants a
+different continuation at a position should not have to find that position again: what they want
+is the boundary of the act they just read, to draw from it under different settings, at a higher
+sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
+page cannot run it yet — the caret follows the tip of what lands, so taking one draw again means
+scrolling back and pointing, which is a search where it should be a gesture.
 
-What it drags in is the rest of the shape. A realised node is one token long, so the caret lands
-somewhere with nothing below it — and what is drawn below it is the arm it was chosen against,
-subdued, derived from the rule at the caret's parent rather than remembered from the last view.
-Asking for more then happens at the caret and not at the foot of the page, which is what makes
-the scroll gesture work in the middle of a document as well as at the end of one. `docs/SURFACE.md`
-has all of this as the caret being the frontier of what has been accepted.
+**The record already answers it and nothing reads it back.** An act's range is `origin` exclusive
+to `tip` inclusive, so the boundary above any node is derivable — the same read *What a node was
+drawn at* wants under Loose ends, and the same reason it is not free: acts overlap, so a node
+reached twice has two answers. Here the reduction has a reading of its own, since what a reader
+means by *this draw* is the one they just watched land.
+
+What it does not need is a decision about the tree. Arms accumulate at the position and are
+consolidated, pruned or divided out later — the five acts already do all three, and nothing about
+drawing repeatedly at one node asks the format for anything it does not have.
 
 **3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
