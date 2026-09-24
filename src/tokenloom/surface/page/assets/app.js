@@ -492,6 +492,7 @@ function stage(at) {
 
 const SETTLE = 140;  // ms of quiet before a scroll counts, so momentum is not a request
 const REST = 450;    // ms after one lands, so a held key is one request and not twenty
+const AIR = 1.5;     // lines of context the caret keeps between itself and either edge
 
 let working = false;
 let quiet = 0;
@@ -584,13 +585,16 @@ function dodge() {
   if (working || cursor.armed() || cursor.node() === null) return;
   const segs = $("column").querySelectorAll(".flow .seg");
   if (segs.length !== drawn.length) return;  // the composer, or a read in flight
+  // A caret hard against an edge is one the reader has to hunt for, and the line it marks is
+  // half a line of context in either direction. The band is reckoned in lines and not in
+  // pixels, so it holds whatever the column is set in.
+  const line = parseFloat(getComputedStyle($("column")).lineHeight) || 24;
+  const air = line * AIR;
   const room = window.innerHeight;
   const to = cursor.seated(drawn, cursor.node(), i => {
-    // Whole and not merely touching: a segment clipped by an edge is one the reader is only
-    // half looking at, and the edges are where a scroll is about to take it anyway.
     const box = segs[i].getBoundingClientRect();
-    if (box.top < 0) return -1;
-    if (box.bottom > room) return 1;
+    if (box.top < air) return -1;
+    if (box.bottom > room - air) return 1;
     return 0;
   });
   if (to === null || to === cursor.node()) return;

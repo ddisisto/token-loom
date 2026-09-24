@@ -62,9 +62,11 @@ export function resting(cells) {
 
 /** Where the window seats the caret, given where each segment stands in it.
  *
- *  `place` answers -1, 0 or 1 for a segment above the window, inside it, or below it. The
- *  geometry is the caller's, because this file has no DOM and the arithmetic is the part that
- *  goes quietly wrong.
+ *  `place` answers -1, 0 or 1 for a segment above the band the window leaves for it, inside
+ *  it, or below. The band and not the window: a caret hard against an edge is one the reader
+ *  has to hunt for, and the line it marks is worth a line of context either side. Where that
+ *  band is drawn is the caller's, because this file has no DOM -- what is here is the part
+ *  that goes quietly wrong.
  *
  *  A caret off the screen is a caret the reader cannot see a draw land on, and the gesture
  *  that asks for one is the scroll -- so scrolling away from it would aim an act at a

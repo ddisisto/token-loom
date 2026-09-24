@@ -193,8 +193,12 @@ gesture that draws at it needs the foot of the page, where the end of the path i
 anyway — so a reader who has pointed at nothing scrolls without moving anything. And it costs no
 read, because the path through any node of the path already drawn is that same path.
 
-**Where it lands is the last whole segment in the window, and not the nearest one.** Two reasons
-that are one reason. The caret is the frontier of what has been read, so the edge it belongs
+**Where it lands is the last segment the window leaves clear of its edges, and not the nearest
+one.** Clear and not merely whole: a caret hard against a border is one the reader has to hunt
+for, and the line it marks is worth a line or so of context either side — so the band is a line
+and a half in from each edge, reckoned in lines so that it holds whatever the column is set in.
+The foot of the page is not a problem for it, the column's own bottom space being deeper than the
+band. The rest is two reasons that are one reason. The caret is the frontier of what has been read, so the edge it belongs
 against is the one the reader has read down to — which at the foot of the page is the end of the
 path, which is what the gesture there has always meant. The nearest seat would be the *first* in
 the window on the way down: it would draw thousands of tokens above the foot of a page the reader
@@ -925,8 +929,9 @@ armed: the arrival at the end of the page that makes an ordinary scroll delibera
 instead on the click, on a row drawn in front of the reader. Only that act arms it, only a
 downward move fires it, and anything that moves what a draw would land on clears it.
 
-**A caret the reader placed follows the window, to the last whole segment it shows.** One at rest
-does not, and neither does an armed one. So a reader who pointed at something and then scrolled
+**A caret the reader placed follows the window, to the last segment it shows clear of its
+edges** — a line and a half in, so there is context around it rather than a mark on the border.
+One at rest does not follow, and neither does an armed one. So a reader who pointed at something and then scrolled
 to the foot of the page draws at the foot and not where they were pointing, which is what that
 gesture meant before there was a caret to disagree with it.
 
