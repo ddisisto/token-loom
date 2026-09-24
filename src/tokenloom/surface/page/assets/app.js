@@ -20,6 +20,7 @@ import { draw, panel } from "./draw.js";
 import {
   panel as overlayPanel, read as overlays, rule as taken, wants,
 } from "./overlay.js";
+import * as ranking from "./ranking.js";
 
 const $ = id => document.getElementById(id);
 
@@ -119,6 +120,9 @@ function drawRoots(tree, current) {
 const live = tree => tree.roots.filter(root => showHidden || !root.deleted);
 
 async function refresh(current) {
+  // Every act lands through here, and an act is what makes a ranking read earlier wrong: the
+  // rows only grow, but which of them a node now realises does not.
+  ranking.forget();
   const tree = await ask("/tree");
   drawRoots(tree, current);
   say(`${tree.path}  ${tree.vocabulary}  ` +
@@ -187,6 +191,7 @@ function spans(segments, marks) {
       if (hidden) restore(cell);
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
     };
+    el.onmouseenter = () => peek(i, el);
     out.push(el);
     if (cell.nodes.at(-1).id === cursor.node()) out.push(caret());
   }
@@ -206,6 +211,68 @@ function point(i) {
  * last response and not a second opinion about the tree: nothing is decided from it that the
  * next read would decide differently. */
 let drawn = [];
+
+// ---- what else was live -----------------------------------------------------------------
+
+/* A ranking is content about one position and the toggle that asks for it is a way of
+ * looking, so the two are in different places: the switch sits with what is set aside, and
+ * the rows stand in the half the reading column leaves empty, at the line they are about.
+ *
+ * Hovering is a caret that has not been committed. It shows what pointing somewhere would
+ * give, by the same rule -- the ranking at the node before the segment under the pointer --
+ * and the click that was already there is what commits it. So nothing new is named, and a
+ * reader sweeping the column reads the alternatives along it without changing where they are.
+ */
+
+const SEEN = 90;  // ms of quiet before a hover counts, so crossing the page is not a request
+let peeking = null;
+let showing = null;
+
+/** Draw the rows at a node beside `anchor`, which is the span they are about. */
+async function opened(node, anchor) {
+  if (!ranking.asked() || node === null || anchor === null) return shut();
+  let payload = ranking.recall(node);
+  if (payload === undefined) {
+    payload = await ask(`/ranking/${node}`);
+    ranking.remember(node, payload);
+  }
+  if (showing !== node) return;  // the pointer moved on while this was in the air
+  const after = drawn.flatMap(cell => cell.nodes).find(mark => mark.parent === node);
+  const box = ranking.list(payload, after ? after.id : null, took);
+  // Placed against the column rather than the window, so it scrolls with the text it is
+  // about and nothing here listens for a scroll.
+  const seat = $("column").getBoundingClientRect();
+  box.style.top = `${anchor.getBoundingClientRect().top - seat.top}px`;
+  shut();
+  $("column").append(box);
+}
+
+const shut = () => $("column").querySelector(".rows")?.remove();
+
+/** Taking a row. Two of the three kinds cost nothing: the one the path took is where the
+ *  reader already is, and one realised elsewhere is a selection -- which is the way back to
+ *  an arm a draw parted from. The third writes and is not offered yet. */
+function took(row) {
+  if (row.child === null) return say("nothing has realised this row yet");
+  show(row.child, row.child).catch(
+    why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+}
+
+/** Show the rows the caret is at, which is where they sit when nothing is hovered. */
+function settled() {
+  showing = cursor.node();
+  const mark = $("column").querySelector(".caret");
+  if (!ranking.asked() || mark === null) return shut();
+  opened(showing, mark).catch(() => shut());
+}
+
+function peek(i, el) {
+  if (!ranking.asked()) return;
+  clearTimeout(peeking);
+  const to = cursor.chosen(drawn, i);
+  if (to === null || to === showing) return;
+  peeking = setTimeout(() => { showing = to; opened(to, el).catch(() => shut()); }, SEEN);
+}
 
 /** Draw the path through a node, and leave the caret at `where` -- or at the end of what is
  *  drawn, which is where a reader who has not pointed at anything is.
@@ -238,10 +305,14 @@ async function show(node, where) {
   cursor.place(where === undefined ? tail : where);
   const flow = document.createElement("div");
   flow.className = "flow";
+  // Leaving the text puts the rows back where the reader is, so a peek never outlives the
+  // pointer and what stands beside the column is the caret's again.
+  flow.onmouseleave = () => { clearTimeout(peeking); settled(); };
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
   // range from the text in front of the reader.
   flow.append(...spans(cells, overlays(cells, read.sources)));
   $("column").replaceChildren(flow);
+  settled();
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
   const root = cells[0].nodes[0].id;
@@ -343,6 +414,7 @@ function stage(at) {
   drawn = [];
   tail = null;
   cursor.place(null);
+  showing = null;
   $("column").replaceChildren(compose(at));
   $("column").querySelector("textarea").focus();
 }
@@ -497,6 +569,14 @@ $("hidden").onchange = async () => {
   }
 };
 
+/* Whether what else was live is shown. A way of looking, like what is set aside: it records
+ * nothing, and it asks for nothing until it is on -- a position can run to dozens of rows,
+ * and `docs/SURFACE.md` has density staying behind intent. */
+$("rows").onchange = () => {
+  ranking.want($("rows").checked);
+  settled();
+};
+
 $("fold").onclick = () => {
   const folded = document.body.classList.toggle("folded");
   $("fold").setAttribute("aria-pressed", String(folded));
@@ -506,6 +586,7 @@ try {
   // A reload restores a checkbox in some browsers, and nothing here is remembered between
   // loads -- so what the box says is what the page believes, rather than the other way.
   showHidden = $("hidden").checked;
+  ranking.want($("rows").checked);
   const tree = await refresh();
   // With nothing yet chosen the first root is what is read; with no roots at all the page
   // is never a bare one, because the only thing to do here is the only thing offered.

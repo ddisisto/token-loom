@@ -2,12 +2,13 @@
 
 Everything else in this suite reaches the surface through its reads and its routes, which
 stop at the wire. These live past it: the draw panel decides what a `generate` is asked for,
-the overlay decides what a ranking means once it has arrived, and the caret decides which
-node an act at a position takes. All three are things nothing else disagrees with -- an
-invalid pair of sampler settings is caught by the adapter *recording a refusal*, a scale read
-from the wrong end produces a page that looks like it is working, and a caret one node late
-writes into the token the reader meant to reconsider -- so each has a driver under
-`scripts/`, and this is what runs them.
+the overlay decides what a ranking means once it has arrived, the caret decides which node an
+act at a position takes, and a ranking's rows decide what taking one would cost. None of them
+is something anything else disagrees with -- an invalid pair of sampler settings is caught by
+the adapter *recording a refusal*, a scale read from the wrong end produces a page that looks
+like it is working, a caret one node late writes into the token the reader meant to
+reconsider, and a row marked as another kind offers the wrong thing and says nothing about it
+-- so each has a driver under `scripts/`, and this is what runs them.
 
 The checks themselves are in the scripts, in the language the code under them is written in.
 What is here is the hook: a subprocess, its output on failure, and a skip where `node` is not
@@ -23,7 +24,12 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
-CHECKS = ["check-cursor.mjs", "check-draw.mjs", "check-overlay.mjs"]
+CHECKS = [
+    "check-cursor.mjs",
+    "check-draw.mjs",
+    "check-overlay.mjs",
+    "check-ranking.mjs",
+]
 
 
 @pytest.mark.parametrize("script", CHECKS)

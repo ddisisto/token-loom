@@ -51,11 +51,12 @@ together and two of the three exist. Branching waits on what it counts and vocab
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
 
-**2. A ranking on demand, and `realise`.** Selecting a token asks what else was live at that
-position, and the rows with no child are what a `realise` takes. This is where an overlay points:
-a position drawn as interesting is a position a reader then opens. **The caret is already the
-anchor it needs** — pointing at a segment puts the caret at exactly the node whose ranking holds
-the alternatives to it — so what is left here is the rows themselves and the act that takes one.
+**2. `realise`, which is the one row that writes.** The rows are shown and two of the three kinds
+can be taken; the third makes a node for a row nothing ever took, and then a `generate` continues
+it. It is the last thing the page needs before every fork in a tree is one it could have made.
+Where it wants to put the reader afterwards is the open part: a realised node is one token long,
+so landing on it is landing at a dead end, and whether the act should be followed by a draw or
+should leave the caret there for the reader to choose is a question use answers.
 
 **3. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
@@ -111,6 +112,14 @@ descent it rides on cheap, and not a reason to defer it.
 
 Not in the ordering; each stands on its own.
 
+- **The container is two measures wide and does not fit beside the list of roots.** `--col` is
+  `min(34em, 44vw)`, so two of them plus the gutters want 88vw where the nav has already taken
+  about 17, and the page has been scrolling sideways since the column was built. Nothing showed
+  it while the second measure was empty. It does now: at 1457 CSS pixels the rows run to 1557
+  and the last hundred are off the edge unless the nav is folded, which is what `#fold` is for
+  and is not an answer. What it wants is a measure reckoned against the room there is rather
+  than against the window — and that changes the reading column's width, which was chosen by
+  eye against a real tree, so it is worth looking at before it is changed.
 - **The composer cannot open at the caret, so writing at a position is not offered.** `create`
   takes a node and `compose` takes one, so the act is there; what is missing is somewhere to put
   the box. Staging one replaces the column, which is right for a root and wrong in the middle of

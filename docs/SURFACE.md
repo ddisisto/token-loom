@@ -298,6 +298,22 @@ holds.
 unsure of, and none is shown until that position is asked about. What the reading column draws
 from those rows without being asked about a position is Overlays.
 
+**The rows stand where a band would, and at the line they are about.** The reading column is half
+of a container two measures wide and the other half is empty; a ranking answers *what else was
+here* at a position, which is the question a band answers at higher density, so giving them one
+place is what keeps there from being two answers to it. They sit against the column rather than
+over the window, so they scroll with the text they belong to.
+
+**Hovering is a caret that has not been committed.** With the rows shown, moving over a segment
+shows what pointing there would give — by the same rule, the ranking at the node before it — and
+the click that places the caret is what commits it. So a reader sweeping the column reads the
+alternatives along it without moving from where they are, and nothing new is named to allow it.
+
+**A ranking read earlier stops being true when an act lands, and not because the rows changed.**
+Rankings only grow, so what a position holds keeps for the life of the page; what does not keep
+is which rows a node has realised. Hovering is what makes this load-bearing, since it is what
+makes holding them worth doing at all.
+
 ## Overlays
 
 `docs/SPINE.md` names the objects: a **spine** is a sampled path read as the record of the
@@ -776,8 +792,16 @@ the first act the page can make that produces a fork, the tokens either merging 
 already follows or parting from it. The scroll gesture is unchanged and stays bound to the end
 of what is being read.
 
-What does not exist is everything past that: no band and no rankings, no `realise` reachable
-from the page, no depth limit and so no view that presets one. **Writing at the caret is not
+**What else was live is shown on demand, and two of its three rows can be taken.** The rows stand
+in the half the column leaves empty, at the line they are about, following the caret and softly
+following the pointer while they are shown. Each is marked by what taking it would cost: the one
+the path took is where the reader already is, one realised elsewhere is a selection and is the
+way back to an arm a draw parted from, and one nothing took is the only one that writes. A row
+shows its probability against a bar scaled to the top row of its source, which is one answer to
+*how* and not the settled one.
+
+What does not exist is everything past that: no band, no `realise` reachable from the page, no
+depth limit and so no view that presets one. **Writing at the caret is not
 offered either**, though `create` takes a position and the composer takes a node: it would
 replace the column with a box, and a request should appear where its result will. **The gesture that sets a segment aside is a modifier-click and is the weakest
 part of this**, chosen because a plain click is already spoken for above and not because it is

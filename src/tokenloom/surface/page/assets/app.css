@@ -126,6 +126,7 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
    under about a thousand characters that is every path. The column takes what the path does
    not provide as room above it, so the last line arrives at the same place either way. */
 #column { --col: min(34em, 44vw); --space: 45vh; --runway: 20vh; --top: 72px;
+          position: relative;  /* the rows stand in the half the column leaves empty */
           box-sizing: content-box; width: calc(var(--col) * 2);
           min-height: calc(100vh + var(--runway) - var(--space) - var(--top));
           margin: 0 auto; padding: var(--top) 24px var(--space);
@@ -158,10 +159,11 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
         border-bottom-left-radius: 5px; }
 #read.open { width: 19.5rem; }
 
-#aside { display: flex; align-items: center; gap: 7px; padding: 10px 6px 10px 14px;
-         cursor: pointer; }
-#aside:hover { color: var(--ink); }
-#aside input { margin: 0; accent-color: var(--accent); }
+#aside, #alts { display: flex; align-items: center; gap: 7px; padding: 10px 6px 10px 14px;
+                cursor: pointer; }
+#alts { padding-left: 6px; }
+#aside:hover, #alts:hover { color: var(--ink); }
+#aside input, #alts input { margin: 0; accent-color: var(--accent); }
 
 #read .head { font: inherit; color: inherit; letter-spacing: .06em;
               border: none; border-radius: 0; padding: 10px 14px 10px 8px; }
@@ -238,6 +240,47 @@ main { margin-left: var(--nav); transition: margin-left .14s ease; }
 .seg.hole  { text-decoration: underline double var(--accent); } /* nothing bounds it either */
 .seg.split { text-decoration: underline dashed var(--dim); }    /* more nodes than values */
 .seg.clash { text-decoration: underline wavy var(--accent); }   /* two sources, no answer */
+
+/* ---- what else was live ----
+   In the half the reading column leaves empty, at the line of whatever the rows are about, so
+   the connection between the two is seen rather than remembered. It scrolls with the page
+   because it stands inside the column and not over it.
+
+   Each kind of row is marked by what taking it would cost: the one the path took is where the
+   reader already is, one realised elsewhere is a selection, and one nothing took is the only
+   one that writes. */
+
+/* Placed as a share of the column and not from `--col`, which carries an `em`: a custom
+   property substitutes its tokens rather than its value, so that `em` would resolve again
+   against this element's own font and land the rows inside the text. Half the padding box is
+   the same edge by construction, and it depends on nothing that a font-size can move. */
+.rows { position: absolute; left: 50%; width: calc(50% - 34px);
+        max-height: 72vh; overflow-y: auto;
+        padding: 1px 0 1px 14px; border-left: 1px solid var(--rule);
+        background: var(--bg);
+        font: 400 12px/1.5 var(--mono); color: var(--dim); }
+.rows .none { font: italic 400 13px/1.5 var(--serif); }
+.rows .who { display: flex; align-items: baseline; gap: 10px;
+             padding: 0 0 5px; margin-bottom: 5px; letter-spacing: .05em;
+             border-bottom: 1px solid var(--rule); }
+.rows .who .much { flex: 1; text-align: right; font-size: 11px; color: var(--faint); }
+.rows .list { list-style: none; margin: 0 0 18px; padding: 0; }
+.rows li { position: relative; display: flex; align-items: baseline; gap: 8px;
+           padding: 2px 6px; cursor: pointer; border-radius: 3px; }
+.rows li:hover { color: var(--ink); background: var(--panel); }
+/* Behind the row and not beside it, so the list stays a list of tokens. */
+.rows .bar { position: absolute; left: 0; top: 1px; bottom: 1px; z-index: -1;
+             width: calc(var(--p) * 100%); border-radius: 3px;
+             background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.rows .spell { flex: 1; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.rows .spell.raw { color: var(--accent); }
+.rows .p { color: var(--faint); font-size: 11px; }
+
+.rows li.took { color: var(--ink); }
+.rows li.took .spell { font-weight: 600; }
+.rows li.unrealised .spell { font-style: italic; }
+/* A node exists for it, off the path -- so it is somewhere to go and not something to make. */
+.rows li.elsewhere::after { content: "\2197"; color: var(--accent); font-size: 11px; }
 
 /* ---- the composer ----
    A request appears where its result will, so this stands in the column at the position it
