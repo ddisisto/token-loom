@@ -119,7 +119,37 @@ What it does not need is a decision about the tree. Arms accumulate at the posit
 consolidated, pruned or divided out later — the five acts already do all three, and nothing about
 drawing repeatedly at one node asks the format for anything it does not have.
 
-**3. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**3. The stub line, by hand before it is by policy.** `docs/SPINE.md`'s stub drawn not at one row
+but at every position that earns one, so the counterfactual runs alongside the prose instead of
+being asked for a position at a time. It is the first thing the column draws that is not a
+measure, and `docs/SURFACE.md`'s *Stubs along a path* is what it has to be.
+
+**Nothing in it is new capability.** A stub is a `realise` of the top row and a `generate` from
+it, both of which the page makes now; a stub is born set aside, which *Hidden* already allows;
+and what decides where one goes is the top-to-second gap, which the path read already carries
+when an overlay asks for it. What is new is drawing text above text, and the reflow, the
+alignment and the loudness ceiling are the whole of the work.
+
+**The gate is measured and the threshold is not.** `docs/SPINE.md` has the arithmetic: selecting
+on the gap rather than the flag is what leaves a stub room to be read, and above two nats of gap
+it is six stubs to a screen at a median of ten tokens. It also has why that number is provisional
+— it was measured over a tree carrying 29 `realise` acts in twenty thousand nodes, so almost every
+divergence in it is the sampler and not a reader.
+
+**By hand, and the policy strictly after.** `docs/SPINE.md` leaves automated inflation open and
+says what would settle it: whether readers given the manual loop converge on patterns a policy
+could serve — which cannot be observed before the manual loop exists. An idle policy also writes
+acts nobody asked for, and while the actor already separates them at no cost, whether speculation
+belongs in the record at all is the open question there and not a detail of this.
+
+**It is after the two above and not before.** The strip reads `params` back out of `generate`
+acts, and stubs are `generate` acts at a fixed greedy setting — so a strip built after them has
+to know which acts were a reader's, and it is cheaper to have that read working over acts a
+reader made than to add the distinction afterwards. And walking into a stub is placing the caret
+inside it, which is the gesture the way back to an act boundary is about: the second increment is
+what makes a stub something to work with rather than only something to look at.
+
+**4. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
@@ -138,7 +168,7 @@ together and two of the three exist. Branching waits on what it counts and vocab
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
 
-**4. The band, when its need is as clear as theirs.** It displays forks, so until something makes
+**5. The band, when its need is as clear as theirs.** It displays forks, so until something makes
 them it has nothing to display — that was the argument for putting it last and it still holds.
 What has changed is that its need is the least established of these: a ranking on demand already
 answers *what else was here* at a position, and whether a reader also wants every continuation

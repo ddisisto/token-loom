@@ -411,7 +411,9 @@ and merges, so resting on the same row again spends nothing and the total is bou
 has ever been revealed rather than by how long a pointer sat there; *Hidden* already has a stub
 born set aside, so what it writes enters neither the live path nor the rule; and it can be asked
 for rather than assumed. What would settle it is whether a reader with it on can still tell what
-they chose from what the instrument spent.
+they chose from what the instrument spent. *Stubs along a path* is the same spend under a
+different trigger, and the two are settled apart: a pointer is a reader asking, and an idle
+policy is not.
 
 **Clicking a row nothing realised is the `realise`, and that is its primary meaning.** Not one
 entry on a menu the row might later carry: the row exists to be taken, and the only one of the
@@ -658,6 +660,83 @@ one measure while seeing another drawn over it, and a locked mode takes exactly 
 so it merges rather than accumulating duplicates, and the stub at a flagged position is the child
 that realised the top row — which the ranking read already reports. What a stub costs is a
 `generate`, and *Nothing written is only here* holds for it like any other.
+
+## Stubs along a path
+
+**Rankings and the band draw a stub at one position; this is the same object drawn at every
+position that earns one.** Nothing about the stub changes — it is still a greedy rollout from
+what the draw passed over, still born set aside, still an ordinary branch. What changes is that
+they are all on the page at once, which makes them a second document laid against the first
+rather than an answer to a question the reader asked. `docs/SPINE.md` owns what a stub is and
+where one is worth spending; what is here is what a column full of them has to be.
+
+**The counterfactual is text, so it is drawn as text.** An overlay says *this position cost 3.2
+nats* and leaves the reader to convert; a stub says what the model would have written instead.
+Magnitude and identity arrive in one mark, and the reader acts on the second. This is the first
+thing the column draws that is not a measure, which is why it is not an overlay and does not
+share their machinery.
+
+**A single displaced token is not a counterfactual and must not be drawn as one.** At a position
+the model's argmax is X and the draw took Y; at the next position the recorded ranking is
+conditioned on **Y**. So a line built from displaced tokens alone is a sequence of independent
+one-step objections, each computed in a context holding every token it objected to — locally
+true, and incoherent read along itself. It would look like a document and read like noise, which
+is the worst of both. The depth is what makes it a document: a stub is generated in its own
+context and is a real path of the tree, so the second line is something the model actually would
+have written. Nothing is drawn above the prose that is not a stub.
+
+**How much of one is shown is the room to the next.** Short where divergence crowds and long
+where one stands alone in a run of agreement, capped at a screen so an isolated stub in a long
+greedy passage does not become the page. `docs/SPINE.md` measures the distribution this yields
+and the gate that makes it legible; the surface's part is only that display depth and generated
+depth are the same number, since generating past what can be shown spends inference on text
+nobody reaches.
+
+**It is one line that fades, and not a scatter of fragments.** Drawn only where a stub exists,
+the upper track is debris and cannot be skimmed; drawn at every position it doubles the text and
+destroys the steady state that makes the cadence readable. Drawn continuously and faded to
+nothing across agreement, it is one object that comes and goes, which is what a reader can learn
+to sweep. Whether the faded stretches carry the taken token or nothing at all is open, and it is
+decided by whether a reader tracking the upper line loses it across a long agreement.
+
+**The three endings are marked apart, for the reason every other no-value state is.** A stub that
+filled its room, one that cycled, and one that reached EOS are three different facts, and a
+reader who could not tell them apart would read an exhausted model as a finished document.
+`docs/SPINE.md` has what each means and that the record already carries the difference. This is
+*Overlays*' rule about a position with no value applied one level up, and it wants the same
+answer: a distinct mark for each, none of which can be read as a quantity.
+
+**How loud it may get is not settled, and the two arguments are both good.** `docs/SPINE.md`
+demands recessive rendering — a stub should read as the model's habit and not as the right
+answer, because a reader who defers to greedy has been moved by the instrument rather than
+informed by it, and it names this as the one place where visual weight changes what a reader
+concludes. Against that: the stub is the arm the reader is choosing against, and an arm too faint
+to read is one they cannot weigh. The reconciliation available is that prominence rides on the
+gap rather than being set flat, so the model's habit is quiet where it was barely held and
+insists where it was — with a ceiling the reader sets. Whether that ceiling may reach parity is
+the open part. What settles it is whether readers with it high still take arms the model did not
+rank first; if the rate falls as the ceiling rises, the instrument is steering them and
+`docs/SPINE.md` was right to bound it.
+
+**Turning it on re-lays out the column, and that is a different cost from the caret's.** The
+reflow this page refuses is the kind that happens under a reader's eye as they point — *Writing*
+has why. This one happens once, at a mode change, and is stable until the mode changes back. It
+is affordable, and what it costs is the reader's place on the page: line heights grow where the
+stubs are dense, so the position they were reading moves. The caret is what the page can hold
+across it, which it can already do.
+
+**What an idle policy asks of the surface is a window and an order.** Should `docs/SPINE.md`
+settle that stubs may be spawned unprompted, the surface is what says where: within the viewport,
+so the reader watches them land beside the text rather than finding them already there, and in
+path order rather than by rank of interest, because each stub is a fresh prompt and only
+adjacency keeps the backend's prompt cache warm — a cold jump costs more in prompt than the whole
+sweep costs in generation. Reading speed then sets the density for free: a page fully inflates
+for a reader who dwells and stays sparse for one who skims, and neither is a setting.
+
+**Two controls and not one, because a spend and a rendering are different questions.** How much
+idle inference goes to stubs against anything else spending it is a budget; how loud the result
+is drawn is the ceiling above. Tying them would make a reader who wants a quieter page stop
+generating the thing they are reading.
 
 ## Writing
 

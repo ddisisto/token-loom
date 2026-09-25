@@ -51,7 +51,17 @@ Stubs answer the question a flag alone cannot: **did the divergence last?** Most
 
 Whether a stub has re-converged is left to the reader's judgement, deliberately. It is not obvious the question has a closed form, and the chain presented plainly — this token, that token, this continuation — is enough for a reader to decide how and whether to continue. Formalising re-convergence (n-gram overlap over a window, embedding distance, anything else) is analysis performed later over recorded chains, not a gate built into the loop.
 
-Stub mechanics, first cut: a flat 20 tokens, greedy, generated on demand for flags the reader touches. Greedy rollouts are deterministic — a pure function of the position — so each is generated once ever, and every stub deepens the record for any later reading of the same region. A stub that immediately cycles is not a failure but a diagnosis, delivered exactly where it applies: *from here, the model's preference is a loop.* Attractor detection arrives as a per-position annotation, free.
+Stub mechanics: greedy, and generated once ever. A greedy rollout is a pure function of the position, so every stub deepens the record for any later reading of the same region and none is ever drawn twice. Determinism also forecloses replacement — a stub that disappoints cannot be redrawn into a better one, and wanting a different continuation there is wanting a different question asked: rank two at the divergence, or a hotter draw. Both are the reader's to ask and neither is the loop's to substitute silently.
+
+**A stub ends three ways, and they mean different things.** It fills the room it was given, and there is more if the reader asks for it. It cycles, and the model's preference from here is an attractor — not a failure but a diagnosis, delivered exactly where it applies: *from here, the model's preference is a loop.* Or it reaches EOS, and the model would have ended the document at a position the draw carried past. The last is the sharpest of the three, because this is a base model and its EOS is a document boundary rather than a refusal to answer. The record tells them apart already: `acts.terminator` carries `eos` against `limit`, and a cycle over token ids is detectable without reading any text. Collapsing them would tell a reader that an exhausted model and a finished document are the same event.
+
+**Detect and stop, rather than penalise and continue.** The instrument ordinarily reached for against a loop is a repetition penalty, and it is barred here by what a stub is: a penalty is a sampler, and a rollout drawn under one is no longer the model's habit. So a cycle ends the stub instead of being suppressed inside it, and the ending is the annotation. Attractor detection arrives per position, free.
+
+**The three endings are also the eligibility test.** A stub is extendable unless it filled its room, cycled, or ended — which is the same list read from the scheduler's side rather than the reader's. Whatever spends inference on stubs and whatever marks them apart in the column are then one decision, made once.
+
+**What spawns a stub is how much the model cared, and not how far the draw fell.** *Evidence in hand* measures both, and they are not independent: at a divergence the draw took something at or below the second row, so **the flag is never less than the gap**. Selecting on the flag therefore admits every position where a flat ranking was sampled from — which is most of them, and where the argmax is arbitrary and a rollout from it asserts an opinion the model did not hold. Selecting on the gap admits the positions where the model was sure and something went elsewhere, which is the whole of what a stub is for. The gap subsumes the flag up to its own threshold, so this is one dial rather than two.
+
+**How deep is set by the room to the next stub, and not by a flat count.** A stub is read against the prose it is displacing, so its useful length is the distance to the next one — short where divergence crowds, because there is nowhere to put more and nothing legible to be made of it, and long where a single divergence stands alone in a run of agreement. *Evidence in hand* has that distance under the gate above, and a ceiling of one screen for the isolated case. Generating past what can be shown is inference spent on text no reader will reach.
 
 ## What this asks of a reading surface
 
@@ -175,12 +185,53 @@ below, how realisation falls with rank.
 edges above probability 0.40, 25 above 0.30, and 118 above 0.10 — and each path those open
 contributes as many again. Readability is the binding constraint, not inference cost.
 
+**How often the draw leaves the argmax is a readout of the temperature dial, not of the text.**
+Over the 298 generated runs of `data/continuations`, the share of positions carrying a flag runs
+1 in 7030 at temperature 0, 3.0% at 0.05–0.35, 27.4% at 0.4–0.8, and 58.7% above 0.9. So the
+rarity of a flag is a property of how a batch was asked for and not of what it says, and a
+document drawn greedily carries none at all — which is the mode this method spends most of its
+time in. The texture that reads off a page as alternating dense and empty regions is a record of
+method, which is a real thing to be able to see, and it is not the text speaking.
+
+**At a divergence the flag is never less than the gap, which makes the gap the only dial.** A draw
+that left the argmax took something at or below the second row, so `top₁ − taken ≥ top₁ − top₂` by
+construction. The counts show it exactly: over the same runs, selecting on gap > 1.0 admits 1241
+positions and selecting on *both* gap > 1.0 and flag > 1.0 admits the same 1241; at gap > 2.0 both
+admit 347. Nothing is added by the second condition until its threshold passes the first.
+
+**Selecting on the gap is what leaves room for a stub, and selecting on the flag does not.** Room
+is the distance to the next selected position, which is the depth a stub can be shown at.
+`scripts/stub-gate.py` is this measurement, over every generated run, against a 400-token screen:
+
+| gate | stubs per screen | median room | room ≥ 8 tokens |
+|---|---|---|---|
+| every divergence | 84 | 0 | 3% |
+| flag > 3.0 | 20 | 2 | 21% |
+| gap > 1.0 | 22 | 3 | 24% |
+| gap > 2.0 | 6 | 10 | 57% |
+
+Ungated the counterfactual is a second token against nearly every first, which is not a document
+laid beside a document but one document struck through. At gap > 2.0 it is six annotations to a
+screen at a median of ten tokens, over half of them long enough to read as language.
+
+**It is measured on a tree nobody steered, so the threshold is provisional.** `data/continuations`
+holds 29 `realise` acts against 20,839 nodes, so almost every divergence counted above is a
+sampler leaving the argmax and not a reader doing it. In a document made by this method the
+divergences would mostly be interventions, which carry a flag by construction and should sit at
+the sharp end of the gap — a reader realises a row because they disagreed with a model that was
+sure. The gate would then admit more of what matters and less of what does not, so these numbers
+are the pessimistic case. What settles the real threshold is a steered document, and there is
+not one yet.
+
 ## Deliberately open
 
 Each of these is left to be settled by use of the instrument, and each names what would settle it:
 
 - **Whether re-convergence has a workable formal measure.** Settled by comparing candidate measures against reader judgements over recorded chains — no generation required.
-- **Stub policy beyond a flat 20.** Settled by where readers actually stop reading stubs, and which stubs they extend.
+- **Stub depth beyond the room it is given.** *Stubs* sets depth from the distance to the next
+  stub, which makes the policy a consequence of the gate rather than a number of its own. What is
+  open is whether a reader wants that ceiling lifted where a stub was going somewhere — settled by
+  where readers actually stop reading stubs, and which ones they extend by hand.
 - **Which distribution measure best predicts the flags that turn out to matter** — entropy, gap, head-mass, or something composite. *Evidence in hand* rules out the obvious answer for selection and leaves the question. Settled by the fork map: aggregate which positions produced lasting divergence, and score each measure as a predictor of them.
 - **Whether a well-sampled tree is its own reference arm.** Sampling one position many times
   makes the arm most often taken the model's modal token, so any rule that argmaxes an aggregate
@@ -195,5 +246,18 @@ Each of these is left to be settled by use of the instrument, and each names wha
   one born set aside — so liveness separates them and no archaeology over act parameters is
   needed. **Measure it before anything rolls stubs out on hover**, which would drive the top row's
   share to one and leave the curve measuring a pointer.
-- **Whether automated inflation earns its place** — thresholds that spawn stubs unprompted, or policies that spend ahead of the reader. Settled by whether readers, given the manual loop, converge on repetitive selection patterns a policy could serve.
+- **Whether automated inflation earns its place** — thresholds that spawn stubs unprompted, or
+  policies that spend ahead of the reader. *Evidence in hand* now answers the part that was
+  arithmetic: if stubs are spawned automatically, the gate is the gap and the density it yields is
+  legible. It does not answer whether a reader wants inference spent without asking, which is the
+  part that was ever in question. Settled by whether readers, given the manual loop, converge on
+  repetitive selection patterns a policy could serve — and the manual loop has to exist first.
+- **Whether a stub the reader never asked for should be written down at all.** An idle policy that
+  rolls stubs ahead of the reader writes acts nobody requested, and the record is otherwise a
+  record of intent: `docs/NEXT.md` reads sampler settings back out of `generate` acts, and the
+  measurements above read a tree as the work someone did on it. Both want the reader's acts apart
+  from the instrument's. **The field exists** — an act carries its actor, so an idle policy acts as
+  its own and every read that needs the difference has it. What is open is whether speculation
+  should be committed at all or held until it is taken, which is a question about what a record is
+  for and not about where to put a flag.
 - **Which embeddings, if analysis wants them.** Settled by probing candidates against chains that already exist; nothing upstream depends on the choice.
