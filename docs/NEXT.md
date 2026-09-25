@@ -120,9 +120,16 @@ consolidated, pruned or divided out later — the five acts already do all three
 drawing repeatedly at one node asks the format for anything it does not have.
 
 **3. The stub line, by hand before it is by policy.** `docs/SPINE.md`'s stub drawn not at one row
-but at every position that earns one, so the counterfactual runs alongside the prose instead of
-being asked for a position at a time. It is the first thing the column draws that is not a
+but at every position that earns one. It is the first thing the column draws that is not a
 measure, and `docs/SURFACE.md`'s *Stubs along a path* is what it has to be.
+
+**What it is for has narrowed since it was written down, and the scope should follow.** One
+worked session says an operator intervenes where the model was torn, and an automatic stub lands
+where it was sure — so this is an alarm for what a reader would not have gone looking for, and
+not a map of where their work is. The dense end is reached by asking at a position, which the
+page already does. A cheaper thing may be worth more: a rank-two rollout pre-warmed at the
+positions an operator does work, which needs no second line, fills a panel that already exists,
+and buys latency rather than screen space. `docs/SPINE.md` has both measurements.
 
 **Nothing in it is new capability.** A stub is a `realise` of the top row and a `generate` from
 it, both of which the page makes now; a stub is born set aside, which *Hidden* already allows;

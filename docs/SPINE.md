@@ -59,7 +59,15 @@ Stub mechanics: greedy, and generated once ever. A greedy rollout is a pure func
 
 **The three endings are also the eligibility test.** A stub is extendable unless it filled its room, cycled, or ended — which is the same list read from the scheduler's side rather than the reader's. Whatever spends inference on stubs and whatever marks them apart in the column are then one decision, made once.
 
-**What spawns a stub is how much the model cared, and not how far the draw fell.** *Evidence in hand* measures both, and they are not independent: at a divergence the draw took something at or below the second row, so **the flag is never less than the gap**. Selecting on the flag therefore admits every position where a flat ranking was sampled from — which is most of them, and where the argmax is arbitrary and a rollout from it asserts an opinion the model did not hold. Selecting on the gap admits the positions where the model was sure and something went elsewhere, which is the whole of what a stub is for. The gap subsumes the flag up to its own threshold, so this is one dial rather than two.
+**A stub placed unbidden is an alarm, and not a map of where the work is.** *Evidence in hand*
+measures where an operator actually intervened, and it is the low-gap end — the positions the
+model was torn at, which are far too dense to draw a second line over. Those are reached by
+asking, at a position, which is a gesture the surface already has. What can be placed unbidden is
+the sparse opposite: the model was confident and the draw went elsewhere, which is the thing a
+reader is least likely to notice for themselves. Both are worth having and only one of them is a
+line.
+
+**What spawns that alarm is how much the model cared, and not how far the draw fell.** *Evidence in hand* measures both, and they are not independent: at a divergence the draw took something at or below the second row, so **the flag is never less than the gap**. Selecting on the flag therefore admits every position where a flat ranking was sampled from — which is most of them, and which is a wall rather than a second line. The reason is room and not meaning: the token a rollout starts from may be near-arbitrary where the ranking is flat, but the continuation from it is the model's either way. Selecting on the gap admits the positions where the model was sure and something went elsewhere, which is the whole of what a stub is for. The gap subsumes the flag up to its own threshold, so this is one dial rather than two.
 
 **How deep is set by the room to the next stub, and not by a flat count.** A stub is read against the prose it is displacing, so its useful length is the distance to the next one — short where divergence crowds, because there is nowhere to put more and nothing legible to be made of it, and long where a single divergence stands alone in a run of agreement. *Evidence in hand* has that distance under the gate above, and a ceiling of one screen for the isolated case. Generating past what can be shown is inference spent on text no reader will reach.
 
@@ -214,7 +222,32 @@ Ungated the counterfactual is a second token against nearly every first, which i
 laid beside a document but one document struck through. At gap > 2.0 it is six annotations to a
 screen at a median of ten tokens, over half of them long enough to read as language.
 
-**It is measured on a tree nobody steered, so the threshold is provisional.** `data/continuations`
+**The gate reproduces on a steered tree, and points away from where its operator worked.**
+`data/logozoa` is one worked session — 21,167 nodes, 145 `realise` acts against 559 draws, 4,435
+authored tokens — and the gate lands identically on it: `gap > 2.0` admits 6 stubs to a screen at
+a median room of 9, against 6 and 10 on `data/continuations`. The flag gate does worse here than
+there, 61 to a screen at no room, because a steered tree makes large flags deliberately and the
+flag cannot tell those from a hot sampler.
+
+**But the positions its operator chose are the other end of the same measure.** Where they
+realised a row, the top-to-second gap has a median of 1.03 nats and is above 2.0 at 30% of them;
+over every ranked node in the tree the median is 4.15 and 64% are above 2.0. So intervention
+concentrates where the model was torn, and an automatic stub lands where it was sure. They are
+not competing answers — a reader asks at the position they are working, and what is placed for
+them unasked is what they would not have gone looking for. It does say the line is an alarm and
+not a map. (The comparison is against every ranked node rather than every node the reader passed,
+which is the cleaner population and is not recoverable from the record.)
+
+**Steering is a nudge far more often than a jump.** Of the 145 realised rows, 75 are rank one —
+the second row — and only four are rank zero. So the continuation an operator most often wants
+next is the one the ranking already puts beside the one they have, which is the cheapest
+speculation available and needs no second line to show.
+
+**Degenerate regions are rare in worked use.** Six of 443 generated runs of twelve tokens or more
+end in a cycle, against 9,546 greedy positions in the tree. Loop detection is insurance rather
+than a common path, and the pivot is not urgent work.
+
+**The earlier numbers were measured on a tree nobody steered.** `data/continuations`
 holds 29 `realise` acts against 20,839 nodes, so almost every divergence counted above is a
 sampler leaving the argmax and not a reader doing it. In a document made by this method the
 divergences would mostly be interventions, which carry a flag by construction and should sit at
