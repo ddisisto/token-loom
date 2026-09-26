@@ -147,6 +147,48 @@ logprob, a rank, a price paid for a divergence — is a fact about the model. Wh
 bridged is a call the reader makes. The instrument's whole job sits in that gap: it does not
 close it, it puts the two sides where they can be read against each other.
 
+## What the instrument measures, and what it does not
+
+**It measures the reader's position, not the context's quality.** *The claim* refuses an external
+score for a context and that refusal stands: whether a context bridged is a call one reader
+makes, and an instrument that scored it would be answering a question nobody has posed well
+enough to score. What can be measured is something else — whether that reader is still in a
+position to make the call.
+
+**The judgement is exercised as rejection, which is why it survives having no criterion.** A
+reader does not need to know what a good continuation would be in order to know they do not want
+more of this one. Rejection is local, it is negative, and it needs no target, which is what makes
+it available at every position rather than only at the end of something. What a sampler does
+blindly and by policy — walking away from a degenerate region — becomes a thing chosen once,
+here, on its merits. `docs/INTERFERENCE.md`'s *a sampler is a prosthesis for absent intent* is the
+general form, and a repetition loop is only where the prosthesis is most visibly one.
+
+**The instrument need not know the goal, and the rejections still carry it.** These are not the
+same statement and the difference is the whole of what makes the logs worth reading. A reader
+filtering what they do not want more of is not doing something orthogonal to their purpose;
+they are doing something *underdetermined* by it, which nothing outside them has to be told in
+order for the filtering to work. What they declined is evidence about the purpose all the same,
+and `docs/SPINE.md`'s questions about how an operator learns a model are questions about exactly
+that residue.
+
+**So the failure to watch for is not a bad context but a reader with nothing left to decline.** A
+context can be driven so far that every continuation is the one that was wanted, and from the
+inside that is indistinguishable from having learned the model. `docs/SPINE.md` carries the
+checks against it. None of them scores the work; each asks whether choices are still arriving to
+be refused. **They are measurements of a process and not of a context**, which is how they stand
+beside the refusal above rather than against it.
+
+**Nothing here is specific to a base model or to continuation.** The unit is an ordered sequence
+of tokens, and a chat-templated exchange is one of those — so the states this can hold are a
+superset of the states any of those interfaces can be in, reachable in any order rather than
+only by appending. Three conditions come with that and are stated elsewhere: a tree holds one
+vocabulary, so the superset is within a tokeniser and not across models; the store can represent
+a chat context without interpreting its roles or turn boundaries, which `docs/SURFACE.md` still
+has open; and it needs the tokeniser and the server, which is why `CLAUDE.md` says nothing here
+can reach a hosted model. What the claim buys is narrower than it sounds and is the part that
+matters: the approach is not a base-model curiosity, and what it finds is not confined to the
+one place it is easiest to see.
+
 ## What would show this wrong
 
 An argument that names nothing that would unseat it is decoration. These are not a programme of
@@ -167,6 +209,13 @@ work and carry no order; what gets built is `docs/NEXT.md`, and what has been me
   or replaced by a synonym should behave differently from an established one, and a second reader
   given only what persisted should be able to reconstruct the distinctions. If nothing survives
   either, the thesis is about accommodation and not about meeting.
+- **The measures should survive leaving the conditions they were found in.** They are developed
+  where a divergence is cheap and easy to see — low temperature, short contexts, a seven-billion
+  parameter base model — and the bet is that what they read scales into long and complex ones.
+  The counter is specific and worth stating as such: further into a context, and with a more
+  capable model, degeneracy is rarer and what divergence remains is subtler and more semantic, so
+  a reading built on the distance between a ranking's top two rows may find nothing there at all.
+  If the measures go quiet where the work gets hard, they were instruments for the easy case.
 - **Compaction should preserve the load-bearing and not the frequent.** The claim is that what
   survives is what was structural. A term that occupied a great deal of the window and did no
   work, surviving; a rule that did all the work, lost — either would say the mechanism is

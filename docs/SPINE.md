@@ -51,6 +51,10 @@ Stubs answer the question a flag alone cannot: **did the divergence last?** Most
 
 Whether a stub has re-converged is left to the reader's judgement, deliberately. It is not obvious the question has a closed form, and the chain presented plainly — this token, that token, this continuation — is enough for a reader to decide how and whether to continue. Formalising re-convergence (n-gram overlap over a window, embedding distance, anything else) is analysis performed later over recorded chains, not a gate built into the loop.
 
+**The greed is what earns the name, and it is a condition rather than a decoration.** An interferometer splits a signal, sends one part down a reference arm and the other down a measurement arm, and reads what differs when they recombine. The spine is the measurement arm — the path as it actually went, under whatever sampling and whatever interventions. The stub is the reference: the model left alone from the same position. A difference between them is attributable to the intervention **only because no sampling noise entered the reference**, which is what a temperature of zero buys and the only thing it is bought for. A stub drawn with any width to it would make the comparison a comparison of two draws, and there would be nothing to read off it.
+
+**So the arm is exact only under conditions, and they are worth naming where the claim is made.** `src/tokenloom/adapters/llamacpp/README.md` measures them: cold, a rollout reproduces bit for bit; warm, the prompt cache is a second variable, and a *partial* hit moves logprobs by up to 0.58 and has moved a greedy path off its cold course. Hardware and batch-level nondeterminism are not controlled for either, and a seed does not reach the cache. What follows is not that the reference is useless but that it is a reference *on this machine, in this cache state* — exact where it is read against a spine drawn under the same conditions, and advisory across them.
+
 **A stub is asked for by hovering the row it belongs to.** The reader opens the rankings at a position, moves onto a row, and the row grows to show where taking it would lead — which is what a stub is for and where it comes from. Nothing rolls out unasked; `Deliberately open` has whether anything should.
 
 Stub mechanics: greedy, short, and born set aside, so what a hover spends enters neither the live path nor the continuation rule. Replacement is foreclosed and deliberately: a stub that disappoints is not redrawn into a better one, because wanting a different continuation there is wanting a different question asked — rank two at that position, or a hotter draw — and both are the reader's to ask.
@@ -102,6 +106,38 @@ And any stub can be **promoted to a spine of its own**: the reader walks into th
 One spine's flags are one draw's story. **Across many spines over the same context, flag positions aggregate into a fork map**: positions that flag repeatedly, across draws and across sampler settings, are the context's real decision points — identified by repeated observation rather than by a ranking heuristic. Positions that flag once and re-converge are noise the aggregate washes out. Stubs that loop, collected across a region, map the attractors.
 
 This is the analyst's layer, and it asks nothing of the reading loop: it is queries over what the loop naturally sheds. The resistance of a model on a context — how much has to be spent to move it, and whether it can be moved at all — is assembled here, from flags whose prices are recorded and stubs whose destinations are known. A context on which flags are rare, expensive, and uniformly re-convergent is a context with one attractor and a model that will not leave it, and that finding is the sort the instrument exists to make visible.
+
+## The failure mode is a loop the operator built
+
+**The obvious success criterion is convergence, and the operator is the one who games it.** A context can be made so over-determined that the model has no real choice left in it. Entropy along the path collapses, every proposal matches what was wanted, and by the convergence measure this looks like mastery. It is a closed loop built by hand: an attractor with the operator inside it, and the model reduced to an echo.
+
+**So the criterion is two-sided. A trajectory is going well when it moves in the intended direction and stays open.** Concretely, and all four measurable from what the store already holds:
+
+- Branching entropy along the path stays above a floor rather than trending to zero.
+- Stubs cast from recent nodes do not immediately cycle.
+- Accepted tokens are not always rank one; the model is still offering choices that get taken.
+- The model still surprises the reader, and some of those surprises are kept.
+
+**None of them is a target and each is a check against the others**, which is what keeps them from becoming the next thing to game. They are also not a score, and the distinction is what lets them exist at all: what they measure is the process and not the artefact — whether choices are still arriving for the reader to decline, and not whether declining them went well. Nothing here says a context is good, which is a call the reader makes and no instrument takes from them. The hypothesis is that skilled operation shows up as direction with openness, and that it is distinguishable in the logs from sophisticated puppeteering.
+
+**The second check is the one the instrument already computes.** A stub that immediately cycles is a diagnosis delivered per position, and a region where every stub cycles is the trajectory closing. *Evidence in hand* has six of 443 generated runs ending in a cycle over one worked session, which is what the check reads as passing.
+
+## Fixed model, adaptive operator
+
+**The weights do not change during a session and the reader does.** Over time they learn the model: its attractors, where its pivots fall, where a one-token intervention moves everything and where a paragraph moves nothing, and when its confidence is worth doubting. It is a fixed landscape and an adaptive navigator of it, and because every act is recorded with a timestamp the adaptation is measurable rather than merely claimed. What the record is asked:
+
+1. Does intervention frequency fall with experience, and do interventions get smaller?
+2. Do interventions concentrate at pivots, or at other identifiable points in the trace?
+3. Does the rank distribution of accepted tokens shift as the reader learns the model?
+4. Does time from decision to decision fall, and where does it stay high?
+5. Do experienced trajectories stay open longer by the checks above, while still arriving somewhere?
+6. Does guided navigation reach regions of state that sampling alone rarely visits?
+
+**Every one of these is a curve against time and not a number**, which is what `acts.created` makes free and what a single measurement would miss. It also means a feature that changes how a reader behaves does not spoil the measurement; the change is what question three is asking about.
+
+**One comparison comes almost free.** A post-trained model still performs the base function and the store does not care which it is attached to, so running a base model and a post-trained sibling from identical contexts should show what post-training does to the landscape: flatter entropy, fewer real branches, deeper attractors. That is a prediction to check rather than a claim.
+
+**Stated plainly: the operator is also the builder.** That is the right condition for exploratory first-person work and it is how these questions were found. It is not sufficient for claims about operators in general, which will need people who did not build the instrument.
 
 ## Why this shape
 

@@ -11,6 +11,22 @@ it is one path among those the model made available, and several are held at onc
 is the interface this is named after — inspired by
 [socketteer/loom](https://github.com/socketteer/loom), and the debt is conceptual and real.
 
+**The idea is the Autoregressive Interferometer and the implementation is token loom, and the two
+names are not interchangeable.** The instrument splits a signal: one arm is the path as it went,
+the other is the model left alone from the same position, and what is read is the displacement
+between them. That is the claim a paper would be written under. This repository is the reference
+implementation built to test it, it keeps the Loom debt in its name, and `tokenloom` is the
+package either way. **Never abbreviate it to ARI** — that is the Adjusted Rand Index and the
+Automated Readability Index in exactly the venues this would be read in — and *autoregressive* is
+one word, which is how the literature spells it and which stops the acronym forming. After first
+use, *the interferometer*.
+
+**Four things separate this from the line it comes from**, and only the first is visible in the
+format. A token-exact store, so nothing is re-tokenised. A deterministic reference arm, so a
+temperature-zero run is a first-class probe and not one more sample. Attractors as objects of
+study, so a loop is located and used rather than only avoided. And the operator as a variable,
+so the record is built to answer questions about how a person learns a fixed model.
+
 **What is different is that the record goes down to the token.** Every generation carries
 what else was ranked at every position it passed through, so a path can be read against the
 alternatives that were live along it — not just against its siblings. A branch can be taken
@@ -71,7 +87,11 @@ rather than a fault to correct.
 - **`docs/PREMISE.md`** is why any of this is worth building — a context as a shared vocabulary
   between one reader and one model, and what follows for an instrument over it. **It is an essay
   and it constrains nothing.** Nothing cites it and nothing should; it is wrong in the way an
-  argument can be, not in the way a specification goes out of date.
+  argument can be, not in the way a specification goes out of date. **It points outward and is
+  not pointed at**, which is how *What the instrument measures, and what it does not* sits there:
+  it says why an instrument refusing to score a context can still measure whether its reader is
+  in a position to judge one, and `docs/SPINE.md` carries those checks without citing the
+  argument for them.
 - **`docs/CORE.md`** is what the format *is* — node, edge, source, ranking, act, the on-disk
   shape, the invariants, the operations. It carries no arguments and is written against one test:
   can someone implement a reader from it alone. **It moves only as its own deliberate piece of
@@ -108,6 +128,11 @@ rather than a fault to correct.
   which `docs/SURFACE.md` uses; *overlay* is that document's word for the machinery either kind
   of measure is drawn by. It carries the continuation probe's measurements under *Evidence in
   hand*, and it supersedes `docs/CONTROLLER.md`, which is in the history.
+  **It also holds what would count as this working**: the two arms and the conditions the
+  reference arm is exact under, the failure mode where an operator closes the loop by hand and
+  the four checks against it, and the questions the record is built to answer about how a reader
+  learns a fixed model. Those measure a process, which is why they sit beside the refusal to
+  score a context rather than against it.
 - **`docs/NEXT.md`** is what gets built next and why in that order. **It is living**: items are
   added as they come up and deleted once they close or fall out of scope, so it never
   accumulates a history of itself. Nothing cites it, and nothing should — it is the one document
