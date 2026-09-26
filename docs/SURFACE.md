@@ -50,7 +50,7 @@ character it is several.
   the two spell the same bytes and display is bytes. The store tells them apart by the id.
   Whether the reader should is in What is not decided here.
 - **A newline is a newline** in the reading column. Where a construct of the surface is one line
-  by its own construction — a preview line in The band — a newline is shown as a glyph rather
+  by its own construction — a row's continuation in Rankings — a newline is shown as a glyph rather
   than obeyed, because obeying it carries everything below out of alignment.
 
 ## Where a tree comes from
@@ -249,9 +249,9 @@ this away*, and *nobody has taken this up yet*. What tells them apart is the act
 node — an act carries its actor — so a reader who needs the difference has it and the column
 does not have to draw it. What it does not reach is *where* such a node sits: a stub hangs beside
 a path rather than below its end, and the rule above only carries a path on from the end. Seeing
-one is Rankings' business or the band's, and not the column's.
+one is Rankings' business and not the column's.
 
-## Forks and the band
+## Forks
 
 **A fork is a node whose parent has more than one live child.** In the reading column it carries a
 mark and nothing else — no count, no preview, no affordance beyond being marked.
@@ -259,55 +259,6 @@ mark and nothing else — no count, no preview, no affordance beyond being marke
 **A deleted sibling hides a fork.** Liveness is what the surface follows, so a node with two
 children of which one is deleted is not a fork and is not marked. The record still holds it, and
 whether a reader should be told is in What is not decided here.
-
-### The band
-
-The band was built against a real tree before it was written down, so this section describes
-something that ran.
-
-Opening a fork **inserts the alternatives into the line they part from**, and moves nothing
-sideways.
-
-1. **The line splits** at the column the fork's first token occupies. Above the split nothing
-   changes. Below it, the current path resumes **at the column it left** and continues wrapping at
-   the measure, dimmed — dimmed because opening a fork is asking what would replace it.
-2. **Preview lines go in the gap.** Each begins at the column its own first token would occupy in
-   the line it parts from, and shows text only from its own divergence onward.
-
-**The indentation is where paths part, not how deep they are.** Two alternatives at the split
-share a column; one that parts three tokens later sits three tokens further right. Shared prefix
-is shared screen position, which is the trie drawn as text rather than as a diagram beside it.
-
-**Order is depth-first.** The path already being read comes first — it is what every other line
-aligns against, and selecting it is a cancel. Then its siblings at the split, and within each
-line, the lines that part from *it*, in the order they part.
-
-**A preview follows the same continuation rule that selecting it would**, so what it shows is a
-truthful prefix of what taking it gives.
-
-**Selecting a preview makes it the path and closes the band.** Everything above the fork is
-untouched: the reader has not moved, the continuation has. Nothing is written — a preview is a
-path that already exists, so taking one is a selection and not an act. Taking an alternative that
-has *no* node is a different operation and lives in Rankings.
-
-**Each preview is one line.** It gets a reading measure of width, or whatever is left of the page
-if it starts late — which is why the reading column is half the page and the other half is empty
-until a fork opens. A preview that starts at the end of a line still has a line's worth of room,
-and the reading column never moves to make it.
-
-**The band bounds itself by room, and by nothing else.** A line clipped before its own inner fork
-has nowhere to hang that fork's alternatives, so they are dropped, and a dropped line takes its
-own alternatives with it rather than letting them fall back to the split column and claim to part
-where they do not. **The band says how many it dropped**, since a silent truncation reads as *that
-is all of them*.
-
-**Room there is a line's width.** Nothing bounds the band in the other direction: a divergence
-inside a line that is shown is followed however deep it nests, so a band opened high in a branchy
-tree holds most of what is under it. Whether that needs a bound is in What is not decided here.
-
-**Nothing about the band is expressible in flow layout.** A column is a measured position in
-proportional text, and each line's children can only be placed once that line is rendered. It is
-laid out again whenever the geometry changes.
 
 ## Rankings
 
@@ -368,14 +319,18 @@ the token drawn is the top-ranked one and a node for it usually exists, so the a
 than adding a child. It is a write with a verb of its own, so *Nothing written is only here*
 holds.
 
-**Density stays behind intent.** A ranking can run to dozens of rows at a position the model was
-unsure of, and none is shown until that position is asked about. What the reading column draws
-from those rows without being asked about a position is Overlays.
+**Density stays behind intent, and the toggle is not what enforces it.** A ranking can run to
+dozens of rows at a position the model was unsure of, and none is shown until that position is
+asked about — which pointing does, one position at a time. That is the rule, and it holds
+whether or not the rows are switched on. The switch itself starts **on**, because use settled
+it: a reader working a path wants to know what else was there at the position they are at, and
+reaching for a toggle first makes that a decision instead of a glance. What the reading column
+draws from those rows without being asked about a position is Overlays.
 
-**The rows stand where a band would, and at the line they are about.** The reading column is half
+**The rows stand beside the column, at the line they are about.** The reading column is half
 of a container two measures wide and the other half is empty; a ranking answers *what else was
-here* at a position, which is the question a band answers at higher density, so giving them one
-place is what keeps there from being two answers to it. They sit against the column rather than
+here* at a position, and it is the only thing that answers it, so there is one place to look
+and no second answer to keep in step. They sit against the column rather than
 over the window, so they scroll with the text they belong to.
 
 **Hovering is a caret that has not been committed.** With the rows shown, moving over a segment
@@ -385,35 +340,41 @@ alternatives along it without moving from where they are, and nothing new is nam
 
 **A row can carry what follows it, and where that comes from is the realised line again.** A row
 some node realised has a continuation the store already holds, so showing it follows the same
-rule selecting it would and costs nothing — which is what The band says a preview is. A row
+rule selecting it would and costs nothing, being a path the store already holds. A row
 nothing realised has nothing to follow, so showing it is a stub: inference the instrument spends,
 and an act. The two wear one appearance and are not one thing, so a row says which it is rather
 than leaving a reader to infer it from whether anything appeared.
 
-**So the band and the rankings are one mechanism split by that line, and what is left between
-them is a width budget.** The band lays previews out at a fork, a line apiece; a ranking lays
-rows out at a position, with whatever room is left beside the token and its number. Both follow
-the continuation rule below a node that exists. Whether the band is a second surface or the rows
-given more room is now a question about how much text a reader wants at once, which is a smaller
-question than it was.
+**Previews and the rankings are one mechanism, and the rows are where it lives.** Both follow
+the continuation rule below a node that exists, and what stood between them was a width budget:
+whether the previews wanted a surface of their own or the rows given more room. Use answers
+rows. A row carries what follows it inline, set below the weight of the branch token itself, so
+*what else was here* and *where each of those goes* are read in one place at one glance. There
+is no second surface, and the half of the container the rows stand in is what pays for it.
 
 **Clicking inside what follows a row is placing the caret inside it.** Once a stub has landed its
 nodes are ordinary nodes, so what a row shows is the record drawn ahead of where the reader
 stands rather than a picture of it, and moving into one asks for no operation that does not
 already exist.
 
-**Whether looking may spend inference is not settled.** Rolling a row out while the pointer rests
-on it would make the model's own continuation visible wherever the reader looked, continuously
-and without running a second arm — and it is the one thing that shows a repetition loop, which
+**Looking may spend inference, and a hover is what asks.** Resting on a row rolls it out, so the
+model's own continuation becomes visible wherever the reader looks — continuously, without
+running a second arm, and it is the one thing that shows a repetition loop, which
 `docs/SPINE.md` has no measure able to mark. What it costs is the page's own rule that a way of
-looking is free. Three things make that smaller than it sounds: a greedy rollout is deterministic
-and merges, so resting on the same row again spends nothing and the total is bounded by how much
-has ever been revealed rather than by how long a pointer sat there; *Hidden* already has a stub
-born set aside, so what it writes enters neither the live path nor the rule; and it can be asked
-for rather than assumed. What would settle it is whether a reader with it on can still tell what
-they chose from what the instrument spent. *Stubs along a path* is the same spend under a
-different trigger, and the two are settled apart: a pointer is a reader asking, and an idle
-policy is not.
+looking is free, and three things make that smaller than it sounds. *Hidden* already has a stub
+born set aside, so what a hover writes enters neither the live path nor the rule. Rows at one
+node share the path above them, so the second and later rollouts there reprocess a single token
+and trying several is a glance rather than a decision. And it is asked for rather than assumed:
+a fling across the list skips what it passes over, and a row already rolled out is not rolled
+again.
+
+**What it costs in exactness is stated rather than hidden.** A rollout is a pure function of the
+position only cold, and a hover is the warm case — `docs/SPINE.md` carries the adapter's
+measurement of what a partial cache hit moves. So **the row's token is a fact and its
+continuation is advisory**: the token is read from the stored ranking and cannot drift, while
+what follows it is what the model would do from there under the cache state that obtained. A row
+says which of the two it is offering, because a reader taking a token and a reader taking a
+continuation are relying on different things.
 
 **Clicking a row nothing realised is the `realise`, and that is its primary meaning.** Not one
 entry on a menu the row might later carry: the row exists to be taken, and the only one of the
@@ -422,6 +383,45 @@ ranking, so the caret lands on the sibling it made with nothing below it, and th
 chosen against is drawn subdued below — derived from the rule at the caret's parent, as
 *The path* has it. Asking for the continuation is the act it always was, and the caret is armed
 so that reading on is what asks.
+
+**What a row shows of its continuation follows the rule that taking it would**, so it is a
+truthful prefix of what the reader gets and not a separate rendering of the same tree. Taking a
+row whose continuation already exists writes nothing: it is a path the store holds, so the
+gesture is a selection. Only a row nothing has realised costs an act.
+
+**A continuation is clipped by the room the row has, and the row says when it was.** What is
+left beside the token and its number is a line's worth at most, and a silent truncation reads
+as *that is all there was*. The count is what keeps a reader from taking a short-looking arm
+for a short one.
+
+**A row says how its continuation ended, because the three ways mean different things.** It ran
+out of length and there is more to be had; it cycled, and the model's preference from there is
+an attractor; or it reached EOS, and the model would have ended the document at that point. The
+record tells them apart already — `docs/SPINE.md` has which and why — and collapsing them would
+tell a reader that an exhausted model and a finished document are the same event. It is the
+same discipline Overlays applies to a position with no value: the ways of arriving at one are
+marked apart, and none of the marks can be read as a quantity.
+
+**Taking a row is taking as much of it as the reader points at.** Clicking the token takes the
+token; clicking into the continuation takes it up to there; clicking the end takes all of it.
+That is *clicking inside what follows a row is placing the caret inside it*, and prefix-of-any-
+length falls out of it rather than needing a gesture of its own. Underneath, a row whose stub
+exists is brought back rather than made — `undelete` where the flag sits, and a `delete` after
+the cut where the reader stopped short of the end, so the record says what happened: *I took
+this token and set aside what the model did next.* A row with no stub yet is the `realise` it
+always was.
+
+**Clicking away from everything puts the caret back at the end of the path.** A reader who
+pointed somewhere has no way to stop pointing, and the caret at rest — following the end, which
+is where the scroll gesture wants it — is currently reachable only by reloading. A click that
+lands on nothing is the release, and it is the same rest position *The path* already derives
+rather than a second idea of where the caret belongs.
+
+**How much a row holds is drawn, and not only printed.** A ranking's rows carry probabilities
+that sum to less than one because the rest of the vocabulary was never recorded, and both halves
+of that are worth seeing: what each row holds, and how much of the distribution the recorded
+rows account for between them. Whether a bar is read against the top row or against the whole
+is open below.
 
 **A ranking read earlier stops being true when an act lands, and not because the rows changed.**
 Rankings only grow, so what a position holds keeps for the life of the page; what does not keep
@@ -593,6 +593,15 @@ parent's alternatives the same way it stands in its parent's ranking. Read in lo
 where there was no choice, so it draws across a corridor exactly as much as a flag draws at a
 token that took the top row.
 
+**So it is the one of the four a reader should meet first, and the other three are rules before
+they are overlays.** Use bears the theorem out: drawn as a wash, height, size and the forks
+below run as one long fade down a page and the steps that carry their whole meaning are the
+hardest thing on it to see. What the reader wanted from them is *what else is reachable from
+here, besides what I am already looking at* — which is this measure and not those, since a
+count of everything below a node includes the path being read and is mostly it. The other three
+keep their place as continuation rules, where an argmax over siblings is exactly what they are
+for, and a depth limit is what would make them legible as overlays too.
+
 **An overlay should not spend the column on what the page says already.** How far along a path a
 reader is, and how much is still below them, is told by the text around them, by the length of
 the page and by the scrollbar — so a wash that restates it has spent the column's one channel and
@@ -660,83 +669,6 @@ one measure while seeing another drawn over it, and a locked mode takes exactly 
 so it merges rather than accumulating duplicates, and the stub at a flagged position is the child
 that realised the top row — which the ranking read already reports. What a stub costs is a
 `generate`, and *Nothing written is only here* holds for it like any other.
-
-## Stubs along a path
-
-**Rankings and the band draw a stub at one position; this is the same object drawn at every
-position that earns one.** Nothing about the stub changes — it is still a greedy rollout from
-what the draw passed over, still born set aside, still an ordinary branch. What changes is that
-they are all on the page at once, which makes them a second document laid against the first
-rather than an answer to a question the reader asked. `docs/SPINE.md` owns what a stub is and
-where one is worth spending; what is here is what a column full of them has to be.
-
-**The counterfactual is text, so it is drawn as text.** An overlay says *this position cost 3.2
-nats* and leaves the reader to convert; a stub says what the model would have written instead.
-Magnitude and identity arrive in one mark, and the reader acts on the second. This is the first
-thing the column draws that is not a measure, which is why it is not an overlay and does not
-share their machinery.
-
-**A single displaced token is not a counterfactual and must not be drawn as one.** At a position
-the model's argmax is X and the draw took Y; at the next position the recorded ranking is
-conditioned on **Y**. So a line built from displaced tokens alone is a sequence of independent
-one-step objections, each computed in a context holding every token it objected to — locally
-true, and incoherent read along itself. It would look like a document and read like noise, which
-is the worst of both. The depth is what makes it a document: a stub is generated in its own
-context and is a real path of the tree, so the second line is something the model actually would
-have written. Nothing is drawn above the prose that is not a stub.
-
-**How much of one is shown is the room to the next.** Short where divergence crowds and long
-where one stands alone in a run of agreement, capped at a screen so an isolated stub in a long
-greedy passage does not become the page. `docs/SPINE.md` measures the distribution this yields
-and the gate that makes it legible; the surface's part is only that display depth and generated
-depth are the same number, since generating past what can be shown spends inference on text
-nobody reaches.
-
-**It is one line that fades, and not a scatter of fragments.** Drawn only where a stub exists,
-the upper track is debris and cannot be skimmed; drawn at every position it doubles the text and
-destroys the steady state that makes the cadence readable. Drawn continuously and faded to
-nothing across agreement, it is one object that comes and goes, which is what a reader can learn
-to sweep. Whether the faded stretches carry the taken token or nothing at all is open, and it is
-decided by whether a reader tracking the upper line loses it across a long agreement.
-
-**The three endings are marked apart, for the reason every other no-value state is.** A stub that
-filled its room, one that cycled, and one that reached EOS are three different facts, and a
-reader who could not tell them apart would read an exhausted model as a finished document.
-`docs/SPINE.md` has what each means and that the record already carries the difference. This is
-*Overlays*' rule about a position with no value applied one level up, and it wants the same
-answer: a distinct mark for each, none of which can be read as a quantity.
-
-**How loud it may get is not settled, and the two arguments are both good.** `docs/SPINE.md`
-demands recessive rendering — a stub should read as the model's habit and not as the right
-answer, because a reader who defers to greedy has been moved by the instrument rather than
-informed by it, and it names this as the one place where visual weight changes what a reader
-concludes. Against that: the stub is the arm the reader is choosing against, and an arm too faint
-to read is one they cannot weigh. The reconciliation available is that prominence rides on the
-gap rather than being set flat, so the model's habit is quiet where it was barely held and
-insists where it was — with a ceiling the reader sets. Whether that ceiling may reach parity is
-the open part. What settles it is whether readers with it high still take arms the model did not
-rank first; if the rate falls as the ceiling rises, the instrument is steering them and
-`docs/SPINE.md` was right to bound it.
-
-**Turning it on re-lays out the column, and that is a different cost from the caret's.** The
-reflow this page refuses is the kind that happens under a reader's eye as they point — *Writing*
-has why. This one happens once, at a mode change, and is stable until the mode changes back. It
-is affordable, and what it costs is the reader's place on the page: line heights grow where the
-stubs are dense, so the position they were reading moves. The caret is what the page can hold
-across it, which it can already do.
-
-**What an idle policy asks of the surface is a window and an order.** Should `docs/SPINE.md`
-settle that stubs may be spawned unprompted, the surface is what says where: within the viewport,
-so the reader watches them land beside the text rather than finding them already there, and in
-path order rather than by rank of interest, because each stub is a fresh prompt and only
-adjacency keeps the backend's prompt cache warm — a cold jump costs more in prompt than the whole
-sweep costs in generation. Reading speed then sets the density for free: a page fully inflates
-for a reader who dwells and stays sparse for one who skims, and neither is a setting.
-
-**Two controls and not one, because a spend and a rendering are different questions.** How much
-idle inference goes to stubs against anything else spending it is a budget; how loud the result
-is drawn is the ceiling above. Tying them would make a reader who wants a quieter page stop
-generating the thing they are reading.
 
 ## Writing
 
@@ -830,7 +762,7 @@ branchable set is then the rows with no child.
 character budget, depth-first, with the nested divergences inside each run and the index each
 parts at. **A divergence with no index is counted rather than returned** — one past the budget's
 cut, and one inside a segment, which nothing addresses — since what a reader is owed is how many
-are not there. The band is laid out from this and from measurement, and from nothing else.
+are not there. What the rows are laid out from is this and measurement, and nothing else.
 
 Point reads — a node, a tree's roots, the act list — are already cheap and need nothing.
 
@@ -842,19 +774,19 @@ and `undelete` — and each has a verb of its own name, `undelete` being `tokenl
 A long generation stopped by declining to issue the next act is consecutive `tokenloom generate`,
 and so is deepening a ranking.
 
-Everything else here is a way of looking. The reading column, the band, a ranking on demand,
+Everything else here is a way of looking. The reading column, a ranking and what it previews,
 moving between forks, whether what is hidden is drawn, and whatever comparison across branches
 turns out to be are the surface's own, record nothing, and are owed no counterpart.
 
 **Reader state is a third thing.** A continuation rule that follows what the reader most recently
 took is neither a write nor a way of looking that records nothing: it is state that decides what
 is seen, held where the record cannot follow. The cost is that *what this branch is* can no longer
-be read off the page without also reading *what you did here last time* — least visibly inside the
-band, where every preview line follows the rule at once and the reflection is spread across all of
-them. Three things hold it in place:
+be read off the page without also reading *what you did here last time* — least visibly inside a
+ranking, where every row's continuation follows the rule at once and the reflection is spread
+across all of them. Three things hold it in place:
 
 - **It is updated by selection only** — never by preview, render or hover. Otherwise a preview
-  perturbs the thing it previews and the band reorders under its own gaze.
+  perturbs the thing it previews and the rows reorder under their own gaze.
 - **It lives in the session and nowhere else.** Durable storage outside a browser session is out
   of scope. `docs/CORE.md`'s *Conformance and extension* makes it cheap to add later, which is a
   reason to shape the session form as a cache of something recordable rather than as something
@@ -877,9 +809,9 @@ when it is settled.
 - **Whether a branch with no ranking behind it is marked.** A `create` at a node that already has
   a live child makes a fork the model had no part in, and the record holds the source that says
   so. Marking it puts a second kind of mark in a column *Between forks, nothing is drawn* keeps
-  bare; not marking it leaves a reader to open the band to find out. What settles it is a tree
-  with both kinds of fork in it, read for whether the difference is wanted at the fork or only
-  inside the band.
+  bare; not marking it leaves a reader to open the ranking to find out. What settles it is a
+  tree with both kinds of fork in it, read for whether the difference is wanted at the fork or
+  only inside the rows.
 - **Which `generate` parameters come under the reader's hand, and when.** A complete request
   leaves the surface whatever the reader does, so this is a question about what is exposed and
   never about what is sent. The first pass puts all of them under it at once — `length`, the
@@ -910,15 +842,12 @@ when it is settled.
   the code they replace. A count of continuations within a depth does not: it is a fold over
   depths and not over nodes. What settles it is measuring that one before it is offered, and the
   numbers belong beside the code that pays them.
-- **Whether a band has a height.** Its width is a reading measure taken from the page; its depth
-  is whatever the tree holds below the fork, which on a branchy tree is nearly all of it. A bound
-  would have to say what it drops and where, the way the width already does, and a band that
-  silently stopped going down would read as *that is all of them* — the failure the drop count
-  exists to prevent. What settles it is opening a band on a tree deep enough to need one and
-  seeing where a reader loses the thread.
-- **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each reads
-  differently at a sharp position than at a flat one, and a real ranking is often one and
-  sometimes the other. What settles it is drawing a real tree several ways.
+- **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each
+  reads differently at a sharp position than at a flat one, and a real ranking is often one and
+  sometimes the other. The bar drawn now is each row against the top row of its source, which
+  keeps a flat position from reading as a page of empty bars and says nothing about how much
+  was recorded; a bar against the recorded mass says the second and loses the first. What
+  settles it is drawing a real tree several ways.
 - **Which overlay finds the positions worth branching at.** Entropy, the top-1 to top-2 gap, the
   mass in the head, or something composite — Overlays says what each can be computed from and not
   which is worth reading, and `docs/SPINE.md`'s *Evidence in hand* already rules out the obvious
@@ -937,16 +866,16 @@ when it is settled.
   answer. Their disagreement may be the interesting quantity, in which case the overlay is a
   measure over sources rather than one that has to pick among them. What settles it is a tree two
   models have both ranked, which nothing has yet produced.
-- **Whether an overlay and the band are on at once.** Both answer *what else was here*, one along
-  the path and one at a position, and a reader with the band open may want the column plain
-  behind it. What settles it is having both.
-- **Keyboard.** The band's depth-first row order is already the natural arrow-key sequence, but
-  what the whole reader does under a keyboard — moving between forks, into a ranking, back out
-  without losing one's place — is unsettled. *Keyboard and mouse first* is the target and only
-  half of it exists. What settles it is working a real tree with the mouse put away.
-- **What a click means.** A fork opening a band and any other token opening a ranking are two
-  meanings for one gesture. It works and it is not obviously right. What settles it is finding
-  where the wrong one fires.
+- **Keyboard.** A ranking's rows are already the natural arrow-key sequence, but what the whole
+  reader does under a keyboard — moving between positions, into a ranking and along it, taking
+  a row in part or whole, back out without losing one's place — is unsettled. Hovering a row to
+  roll it out has no keyboard equal at all, and it is now how a stub is asked for. *Keyboard and
+  mouse first* is the target and only half of it exists. What settles it is working a real tree
+  with the mouse put away.
+- **What a click means.** A token opens a ranking, a row is taken at the depth it is clicked at,
+  and a click on nothing releases the caret to the end of the path. Three meanings for one
+  gesture, told apart by what is under it. It works and it is not obviously right. What settles
+  it is finding where the wrong one fires.
 - **Whether a control token is marked.** The store can tell a control token from text spelling the
   same characters. Whether the reader should is a question about honesty against clutter, and what
   settles it is a tree with control tokens in ordinary positions, read both ways.
@@ -959,6 +888,17 @@ when it is settled.
   out — which invents a timing the record does not hold — is a choice, and no measurement has been
   taken. Nothing is lost by waiting: chunk length *is* `length` in `params`, recorded per act, so
   the question stays answerable whenever it is asked.
+- **Whether the two families should be drawn in different channels.** Colour for what the model
+  said and typographic weight for what the tree holds would make the column say at a glance
+  which kind of fact it is reporting, and the rankings already speak that grammar — the bar is
+  the model's and the size of the spelling is the tree's. Two things stand in the way and both
+  are about the column rather than the idea. Font weight moves advance widths, so it reflows
+  prose, which is the friction *The path* refuses; it works in a ranking because each row is its
+  own clipped line. And the ink itself is already carrying the caret's frontier, so a third
+  state on that channel fights it. The version worth trying is background for the model and ink
+  density for the tree, which reflows nothing. Deferred rather than open: what settles whether
+  it is wanted at all is whether *what the rule passed over* and the rankings between them
+  already answer *what else is here*, and that is knowable only once both are in use.
 - **Everything past the first gesture.** Comparison across branches, and what the instrument does
   that a reader could not get from reading one path at a time. Nothing settles this but use.
 
@@ -1041,11 +981,12 @@ whole trade and the panel already owns it: log keeps a small explored arm legibl
 one, linear states the ratio honestly and puts the small one on the floor beside the arms nobody
 ever took.
 
-What does not exist is everything past that: no band, no depth limit and so no view that presets
-one, and no way back to the boundary of an act to take one draw again. **Writing at the caret is
+What does not exist is everything past that: no continuation shown beside a row, no depth limit
+and so no view that presets one, and no way back to the boundary of an act to take one draw
+again. **Writing at the caret is
 not offered either**, though `create` takes a position and the composer takes a node: it would
 replace the column with a box, and a request should appear where its result will. **The gesture
 that sets a segment aside is a modifier-click and is the weakest part of this**, chosen because a
 plain click is already spoken for above and not because it is right. What else exists is the core,
 the llama.cpp adapter, the command line, and a throwaway probe that reads a static projection of
-a tree and cannot write — which is what demonstrated the band.
+a tree and cannot write — which is what demonstrated laying previews out against real text.

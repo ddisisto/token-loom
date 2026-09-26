@@ -119,47 +119,37 @@ What it does not need is a decision about the tree. Arms accumulate at the posit
 consolidated, pruned or divided out later — the five acts already do all three, and nothing about
 drawing repeatedly at one node asks the format for anything it does not have.
 
-**3. The stub line, by hand before it is by policy.** `docs/SPINE.md`'s stub drawn not at one row
-but at every position that earns one. It is the first thing the column draws that is not a
-measure, and `docs/SURFACE.md`'s *Stubs along a path* is what it has to be.
+**3. The rankings panel, as the place every alternative is met.** It is too light to read and
+too sparse to work from, and the changes are one piece of work because they are one surface:
+**open by default**, since a reader working a path always wants to know what else was at the
+position they are at; **how much each row holds drawn and not only printed**; **the
+continuation beside each row that already has one**, set below the weight of the branch token,
+which is what `docs/SURFACE.md` now says instead of a band; **a hover rolls out a row that has
+none**, which is where a stub comes from and what a stub is for; **a click takes as much of a
+row as it lands on**, token or continuation or all of it; and **a click on nothing releases the
+caret** back to the end of the path, which is currently reachable only by reloading.
 
-**What it is for has narrowed since it was written down, and the scope should follow.** One
-worked session says an operator intervenes where the model was torn, and an automatic stub lands
-where it was sure — so this is an alarm for what a reader would not have gone looking for, and
-not a map of where their work is. The dense end is reached by asking at a position, which the
-page already does. A cheaper thing may be worth more: a rank-two rollout pre-warmed at the
-positions an operator does work, which needs no second line, fills a panel that already exists,
-and buys latency rather than screen space. `docs/SPINE.md` has both measurements.
+**It closes more than it opens.** The band was the fifth increment and is now the rows given
+room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its section
+is gone. *Whether looking may spend inference* is answered the same way, by use. What the
+change costs is written down beside it: a rollout is exact only cold, so a row's **token is a
+fact and its continuation advisory**, and `docs/SPINE.md` carries the adapter's measurement of
+how far a warm partial hit moves a greedy path.
 
-**Nothing in it is new capability.** A stub is a `realise` of the top row and a `generate` from
-it, both of which the page makes now; a stub is born set aside, which *Hidden* already allows;
-and what decides where one goes is the top-to-second gap, which the path read already carries
-when an overlay asks for it. What is new is drawing text above text, and the reflow, the
-alignment and the loudness ceiling are the whole of the work.
-
-**The gate is measured and the threshold is not.** `docs/SPINE.md` has the arithmetic: selecting
-on the gap rather than the flag is what leaves a stub room to be read, and above two nats of gap
-it is six stubs to a screen at a median of ten tokens. It also has why that number is provisional
-— it was measured over a tree carrying 29 `realise` acts in twenty thousand nodes, so almost every
-divergence in it is the sampler and not a reader.
-
-**By hand, and the policy strictly after.** `docs/SPINE.md` leaves automated inflation open and
-says what would settle it: whether readers given the manual loop converge on patterns a policy
-could serve — which cannot be observed before the manual loop exists. An idle policy also writes
-acts nobody asked for, and while the actor already separates them at no cost, whether speculation
-belongs in the record at all is the open question there and not a detail of this.
-
-**It is after the two above and not before.** The strip reads `params` back out of `generate`
-acts, and stubs are `generate` acts at a fixed greedy setting — so a strip built after them has
-to know which acts were a reader's, and it is cheaper to have that read working over acts a
-reader made than to add the distinction afterwards. And walking into a stub is placing the caret
-inside it, which is the gesture the way back to an act boundary is about: the second increment is
-what makes a stub something to work with rather than only something to look at.
+**Idle spending is deferred entirely and is not part of this.** When it returns it is a pre-fill
+for the hover above and nothing else, and `docs/SPINE.md` holds what would settle whether it is
+wanted. The one thing decided in advance: a position that grows something unseen may say so
+without moving, or may move only outside the band the caret reserves — motion where the reader
+is looking is a demand and not an offer.
 
 **4. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
+**It is less urgent than it was**: *what the rule passed over* is the same family drawn as
+transitions rather than as a ramp, it already exists, and it answers the question use turned
+out to be asking. So the limit is now wanted for the fixed domain and for branching, and not to
+rescue three measures from being unreadable.
 What the limit buys is the two things the drop does not — a fixed domain, which none of these
 has and which *fixed before relative* needs, and a name for what branching counts, since the
 distinct continuations within *d* are what a slate would hold.
@@ -174,25 +164,6 @@ Views follow it rather than accompany it, since a view is a rule, an overlay and
 together and two of the three exist. Branching waits on what it counts and vocabulary on whether
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
-
-**5. The band, when its need is as clear as theirs.** It displays forks, so until something makes
-them it has nothing to display — that was the argument for putting it last and it still holds.
-What has changed is that its need is the least established of these: a ranking on demand already
-answers *what else was here* at a position, and whether a reader also wants every continuation
-below a fork laid out at once is a question use has not asked yet. So it waits on that and not on
-its cost, which is known — `/branches` is bounded by a line's width and by nothing vertical, so
-on the synthetic twenty-thousand-node tree a band opened at a root reads in 110 ms and projects
-to about a megabyte of JSON. A band opens at a fork rather than at a root, so that is a ceiling
-and not a typical call, and whether it wants a bound in the other direction is an open question
-in `docs/SURFACE.md` that only a page settles.
-
-**The band lifts from the probe rather than growing out of it.** `probe/index.html` holds the
-band's measured layout, which is the part of `docs/SURFACE.md` nothing else has demonstrated —
-about sixty lines of it, since the tree-walking around it is what `/path` and `/branches` answer
-now. It also holds its own CSS, its own reads against a static projection, and controls that are
-not carried forward, all of which would have to come apart anyway. One adaptation is not
-cosmetic: the probe placed a preview line by segment index, and `parts_at` is characters into the
-line above, so the column carries a running offset onto each segment.
 
 ### What holds across them
 
@@ -241,7 +212,10 @@ Not in the ordering; each stands on its own.
   and the last hundred are off the edge unless the nav is folded, which is what `#fold` is for
   and is not an answer. What it wants is a measure reckoned against the room there is rather
   than against the window — and that changes the reading column's width, which was chosen by
-  eye against a real tree, so it is worth looking at before it is changed.
+  eye against a real tree, so it is worth looking at before it is changed. **The third
+  increment forces it**: rows open by default and carrying a continuation apiece makes the
+  second measure permanently occupied, so this stops being a thing that shows only when a
+  reader asks for rows and becomes the ordinary state of the page.
 - **The composer cannot open at the caret, so writing at a position is not offered.** `create`
   takes a node and `compose` takes one, so the act is there; what is missing is somewhere to put
   the box. Staging one replaces the column, which is right for a root and wrong in the middle of
