@@ -3,38 +3,19 @@
 **This file is for things that are true about the code and easy to get wrong.** Direction is
 not here. A finding about what a model does is not here either.
 
-## What this is, and what it's for
+@README.md
 
-**token loom** — a machine output research tool. Givens go in, generations come out, and the
-surface exists to read across them: a generation is not an answer to be accepted or rerolled,
-it is one path among those the model made available, and several are held at once. That much
-is the interface this is named after — inspired by
-[socketteer/loom](https://github.com/socketteer/loom), and the debt is conceptual and real.
+**`README.md` is inlined above and is not repeated below.** It carries what this is, the two
+names, how to run it, the map of the documents and where the work stands. What is here is
+only what that would be wrong to say: rules for changing the code and the documents.
 
-**The idea is the Autoregressive Interferometer and the implementation is token loom, and the two
-names are not interchangeable.** The instrument splits a signal: one arm is the path as it went,
-the other is the model left alone from the same position, and what is read is the displacement
-between them. That is the claim a paper would be written under. This repository is the reference
-implementation built to test it, it keeps the Loom debt in its name, and `tokenloom` is the
-package either way. **Never abbreviate it to ARI** — that is the Adjusted Rand Index and the
-Automated Readability Index in exactly the venues this would be read in — and *autoregressive* is
-one word, which is how the literature spells it and which stops the acronym forming. After first
-use, *the interferometer*.
+## What is load-bearing about the shape
 
-**Four things separate this from the line it comes from**, and only the first is visible in the
-format. A token-exact store, so nothing is re-tokenised. A deterministic reference arm, so a
-temperature-zero run is a first-class probe and not one more sample. Attractors as objects of
-study, so a loop is located and used rather than only avoided. And the operator as a variable,
-so the record is built to answer questions about how a person learns a fixed model.
-
-**What is different is that the record goes down to the token.** Every generation carries
-what else was ranked at every position it passed through, so a path can be read against the
-alternatives that were live along it — not just against its siblings. A branch can be taken
-at a token the model ranked and did not sample. That is the whole reason the tree is a trie
-over tokens rather than over text, and it is what the name is for.
+`README.md` says what this is, what the two names are for and how to run it. What is here is
+the part that is easy to get wrong while changing it.
 
 The tree is `src/tokenloom/core/`, and the command line is the client on it. A reading
-surface over an HTTP API is where this is going, which is why the second point below is a
+surface over an HTTP API is where this is going, which is why the first point below is a
 constraint and not an observation.
 
 **The claim is not concurrency control, and reading it as such costs an argument every
@@ -82,61 +63,38 @@ runs of text separately and concatenating will not generally equal tokenising th
 measured at 80% of cut points on ordinary English — and that is a property of the record
 rather than a fault to correct.
 
-## The documents
+## Editing the documents
 
-- **`docs/PREMISE.md`** is why any of this is worth building — a context as a shared vocabulary
-  between one reader and one model, and what follows for an instrument over it. **It is an essay
-  and it constrains nothing.** Nothing cites it and nothing should; it is wrong in the way an
-  argument can be, not in the way a specification goes out of date. **It points outward and is
-  not pointed at**, which is how *What the instrument measures, and what it does not* sits there:
-  it says why an instrument refusing to score a context can still measure whether its reader is
-  in a position to judge one, and `docs/SPINE.md` carries those checks without citing the
-  argument for them.
-- **`docs/CORE.md`** is what the format *is* — node, edge, source, ranking, act, the on-disk
-  shape, the invariants, the operations. It carries no arguments and is written against one test:
-  can someone implement a reader from it alone. **It moves only as its own deliberate piece of
-  work** — never in passing, and never to accommodate what a backend or a client turned out to
-  want. `marker` is what tells a reader it moved.
-  **How a derivation is shaped is not an argument.** *A descent from the root carries the answer
-  down* and *it is a `LEFT JOIN`* say what the relation between the tables is, which a reader
-  implementing one needs and cannot infer; the document already speaks SQL, since *On disk* is
-  DDL. A claim about what something *costs* is the other thing, and belongs with the code that
-  pays it.
-  **Its *Derived reads* names only what a reader would otherwise get wrong**, and is not a
-  catalogue of queries. One grew there before anything used it, and four of its entries were
-  reads nothing called, two of them restating facts that already had homes in *Acts* and
-  *Sources*.
-- **`docs/ADAPTER.md`** is what a backend must do to produce that record — the operations, the
-  obligations behind them, and what to do when one cannot be met. **It moves as backends are
-  met**, which is the point of the split, and it carries its own status inline.
-- **`docs/INTERFERENCE.md`** is the method — a person standing in the sampler's slot, and a
-  document grown by interference between two sources that meet on a vocabulary. **It is what
-  `docs/SURFACE.md` defers to whenever it says a question is settled by use**, which is the reason
-  it exists: that document had fifteen such questions and nothing in the tree said what use was.
-  It moves as the loop is run. Its premise — a sampler is a prosthesis for absent intent — is a
-  claim with teeth, since it decides what a draw asks for and what the surface has to make cheap.
-  **Greedy is the zero of a dial there and not a rule**, and reading it as a prohibition on
-  sampling is the misreading it was revised to prevent: what it refuses is the unread deviation.
-- **`docs/SURFACE.md`** is the reading surface's design and constraints, **drafted and not
-  accepted**. It is written against a different test than the core's — can a reader tell what is
-  settled from what is open, and does each open question say what would settle it — because a
-  design in progress fails by writing an open question down as a rule. It moves until the surface
-  is built.
-- **`docs/SPINE.md`** is the analysis the surface is built toward — a sampled path read as
-  the record of where sampling did work against the model, and a loop that spends further
-  inference only where that record says something happened. It names *spine*, *flag* and *stub*,
-  which `docs/SURFACE.md` uses; *overlay* is that document's word for the machinery either kind
-  of measure is drawn by. It carries the continuation probe's measurements under *Evidence in
-  hand*, and it supersedes `docs/CONTROLLER.md`, which is in the history.
-  **It also holds what would count as this working**: the two arms and the conditions the
-  reference arm is exact under, the failure mode where an operator closes the loop by hand and
-  the four checks against it, and the questions the record is built to answer about how a reader
-  learns a fixed model. Those measure a process, which is why they sit beside the refusal to
-  score a context rather than against it.
-- **`docs/NEXT.md`** is what gets built next and why in that order. **It is living**: items are
-  added as they come up and deleted once they close or fall out of scope, so it never
-  accumulates a history of itself. Nothing cites it, and nothing should — it is the one document
-  that is allowed to be wrong tomorrow.
+`README.md` maps them and says what each is for. These are the rules for changing them, and
+each one is here because it was got wrong.
+
+- **`docs/CORE.md` moves only as its own deliberate piece of work** — never in passing, and
+  never to accommodate what a backend or a client turned out to want. `marker` is what tells a
+  reader it moved. **How a derivation is shaped is not an argument**: *a descent from the root
+  carries the answer down* and *it is a `LEFT JOIN`* say what the relation between the tables
+  is, which a reader implementing one needs and cannot infer, and the document already speaks
+  SQL since *On disk* is DDL. A claim about what something *costs* belongs with the code that
+  pays it. Its *Derived reads* names only what a reader would otherwise get wrong and is not a
+  catalogue of queries — one grew there before anything used it, and four of its entries were
+  reads nothing called.
+- **`docs/ADAPTER.md` moves as backends are met**, which is the point of the split, and it
+  carries its own status inline.
+- **`docs/INTERFERENCE.md` is what `docs/SURFACE.md` defers to whenever it says a question is
+  settled by use**, which is the reason it exists: that document had fifteen such questions and
+  nothing in the tree said what use was. It moves as the loop is run.
+- **`docs/SURFACE.md` moves until the surface is built.** It fails by writing an open question
+  down as a rule, which is why it is written so that each open one says what would settle it.
+- **`docs/SPINE.md` names *spine*, *flag* and *stub***, which `docs/SURFACE.md` uses;
+  *overlay* is that document's word for the machinery either kind of measure is drawn by. It
+  supersedes `docs/CONTROLLER.md`, which is in the history.
+- **`docs/NEXT.md` is living**: items are added as they come up and deleted once they close or
+  fall out of scope, so it never accumulates a history of itself. Nothing cites it, and
+  nothing should — it is the one document allowed to be wrong tomorrow.
+- **`docs/PREMISE.md` is an essay and it constrains nothing.** **Nothing may depend on it and
+  anything may point a reader at it**, which is the distinction that matters: a dependency
+  makes revising an argument break a specification, and a pointer does not. That is how
+  *What the instrument measures, and what it does not* can sit there — `docs/SPINE.md` carries
+  the checks it describes without citing the argument for them.
 
 **The core names no backend, and no backend's limitation may become a rule in it.** One did once —
 llama.cpp will not evaluate a prompt whose bytes end mid-character, which had become an invariant
@@ -272,11 +230,9 @@ How decisions get made here — what has paid off, and what it cost to skip.
   form: **absence of observation cannot settle a question about what is possible.** Ask the
   vocabulary, not the samples.
 
-## State
+## What carries the unfinished
 
-**The format is built per `docs/CORE.md`, with a command line that makes every write it
-admits.** `src/tokenloom/core/` is the store — the five acts, the derived reads and a checker for
-every named invariant — and trees have been built against a running server. What the backend
-leaves open is the Status section of `docs/ADAPTER.md`; **what gets built next is
-`docs/NEXT.md`.** Those two are the files that carry what is unfinished; this section is not one,
-and neither is `docs/CORE.md`.
+`README.md` says where the work stands. **Exactly two files carry what is unfinished**: the
+Status section of `docs/ADAPTER.md` for what the backend leaves open, and `docs/NEXT.md` for
+what gets built. Neither this file nor `docs/CORE.md` is one of them, and a status note landing
+in either is the signal that something has no home yet.
