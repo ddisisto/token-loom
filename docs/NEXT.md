@@ -63,25 +63,7 @@ because it has to precede the rankings panel: that increment makes taking a row 
 realises multiply under a column that cannot yet show them, and the reader would be working
 through a period where what they did and what the dice did look the same.
 
-**2. The container is two measures wide and does not fit beside the list of roots.** `--col` is
-`min(34em, 44vw)` and the column is centred inside a `main` the nav has already inset, so the
-measure is taken against the window and spent inside something narrower. Two of them plus the
-gutters want 88vw where about 17 is already gone. Nothing showed it while the second measure was
-empty. It does now: at 1457 CSS pixels the rows run to 1557 and the last hundred are off the edge
-unless the nav is folded, which is what `#fold` is for and is not an answer.
-
-**What it wants is a measure reckoned against the room there is** — the window less whichever
-width the side is at, so it follows the fold rather than being rescued by it. The cap stays, so
-nothing moves at a width that already fits and the column narrows only where it currently
-overflows. The width was chosen by eye against a real tree, so what the cap should be is worth
-looking at once the measure underneath it is honest.
-
-**The rankings panel forces it and the mark does not.** Rows open by default and carrying a
-continuation apiece makes the second measure permanently occupied, so this stops being something
-that shows when a reader asks for rows and becomes the ordinary state of the page. It is here
-rather than there because a page that scrolls sideways cannot be photographed.
-
-**3. A screenshot and worked samples in `README.md`.** It reads as concept and says nothing about
+**2. A screenshot and worked samples in `README.md`.** It reads as concept and says nothing about
 what came out. *Where it is* describes capability — a page that lists roots, sets a path as prose,
 draws a measure — and a reader cannot tell from it that the instrument has been used or what using
 it found. `docs/SPINE.md`'s *Evidence in hand* is the missing half: counting divergences reads the
@@ -92,15 +74,16 @@ this sits behind it.
 
 **It is the one item here that is not code, and it is placed where it is worth doing rather than
 where it is cheapest.** Every later increment would improve the picture, so by the rule the rest
-of this list follows it belongs last and would never arrive. The two ahead of it are the ones that
-change what the column looks like; nothing after them changes it enough to be worth waiting for.
+of this list follows it belongs last and would never arrive. The mark ahead of it is what changes
+what the column says, and the column now fits the window it is read in; nothing later moves the
+picture enough to be worth waiting for.
 
 **A sample is a different thing from the picture and nothing produces one yet.** What it would
 show is a path read against an alternative it parted from, which is the thing the format is for
 and the thing prose about the format cannot do. `scripts/dump.py` projects a tree and decodes
 nothing, so it is not that; whether a sample is generated or hand-cut from a real tree is open.
 
-**4. Length and temperature, out of the panel and always on the page.** They are the two an
+**3. Length and temperature, out of the panel and always on the page.** They are the two an
 operator moves per draw, because they are the two that change what *kind* of act it is —
 sampling the model, or running the greedy path out where that is cheap to read. Everything else
 in the panel is set once a session. The cut is along what each thing governs: **what is drawn**
@@ -144,7 +127,7 @@ also spends fifty positions on a linear range whose useful values cluster low �
 ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
 out. The axis wants a floor of 1 and a spacing that is not linear.
 
-**5. A way back to where an act began, and the settings it was made under.** A reader who wants a
+**4. A way back to where an act began, and the settings it was made under.** A reader who wants a
 different continuation at a position should not have to find that position again: what they want
 is the boundary of the act they just read, to draw from it under different settings, at a higher
 sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
@@ -188,7 +171,7 @@ the record and cannot be derived; it is a constant the page offers. A recent is 
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**6. The rankings panel, as the place every alternative is met.** It is too light to read and
+**5. The rankings panel, as the place every alternative is met.** It is too light to read and
 too sparse to work from, and the changes are one piece of work because they are one surface:
 **open by default**, since a reader working a path always wants to know what else was at the
 position they are at; **how much each row holds drawn and not only printed**; **the
@@ -211,7 +194,7 @@ wanted. The one thing decided in advance: a position that grows something unseen
 without moving, or may move only outside the band the caret reserves — motion where the reader
 is looking is a demand and not an offer.
 
-**7. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+**6. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
 answers *how much, absolutely* and pins more than half a greedy path to one end, and a
 path-relative one over a long path is nearly as global. A domain built from the segments
 currently on screen answers *how much, compared to here*, which is the question a reader scanning
@@ -230,7 +213,7 @@ those measures without bounding the descent, and what would remain below is the 
 the name for what branching counts. It is also much the cheaper of the two, so knowing which
 answer was needed costs little.
 
-**8. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**7. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
@@ -294,6 +277,12 @@ Not in the ordering; each stands on its own.
   interesting is that rolling rows out on a hover would drive the top row's share to one and
   leave the curve measuring a pointer. One query over `data/continuations`, and the tree is
   innocent until it is not.
+- **The reading measure, now that it is taken against the room there is.** `--col` is
+  `min(34em, calc((100cqw - 48px) / 2))`, so the cap holds above about 1739 CSS pixels and the
+  column narrows with the window below it — about 55 characters to the line at 1457 against about
+  68 at the cap. Both are readable and neither has been chosen against a real tree at the new
+  measure. **The nav is the cheaper of the two dials**: `--nav` is 15.5rem for a list of one-line
+  names, and what it gives back is split between the two measures rather than spent on one.
 - **The composer cannot open at the caret, so writing at a position is not offered.** `create`
   takes a node and `compose` takes one, so the act is there; what is missing is somewhere to put
   the box. Staging one replaces the column, which is right for a root and wrong in the middle of
