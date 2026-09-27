@@ -32,16 +32,84 @@ for and what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. Length and temperature, out of the panel and always on the page.** They are the two an
+**1. The mark under a segment, saying who took the token.** `docs/SURFACE.md` has it as three
+axes on one rule: existence says something diverged, colour says whether the sampler drew it or a
+reader took a row the model offered, and style stays where it is, saying how far the value can be
+trusted. What it replaces is colour being spent on the value's status, which left the two takers
+sharing one appearance.
+
+**It is small and it is not cosmetic.** `docs/SPINE.md` measures that nothing read off a ranking
+separates a reader's divergence from a sampler's — the two populations sit in the same place under
+every split of a deviation the record admits — so under drive the overlay cannot say whose a large
+value is, and the acts can, for one query. Four parts: a read collecting the nodes that are the
+tip of a `realise`, a key on `path_node`, a class on the segment, and the rule.
+
+**The read is a lookup and not a descent, which is most of why it can go first.**
+`INV-ACT-REALISE` gives every `realise` a non-null `tip` that is a child of its `origin`, so the
+set is one pass over `acts` and a membership test per path node — no ancestry, no reduction, and
+nothing waiting on *What a node was drawn at*. The key crosses the wire the way `among` and
+`under` already do, present only when the read was asked for it, so an absent key is *nobody
+asked*. Nothing in `docs/CORE.md` moves.
+
+**An authored token is not a third colour**, and `docs/SURFACE.md` now says why: nothing ranked at
+its parent, so there is no first row it was taken instead of, and it is already apart under any
+overlay. That is what holds this to one lookup — a `create`'s nodes are its range, which is the
+descent *A way back to where an act began* is about. **The one thing a reader would get wrong**
+is that a node can be realised *and* drawn, which `_merge_node` allows and which 83,575 nodes of
+`data/logozoa` contain none of.
+
+**It goes first because it is the smallest thing here that changes what the column says**, and
+because it has to precede the rankings panel: that increment makes taking a row a click, so
+realises multiply under a column that cannot yet show them, and the reader would be working
+through a period where what they did and what the dice did look the same.
+
+**2. The container is two measures wide and does not fit beside the list of roots.** `--col` is
+`min(34em, 44vw)` and the column is centred inside a `main` the nav has already inset, so the
+measure is taken against the window and spent inside something narrower. Two of them plus the
+gutters want 88vw where about 17 is already gone. Nothing showed it while the second measure was
+empty. It does now: at 1457 CSS pixels the rows run to 1557 and the last hundred are off the edge
+unless the nav is folded, which is what `#fold` is for and is not an answer.
+
+**What it wants is a measure reckoned against the room there is** — the window less whichever
+width the side is at, so it follows the fold rather than being rescued by it. The cap stays, so
+nothing moves at a width that already fits and the column narrows only where it currently
+overflows. The width was chosen by eye against a real tree, so what the cap should be is worth
+looking at once the measure underneath it is honest.
+
+**The rankings panel forces it and the mark does not.** Rows open by default and carrying a
+continuation apiece makes the second measure permanently occupied, so this stops being something
+that shows when a reader asks for rows and becomes the ordinary state of the page. It is here
+rather than there because a page that scrolls sideways cannot be photographed.
+
+**3. A screenshot and worked samples in `README.md`.** It reads as concept and says nothing about
+what came out. *Where it is* describes capability — a page that lists roots, sets a path as prose,
+draws a measure — and a reader cannot tell from it that the instrument has been used or what using
+it found. `docs/SPINE.md`'s *Evidence in hand* is the missing half: counting divergences reads the
+temperature dial rather than the text, the recording rule ties depth inversely to the gap so a
+measure banded by gap reads the rule back out, and nothing on a ranking separates a reader's
+divergence from a sampler's. The last of those is what a picture of the mark shows, which is why
+this sits behind it.
+
+**It is the one item here that is not code, and it is placed where it is worth doing rather than
+where it is cheapest.** Every later increment would improve the picture, so by the rule the rest
+of this list follows it belongs last and would never arrive. The two ahead of it are the ones that
+change what the column looks like; nothing after them changes it enough to be worth waiting for.
+
+**A sample is a different thing from the picture and nothing produces one yet.** What it would
+show is a path read against an alternative it parted from, which is the thing the format is for
+and the thing prose about the format cannot do. `scripts/dump.py` projects a tree and decodes
+nothing, so it is not that; whether a sample is generated or hand-cut from a real tree is open.
+
+**4. Length and temperature, out of the panel and always on the page.** They are the two an
 operator moves per draw, because they are the two that change what *kind* of act it is —
 sampling the model, or running the greedy path out where that is cheap to read. Everything else
 in the panel is set once a session. The cut is along what each thing governs: **what is drawn**
 is `length` and `temperature`, **what is kept** is `record_rows` and `record_mass`, then the
 chain and the backend. Only the first pair leaves.
 
-**It is first because it is the one the operator asked for, and because it is cheaper before the
-next.** Nothing reads a `generate`'s `params` back out of the record yet, and both this and the
-item below need that read — this from the act, that from the node.
+**It is the one the operator asked for, and it is cheaper before the strip that lands beside
+it.** The recents strip in the item below sits in the same footer and is what a chip applies
+*to*, so the axes exist first.
 
 **`docs/INTERFERENCE.md` already argues the shape.** Greedy is the zero of a dial there and not a
 rule, and the panel makes it a slider value indistinguishable in kind from 0.35. A control whose
@@ -76,6 +144,24 @@ also spends fifty positions on a linear range whose useful values cluster low �
 ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
 out. The axis wants a floor of 1 and a spacing that is not linear.
 
+**5. A way back to where an act began, and the settings it was made under.** A reader who wants a
+different continuation at a position should not have to find that position again: what they want
+is the boundary of the act they just read, to draw from it under different settings, at a higher
+sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
+page cannot run it yet — the caret follows the tip of what lands, so taking one draw again means
+scrolling back and pointing, which is a search where it should be a gesture.
+
+**Both halves are one read, which is why they are one item.** An act's range is `origin` exclusive
+to `tip` inclusive, so the boundary above a node and the settings a node was drawn under come out
+of the same direction `act_tokens` does not go — node to acts, which is the read *What a node was
+drawn at* wants under Loose ends. The same reason neither is free: acts overlap, so a node reached
+twice has two answers and whatever draws it must reduce them. Here the reduction has a reading of
+its own, since what a reader means by *this draw* is the one they just watched land.
+
+What it does not need is a decision about the tree. Arms accumulate at the position and are
+consolidated, pruned or divided out later — the five acts already do all three, and nothing about
+drawing repeatedly at one node asks the format for anything it does not have.
+
 **Past settings accumulate, and they are read rather than remembered.** Every `generate` records
 its `params`, so what has been used is derivable from the tree and is not a second thing the page
 holds. That makes the list per-tree, proof against a reload, and inclusive of draws made from the
@@ -89,7 +175,7 @@ greedy twelve times, then 1.1 three times, then greedy again — which is the al
 `docs/INTERFERENCE.md`'s loop consists of. The count is free once the runs are collapsed, so the
 strip is a thin record of method and not only a way back to a setting.
 
-Four things it has to settle. **A chip applies and does not draw**, because a one-click
+Four things the strip has to settle. **A chip applies and does not draw**, because a one-click
 `generate` makes *no submit and no moment to object* worse rather than better. **Only acts that
 produced nodes count**, since a refusal records its params too and re-applying a rejected pair is
 not a shortcut. **Identity is the whole `params` blob**, which is what makes adjacency mean
@@ -102,25 +188,7 @@ the record and cannot be derived; it is a constant the page offers. A recent is 
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**2. A way back to where an act began, so one draw can be taken again.** A reader who wants a
-different continuation at a position should not have to find that position again: what they want
-is the boundary of the act they just read, to draw from it under different settings, at a higher
-sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
-page cannot run it yet — the caret follows the tip of what lands, so taking one draw again means
-scrolling back and pointing, which is a search where it should be a gesture.
-
-**The record already answers it and nothing reads it back.** An act's range is `origin` exclusive
-to `tip` inclusive, so the boundary above any node is derivable — the same read *What a node was
-drawn at* wants under Loose ends, and the other half of the one the strip above needs. The same
-reason it is not free, either: acts overlap, so a node reached twice has two answers. Here the
-reduction has a reading of its own, since what a reader means by *this draw* is the one they just
-watched land.
-
-What it does not need is a decision about the tree. Arms accumulate at the position and are
-consolidated, pruned or divided out later — the five acts already do all three, and nothing about
-drawing repeatedly at one node asks the format for anything it does not have.
-
-**3. The rankings panel, as the place every alternative is met.** It is too light to read and
+**6. The rankings panel, as the place every alternative is met.** It is too light to read and
 too sparse to work from, and the changes are one piece of work because they are one surface:
 **open by default**, since a reader working a path always wants to know what else was at the
 position they are at; **how much each row holds drawn and not only printed**; **the
@@ -130,9 +198,9 @@ none**, which is where a stub comes from and what a stub is for; **a click takes
 row as it lands on**, token or continuation or all of it; and **a click on nothing releases the
 caret** back to the end of the path, which is currently reachable only by reloading.
 
-**It closes more than it opens.** The band was the fifth increment and is now the rows given
-room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its section
-is gone. *Whether looking may spend inference* is answered the same way, by use. What the
+**It closes more than it opens.** The band was an increment of its own once and is now the rows
+given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
+section is gone. *Whether looking may spend inference* is answered the same way, by use. What the
 change costs is written down beside it: a rollout is exact only cold, so a row's **token is a
 fact and its continuation advisory**, and `docs/SPINE.md` carries the adapter's measurement of
 how far a warm partial hit moves a greedy path.
@@ -143,14 +211,34 @@ wanted. The one thing decided in advance: a position that grows something unseen
 without moving, or may move only outside the band the caret reserves — motion where the reader
 is looking is a demand and not an offer.
 
-**4. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**7. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+answers *how much, absolutely* and pins more than half a greedy path to one end, and a
+path-relative one over a long path is nearly as global. A domain built from the segments
+currently on screen answers *how much, compared to here*, which is the question a reader scanning
+for a position that stands out among its neighbours is actually asking.
+
+**The page owes it the visible set and nothing else.** Which segments are in view is geometry and
+the domain over their values is arithmetic, so the scale takes the values as an argument and stays
+checkable under `scripts/stub-dom.mjs` — `CLAUDE.md` separates the two and this is the case that
+makes it bite. Zoom is the widening gesture and needs no work; whether it suffices is an open
+question in `docs/SURFACE.md` rather than a thing to build against.
+
+**It is before the depth limit because it may change what that item is for.** The limit exists
+because three of the downward measures only fall as a path descends, which makes them a gradient.
+A gradient read against its own neighbourhood is not a gradient — so a viewport scale may recover
+those measures without bounding the descent, and what would remain below is the fixed domain and
+the name for what branching counts. It is also much the cheaper of the two, so knowing which
+answer was needed costs little.
+
+**8. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
 **It is less urgent than it was**: *what the rule passed over* is the same family drawn as
 transitions rather than as a ramp, it already exists, and it answers the question use turned
 out to be asking. So the limit is now wanted for the fixed domain and for branching, and not to
-rescue three measures from being unreadable.
+rescue three measures from being unreadable — and the item above may take the second of those
+away as well.
 What the limit buys is the two things the drop does not — a fixed domain, which none of these
 has and which *fixed before relative* needs, and a name for what branching counts, since the
 distinct continuations within *d* are what a slate would hold.
@@ -165,44 +253,6 @@ Views follow it rather than accompany it, since a view is a rule, an overlay and
 together and two of the three exist. Branching waits on what it counts and vocabulary on whether
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
-
-**5. The mark under a segment, saying who took the token.** `docs/SURFACE.md` has it as three
-axes on one rule: existence says something diverged, colour says whether the sampler drew it, the
-reader took a row or the reader wrote one, and style stays where it is, saying how far the value
-can be trusted. What it replaces is colour being spent on the value's status, which left the two
-takers sharing one appearance.
-
-**It is small and it is not cosmetic.** `docs/SPINE.md` measures that nothing read off a ranking
-separates a reader's divergence from a sampler's — the two populations sit in the same place
-under every split of a deviation the record admits — so under drive the overlay cannot say whose
-a large value is, and the acts can, for one query. Four parts: a read pairing a set of nodes with
-the `realise` acts whose tip they are, a key on `path_node`, a class on the segment, and the
-rule. Nothing in `docs/CORE.md` moves; the query is a join nobody would get wrong, and the one
-thing they would is that a node can be realised *and* drawn, which `_merge_node` allows and which
-83,575 nodes of `data/logozoa` contain none of.
-
-**It wants to be before 3 rather than after it.** That increment makes taking a row a click, so
-realises multiply under a column that cannot yet show them, and the reader would be working
-through a period where what they did and what the dice did look the same.
-
-**6. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
-answers *how much, absolutely* and pins more than half a greedy path to one end, and a
-path-relative one over a long path is nearly as global. A domain built from the segments
-currently on screen answers *how much, compared to here*, which is the question a reader scanning
-for a position that stands out among its neighbours is actually asking.
-
-**The page owes it the visible set and nothing else.** Which segments are in view is geometry and
-the domain over their values is arithmetic, so the scale takes the values as an argument and stays
-checkable under `scripts/stub-dom.mjs` — `CLAUDE.md` separates the two and this is the case that
-makes it bite. Zoom is the widening gesture and needs no work; whether it suffices is an open
-question in `docs/SURFACE.md` rather than a thing to build against.
-
-**It bears on 4 and may change what that item is for.** The depth limit exists because three of
-the downward measures only fall as a path descends, which makes them a gradient. A gradient read
-against its own neighbourhood is not a gradient — so a viewport scale may recover those measures
-without bounding the descent, and what would remain of 4 is the fixed domain and the name for
-what branching counts. Which of the two is the cheaper answer is worth knowing before either is
-built.
 
 ### What holds across them
 
@@ -244,17 +294,6 @@ Not in the ordering; each stands on its own.
   interesting is that rolling rows out on a hover would drive the top row's share to one and
   leave the curve measuring a pointer. One query over `data/continuations`, and the tree is
   innocent until it is not.
-- **The container is two measures wide and does not fit beside the list of roots.** `--col` is
-  `min(34em, 44vw)`, so two of them plus the gutters want 88vw where the nav has already taken
-  about 17, and the page has been scrolling sideways since the column was built. Nothing showed
-  it while the second measure was empty. It does now: at 1457 CSS pixels the rows run to 1557
-  and the last hundred are off the edge unless the nav is folded, which is what `#fold` is for
-  and is not an answer. What it wants is a measure reckoned against the room there is rather
-  than against the window — and that changes the reading column's width, which was chosen by
-  eye against a real tree, so it is worth looking at before it is changed. **The third
-  increment forces it**: rows open by default and carrying a continuation apiece makes the
-  second measure permanently occupied, so this stops being a thing that shows only when a
-  reader asks for rows and becomes the ordinary state of the page.
 - **The composer cannot open at the caret, so writing at a position is not offered.** `create`
   takes a node and `compose` takes one, so the act is there; what is missing is somewhere to put
   the box. Staging one replaces the column, which is right for a root and wrong in the middle of

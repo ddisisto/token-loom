@@ -514,15 +514,20 @@ second row is far below the first. `docs/SPINE.md` measures it.
 
 **The mark under a segment carries three things, and they are three axes rather than one list of
 states.** Its **existence** says something diverged here — the token taken was not the one the
-model ranked first. Its **colour** says who took it: the sampler, a reader taking a row the model
-offered, or a reader writing one it did not. Its **style** says how far the value can be trusted —
-plain where it is a reading, and marked where it is a bound, a hole, a segment holding more nodes
-than values, or a position two sources ranked. An **authored** token is the colour axis and not a
-fourth state of the style one; that it also has no value is a separate fact about the measure and
-already stated above.
+model ranked first. Its **colour** says who took it: the sampler, or a reader taking a row the
+model offered. Its **style** says how far the value can be trusted — plain where it is a reading,
+and marked where it is a bound, a hole, a segment holding more nodes than values, or a position
+two sources ranked.
+
+**An authored token is not a third colour, because it is not a divergence.** Nothing ranked at its
+parent for its source, so there is no first row it was taken instead of, and the existence axis
+has nothing to say about it. It is already apart under any overlay — the measure did not reach it,
+the wash is absent, and the panel counts it among what was not reached — so a colour would be a
+second way of saying that. It is a different question of the record besides: a `realise` names the
+node it produced and is a lookup, while a `create`'s nodes are its range, which is the descent.
 
 **Who took a token is not a measure, and that is why it is not an overlay.** It has no domain, no
-second reading, and nothing to compare across positions — it is a fact with three values. So it
+second reading, and nothing to compare across positions — it is a fact with two values. So it
 is not in the list a reader chooses from, and it is not subject to *An overlay is asked for*: a
 reader reading prose wants to know which words are theirs whether or not they have asked for a
 colour over them.
