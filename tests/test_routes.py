@@ -255,7 +255,7 @@ def test_an_overlay_is_what_the_ranking_above_says_about_the_position(client):
     assert stood["second"] == sorted((row["logprob"] for row in rows), reverse=True)[1]
     assert stood["mass"] == pytest.approx(sum(math.exp(row["logprob"]) for row in rows))
     assert stood["least"] == min(row["logprob"] for row in rows)
-    # The flag: what node 3 paid to be where it is, which here is nothing.
+    # The deviation: what node 3 paid to be where it is, which here is nothing.
     assert marks[3]["logprob"] == stood["top"]
     assert stood["source"] == marks[3]["source"]
     # What a draw the rows do not hold is bounded by, which is the reason `least` crosses.
@@ -572,7 +572,7 @@ def test_a_path_that_is_neither_a_route_nor_a_file_is_not_the_page(client):
 def test_a_path_carries_no_downward_measure_until_one_is_asked_for(client):
     """The same discipline the ranking overlay keeps: an absent key is *nobody asked*, and
     a read not asked for one makes no descent. Here it is the difference between one query
-    and two, which is why the flag exists rather than the measures always riding along."""
+    and two, which is why deviation exists rather than the measures always riding along."""
     bare = client.get("/path/1").json()
     assert bare["beneath"] is False
     assert all("under" not in n for cell in bare["segments"] for n in cell["nodes"])

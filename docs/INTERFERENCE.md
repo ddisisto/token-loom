@@ -44,8 +44,8 @@ and not the sampler.**
 **It cuts both ways, and the second edge is sharper.** Absent intent on the reader's side is
 filled by a sampler. Absent intent on the model's side is where a sampled deviation gets read as a
 choice — as voice, as the thing having decided something — when it was a die roll. This is the
-first arrangement in which that attribution is checkable: `docs/SPINE.md`'s flag says the dice
-moved it, and the price says how far.
+first arrangement in which that attribution is checkable: `docs/SPINE.md`'s deviation says the
+dice moved it, and how far.
 
 ## Interference
 
@@ -75,7 +75,7 @@ shape the record already admits and nothing has yet produced.
 
 **An arm can also be driven rather than held, and that is the third configuration.** Temperature
 is displacement applied on purpose — it pushes the path off the model's preference by an amount
-the record then measures, position by position, as `docs/SPINE.md`'s flags and their prices. Drive
+the record then measures, position by position, as `docs/SPINE.md`'s deviation. Drive
 it and read what answers, and what answers is not the position but **the context**: how far this
 context lets a path be pushed before it goes somewhere the reader will not follow. That is a
 reading taken from any point, looking back at everything before it, and it is the one reading here
@@ -103,16 +103,17 @@ mixture to be decomposed: it is the price, in the model's own units, of this doc
 one.
 
 **Off zero, the loop runs backwards and is the same loop.** Generate ahead under drive, read what
-came back, and return to the flags — each one a position where the sampler went somewhere the
-model would not have, marked and priced. At each, the reader does what they would have done
+came back, and return to the divergences — each one a position where the sampler went somewhere
+the model would not have, and each carrying its price. At each, the reader does what they would have done
 forward: take a different row, write a token, or let the draw stand. This is the mode for
 brainstorming against the model rather than composing with it, and the two are settings of one
 instrument rather than two methods.
 
-**A flag is a debt, and that is the whole of the discipline.** Driving opens one at every position
-where the draw left the model's preference; reading it closes it, whichever way the reader
-decides. Greedy simply opens none, which is why it is the place to start and not a rule. **A
-passage carrying unread flags carries deviations nobody owns**, and the method's claim on it is
+**A divergence is a debt, and that is the whole of the discipline.** Driving opens one at every
+position where the draw left the model's preference; reading it closes it, whichever way the
+reader decides. Greedy simply opens none, which is why it is the place to start and not a rule.
+**A passage carrying unread divergences carries deviation nobody owns**, and the method's claim on
+it is
 exactly as strong as the reading it has had — which is a thing the reader can know about their own
 document rather than a prohibition on how it was made.
 
@@ -130,7 +131,7 @@ drive and never returned to is a stretch the model and the dice wrote together.
 | let a drawn token stand, having read it | none of its own | nothing, and *Continuing is the acceptance signal* is why |
 
 **The third only arises off zero**, which is why the zero loop never had to answer it. Under drive
-the reader meets flags they agree with, and leaving one alone writes nothing.
+the reader meets divergences they agree with, and leaving one alone writes nothing.
 
 **Continuing is the acceptance signal, and the record already holds it.** Asking for the next
 batch is a deliberate act taken after reading the last one, so it carries acceptance of everything
@@ -189,20 +190,20 @@ the rejected continuation was generated *before* the intervention, by the readin
 in the tree as the sibling the reader branched away from. Nothing is spent to see it, and it is
 there while the decision is being made rather than after.
 
-**At zero the flag is empty, and the moment it fills, it is the reader's.** The token taken is the
-top-ranked one at every position, so a path the model produced alone carries no flags at all.
-Where `docs/SPINE.md` reads a flag as the sampler having acted in the reader's name, here every
-flag is one the reader made. Same overlay, inverted population.
+**At zero the deviation is zero, and the moment it is not, it is the reader's.** The token taken
+is the top-ranked one at every position, so a path the model produced alone diverges nowhere.
+Where `docs/SPINE.md` reads a divergence as the sampler having acted in the reader's name, here
+every one is the reader's own. Same overlay, inverted population.
 
 **Under drive, reach — and the counterfactual inverts with it.** The model proposes where the
-reader had none, which is the whole of the brainstorming mode, and the flags are the index of
+reader had none, which is the whole of the brainstorming mode, and the divergences are the index of
 where it did so. What was free at zero now costs: the greedy continuation is the road not taken,
 so seeing it means spending a stub. That is precisely the machinery `docs/SPINE.md` specifies, and
 this is the mode that needs it — at zero it has nothing to do.
 
-**So the two ends want different overlays.** At zero a flag marks the reader's own interventions,
+**So the two ends want different overlays.** At zero deviation marks the reader's own interventions,
 which they already know about, and what earns its place is a measure read off the rankings —
-where the model was torn, where it was not. Under drive the flag is the working index and the
+where the model was torn, where it was not. Under drive deviation is the working index and the
 first thing the column should draw.
 
 ### Degeneration
@@ -223,7 +224,7 @@ Running greedy makes the whole path that diagnostic.
 first drawn token says the lead-in is wrong. A loop further down says the context has run out of
 what it needed, which is a finding about the context. Drive is a legitimate answer to both — the
 difference from unattended inference is not that the noise is absent but that **the loop was seen
-first**, so what the drive is answering is known, and the flags it opens are read. Concealment is
+first**, so what the drive is answering is known, and the divergences it opens are read. Concealment is
 what happens when greedy was never run. Whether there are contexts on which zero is unusable
 throughout is in *Deliberately open*.
 
@@ -251,10 +252,18 @@ with its answer already in it: near-zero spend, maximum output. What is unavaila
 operator is any reading of what the document cost per passage, because nothing measured it. Here
 it is measured, and windowing is what makes it legible instead of a total nobody can use.
 
-**Flag density is the window's readable form.** Flags per unit of text, drawn along the column, is
-a map the reader builds by scrolling rather than by asking for it. Attention returns to dense
-regions when something meaningful is to be changed and passes over sparse ones, where the draw and
-the model's preference agreed.
+**Deviation per unit of text is the window's readable form.** Drawn along the column it is a map
+the reader builds by scrolling rather than by asking for it. Attention returns to expensive
+regions when something meaningful is to be changed and passes over cheap ones, where the draw and
+the model's preference mostly agreed.
+
+**Counting divergences is the cheaper map and it is only sometimes the same one.** Over windows of
+one run, how many divergences a window holds and what they cost together rank the run's windows
+alike at near-greedy and come apart as the drive rises — a median Spearman of 0.98 at 0.05–0.35,
+0.81 at 0.4–0.8 and 0.67 at 0.9 and above, over `data/continuations`. So a count is serviceable
+exactly where divergences are too rare to index anything, and it is weakest where this section
+says the index is needed. `scripts/takers.py` is the measurement. The summed price is the one to
+draw, and the count is what it degenerates to when the prices are all alike.
 
 **Density says nothing about a loop, in either direction.** `docs/SPINE.md` has this as a
 property of both measure families rather than a fault in either: they read confidence, and
@@ -271,18 +280,18 @@ looking at the text, and costs something only where measures are read without it
 over many paths, a scan across trees, anything unattended. There a detector is cheap and needs no
 distribution at all, since a repeat is a match over token ids.
 
-**Uniform high density is the dial gone too far.** A path flagged everywhere is one where the
+**Uniform high density is the dial gone too far.** A path that diverges everywhere is one where the
 drive is buying scrambles rather than decisions, and the instrument gets harder to use in exact
 proportion: everything is marked, so nothing is. That gives the dial a working range the reader
 finds by feel, and no rule has to state it.
 
-**A flag stays a flag.** It is objective — the draw went where the model would not have, at a
-recorded price — and nothing a reader does changes that. Making a flag something a reader can
-discharge would put the measure under the reader's hand and cost the map its meaning.
+**A divergence stays a divergence.** It is objective — the draw went where the model would not
+have, at a recorded price — and nothing a reader does changes that. Making it something a reader
+can discharge would put the measure under the reader's hand and cost the map its meaning.
 
 **Prominence is what varies, and the record decides it.** The origin of the most recent act on a
 path is a watermark: everything above it was continued past, because asking for what is below it
-is the acceptance signal. So the flags of the newest stretch draw most prominently and the rest
+is the acceptance signal. So the newest stretch draws most prominently and the rest
 subdue once, and the boundary is derived from the acts and the ancestry rather than from anything
 the surface remembers. **This needs no reader state.** `docs/SURFACE.md` keeps such state in the
 session and out of the record deliberately; here the question that looked like it would need some
@@ -305,7 +314,7 @@ turns out to be answerable from the store.
   most recently took.
 - **The recording bounds under the reader's hand.** They are the aperture and they decide what can
   be reached at all.
-- **A way to find the flags, once the dial is off zero.** They are the debts, and a mode that
+- **A way to find the divergences, once the dial is off zero.** They are the debts, and a mode that
   opens them without showing where they are is a mode that cannot be worked. At zero this is not
   needed, which is the only thing that makes it conditional rather than first.
 - **Their density legible while scrolling, and the newest stretch told from what was passed.**
@@ -324,7 +333,7 @@ turns out to be answerable from the store.
 
 **The aperture has to open with the dial, and the two are not independent.** Driving harder lands
 the draw further down the ranking, and a record sized for a colder draw censors it: the row the
-draw took falls past what was written, so the price of that flag comes back as a bound rather than
+draw took falls past what was written, so that price comes back as a bound rather than
 a reading. `docs/SPINE.md` measures exactly this — every censored position in `data/continuations`
 came from one hot draw recorded to a depth that earlier, equally hot draws had exceeded, so a
 draw censors not by being hot but by being recorded for something colder. Turning one dial without
@@ -400,7 +409,7 @@ Each of these is left to use, and each names what would settle it.
   flat. Settled by which way the hand moves in practice.
 - **Whether the response curve is a reading worth taking.** *Interference* has drive as a way of
   asking a question of the context rather than of a position, and nothing has asked one. Settled
-  by sweeping the dial over one context and seeing whether flag density and the distribution of
+  by sweeping the dial over one context and seeing whether divergence density and the distribution of
   prices say anything a single draw did not.
 - **Whether there are contexts on which zero is unusable throughout.** *Degeneration* argues a
   loop is a finding and a place to act. A context where every lead-in loops, or where

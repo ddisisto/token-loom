@@ -24,7 +24,7 @@
  *   about a ranking and it reads none.
  *
  * The first two are the divisions `docs/SURFACE.md` states, and they cross: the gap is
- * draw-independent and robust, the flag is draw-relative and robust. The third cuts deeper
+ * draw-independent and robust, deviation is draw-relative and robust. The third cuts deeper
  * than either, and something follows from it that has nothing to do with drawing -- a scalar of
  * the subtree below a node is a continuation rule, being the same quantity read as an argmax
  * over siblings. So the panel's path chips are the measures that are one, read that way, rather
@@ -61,7 +61,7 @@ const counted = key => ({
  *
  *  None in a corridor, since there was nothing to pass over, and the whole of a declined
  *  subtree at a fork. The log reading of none is none, so a corridor draws nothing at all --
- *  the same place a flag sits where the draw took the top row. Over the 266-node path of
+ *  the same place a deviation sits where the draw took the top row. Over the 266-node path of
  *  `data/continuations` fourteen positions carry one, which is every fork on that path and
  *  nothing else, the largest of them 899 nodes.
  *
@@ -84,7 +84,7 @@ const forgone = {
 
 const MEASURES = [
   {
-    key: "flag",
+    key: "deviation",
     looks: "up",
     what: "what the draw paid to go where the model would not have",
     draw: "relative",
@@ -92,7 +92,7 @@ const MEASURES = [
     missing: a => `the row the draw took is not among the ${a.rows} recorded`,
     /* A draw the rows do not hold is censored and not missing. What was written is a prefix
      * of what the model ranked, so the token taken sits at or below the lowest row -- which
-     * bounds the flag from one side. `bound` is that limit in the reading's own space, and
+     * bounds the deviation from one side. `bound` is that limit in the reading's own space, and
      * `word` is which side of the value it stands on, since inverting the space inverts it. */
     reads: {
       log: {
@@ -187,8 +187,8 @@ const MEASURES = [
     reads: counted("run"),
   },
   /* What the rule passed over, which is the downward measure the others are a gradient
-   * instead of. The parallel with the flag is exact and is the reason it is placed where it
-   * is: a flag prices the draw against what the model offered and this prices the rule
+   * instead of. The parallel with deviation is exact and is the reason it is placed where it
+   * is: a deviation prices the draw against what the model offered and this prices the rule
    * against what the tree offered, both on the node the choice selected, because a node
    * stands among its parent's alternatives either way.
    *
@@ -237,7 +237,7 @@ export const wants = () => {
 /** Which downward measure a list of rows weighs itself by, and how to read it.
  *
  *  A ranking already draws one family: its order is the model's opinion of the position, and
- *  the bar behind each row is a draw's flag for taking it, which is the same quantity this
+ *  the bar behind each row is a draw's deviation for taking it, which is the same quantity this
  *  file draws along a path. What it has no channel for is the other family -- what the reader
  *  grew from each of those rows -- and that is a fact of a different kind about the same
  *  siblings. So the two axes of a row are the two families, and neither needs a name it did

@@ -1,4 +1,4 @@
-# The flagged spine
+# The priced spine
 
 **An instrument for reading a sampled generation as a record of where sampling did work against the model's preferences — and a loop for spending further inference only where that record says something happened.**
 
@@ -18,26 +18,28 @@ The premise of this instrument is that the discarded record is the interesting p
 
 The spine is the reader's object. They are reading their output, as they would anywhere; the instrument annotates it.
 
-## Flags
+## Deviation
 
-**A flag marks each position where the sampled token differs from the argmax token.** These are the positions where sampling did work — where the draw moved the continuation off what the model would have produced on its own. Everywhere else, the sampler was decoration; at a flag, it was causal.
+**Every position carries a deviation: the log-ratio between the token the model ranked first and the token that was taken.** It is zero where the top row was taken and positive where anything else was, so what runs along a path is one quantity over its whole length rather than a set of marks on otherwise plain text. A position whose deviation is positive is a **divergence** — there, the taker moved the continuation off what the model would have produced alone; everywhere else the sampler was decoration.
 
-Flags are observations, not hypotheses. Machinery that tries to decide where a model *might* be movable — orderings over candidate branch points, admission thresholds, frontier policies — is placing bets before spending. A flag is a bet already placed and settled: a different token *was* drawn, at a recorded price. That price is the log-ratio between the argmax and the sampled token, and it gives each flag a magnitude.
+A deviation is an observation, not a hypothesis. Machinery that tries to decide where a model *might* be movable — orderings over candidate branch points, admission thresholds, frontier policies — is placing bets before spending. A divergence is a bet already placed and settled: a different token *was* taken, at a recorded price.
 
 Three properties fall out immediately:
 
-- **The number and placement of flags is a joint function of model, sampler, and context.** A near-greedy draw flags rarely; a hot one flags densely. The same temperature flags differently on a memorised passage than on open prose. Flag density is itself a reading of how hard the context pins the model down.
-- **Per-flag prices sum to the path's accumulated deviation** — the summed log-ratio of every divergence against the token it displaced. The path's total distance from the model's preferred continuation is not a caption on it but a decomposition over it: the reader sees not only how far this generation wandered but exactly where every unit of the wandering was spent.
+- **Counting divergences reads the sampler; summing deviation reads the path.** How often a draw leaves the argmax is very largely a function of the temperature it was asked for — *Evidence in hand* measures it from one position in seven thousand to three in five across the dial — so a count is a readout of how a batch was requested. The prices are not, and they are the part an ordinary generation does not keep.
+- **Deviation sums along a path, and what it sums is not a distance to one continuation.** Each term is measured against the argmax *given the path as it actually ran to that point*, so once the path has left the model's preference it is being read against a preference that has itself moved. The total accumulates local prices rather than separating two texts, and what makes it worth having is that it decomposes: the reader sees not only how far this generation wandered but where every unit of the wandering went.
 - **Paths drawn under different samplers remain comparable**, because deviation is measured in the model's own units, not the sampler's nominal settings. A draw at high temperature that happened to hug the argmax path sits low on the axis; a mild draw that hit an unstable region sits high. The realised perturbation is what is measured; the intended one is metadata.
+
+**What a deviation may be read against is bounded by the rows recorded beneath it.** The recording rule spends depth where the ranking is flat, so a sharp position arrives with a shallow record and a flat one with a deep record, and depth is therefore not independent of anything a measure might band by. *Evidence in hand* has what that costs a reading that ignores it.
 
 ## Two families of measure, not one
 
-**A flag marks where sampling did work. A distribution measure marks where work was available.** These are different maps and both are needed, because a flag can only appear where the draw happened to diverge — and a position where the model was genuinely torn, but the draw took the argmax anyway, is invisible to flags while being precisely the kind of position worth knowing about.
+**Deviation marks where sampling did work. A distribution measure marks where work was available.** These are different maps and both are needed, because deviation can only be positive where the draw happened to diverge — and a position where the model was genuinely torn, but the draw took the argmax anyway, reads as zero while being precisely the kind of position worth knowing about.
 
-A flag is **draw-relative**: it reads the row the draw took against the row the model preferred, and it is silent wherever the draw did not go. A **distribution measure** reads the ranking alone and is indifferent to what was drawn — entropy at the position, the gap between the top two tokens, the probability mass of the head, whatever else the recorded distributions support. Both are per-position quantities drawn along the path, toggled and thresholded at read time; `docs/SURFACE.md` calls that machinery an **overlay** and takes either kind. What they do not share is what makes a position worth marking, and only the second distinguishes the two populations flags alone conflate:
+Deviation is **draw-relative**: it reads the row the draw took against the row the model preferred, and it says nothing wherever the draw did not go. A **distribution measure** reads the ranking alone and is indifferent to what was drawn — entropy at the position, the gap between the top two tokens, the probability mass of the head, whatever else the recorded distributions support. Both are per-position quantities drawn along the path, toggled and thresholded at read time; `docs/SURFACE.md` calls that machinery an **overlay** and takes either kind. What they do not share is what makes a position worth marking, and only the second distinguishes the two populations deviation alone conflates:
 
 - **A decision** is a position split strongly between a small number of options — the second token carries real mass. Divergence here is the model entertaining an alternative.
-- **A scramble** is a position where the model has no opinion — many near-equal options, a flat head. Divergence here is a die roll. Temperature buys most of its flags at scrambles, because that is where flattening the distribution has the most effect; the decisions are rarer and are the ones that matter.
+- **A scramble** is a position where the model has no opinion — many near-equal options, a flat head. Divergence here is a die roll. Temperature buys most of its divergences at scrambles, because that is where flattening the distribution has the most effect; the decisions are rarer and are the ones that matter.
 
 That distinction is a read-time one: nothing about the generation depends on it, and the threshold that separates the two can be moved with a slider, wrong at zero cost.
 
@@ -45,9 +47,9 @@ That distinction is a read-time one: nothing about the generation depends on it,
 
 ## Stubs
 
-**A stub is a short greedy rollout from the token the sample displaced.** The spine shows where the sampled token went; the stub shows where the model wanted to go. Together with the flag they form a chain — sampled → argmax → stub — that turns a token-level event into a legible counterfactual: *here, the draw went one way; had it not, this is the continuation that was foregone.*
+**A stub is a short greedy rollout from the token the sample displaced.** The spine shows where the sampled token went; the stub shows where the model wanted to go. Together with the divergence they form a chain — sampled → argmax → stub — that turns a token-level event into a legible counterfactual: *here, the draw went one way; had it not, this is the continuation that was foregone.*
 
-Stubs answer the question a flag alone cannot: **did the divergence last?** Most flags are cosmetic — a synonym drawn, the continuation re-converging within a few tokens. That re-convergence is a finding in itself: the position looked open and was not; the model absorbed the perturbation and returned to its path. A flag whose stub goes somewhere genuinely different is the other kind — a real fork, found by observation rather than predicted by heuristic.
+Stubs answer the question a price alone cannot: **did the divergence last?** Most divergences are cosmetic — a synonym drawn, the continuation re-converging within a few tokens. That re-convergence is a finding in itself: the position looked open and was not; the model absorbed the perturbation and returned to its path. A divergence whose stub goes somewhere genuinely different is the other kind — a real fork, found by observation rather than predicted by heuristic.
 
 Whether a stub has re-converged is left to the reader's judgement, deliberately. It is not obvious the question has a closed form, and the chain presented plainly — this token, that token, this continuation — is enough for a reader to decide how and whether to continue. Formalising re-convergence (n-gram overlap over a window, embedding distance, anything else) is analysis performed later over recorded chains, not a gate built into the loop.
 
@@ -79,7 +81,7 @@ the sparse opposite: the model was confident and the draw went elsewhere, which 
 reader is least likely to notice for themselves. Both are worth having and only one of them is a
 line.
 
-**What spawns that alarm is how much the model cared, and not how far the draw fell.** *Evidence in hand* measures both, and they are not independent: at a divergence the draw took something at or below the second row, so **the flag is never less than the gap**. Selecting on the flag therefore admits every position where a flat ranking was sampled from — which is most of them, and which is a wall rather than a second line. The reason is room and not meaning: the token a rollout starts from may be near-arbitrary where the ranking is flat, but the continuation from it is the model's either way. Selecting on the gap admits the positions where the model was sure and something went elsewhere, which is the whole of what a stub is for. The gap subsumes the flag up to its own threshold, so this is one dial rather than two.
+**What spawns that alarm is how much the model cared, and not how far the draw fell.** *Evidence in hand* measures both, and they are not independent: at a divergence the draw took something at or below the second row, so **a deviation is never less than the gap**. Selecting on deviation therefore admits every position where a flat ranking was sampled from — which is most of them, and which is a wall rather than a second line. The reason is room and not meaning: the token a rollout starts from may be near-arbitrary where the ranking is flat, but the continuation from it is the model's either way. Selecting on the gap admits the positions where the model was sure and something went elsewhere, which is the whole of what a stub is for. The gap subsumes deviation up to its own threshold, so this is one dial rather than two.
 
 **How deep is what the row can show, and a reader who wants more says so.** A stub shown beside a ranking is read against the room a panel has and not against the prose, which is what taking it out of the column bought. A flat short length is therefore enough to start, and *Deliberately open* has what would settle a better one.
 
@@ -89,13 +91,13 @@ line.
 
 One demand is not cosmetic. **A stub should read as the model's habit and not as the right answer.** The instrument wants a reader who was moved off the greedy continuation to notice they were moved, not to defer to greedy; recessive rendering is what that comes to, and it is the one place where getting the visual weight wrong changes what a reader concludes.
 
-**Nothing here needs more than one screen.** A context, one draw, and the flags on is already the loop; everything past that is the loop used more.
+**Nothing here needs more than one screen.** A context, one draw, and deviation drawn along it is already the loop; everything past that is the loop used more.
 
 ## Continuation and recursion
 
 The loop above is one spine, read. What follows from it is chosen by the reader, and every choice decomposes into the same three moves:
 
-- **Select positions to inflate** — by touching flags directly, or by thresholding an overlay (every flag above this deviation, every position above this entropy). What was a generation-time policy problem in a controller becomes a read-time filter.
+- **Select positions to inflate** — by touching divergences directly, or by thresholding an overlay (every position above this deviation, every position above this entropy). What was a generation-time policy problem in a controller becomes a read-time filter.
 - **Choose how to inflate** — greedy stubs are the default and the cheapest, but a stub is just a short generation and other policies are admissible where they earn their spend.
 - **Analyse what came back** — re-convergence, n-gram structure, embedding distance between chains — producing further overlays, returned to the same margin.
 
@@ -103,9 +105,9 @@ And any stub can be **promoted to a spine of its own**: the reader walks into th
 
 ## Aggregation
 
-One spine's flags are one draw's story. **Across many spines over the same context, flag positions aggregate into a fork map**: positions that flag repeatedly, across draws and across sampler settings, are the context's real decision points — identified by repeated observation rather than by a ranking heuristic. Positions that flag once and re-converge are noise the aggregate washes out. Stubs that loop, collected across a region, map the attractors.
+One spine's divergences are one draw's story. **Across many spines over the same context, they aggregate into a fork map**: positions that diverge repeatedly, across draws and across sampler settings, are the context's real decision points — identified by repeated observation rather than by a ranking heuristic. Positions that diverge once and re-converge are noise the aggregate washes out. Stubs that loop, collected across a region, map the attractors.
 
-This is the analyst's layer, and it asks nothing of the reading loop: it is queries over what the loop naturally sheds. The resistance of a model on a context — how much has to be spent to move it, and whether it can be moved at all — is assembled here, from flags whose prices are recorded and stubs whose destinations are known. A context on which flags are rare, expensive, and uniformly re-convergent is a context with one attractor and a model that will not leave it, and that finding is the sort the instrument exists to make visible.
+This is the analyst's layer, and it asks nothing of the reading loop: it is queries over what the loop naturally sheds. The resistance of a model on a context — how much has to be spent to move it, and whether it can be moved at all — is assembled here, from divergences whose prices are recorded and stubs whose destinations are known. A context on which divergences are rare, expensive, and uniformly re-convergent is a context with one attractor and a model that will not leave it, and that finding is the sort the instrument exists to make visible.
 
 ## The failure mode is a loop the operator built
 
@@ -144,7 +146,7 @@ This is the analyst's layer, and it asks nothing of the reading loop: it is quer
 - **Annotation over ordinary use, not a parallel workflow.** The marginal cost of the instrument at generation time is retaining logprobs — information already computed. Everything else is read-time. A tool that transforms normal inference is used; a tool that demands its own attention economy is visited.
 - **Observation over prediction.** Every mechanism here reads what a draw actually did, then spends further inference only where something happened. The alternative — machinery for predicting where divergence would be worth buying — is deferred until aggregated observation shows what such machinery would need to be right about.
 - **Policy at read time, reversibly.** Thresholds, filters, and convergence judgements all live where they can be changed at no cost. The only generation-time decisions are the sampler settings the user already makes and a flat stub length, and both are recorded rather than load-bearing.
-- **The reader's judgement is the sensor.** Which flags get touched, which stubs get promoted, where reading stops — the loop runs on attention, and attention leaves a record. What that record is later good for is a question the aggregate answers; nothing in the loop depends on answering it first.
+- **The reader's judgement is the sensor.** Which divergences get touched, which stubs get promoted, where reading stops — the loop runs on attention, and attention leaves a record. What that record is later good for is a question the aggregate answers; nothing in the loop depends on answering it first.
 
 ## Evidence in hand
 
@@ -157,7 +159,7 @@ probability**, a top token of 0.479 and a second of 0.352, the two carrying 83% 
 between them; by **margin**, 0.144 and 0.138; by **ratio**, 0.198 and 0.191. The last two select
 the flattest population in the tree — positions where the *winning* token is worth 0.14 and the
 model has no opinion to explore. This is a finding about using an overlay to *choose* where to
-spend, and not about a flag's magnitude, where the same quantity is the honest price of a
+spend, and not about a deviation's magnitude, where the same quantity is the honest price of a
 divergence that was already observed.
 
 **Loops are common, and certainty does not find them.** Loops appeared in a quarter of near-greedy
@@ -214,13 +216,20 @@ flat — median top probability 0.26 at ten rows and 0.28 at twenty — and the 
 nats across ten of them and 3.95 across twenty. **So a bound is strong exactly where a reader
 would expect the record to be weak**, and the deepest records give the loosest ones.
 
-**Censoring is the draw read against the record, and not either one alone.** The same tree holds
-62 censored positions in 13,595 nodes, and every one came from a single 90-token draw at
+**Censoring is the draw read against the record, and not either one alone.** `data/continuations`
+holds 62 censored positions in 13,595 nodes, and every one came from a single 90-token draw at
 temperature 1.4 recorded to ten rows — 62 of that act's 90 tokens, against none at all from the
 sixteen earlier acts at the same temperature that recorded to twenty. So a hot draw does not
 censor by being hot; it censors where the record was sized for a colder one. That makes
 `record_rows` a choice about how much of a hot path stays readable rather than only a cost, and
 it is the one parameter whose right value cannot be known before the draw it is recording.
+
+**On a worked tree it is not a curiosity but the majority case.** `data/logozoa` was recorded at
+ten rows until late and is 88% greedy draws, so its divergences concentrate in the hot minority
+the record was sized too small for: 2,730 of its 4,406 divergences are censored against 1,676
+priced. Two thirds of what a sum over that tree would add is therefore a bound and not a value —
+which is a fact about summing deviation over a document the method actually produced, and touches
+no reading of a single position.
 
 **A steered tree disagrees with its own top rows at a third of its forks.** Over the 53 forks
 of `data/continuations`, the most-grown arm is the model's top-ranked token at 36 of them and
@@ -238,67 +247,99 @@ edges above probability 0.40, 25 above 0.30, and 118 above 0.10 — and each pat
 contributes as many again. Readability is the binding constraint, not inference cost.
 
 **How often the draw leaves the argmax is a readout of the temperature dial, not of the text.**
-Over the 298 generated runs of `data/continuations`, the share of positions carrying a flag runs
+Over the 298 generated runs of `data/continuations`, the share of positions that diverge runs
 1 in 7030 at temperature 0, 3.0% at 0.05–0.35, 27.4% at 0.4–0.8, and 58.7% above 0.9. So the
-rarity of a flag is a property of how a batch was asked for and not of what it says, and a
+rarity of a divergence is a property of how a batch was asked for and not of what it says, and a
 document drawn greedily carries none at all — which is the mode this method spends most of its
 time in. The texture that reads off a page as alternating dense and empty regions is a record of
 method, which is a real thing to be able to see, and it is not the text speaking.
 
-**At a divergence the flag is never less than the gap, which makes the gap the only dial.** A draw
+**At a divergence the deviation is never less than the gap, which makes the gap the only dial.** A draw
 that left the argmax took something at or below the second row, so `top₁ − taken ≥ top₁ − top₂` by
 construction. The counts show it exactly: over the same runs, selecting on gap > 1.0 admits 1241
-positions and selecting on *both* gap > 1.0 and flag > 1.0 admits the same 1241; at gap > 2.0 both
+positions and selecting on *both* gap > 1.0 and deviation > 1.0 admits the same 1241; at gap > 2.0 both
 admit 347. Nothing is added by the second condition until its threshold passes the first.
 
-**Selecting on the gap is what leaves room for a stub, and selecting on the flag does not.** Room
+**Selecting on the gap is what leaves room for a stub, and selecting on deviation does not.** Room
 is the distance to the next selected position, which is the depth a stub can be shown at.
 `scripts/stub-gate.py` is this measurement, over every generated run, against a 400-token screen:
 
 | gate | stubs per screen | median room | room ≥ 8 tokens |
 |---|---|---|---|
-| every divergence | 84 | 0 | 3% |
-| flag > 3.0 | 20 | 2 | 21% |
-| gap > 1.0 | 22 | 3 | 24% |
+| every divergence | 74 | 0 | 3% |
+| deviation > 3.0 | 18 | 2 | 21% |
+| gap > 1.0 | 20 | 3 | 24% |
 | gap > 2.0 | 6 | 10 | 57% |
 
 Ungated the counterfactual is a second token against nearly every first, which is not a document
 laid beside a document but one document struck through. At gap > 2.0 it is six annotations to a
 screen at a median of ten tokens, over half of them long enough to read as language.
 
-**The gate reproduces on a steered tree, and points away from where its operator worked.**
-`data/logozoa` is one worked session — 21,167 nodes, 145 `realise` acts against 559 draws, 4,435
-authored tokens — and the gate lands identically on it: `gap > 2.0` admits 6 stubs to a screen at
-a median room of 9, against 6 and 10 on `data/continuations`. The flag gate does worse here than
-there, 61 to a screen at no room, because a steered tree makes large flags deliberately and the
-flag cannot tell those from a hot sampler.
+**Every number below that reads a `realise` reads one operator, who is also the builder.** The
+record holds only what was written, and looking writes nothing, so the realised rows are already
+the subset that was not merely scrolled past — but a realised row can still be a casual one, and
+nothing separates the two. `Fixed model, adaptive operator` has why that condition is the right
+one for the questions and insufficient for claims about operators in general; what it means here
+is narrower, that these are one person's habits and not a reader's.
+
+**The gate's room reproduces on a steered tree and its density does not.** `data/logozoa` is one
+worked session — 82,508 nodes, 1,036 `realise` acts against 2,536 draws, 4,922 authored tokens —
+and `gap > 2.0` lands there at a median room of 9 and 57% of stubs at eight tokens or more,
+against 10 and 57% on `data/continuations`. What differs is how many: 2 stubs to a screen against
+6. A worked tree is mostly greedy, and a gate that fires where the model was sure fires rarely on
+a path drawn from what the model was sure about. So the gate's *shape* is a property of the
+measure and its *rate* is a property of how the tree was made, and only the first transfers. The
+deviation gate does worse here than there, 15 to a screen at no room, because a steered tree
+makes large deviations deliberately and deviation cannot tell those from a hot sampler.
 
 **But the positions its operator chose are the other end of the same measure.** Where they
-realised a row, the top-to-second gap has a median of 1.03 nats and is above 2.0 at 30% of them;
-over every ranked node in the tree the median is 4.15 and 64% are above 2.0. So intervention
+realised a row, the top-to-second gap has a median of 1.14 nats and is above 2.0 at 33% of them;
+over every ranked node in the tree the median is 5.69 and 74% are above 2.0. So intervention
 concentrates where the model was torn, and an automatic stub lands where it was sure. They are
 not competing answers — a reader asks at the position they are working, and what is placed for
 them unasked is what they would not have gone looking for. It does say the line is an alarm and
 not a map. (The comparison is against every ranked node rather than every node the reader passed,
 which is the cleaner population and is not recoverable from the record.)
 
-**Steering is a nudge far more often than a jump.** Of the 145 realised rows, 75 are rank one —
-the second row — and only four are rank zero. So the continuation an operator most often wants
-next is the one the ranking already puts beside the one they have, which is the cheapest
-speculation available and needs no second line to show.
+**What looked like a preference for the second row was the recording rule.** Of 1,025 realised
+divergences, 46% take the second row — but 300 of them stand at a ranking two rows deep, where
+the second row is the only divergence there is. Among the 725 with a third row to take, 24% take
+the second. An operator offered a choice does not mostly nudge, and the earlier reading of this
+number was counting positions that offered none.
 
-**Degenerate regions are rare in worked use.** Six of 443 generated runs of twelve tokens or more
-end in a cycle, against 9,546 greedy positions in the tree. Loop detection is insurance rather
-than a common path, and the pivot is not urgent work.
+**Recorded depth bounds what a divergence can say, and the rule ties depth to the very thing a
+reader would band by.** Rows are written until the mass is covered, so a sharp position stops at
+the floor of two and a flat one runs to the ceiling — which means depth falls as the gap rises,
+by construction rather than by accident. Band any reading of the takers by gap and the high-gap
+bands fill with positions that had two rows: every realised divergence above a gap of 4.0 takes
+the second row, at 100%, because the record holds no third one there. The measure is reading the
+rule back out. `scripts/takers.py` is this, and the correction is to band by depth, where both
+takers sit trivially at 100% at a depth of two and the question dissolves.
+
+**Neither taker chooses by how long the list is.** The ceiling was raised from ten rows to fifty
+partway through `data/logozoa`, and where fifty were recorded the reader's median realised row is
+the fourth, against the sixth where ten to nineteen were — lower in absolute terms while the list
+grew fivefold. A taker picking without regard to the rows would hold its rank in proportion to
+the depth, and neither does. The reader's sample there is 25 positions, so this rules the
+artefact out rather than measuring the behaviour.
+
+**Degenerate regions are rare in worked use.** Forty-five of `data/logozoa`'s 2,314 generated runs
+of twelve tokens or more end in a repetition, 1.9%, across 67,000 greedy positions; on
+`data/continuations` it is 16 of 272, 5.9%, and the difference is that almost all of the worked
+tree is drawn cold and short. Loop detection is insurance rather than a common path, and the
+pivot is not urgent work. `scripts/cycles.py` states the rule the count means, which no earlier
+version of this number did — two repeats of a short block is ordinary English, so a block must
+repeat across at least twelve tokens to count.
 
 **The earlier numbers were measured on a tree nobody steered.** `data/continuations`
-holds 29 `realise` acts against 20,839 nodes, so almost every divergence counted above is a
+holds 118 `realise` acts against 23,997 nodes, so almost every divergence counted above is a
 sampler leaving the argmax and not a reader doing it. In a document made by this method the
-divergences would mostly be interventions, which carry a flag by construction and should sit at
+divergences would mostly be interventions, which are priced by construction and should sit at
 the sharp end of the gap — a reader realises a row because they disagreed with a model that was
 sure. The gate would then admit more of what matters and less of what does not, so these numbers
-are the pessimistic case. What settles the real threshold is a steered document, and there is
-not one yet.
+are the pessimistic case. `data/logozoa` is the steered document the earlier version of this
+entry was waiting for, and the entries above are what it said: the gate's room transferred and
+its rate did not.
 
 ## Deliberately open
 
@@ -309,7 +350,7 @@ Each of these is left to be settled by use of the instrument, and each names wha
   stub, which makes the policy a consequence of the gate rather than a number of its own. What is
   open is whether a reader wants that ceiling lifted where a stub was going somewhere — settled by
   where readers actually stop reading stubs, and which ones they extend by hand.
-- **Which distribution measure best predicts the flags that turn out to matter** — entropy, gap, head-mass, or something composite. *Evidence in hand* rules out the obvious answer for selection and leaves the question. Settled by the fork map: aggregate which positions produced lasting divergence, and score each measure as a predictor of them.
+- **Which distribution measure best predicts the divergences that turn out to matter** — entropy, gap, head-mass, or something composite. *Evidence in hand* rules out the obvious answer for selection and leaves the question. Settled by the fork map: aggregate which positions produced lasting divergence, and score each measure as a predictor of them.
 - **Whether a well-sampled tree is its own reference arm.** Sampling one position many times
   makes the arm most often taken the model's modal token, so any rule that argmaxes an aggregate
   over the subtree converges on the greedy choice — which the ranking's top row already states
@@ -317,7 +358,7 @@ Each of these is left to be settled by use of the instrument, and each names wha
   child is the likeliest to be drawn, so it is the first row at each position to acquire a node,
   and the greedy path gets built as readable text rather than looked up as a number. Where the
   aggregate then disagrees with the top row is where the reader steered, which is a per-position
-  reading of intervention over every visit against the flag's per-draw one. Settled by measuring
+  reading of intervention over every visit against deviation's per-draw one. Settled by measuring
   how realisation falls with rank: what share of top rows at visited nodes have a child, against
   rank one, rank two, rank *k*. Stubs must be excluded and can be, since `docs/SURFACE.md` has
   one born set aside — so liveness separates them and no archaeology over act parameters is
@@ -336,5 +377,5 @@ Each of these is left to be settled by use of the instrument, and each names wha
   from the instrument's. **The field exists** — an act carries its actor, so an idle policy acts as
   its own and every read that needs the difference has it. What is open is whether speculation
   should be committed at all or held until it is taken, which is a question about what a record is
-  for and not about where to put a flag.
+  for and not about where to put a mark.
 - **Which embeddings, if analysis wants them.** Settled by probing candidates against chains that already exist; nothing upstream depends on the choice.

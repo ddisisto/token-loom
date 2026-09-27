@@ -63,12 +63,13 @@ forces. The footer is already always there — *what this is* on the left, *what
 the right.
 
 **`record_rows` goes with them as a readout and not as a dial.** `docs/SPINE.md` measured the
-coupling: 62 censored positions in one tree, every one from a 90-token draw at temperature 1.4
-recorded to ten rows, against none from sixteen earlier acts at the same heat recorded to twenty.
-Making temperature the easiest thing on the page to move while the row count stays behind a fold
-is how a reader shreds their own record without being told. What it is not yet is a threshold:
-one data point is not a rule, so the surface shows the pair rather than inventing a line between
-them.
+coupling twice: 62 censored positions in `data/continuations`, every one from a 90-token draw at
+temperature 1.4 recorded to ten rows; and on `data/logozoa`, recorded at ten rows throughout its
+early work, two thirds of every divergence in the tree. Making temperature the easiest thing on
+the page to move while the row count stays behind a fold is how a reader shreds their own record
+without being told, and the worked tree is what that looks like after the fact. What it is still
+not is a threshold — the right depth depends on the draw it is recording, which is not known when
+it is chosen — so the surface shows the pair rather than inventing a line between them.
 
 **`length` starts at 8 and steps by 8, which forbids the length-1 draw the design names.** It
 also spends fifty positions on a linear range whose useful values cluster low — one to deepen a
@@ -263,7 +264,7 @@ Not in the ordering; each stands on its own.
   axis and calls the intended one metadata — and what it is provenance *of* is the sampler, not
   the model. The learned part has no say in it: temperature scales a distribution the model has
   already produced, which is the same fact the adapter's notes record as the logprobs being
-  pre-temperature. So beside a flag the two halve the question — one says how much noise was
+  pre-temperature. So beside a deviation the two halve the question — one says how much noise was
   permitted at a position, the other how far the draw then went.
 
 ## 2. The next marker

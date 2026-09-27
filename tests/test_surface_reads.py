@@ -351,7 +351,7 @@ def test_a_flag_is_the_node_against_the_top_of_what_it_stood_in(ranked):
 def test_an_authored_node_stands_in_a_ranking_it_has_no_row_in(ranked):
     """Two ways to have no value, and they are not one. An authored token was never ranked,
     so it is off the scale rather than at its end -- but the position it occupies still has
-    a distribution, which is why the spread is about the position and the flag is about the
+    a distribution, which is why the spread is about the position and the deviation is about the
     node.
     """
     store, tip = ranked

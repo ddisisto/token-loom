@@ -4,7 +4,7 @@
  * colour, and a colour is not a number a reader can check: a wrong polarity, a domain read
  * from the wrong end or a state marked as another all produce a page that looks like it is
  * working. So the checks are on the invariants rather than the values -- that the token which
- * took the top row is the unflagged one, that two readings of a measure agree on which
+ * took the top row is the one that paid nothing, that two readings of a measure agree on which
  * position is hottest, that a position with no value is never a position with a low one.
  *
  * The stub is `stub-dom.mjs`, shared with the draw panel's check. No reading column is driven
@@ -51,10 +51,10 @@ const SOURCES = { 1: "user", 2: "model:qwen", 3: "model:other" };
 const P_TOP = 0.6, P_SECOND = 0.25, P_TOOK = 0.1, P_LEAST = 0.02;
 const TOP = Math.log(P_TOP), SECOND = Math.log(P_SECOND), TOOK = Math.log(P_TOOK);
 const LEAST = Math.log(P_LEAST);
-const FLAG = TOP - TOOK;      // = ln 6
+const DEVIATION = TOP - TOOK; // = ln 6
 const GAP = TOP - SECOND;     // = ln 2.4
 const FLOOR = TOP - LEAST;    // = ln 30, the least a censored draw can have paid
-const CEILING = 5;            // the flag's fixed domain, in nats
+const CEILING = 5;            // deviation's fixed domain, in nats
 
 let ids = 0;
 const among = (over = {}) =>
@@ -94,21 +94,21 @@ is("nothing is chosen until a reader chooses", [O.asked(), head.textContent],
    [false, "overlay"]);
 is("and an unasked column carries no mark at all", O.read([cell(node())], SOURCES), null);
 
-// ---- the flag ----------------------------------------------------------------------------------
+// ---- deviation ---------------------------------------------------------------------------------
 
-tap("measure", "flag");
+tap("measure", "deviation");
 is("choosing one says so and asks the page to read again", [O.asked(), head.textContent, moved],
-   [true, "flag", 1]);
+   [true, "deviation", 1]);
 
-const flagged = apart(node())[0];
-is("a drawn token off the top row is a value", flagged.cls, "val");
-near("  placed at its flag over the fixed ceiling", flagged.t, FLAG / CEILING);
-says("  and saying what it paid", flagged.title, `${FLAG.toFixed(2)} nats`);
+const diverged = apart(node())[0];
+is("a drawn token off the top row is a value", diverged.cls, "val");
+near("  placed at its deviation over the fixed ceiling", diverged.t, DEVIATION / CEILING);
+says("  and saying what it paid", diverged.title, `${DEVIATION.toFixed(2)} nats`);
 
 // The invariant, not the number: whatever the arithmetic, exactly the token that took the top
 // row is the one with nothing to pay.
 const took = apart(node({ logprob: TOP }))[0];
-is("the token that took the top row is the unflagged one", [took.cls, took.t], ["val", 0]);
+is("the token that took the top row is the one that paid nothing", [took.cls, took.t], ["val", 0]);
 
 // ---- a position with no value is not a position with a low one -----------------------------------
 
@@ -129,7 +129,7 @@ is("and nothing without a value carries a place on the scale",
 // ---- a draw past the recorded rows is censored and not missing -------------------------------
 
 /* The rows written are a prefix of the model's, so a token they do not hold sits at or below
- * the lowest of them -- which bounds the flag from one side. Reading that as *no value* throws
+ * the lowest of them -- which bounds the deviation from one side. Reading that as *no value* throws
  * away the one thing the record does say, and reading it as *a value* claims what it does not. */
 is("a draw the rows do not hold is bounded rather than blank", past.cls, "bound");
 near("  placed where the rows say it is at least", past.t, FLOOR / CEILING);
@@ -183,7 +183,7 @@ tap("reading", "nats");
 
 // ---- linear against log is a choice on one measure -------------------------------------------
 
-tap("measure", "flag");
+tap("measure", "deviation");
 const hotter = [P_TOOK, 0.3, 0.55].map(p => node({ logprob: Math.log(p) }));
 const inNats = apart(...hotter).map(mark => mark.t);
 tap("reading", "ratio");
@@ -215,7 +215,7 @@ is("a path-relative scale moves with the path it is read over",
 tap("domain", "fixed");
 const fixedShort = apart(node({ logprob: TOOK }), node({ logprob: Math.log(0.5) }));
 const fixedLong = apart(node({ logprob: TOOK }), node({ logprob: Math.log(0.0001) }));
-near("a fixed one means the same thing in both", fixedShort[0].t, FLAG / CEILING);
+near("a fixed one means the same thing in both", fixedShort[0].t, DEVIATION / CEILING);
 is("  whatever else the path holds", fixedShort[0].t === fixedLong[0].t, true);
 
 // ---- the unit ---------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ is("  whatever else the path holds", fixedShort[0].t === fixedLong[0].t, true);
 const split = O.read([cell(node(), node({ logprob: TOP }))], SOURCES)[0];
 is("a span of more than one node is marked and not coloured",
    [split.cls, split.t], ["split", undefined]);
-says("  and the breakdown is what it says", split.title, `${FLAG.toFixed(2)} nats`);
+says("  and the breakdown is what it says", split.title, `${DEVIATION.toFixed(2)} nats`);
 says("  for every node in it", split.title, "0.00 nats");
 
 const quiet = O.read([cell(node({ among: [] }), node({ among: [] }))], SOURCES)[0];
@@ -253,7 +253,7 @@ const grown = (over = {}, rest = {}) =>
 tap("measure", "size");
 is("a measure that looks down asks for a descent and not for rankings",
    O.wants(), { overlays: false, beneath: true });
-tap("measure", "flag");
+tap("measure", "deviation");
 is("  and one that looks up asks for the other", O.wants(), { overlays: true, beneath: false });
 tap("measure", "none");
 is("  and an unasked column asks for neither", O.wants(), { overlays: false, beneath: false });
@@ -285,7 +285,7 @@ is("  and disagree on where the middle of the path sits", flatly[1] === logly[1]
 
 // ---- what the rule passed over --------------------------------------------------------------
 
-/* The downward analogue of a flag, and checked like one: what matters is not the arithmetic
+/* The downward analogue of a deviation, and checked like one: what matters is not the arithmetic
  * but that a position where the rule had no choice is the one at the foot of the scale, and
  * that what a fork carries is the arm declined rather than the step in size -- the two differ
  * by the parent itself, which nobody passed over.
@@ -352,7 +352,7 @@ tap("path", "height");
 tap("measure", "none");
 is("with nothing chosen the rows are still weighed, and by how much is there",
    O.weighed().key, "size");
-tap("measure", "flag");
+tap("measure", "deviation");
 is("  and a measure that looks up weighs no siblings, so it is that one again",
    O.weighed().key, "size");
 tap("measure", "forks");

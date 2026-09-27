@@ -137,7 +137,7 @@ measuring something other than the relation described above.
 It has a sharper form. After long enough, a model operating fluently in an established basis may
 have got better at the concepts or merely better at predicting *this reader*, and from inside
 the collaboration those look identical. **The question only bites for terms with a life outside
-it.** There is no *flagged spine* independent of this project, so for a term invented here,
+it.** There is no *priced spine* independent of this project, so for a term invented here,
 predicting the reader and representing the concept are the same act and the distinction is empty.
 For a term that existed before — one the wider world also uses — they come apart, and that is
 where an answer would have to be looked for.
@@ -200,9 +200,11 @@ work and carry no order; what gets built is `docs/NEXT.md`, and what has been me
   measured at two depths, in a tree this instrument already builds. If it costs the same, either
   nothing crystallised or the effect is not where this says it is. **This one needs no machinery
   that does not exist.**
-- **A basis that closes the divide should show up as the model being pinned down.** Flag density
-  reads how hard a context holds a model to its preferences, so if a basis is doing the work
-  claimed for it, flag density against context depth is where it would appear. The result is not
+- **A basis that closes the divide should show up as the model being pinned down.** What a path
+  costs per unit of text reads how hard a context holds a model to its preferences, so if a basis
+  is doing the work claimed for it, that rate against context depth is where it would appear —
+  and the rate rather than a count of divergences, which `docs/SPINE.md` measures as a readout of
+  the temperature dial instead. The result is not
   predicted here — a basis might equally open production up rather than narrow it, and which of
   those happens is the more interesting reading either way.
 - **The bridge should generalise, or it is one reader's habit.** A term perturbed, paraphrased,

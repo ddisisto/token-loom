@@ -431,10 +431,10 @@ makes holding them worth doing at all.
 ## Overlays
 
 `docs/SPINE.md` names the objects: a **spine** is a sampled path read as the record of the
-decisions that made it, a **flag** marks a position where the draw went somewhere the model would
+decisions that made it, a **deviation** prices a position where the draw went somewhere the model would
 not have, and a **stub** is a short greedy rollout from what the draw passed over. An **overlay**
 is this document's word, and it is the machinery rather than a measure — a per-position quantity
-drawn along the path, whatever computed it. A flag is one, and so is anything read off a ranking
+drawn along the path, whatever computed it. Deviation is one, and so is anything read off a ranking
 without regard to what the draw did.
 
 **An overlay is asked for, and the column draws none until one is.** This is what keeps *The
@@ -446,21 +446,31 @@ may be absent; a **scale**, which maps it to colour; and a **unit**, which is wh
 addressed to. Keeping them apart is what lets a quantity the record computes and a quantity some
 later analysis computes arrive through the same machinery and be read the same way.
 
-**A flag is the first overlay and it costs nothing the record does not already hold.** A flag is
-*the drawn token was not the top-ranked one*, and its magnitude is the log-ratio between them —
-what the draw paid to go where it went. Both rows are guaranteed: a recorded ranking is a prefix
-of the model's, so the top row is the model's top row, and the drawn token is in the set unless
-it fell past the ceiling. **So a flag is honest at any depth**, which no other overlay is.
+**Deviation is the first overlay and it costs nothing the record does not already hold.** It is
+the log-ratio between the top-ranked token and the one the draw took — what the draw paid to go
+where it went, and zero where it went nowhere. Both rows are guaranteed: a recorded ranking is a
+prefix of the model's, so the top row is the model's top row, and the drawn token is in the set
+unless it fell past the ceiling. **So a deviation's value is honest at any depth**, which no other
+overlay's is.
+
+**Its value is depth-free and what a reader may conclude from it is not.** The recording rule
+spends rows where the ranking is flat, so depth falls as the top-to-second gap rises: a large
+deviation at a two-row position may be the only divergence the record offered there, and the same
+number at a fifty-row position was chosen past forty-eight alternatives. `docs/SPINE.md` measures
+what that does to a reading taken without it — a whole population at 100% on a statistic that
+could not have come out otherwise. **So a deviation drawn beside a ranking needs nothing, and a
+deviation read across positions wants the depth beside it**, which is the one place the robust
+and depth-bound division does not settle what a reader should be shown.
 
 **Overlays divide into the robust and the depth-bound, and an overlay says which it is.** The
-robust ones read the top of a ranking and the row the draw took — the flag, top-1 probability,
+robust ones read the top of a ranking and the row the draw took — deviation, top-1 probability,
 the top-1 to top-2 gap. The depth-bound ones read a tail: entropy, the mass in the head, how many
 options were live. These are not decoration; the distinction between *a decision*, split strongly
 between few options, and *a scramble*, where the model had no opinion, is the one `docs/SPINE.md`
 turns on, and only a tail tells them apart.
 
 **That is not the division `docs/SPINE.md` makes, and the two cross.** That one sorts measures by
-what the draw did — a flag is draw-relative and is silent wherever the draw did not go, while
+what the draw did — deviation is draw-relative and says nothing wherever the draw did not go, while
 anything read off a ranking alone is indifferent to it. This one sorts them by how much of a
 ranking they need. The top-1 to top-2 gap is the witness that these are different cuts, being
 draw-independent by the first and robust by this, and an overlay declares both: one says where it
@@ -487,7 +497,7 @@ says *at least this much and no nearer* rather than saying nothing. `source` tel
 they do not get one mark, and a bound is marked apart from a reading because what a reader may
 conclude from the two is not the same.
 
-**A bound rests on the obligation a flag already rests on**, which is that a recorded ranking is
+**A bound rests on the obligation deviation already rests on**, which is that a recorded ranking is
 a prefix of the model's. Nothing in the record can check it and `docs/ADAPTER.md` carries it, so
 the two fail together rather than one being safe while the other is not — which is the right
 coupling, since they are two readings of one prefix. What a bound is worth varies with the record
@@ -519,7 +529,7 @@ system. Linear against log is a choice on the same measure, since a logprob and 
 one number read two ways.
 
 **An overlay and a ranking are one quantity read along different axes.** A row's logprob against
-the top row is exactly the flag a draw taking that row would pay. So an overlay draws one row's
+the top row is exactly the deviation a draw taking that row would pay. So an overlay draws one row's
 value along the text and a ranking draws every row's value at one position, and what follows is
 that the measure a reader has chosen is the number the rows should show — not a second scale to
 reconcile with it.
@@ -561,8 +571,8 @@ toggle, since a reader asking how much is below here is asking it of the tree th
 darkest child is not the one the path takes, which is how a reader sees what they pruned and how
 much of the tree it was.
 
-**A measure that looks down is about the reader and not about the model.** A flag is a fact about
-a draw and stays true for as long as the record holds it. What lies below a node is a fact about
+**A measure that looks down is about the reader and not about the model.** A deviation is a fact
+about a draw and stays true for as long as the record holds it. What lies below a node is a fact about
 where the reader has been and what they have spent. Both arrive as a wash over the same text, so
 an overlay says which it is — *dark is interesting* means two different things across the two, and
 a reader carrying one reading into the other is wrong half the time.
@@ -585,13 +595,13 @@ what lies below rises where the tree widens ahead and falls in a corridor, which
 the wash was wanted for in the first place.
 
 **What the rule passed over is the transition drawn on its own, and it is the downward analogue
-of a flag.** Its value at a position is the total size of the arms the rule did not take there —
-none in a corridor, and the whole of a declined subtree at a fork. The parallel is exact: a flag
-prices the draw against what the model offered and this prices the rule against what the tree
-offered, and both are placed on the node the choice selected, because a node stands among its
-parent's alternatives the same way it stands in its parent's ranking. Read in log it is nothing
-where there was no choice, so it draws across a corridor exactly as much as a flag draws at a
-token that took the top row.
+of a deviation.** Its value at a position is the total size of the arms the rule did not take
+there — none in a corridor, and the whole of a declined subtree at a fork. The parallel is exact:
+a deviation prices the draw against what the model offered and this prices the rule against what
+the tree offered, and both are placed on the node the choice selected, because a node stands among
+its parent's alternatives the same way it stands in its parent's ranking. Read in log it is
+nothing where there was no choice, so it draws across a corridor exactly as much as a deviation
+draws at a token that took the top row.
 
 **So it is the one of the four a reader should meet first, and the other three are rules before
 they are overlays.** Use bears the theorem out: drawn as a wash, height, size and the forks
@@ -666,7 +676,7 @@ behaviour. Underneath they stay separately settable, because the case that pays 
 one measure while seeing another drawn over it, and a locked mode takes exactly that away.
 
 **A stub is an ordinary branch and needs no new field to find.** A greedy rollout is deterministic,
-so it merges rather than accumulating duplicates, and the stub at a flagged position is the child
+so it merges rather than accumulating duplicates, and the stub at a divergence is the child
 that realised the top row — which the ranking read already reports. What a stub costs is a
 `generate`, and *Nothing written is only here* holds for it like any other.
 
@@ -853,7 +863,7 @@ when it is settled.
   which is worth reading, and `docs/SPINE.md`'s *Evidence in hand* already rules out the obvious
   answer — selecting by the gap picks the flattest positions in the tree, which is the opposite of
   what it looks like it does. That is a finding about choosing where to spend and not about
-  reading a flag, where the same quantity is the honest price of a divergence already observed.
+  reading a deviation, where the same quantity is the honest price of a divergence already observed.
   What settles it is that document's fork map.
 - **Whether a depth-bound overlay is legible when depth varies along a path.** Carrying the depth
   is what stops it lying; it is not what makes it readable. Depth varies without anyone having
@@ -918,7 +928,7 @@ been is drawn.
 
 **An overlay is drawn over that column and is chosen in a panel beside the toggle**, which holds
 what is read as the other holds what is written. Three measures stand in the three corners the
-two divisions make — the flag, the top-to-second gap, and the mass the recorded rows hold — and
+two divisions make — deviation, the top-to-second gap, and the mass the recorded rows hold — and
 each declares both its sides, so the machinery is exercised rather than described. A scale is
 fixed or path-relative and is read in log or in linear, and a measure carries both readings with
 a domain apiece, a domain running high to low being how a descending reading states its polarity.

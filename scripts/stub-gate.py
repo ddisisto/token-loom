@@ -1,7 +1,7 @@
 """What a stub would be spawned at, and how much room it would get.
 
 `docs/SPINE.md` selects stubs by the gap between a ranking's top two rows rather than by the
-flag, and sets a stub's depth from the distance to the next one. Both numbers under *Evidence
+deviation, and sets a stub's depth from the distance to the next one. Both numbers under *Evidence
 in hand* come from here, and both are provisional: they were measured over a tree almost
 nothing steered, so the divergences in them are the sampler's and not a reader's. Re-run this
 against a document the loop actually produced and expect the gate to move.
@@ -27,15 +27,15 @@ from collections import defaultdict
 SCREEN = 400
 
 # Where the temperature bands are cut, as (ceiling, label). Greedy is its own band because it
-# cannot carry a flag at all, which is the finding rather than an artefact of the cut.
+# cannot diverge at all, which is the finding rather than an artefact of the cut.
 BANDS = [(0.001, "0.0 greedy"), (0.35, "0.05-0.35"), (0.8, "0.4-0.8"), (9.9, "0.9+")]
 
 
 def read(db):
-    """Every generated run, as a list of (flag, gap) in path order.
+    """Every generated run, as a list of (deviation, gap) in path order.
 
-    A censored position -- the draw fell past what was recorded -- carries a flag we know only
-    a bound for, so it is given one larger than any real value. That is honest for a gate,
+    A censored position -- the draw fell past what was recorded -- carries a deviation we know
+    only a bound for, so it is given one larger than any real value. That is honest for a gate,
     which only ever asks whether a threshold was passed.
     """
     conn = sqlite3.connect(db)
@@ -66,8 +66,8 @@ def read(db):
             ordered = sorted(rows.values(), reverse=True)
             gap = ordered[0] - ordered[1] if len(ordered) > 1 else float("inf")
             taken = rows.get(token[node])
-            flag = float("inf") if taken is None else ordered[0] - taken
-            out.append((flag, gap))
+            deviation = float("inf") if taken is None else ordered[0] - taken
+            out.append((deviation, gap))
         if out:
             runs.append((heat, out))
     return runs
@@ -84,9 +84,9 @@ def spacing(runs, hit):
     gaps, spawns, total = [], 0, 0
     for _, run in runs:
         since = 0
-        for flag, gap in run:
+        for deviation, gap in run:
             total += 1
-            if hit(flag, gap):
+            if hit(deviation, gap):
                 gaps.append(since)
                 since = 0
                 spawns += 1
@@ -107,31 +107,31 @@ def show(name, runs, hit):
 def main(db):
     runs = read(db)
     print("--- how often the draw leaves the argmax, by what it was asked for ---")
-    print(f"{'draw':>12} {'positions':>10} {'flagged':>9} {'rate':>7}")
+    print(f"{'draw':>12} {'positions':>10} {'diverged':>9} {'rate':>7}")
     by = defaultdict(lambda: [0, 0])
     for heat, run in runs:
         name = band(heat)
         if name is None:
             continue
-        for flag, _ in run:
+        for deviation, _ in run:
             by[name][0] += 1
-            by[name][1] += flag > 0
+            by[name][1] += deviation > 0
     for _, name in BANDS:
-        seen, flagged = by.get(name, [0, 0])
+        seen, diverged = by.get(name, [0, 0])
         if seen:
-            print(f"{name:>12} {seen:>10} {flagged:>9} {100 * flagged / seen:>6.1f}%")
+            print(f"{name:>12} {seen:>10} {diverged:>9} {100 * diverged / seen:>6.1f}%")
 
     print(f"\n--- what a gate admits, and the room it leaves (screen = {SCREEN} tokens) ---")
     print(f"{'gate':<32} {'spawns':>8} {'per screen':>10} {'median room':>11} {'room >= 8':>14}")
     show("every divergence", runs, lambda f, g: f > 0)
     for t in (1.0, 2.0, 3.0):
-        show(f"flag > {t}", runs, lambda f, g, t=t: f > t)
+        show(f"deviation > {t}", runs, lambda f, g, t=t: f > t)
     for t in (0.5, 1.0, 2.0):
         show(f"gap > {t}", runs, lambda f, g, t=t: f > 0 and g > t)
-    # The flag adds nothing until its threshold passes the gap's, since a draw that left the
+    # Deviation adds nothing until its threshold passes the gap's, since a draw that left the
     # argmax took something at or below the second row. These lines are the demonstration.
     for g, f in ((1.0, 1.0), (2.0, 2.0)):
-        show(f"gap > {g} and flag > {f}", runs, lambda x, y, g=g, f=f: x > f and y > g)
+        show(f"gap > {g} and deviation > {f}", runs, lambda x, y, g=g, f=f: x > f and y > g)
 
 
 if __name__ == "__main__":

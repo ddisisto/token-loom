@@ -84,7 +84,8 @@ each one is here because it was got wrong.
   nothing in the tree said what use was. It moves as the loop is run.
 - **`docs/SURFACE.md` moves until the surface is built.** It fails by writing an open question
   down as a rule, which is why it is written so that each open one says what would settle it.
-- **`docs/SPINE.md` names *spine*, *flag* and *stub***, which `docs/SURFACE.md` uses;
+- **`docs/SPINE.md` names *spine*, *deviation*, *divergence* and *stub***, which `docs/SURFACE.md`
+  uses; *flag* is the core's word for what `delete` sets and is not a measure;
   *overlay* is that document's word for the machinery either kind of measure is drawn by. It
   supersedes `docs/CONTROLLER.md`, which is in the history.
 - **`docs/NEXT.md` is living**: items are added as they come up and deleted once they close or

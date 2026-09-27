@@ -1,16 +1,23 @@
-"""The two halves of a flag: the toll for leaving the argmax, and how far past it the draw went.
+"""Where each taker of a divergence lands, banded by the gap it paid and by the rows it had.
 
-At a divergence, `flag = top1 - taken` and `gap = top1 - top2`, so `flag - gap = top2 - taken` --
-the price of going past the best alternative rather than the price of leaving the first. This
-measures where two populations sit on that split: the sampler's divergences, taken inside
-generated runs, and the reader's, taken at a `realise`.
+`docs/SPINE.md` reports two things from here. **Recorded depth bounds what a divergence can
+say**, and since the recording rule spends rows on flat positions, depth falls as the gap rises
+-- so banding the takers by gap reads the rule back out, and banding by depth is the correction.
+And **neither taker chooses by how long the list is**, which the ceiling being raised from ten
+rows to fifty partway through `data/logozoa` is what makes readable.
 
-    uv run python scripts/flag-gap.py data/logozoa/bulk.sqlite data/continuations/bulk.sqlite
+It also carries a negative result, kept so it can be re-run. A deviation splits as
+`deviation = gap + excess`, where `gap = top1 - top2` is the toll for leaving the argmax at all
+and `excess = top2 - taken` is how far past the best alternative the taker went. That split was
+proposed as what tells a deliberate divergence from a hot draw. It does not: the two populations
+sit in nearly the same place on it.
+
+    uv run python scripts/takers.py data/logozoa/bulk.sqlite data/continuations/bulk.sqlite
 
 A position is judged against the ranking at its parent for its own source, so an authored token
 contributes nothing. A censored position -- the taken token absent from the recorded rows -- has
-no excess to read and is left out of both populations, but its flag is bounded from below and it
-carries that bound into the window sums.
+no excess to read and is left out of both populations, but its deviation is bounded from below
+and it carries that bound into the window sums.
 """
 
 from __future__ import annotations
@@ -60,7 +67,7 @@ class Position(NamedTuple):
 
     kind: str          # 'ranked' | 'censored'
     gap: float         # top1 - top2
-    flag: float        # top1 - taken, or its lower bound where censored
+    deviation: float        # top1 - taken, or its lower bound where censored
     depth: int         # rows recorded here, which is the choice the taker actually had
     rank: int          # the taken row in logprob order, or the depth where censored
 
@@ -68,7 +75,7 @@ class Position(NamedTuple):
 def split(rows, token):
     """A Position, or None where the ranking holds fewer than two rows.
 
-    A censored token sits at or below the lowest recorded row, so its flag is bounded from
+    A censored token sits at or below the lowest recorded row, so its deviation is bounded from
     below by the span to that row. That bound is what is returned, which is honest for a sum
     and marked so it can be excluded from anything that needs a value.
     """
@@ -122,7 +129,7 @@ def reader(conn, node, ranking):
         # descend. Every number below is computed from logprobs; this only counts the drift.
         if rank is not None and rank != got.rank:
             misordered += 1
-        if got.flag <= TIE:
+        if got.deviation <= TIE:
             argmax += 1
             continue
         out.append(got)
@@ -154,7 +161,7 @@ def by_gap(name, positions):
         here = banded.get(label)
         if not here:
             continue
-        excess = [p.flag - p.gap for p in here]
+        excess = [p.deviation - p.gap for p in here]
         far = 100 * sum(1 for e in excess if e > 1) / len(excess)
         shallow = 100 * sum(1 for p in here if p.depth == 2) / len(here)
         print(f"{label:>10} {len(here):>7} {st.median([p.gap for p in here]):>8.2f} "
@@ -162,25 +169,38 @@ def by_gap(name, positions):
               f"{st.median([p.depth for p in here]):>10.0f} {shallow:>7.0f}%")
 
 
+# Depth buckets, as (ceiling, label). The top three exist because the recording ceiling was
+# raised mid-tree, which is what lets the taken rank be read against how many rows were there.
+DEPTH_BANDS = [(2, "2"), (3, "3"), (4, "4"), (9, "5-9"), (19, "10-19"), (49, "20-49"),
+               (10 ** 9, "50+")]
+
+
 def by_depth(name, positions):
-    """The same population, banded by how many rows it actually had to choose among."""
+    """The same population, banded by how many rows it actually had to choose among.
+
+    `rank / depth` is the column the others are here to be read against: a taker choosing
+    without regard to the rows would hold it near a half whatever the depth, and one choosing
+    among the rows would not.
+    """
     print(f"\n{name}")
     print(f"{'depth':>10} {'n':>7} {'med gap':>8} {'med excess':>11} {'took row 2':>11} "
-          f"{'med rank':>9}")
+          f"{'med rank':>9} {'rank/depth':>11}")
     banded = defaultdict(list)
     for p in positions:
-        banded[p.depth if p.depth < 5 else (5 if p.depth < 10 else 10)].append(p)
-    for depth in sorted(banded):
-        here = banded[depth]
-        excess = [p.flag - p.gap for p in here]
-        label = {5: "5-9", 10: "10+"}.get(depth, str(depth))
+        banded[next(label for ceiling, label in DEPTH_BANDS if p.depth <= ceiling)].append(p)
+    for _, label in DEPTH_BANDS:
+        here = banded.get(label)
+        if not here:
+            continue
+        excess = [p.deviation - p.gap for p in here]
         print(f"{label:>10} {len(here):>7} {st.median([p.gap for p in here]):>8.2f} "
               f"{st.median(excess):>11.2f} {on_line(excess):>10.0f}% "
-              f"{st.median([p.rank for p in here]):>9.0f}")
+              f"{st.median([p.rank for p in here]):>9.0f} "
+              f"{st.median([p.rank / (p.depth - 1) for p in here]):>11.2f}")
 
 
 def windows(path):
-    """One run's windows, as (flag count, summed cost).
+    """One run's windows, as (divergence count, summed deviation).
 
     If the two rank a run's windows alike, counting flags and summing their prices are one map
     over that run; if they do not, they are two. Pooling runs would answer a different question,
@@ -188,7 +208,7 @@ def windows(path):
     """
     out = []
     for start in range(0, len(path) - WINDOW + 1, WINDOW):
-        chunk = [p.flag for p in path[start:start + WINDOW] if p.flag > TIE]
+        chunk = [p.deviation for p in path[start:start + WINDOW] if p.deviation > TIE]
         out.append((len(chunk), sum(chunk)))
     return out
 
@@ -216,7 +236,7 @@ def spearman(pairs):
 
 
 def summarise(name, positions):
-    excess = [p.flag - p.gap for p in positions]
+    excess = [p.deviation - p.gap for p in positions]
     print(f"{name:>20}  n {len(positions):<6} med gap "
           f"{st.median([p.gap for p in positions]):.2f}  med excess {st.median(excess):.2f}  "
           f"took row 2 {on_line(excess):.0f}%  med depth "
@@ -230,7 +250,7 @@ def main(dbs):
 
         paths = runs(conn, node, ranking)
         drawn = [(h, p) for h, path in paths for p in path
-                 if p.kind == "ranked" and p.flag > TIE]
+                 if p.kind == "ranked" and p.deviation > TIE]
         censored = sum(1 for _, path in paths for p in path if p.kind == "censored")
         taken, unranked, argmax, misordered = reader(conn, node, ranking)
         print(f"sampler divergences {len(drawn)}, censored {censored}")
@@ -238,7 +258,7 @@ def main(dbs):
               f"realises of the top row {argmax}")
         print(f"stored rank disagrees with logprob order at {misordered} realises")
 
-        print("\n--- where each population sits on flag = gap + excess ---")
+        print("\n--- where each population sits on deviation = gap + excess ---")
         if taken:
             summarise("reader (realise)", taken)
         if drawn:

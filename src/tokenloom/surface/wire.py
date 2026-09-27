@@ -67,7 +67,7 @@ def spread(item: R.Spread) -> dict[str, Any]:
     `least` is what makes a position the draw left no row at readable rather than blank: the
     token it took sits at or below the lowest row written, so what it cost is bounded from
     one side. That the rows are a prefix of the model's is `docs/ADAPTER.md`'s obligation,
-    and it is the same one a flag already rests on.
+    and it is the same one a deviation already rests on.
     """
     return {
         "source": item.source,
