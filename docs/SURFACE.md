@@ -441,6 +441,13 @@ without regard to what the draw did.
 floor case is a text reader* and *Between forks, nothing is drawn* — they describe the column a
 reader has not asked anything of, which is still the thing that opens. One overlay at a time.
 
+**The case that looks like it wants two does not.** A reader under drive wants what the model
+thought of a position and what the draw did there, which reads as two measures at once. The
+second is not one: what the draw did decomposes into *that it diverged*, which the mark carries
+and which needs no scale, and *how far past the second row it went*, which is a property of the
+sampler's reach and not of what the divergence cost. So one measure and one mark answer it, and
+the rule stands on that rather than on frugality.
+
 **An overlay is three separable things**: a **measure**, which is a per-position quantity that
 may be absent; a **scale**, which maps it to colour; and a **unit**, which is what a value is
 addressed to. Keeping them apart is what lets a quantity the record computes and a quantity some
@@ -505,6 +512,50 @@ and not with the draw, and **it says most where the record holds least**: the ru
 floor of two rows only where one token already carried the mass, which is exactly where the
 second row is far below the first. `docs/SPINE.md` measures it.
 
+**The mark under a segment carries three things, and they are three axes rather than one list of
+states.** Its **existence** says something diverged here — the token taken was not the one the
+model ranked first. Its **colour** says who took it: the sampler, a reader taking a row the model
+offered, or a reader writing one it did not. Its **style** says how far the value can be trusted —
+plain where it is a reading, and marked where it is a bound, a hole, a segment holding more nodes
+than values, or a position two sources ranked. An **authored** token is the colour axis and not a
+fourth state of the style one; that it also has no value is a separate fact about the measure and
+already stated above.
+
+**Who took a token is not a measure, and that is why it is not an overlay.** It has no domain, no
+second reading, and nothing to compare across positions — it is a fact with three values. So it
+is not in the list a reader chooses from, and it is not subject to *An overlay is asked for*: a
+reader reading prose wants to know which words are theirs whether or not they have asked for a
+colour over them.
+
+**Nothing read off a ranking can supply it, which is why the record must.** `docs/SPINE.md`
+measures the two populations against every split of a deviation the record admits and finds them
+in the same place; a large deviation is a reader overriding a confident model and a sampler
+wandering in a flat one, and the ranking cannot say which. The acts can, exactly and for one
+query, because a `realise` names the node it produced. **So the mark is what makes a deviation
+overlay readable under drive at all**, and not an ornament on it.
+
+**A deviation overlay and this mark say the same thing at temperature zero and different things
+off it.** Cold, every drawn token is the argmax, so a positive deviation is the reader's by
+construction and the mark adds nothing. Under drive the deviation is mostly the sampler's and the
+mark is the only thing separating the two. It earns its place at one end of the dial and is
+redundant at the other, which is a property to know rather than a reason to gate it.
+
+**Two channels, read together, are four readings.** The column's wash carries a measure and the
+mark carries whether anything happened, so a reader scanning has:
+
+| | no mark | marked |
+| --- | --- | --- |
+| **the model was torn** | a pivot nothing took | the model cared and something moved |
+| **the model was settled** | nothing was at stake | a draw wandering where nothing was |
+
+The top right is what `docs/SPINE.md` gates a stub on, arrived at from the reading side rather
+than the spending one. The top left is what a cold path is made of and has no other name.
+
+**What this does not carry is how far past the second row the taker went.** That is a real
+quantity and the column has no channel left for it: the wash holds a measure, the mark holds who,
+and weight is claimed — `docs/INTERFERENCE.md` gives prominence to the watermark at the most
+recent act's origin. Whether the four readings above suffice is in What is not decided here.
+
 **A node two sources ranked has no single value, and the surface refuses rather than choosing
 one.** Picking a source silently would make an overlay mean different things at different
 positions with nothing saying so. Whether the interesting quantity there is their *disagreement*
@@ -524,9 +575,44 @@ resolved by colouring the part of it that a value belongs to.
 
 **A scale is fixed before it is relative.** A fixed domain makes a colour mean the same thing in
 every path and every tree; a path-relative one makes a single path maximally legible and
-comparable to nothing. The first is the default and the second is another scale, not another
-system. Linear against log is a choice on the same measure, since a logprob and a probability are
-one number read two ways.
+comparable to nothing. The first is the default and the others are further scales, not another
+system.
+
+**There are three and each answers a different question.** Fixed says *how much, absolutely*.
+Path-relative says *how much, for this path*. And a third says *how much, compared to what is in
+front of me* — its domain taken from the segments currently in view. They are not ranked against
+each other past the default: a reader looking for a position that stands out among its neighbours
+is asking the third, and one asking whether a whole passage is open is asking the first, and
+neither answer substitutes.
+
+**The third is wanted because a fixed scale spends its resolution where a reader has already
+stopped looking.** `docs/SPINE.md` measures the top-to-second gap over 77,565 ranked positions of
+a worked tree: a median of 5.73 nats, a quartile above 8.37, and 55% above the 5 nats the fixed
+domain ends at. So more than half a greedy path pins to one end of the scale, correctly and
+uselessly, while a passage that sits entirely between two and four nats draws as an even wash
+with its own structure inside it.
+
+**A viewport scale moves when the reader scrolls, and that is the reading and not a fault.** The
+neighbourhood it is relative to is what is in view, so a token's colour is a fact about where the
+reader is as much as about the record. What follows is that it wants to be visibly a mode and not
+a third entry in a list, since a reader who took it for a fixed one would read a scroll as a
+change in the text.
+
+**Zoom is what keeps it from chasing itself.** A position drawn brightly is approached, and as it
+centres the neighbourhood becomes the region around it and the brightness can fall. Widening the
+view is the answer and it needs no machinery: the browser's own zoom changes how many segments
+are in the viewport, so the axis from *this sentence* to *this passage* to *this document* is
+already a gesture the reader has. Whether that is sufficient, or whether the domain wants
+hysteresis or a window wider than the view, is in What is not decided here.
+
+**The visible set is the page's to determine and the scale's to be handed.** Which segments are
+in view is geometry and the domain over their values is arithmetic, and they are kept apart here
+for the reason they are kept apart everywhere else on this page: a scale that went and read the
+viewport for itself would be the one part of the overlay machinery that could not be checked
+without a browser.
+
+**Linear against log is a choice on the same measure**, since a logprob and a probability are one
+number read two ways, and it is the axis a scale is not: every scale above takes either reading.
 
 **An overlay and a ranking are one quantity read along different axes.** A row's logprob against
 the top row is exactly the deviation a draw taking that row would pay. So an overlay draws one row's
@@ -808,6 +894,22 @@ across all of them. Three things hold it in place:
 
 **Questions prose cannot close.** Each says what would settle it, and moves into the body above
 when it is settled.
+
+- **Whether a measure and a mark are enough under drive.** *Two channels, read together, are four
+  readings* argues they are and loses how far past the second row a taker went. Settled by
+  reading a driven passage with them and finding whether that quantity is ever reached for — and
+  if it is, by what it would be drawn with, since the wash holds a measure, the mark holds who,
+  and `docs/INTERFERENCE.md` has already given weight to the watermark.
+- **Whether a viewport scale needs more than zoom to stay still.** A position approached can dim
+  as it centres, and widening the view is the answer the reader already has. What is open is
+  whether that is enough in practice or whether the domain wants a window wider than the view, or
+  hysteresis, or to recompute only once scrolling stops. Settled by scrolling a long path with it
+  and seeing whether anything is lost track of.
+- **Whether the mark should be drawn when no overlay is.** Who put a token there is not a measure
+  and so is not covered by *An overlay is asked for*, which argues it is always on; *The floor case
+  is a text reader* argues the column a reader has asked nothing of stays plain. Settled by
+  whether a reader with no overlay up still wants to see which words are theirs, which is a
+  question about reading and not about the record.
 
 - **How composition is summoned at a position.** Starting a root is answered: a row where the
   root will appear, staging a composer in the column that a submit turns into the act, so the

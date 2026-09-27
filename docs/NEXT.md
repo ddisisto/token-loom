@@ -166,6 +166,44 @@ together and two of the three exist. Branching waits on what it counts and vocab
 a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
 blocks anything here.
 
+**5. The mark under a segment, saying who took the token.** `docs/SURFACE.md` has it as three
+axes on one rule: existence says something diverged, colour says whether the sampler drew it, the
+reader took a row or the reader wrote one, and style stays where it is, saying how far the value
+can be trusted. What it replaces is colour being spent on the value's status, which left the two
+takers sharing one appearance.
+
+**It is small and it is not cosmetic.** `docs/SPINE.md` measures that nothing read off a ranking
+separates a reader's divergence from a sampler's — the two populations sit in the same place
+under every split of a deviation the record admits — so under drive the overlay cannot say whose
+a large value is, and the acts can, for one query. Four parts: a read pairing a set of nodes with
+the `realise` acts whose tip they are, a key on `path_node`, a class on the segment, and the
+rule. Nothing in `docs/CORE.md` moves; the query is a join nobody would get wrong, and the one
+thing they would is that a node can be realised *and* drawn, which `_merge_node` allows and which
+83,575 nodes of `data/logozoa` contain none of.
+
+**It wants to be before 3 rather than after it.** That increment makes taking a row a click, so
+realises multiply under a column that cannot yet show them, and the reader would be working
+through a period where what they did and what the dice did look the same.
+
+**6. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+answers *how much, absolutely* and pins more than half a greedy path to one end, and a
+path-relative one over a long path is nearly as global. A domain built from the segments
+currently on screen answers *how much, compared to here*, which is the question a reader scanning
+for a position that stands out among its neighbours is actually asking.
+
+**The page owes it the visible set and nothing else.** Which segments are in view is geometry and
+the domain over their values is arithmetic, so the scale takes the values as an argument and stays
+checkable under `scripts/stub-dom.mjs` — `CLAUDE.md` separates the two and this is the case that
+makes it bite. Zoom is the widening gesture and needs no work; whether it suffices is an open
+question in `docs/SURFACE.md` rather than a thing to build against.
+
+**It bears on 4 and may change what that item is for.** The depth limit exists because three of
+the downward measures only fall as a path descends, which makes them a gradient. A gradient read
+against its own neighbourhood is not a gradient — so a viewport scale may recover those measures
+without bounding the descent, and what would remain of 4 is the fixed domain and the name for
+what branching counts. Which of the two is the cheaper answer is worth knowing before either is
+built.
+
 ### What holds across them
 
 **The reading view renders no act but the one in flight.** An act originates at a node or an edge
