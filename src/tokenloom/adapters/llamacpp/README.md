@@ -48,6 +48,23 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   names `top_k`, and not an obligation on anything else. Note what buying it costs: at
   temperature 1.2, `top_k` 80 makes the 30% of draws living past rank 80 unreachable by
   construction, and those are the draws a reading instrument exists to find.
+- **The drawn token's own logprob is reported beside the rows, and it is the raw ranking value.**
+  Each `completion_probabilities` entry carries `logprob` next to `top_logprobs`, and every entry
+  measured had it — 874 positions over five prompts and three seeds, `top_k` off, `n_probs` 5 at
+  temperature 1.2. Where the draw was among the rows the two are **bit-identical**, 430 of 430,
+  worst difference exactly zero. Where it was not, it sits below the lowest row in all 444 cases and
+  above it in none, which is what separates it from a value renormalised after truncation.
+  Thirteen such draws re-measured against a 4000-row ranking were found in it at raw ranks between
+  6 and 2679, agreeing with the row there to between 2.4e-06 and 8.3e-05 — the order of the
+  `n_probs` step below, and not a different quantity. It is pre-temperature like the rows.
+
+  **It is reported where no row count reaches the draw at all.** Four draws at −17.0 to −20.2
+  carried a value and were absent from the 4000-row ranking entirely. So a value exists for every
+  position the server reports, including the tail `record_rows` gives up on.
+
+  **A row recorded because the draw took it is not a row the model ranked into the recorded
+  prefix**, and several reads elsewhere rest on the recorded rows being such a prefix. What to do
+  about that is a question for the format and not for this file.
 - **`samplers` decides which sampler runs; the value decides nothing on its own.** A request
   naming `samplers: ["temperature"]` and omitting `top_k` draws identically to one sending
   `top_k: 0`, while the response still *reports* `top_k: 40` — inert. Sending `min_p: 0.9`
@@ -82,6 +99,11 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   which equals the whole prompt exactly when the cache is off — measured at 2, 3, 251 and
   2001 tokens. `tokens_evaluated` is *not* the signal: it reports the prompt length either
   way.
+
+  **`prompt_n` separates a full hit from a partial one, which the flag cannot.** On a 20-token
+  prompt it is 20 with the cache off, 1 on a full hit, and 11 where the cache held half the text.
+  The three states move the recorded values by different amounts, so the realised cache state is
+  observable per request while the parameter says only what was asked for.
 - **`completion_probabilities` is a window onto the raw distribution, and the whole sampler
   chain is invisible to it.** The values are pre-temperature *and* pre-truncation: the full
   softmax over the vocabulary. Measured at `top_k = n_probs = 10`, prompt `The capital of
@@ -182,6 +204,12 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   Measured on nine fragment ids from four scripts; the same ids come back exact from
   `/tokenize` with `with_pieces`, and a whole group detokenises exactly. So **bytes cannot be
   recovered by id through the server**, and the response is lossy rather than an error.
+- **`/props` names the build and the quantisation, and nothing names the machine.** `build_info` is
+  `b10809-5266f24da7` on this server, `model_ftype` is `Q4_K - Medium`, and `model_alias` and
+  `model_path` are the alias a tree is created against and the file behind it. The adapter already
+  calls `/props`, for `n_ctx`. What is not there is any description of the hardware — no device, no
+  driver, no layer split — so what a value was measured on is only as recoverable as whoever
+  started the server made it.
 - **The vocabulary is in the model file, and it is exact.** `tokenizer.ggml.tokens` in the
   GGUF holds all 152064 entries in byte-level BPE encoding; applying the GPT-2 byte decoder
   gives real bytes for every id, fragments included. Checked against `/tokenize` with
@@ -244,6 +272,22 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   branching produces — reaches 0.58 and moved a **greedy** path off its cold course at
   position 11 of 20. **Cold is the only state that reproduces**, and it reproduces exactly,
   which is what makes a first-written value in the core a value and not a coin toss.
+
+  **The reordering is universal, and where it begins is what decides whether a reading is
+  touched.** The same experiment read per row rather than per position — greedy, 80 rows, five
+  prompts, 100 positions, cold against full-warm: **no position kept its order through all 80
+  rows**, and **rank 0 changed at none of them**, the top-2 set at one. The first differing rank
+  runs from 1 to 51 with a median of 19. Per row the disagreement is **flat in depth**: p50 between
+  0.008 and 0.013 and p90 between 0.031 and 0.043 across all eight bands of ten, overall p50
+  0.0107 and p90 0.0395 against a maximum of 0.35. So the tail reorders because its gaps are small
+  and not because its values move more — and against that p90, **4230 of 7887 adjacent row pairs
+  (54%) are separated by less than the noise.**
+
+  **A partial hit reaches the top row, and rarely.** Cold against partial-warm over 85 positions:
+  rank 0 changed once — the position at which one of five greedy paths left its cold course — and
+  the top-2 set once, with a first differing rank median of 15. So the head is firm at a full hit
+  and merely unlikely to move at a partial one, while no part of the tail's order is reproducible
+  across cache states.
 - **Continuing inside one call and starting a fresh call at the same path are not the same
   measurement**, and the cache does not decide it. Prompt `The sky`, `top_k` 1 so the path is
   forced, `n_probs` 5, temperature 1.0: sixteen tokens drawn in one call, against the same

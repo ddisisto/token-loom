@@ -268,6 +268,55 @@ What lies below a node changes every time the reader generates, so the structura
 first thing the page draws that cannot be held across an act — which is a reason to keep the
 descent it rides on cheap, and not a reason to defer it.
 
+## 2. The act's condition
+
+**A recorded logprob is a measurement and the record gives it no error bar.** Two observations of
+one row agree bit for bit when the conditions match and disagree by up to a third of a nat when
+they do not — `src/tokenloom/adapters/llamacpp/README.md` measures both — and *Rankings* resolves
+the disagreement by keeping the first. What is missing is not the second value. It is what either
+value is a value *under*: an edge observed once, which is nearly every edge, carries no way to say
+how far it could have fallen.
+
+**The realised disagreement and the permitted uncertainty are different quantities, and only the
+second attaches to a single observation.** A span between two observations exists only where a node
+was reached twice — 167 of the 23,592 ranked nodes in `data/continuations` have more than one
+child — so a span is silent on almost every edge, and silent in the direction of asserting
+exactness. What the conditions admitted is knowable without resampling anything, which is what
+makes it the half that can be put beside every value.
+
+**Most of the condition is already in reach and one piece of it is computed and thrown away.**
+`cache_prompt` is required of every request, so it reaches `params` and is in the record already —
+but the flag says what was asked for, and a full hit and a partial one move the values by different
+amounts. `timings.prompt_n` separates the three states exactly, and the adapter reads it to
+cross-check the flag and then drops it. `build_info` and `model_ftype` come from a `/props` call the
+adapter already makes. Hardware is the one part no endpoint offers, so it is asserted or it is
+absent, and `CLAUDE.md`'s rule that the alias names the vocabulary and not the source is the same
+problem one level up.
+
+**It is not a marker change.** New columns leave an older reader incomplete rather than wrong, which
+is the line section 3 draws, so this is built against the current marker and a tree written before it
+simply has no condition recorded. That is what puts it here rather than in the bundle: it buys a
+capability, and the bundle buys clarity.
+
+**It meets the page's acts work rather than competing with it.** The third colour of the taker mark
+is held back only because `node→act` is a lookup for `realise` and a walk for the other two, and the
+settings a node was drawn under want that same direction — so the condition, the adjacency and *A
+way back to where an act began* are one table opened once. How the three order against each other is
+open; opening `acts` twice is the thing to avoid.
+
+**What would sit on an edge, and what would not.** The condition gives every value an *a priori*
+bound. A second observation that disagrees under conditions recorded as identical is the residual,
+and it is the only thing that can find a variable nobody listed — so an observed span beside a value
+is calibration and not a copy of it. As `low` and `high` beside a `logprob` that still means *the
+first observation*, that is new columns and stays out of the bundle; making `logprob` a value derived
+from them is what would put it in.
+
+**The cost is a derived value that moves.** *Rankings* has it that nothing derived from a ranking
+changes retroactively, which a refined measurement breaks by design. The surface is already
+indifferent — `reads.py` sorts rows by value and the page addresses a row by its own column, so an
+order that differs between renderings is current rather than wrong. What is left is that a figure
+quoted from a tree is a figure against a state of it, which is the item below.
+
 ## Loose ends
 
 Not in the ordering; each stands on its own.
@@ -333,7 +382,7 @@ Not in the ordering; each stands on its own.
   pre-temperature. So beside a deviation the two halve the question — one says how much noise was
   permitted at a position, the other how far the draw then went.
 
-## 2. The next marker
+## 3. The next marker
 
 **A marker bump is what makes an older reader wrong rather than merely incomplete, so it is paid
 once and carries everything that wants it.** A new table or column does not change `marker`;
@@ -367,3 +416,55 @@ cost carried for the life of the format. `ordinal` means arrival position and no
 `INV-RANK-UNIQUE`, the reads and the checker that name them, the `--rank` argument and the
 surface's use of it, and `docs/CORE.md` throughout. Every existing tree is rebuilt or migrated;
 `data/` is disposable, so that is free now and less free the longer the bundle stays shut.
+
+### The draw's own row, told apart from the ranked prefix
+
+**A draw that landed past `record_rows` has no recorded logprob, and the backend reported one.**
+`src/tokenloom/adapters/llamacpp/README.md` measures what the value is: the raw ranking value,
+bit-identical to its own row wherever that row exists, and present even where no row count would
+have reached the draw. 351 of the 23,874 drawn nodes in `data/continuations` have a ranked parent and
+no covering edge, and each of them was handed a value that was discarded.
+
+**Appending it as an ordinary row is legal today, and is the thing not to do.** Rank is arrival
+order, descending logprob is not an invariant, and an append keeps `INV-RANK-DENSE` — so nothing in
+the format refuses it. What it silently breaks is that the recorded rows are a prefix of the model's
+ordering, which is what makes `Spread.least` a bound, what the deviation overlay's *at least* reading
+rests on, and what `docs/SPINE.md` measures its span against. A draw appended at −11.4 beneath rows
+reaching −6.0 makes `least` the draw and leaves every unrecorded token above it unbounded.
+
+**So a row has to say which kind it is, and that is what makes this a bump.** It is a new column, but
+an older reader computing `least` over a set holding draw-only rows gets a wrong answer rather than a
+partial one, which is the line this section draws. With the distinction, `least` is the lowest prefix
+row, a node's recorded depth is the prefix depth, the draw carries an exact value instead of a
+one-sided bound, and the adapter's `bound` — which today extends a ranking down to the draw — no
+longer has to.
+
+**The draw's rank is not available, and the bracket is what is.** The server reports the value and
+never its position, so a record with a hole in it confines what lies between two rows without saying
+how many rows that is; recovering the rank costs a second wide request per position. Whether a
+two-sided bracket earns a read of its own is for after the column exists.
+
+**What it reaches**: the `edges` DDL, *Rankings*, `Spread` and the reads over it, the deviation
+overlay's bound, and the adapter's recording bounds.
+
+### A tree that can be cited
+
+**A figure quoted from a tree should name what it was quoted from, and nothing in the record
+identifies a state.** `docs/SPINE.md` cites 13,315 ranked positions in `data/continuations`, of which
+4,553 hold two rows; the tree now holds 23,592 nodes carrying edges and 11,487 rankings of two. Both
+figures were true when taken and nothing in either document tells a reader whether the tree grew or
+the count means something else. Section 2 sharpens this by letting a derived value be refined, but the
+problem is already here and already unnoticed.
+
+**A commit in a named repository is the naming, and what the tree owes is a hash over the right
+objects.** `data/` is disposable, so the mechanism is not the question; what the bundle settles is
+what gets hashed. A tree whose derived values move cannot be identified by its conclusions, so the
+hash covers the observations — the vocabulary, nodes, edges and acts — and nothing computed from them.
+
+**Whether it is a requirement or a capability is what decides the bump.** As a capability it is
+additive and older trees are simply unhashed; as an invariant every tree must satisfy, every older
+tree fails the new checker. Existing trees are not citable and that is accepted, so what is being
+asked is only what is required of the trees after.
+
+**Implications and implementation wait.** What is settled now is that a tree written under the next
+marker can be cited and one written under this one cannot.
