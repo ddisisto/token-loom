@@ -402,27 +402,36 @@ as they are found, and it is opened when something in it is worth the bump on it
 **The last bundle is closed.** `marker` is `token-loom/3`, `rank` is gone from both tables and an
 edge is addressed by its token everywhere, a source reports what its own draw was worth, the
 censored-draw bound is deleted, and `tree.json` admits `writer`, `repo` and `commit`. The
-migration is `scripts/migrate-to-3.py`. What is below is what that bundle left open, and it is
-the first item of the next one.
+migration is `scripts/migrate-to-3.py`.
 
-**A figure quoted from a tree should name what it was quoted from, and nothing in the record
-identifies a state.** `docs/SPINE.md` cites 13,315 ranked positions in `data/continuations`, of which
-4,553 hold two rows; the tree now holds 23,592 nodes carrying edges and 11,487 rankings of two. Both
-figures were true when taken and nothing in either document tells a reader whether the tree grew or
-the count means something else. Section 2 sharpens this by letting a derived value be refined, but the
-problem is already here and already unnoticed.
+**The debt is already on the page.** `docs/SPINE.md` cites 13,315 ranked positions in
+`data/continuations` of which 4,553 hold two rows, and elsewhere 23,592 nodes carrying edges and
+11,487 rankings of two. Both were true when taken, both are off a tree that has grown since, and
+nothing in either document says which. So the first use of a stamp is not a new figure — it is
+going back over the ones already quoted, stamping the trees they came from, and saying beside each
+which state it is.
 
-**`tree.json` now carries the naming and nothing writes it.** `writer`, `repo` and `commit` are
-optional keys the format admits, which is the additive half and is already paid for; what is left
-is a writer that fills them and a hash over the right objects. `data/` is disposable, so the
-mechanism is not the question; what is to settle is what gets hashed. A tree whose derived values
-move cannot be identified by its conclusions, so the hash covers the observations — the
-vocabulary, nodes, edges and acts — and nothing computed from them.
+**What names a state is settled and is not a bump.** `docs/CORE.md` has the `stamps` table, what
+the digest covers and how it is encoded, and a sixth write that is not an act. A new table leaves
+an older reader incomplete rather than wrong, so this is built against `token-loom/3` and a tree
+written before it simply has no stamps. What is left is the code.
 
-**Whether it is a requirement or a capability is what decides the bump.** As a capability it is
-additive and older trees are simply unhashed; as an invariant every tree must satisfy, every older
-tree fails the new checker. Existing trees are not citable and that is accepted, so what is being
-asked is only what is required of the trees after.
+**The occasion is deliberately unspecified and manual is the one to build.** A command a reader
+runs when they take a figure is the case that matters, because the hash wants to be taken *when
+the figure is*, and a timer would stamp between figures rather than at them. A hook on server
+close and a timer are both conforming and both wait — neither is needed to quote a number, and a
+tree stamped on a schedule invites reading the nearest stamp as the one a figure came from.
 
-**Implications and implementation wait.** What is settled now is that a tree carrying the naming
-can be cited and one that does not cannot.
+**It costs about a second and a half on the largest tree in hand.** 695,640 rows over `data/logozoa`
+at 1.4 s, 219,719 over `data/continuations` at 0.42 s, and a millisecond on a small one. That is
+why it is a command and not something an act carries: an act costs milliseconds, and a digest
+maintained across one would want an order-independent construction to survive `delete` flipping a
+row that is already written.
+
+**What the writer was stays with the act.** `writer`, `repo` and `commit` are keys the format
+admits and nothing fills, and they are left that way: a tree is written by however many versions
+of this it outlives, so naming one of them on the tree names the wrong thing most of the time.
+Which code wrote a row is a condition of the act that wrote it, which is section 2 — token-loom's
+own commit beside llama.cpp's `build_info`. A `creator` key on the tree is the fallback if a need
+for one turns up, and none has.
+

@@ -230,6 +230,73 @@ one request intern to one row.
 are one write each. The claim makes it decidable: one claim is one writer, so an act still in
 flight when a claim is taken is one whose writer is gone, and is recorded `aborted`.
 
+## Stamps
+
+**What the record hashed to, and when.** A figure quoted from a tree names a state, and the tree
+moves under it: every act adds rows, so a count taken in one week and the same count taken in the
+next are different numbers with nothing in the record to tell a reader which one they are holding.
+A stamp is one digest over the record, dated and kept.
+
+| column | meaning |
+| --- | --- |
+| `hash` | the digest |
+| `created` | when it was taken |
+
+**A stamp is an observation of the tree and not a change to it.** It is the one write that is not
+an act: it produces no node, it changes no liveness, and afterwards nothing about the tree is
+different. `acts` records what was done to the record; a stamp records what the record *was*.
+
+**A stamp names no actor.** An act does, because who acted is not recoverable from what the act
+left. A stamp leaves a digest that anyone can recompute and nobody can influence, so a name beside
+it would be a fact about the record's keeping rather than about the record.
+
+**Stamps accumulate, and two may carry one hash.** Nothing is rewritten and nothing is superseded.
+Stamping a tree that has not moved records that it had not moved, which is a thing worth being able
+to say, so `hash` is not unique.
+
+**Stamping does not fix the tree.** The next act lands as it would have, and the stamp then
+describes a state the tree has left. That is what it is for: a hash quoted in one month is checked
+against the stamp from that month rather than against the tree today, so *the tree has grown since*
+becomes an answer where *this hash does not match* was the only one available.
+
+### What the digest is
+
+**The encoding is part of the format**, because a digest two implementations compute differently
+names nothing.
+
+- **BLAKE2b, 256 bits**, over one byte stream, rendered as 64 lowercase hex characters.
+- **Every table this format defines except `stamps`**, in the order *On disk* declares them. A
+  stamp cannot attest itself, and that is the only exception. A table added later is covered
+  unless it says otherwise: a digest that silently stops covering something is a worse failure
+  than one that changes when it need not have.
+- **A table with no rows contributes nothing, not even its name.** A table arriving is not a
+  `marker` change, so a tree that predates one is a conforming tree that simply lacks it — and a
+  digest that moved when an empty table was added would invalidate every stamp taken before it,
+  silently and at exactly the moment nothing else said anything had happened. The digest is over
+  the rows, and a table nothing has written is indistinguishable from a table that is not there
+  yet, because it holds the same nothing.
+- **Each table's rows in its primary key order**, each row's columns in the order the DDL declares
+  them. No table stores an order, so the key is what makes the walk reproducible.
+- **Each table's name written in before its rows**, framed as text is below, so that rows cannot
+  move between tables without the digest noticing.
+- **Each value tagged and framed**: `00` for null and nothing after it; `01` and eight bytes,
+  big-endian two's complement, for an integer; `02` and eight bytes, IEEE-754 binary64 big-endian,
+  for a real; `03` for text and `04` for a blob, each followed by an eight-byte big-endian length
+  and then the bytes, UTF-8 for text. **A logprob is hashed as its bits and never as a rendering
+  of them** — a decimal would make two equal trees differ, or two different ones agree, depending
+  on which way the formatting rounded.
+
+**It covers what was observed and nothing derived**, which is every table there is: this format
+stores no derivation, so the rule needs no exception beyond `stamps` itself. `sources` and `params`
+are in it and are easy to leave out by accident — a node carries a source id and an act carries a
+params id, so a tree whose model was renamed, or whose interned request was rewritten, has the same
+nodes and the same acts and is not the same tree.
+
+**No invariant checks a stamp.** It names nothing else in the store, so there is no closure to
+hold, and whether its hash is *true* is not a property of the tables — it is a recomputation, which
+is what verifying one is. A malformed stamp is the same kind of thing as a malformed `created`, and
+nothing checks those either.
+
 ## What the record requires of a backend
 
 **The core names no backend.** It requires these conditions of anything that produces a record,
@@ -286,9 +353,10 @@ A reader that does not recognise `marker` stops. The vocabulary name is advisory
 it is the `vocab` table.
 
 **`marker`, `created` and `vocabulary` are required and the rest is optional.** `writer`, `repo`
-and `commit` say what produced the tree, which is what lets a figure quoted from it name what it
-was quoted from. They are the implementation's own business and nothing here says what goes in
-them beyond that they name one.
+and `commit` say what produced the tree. They are the implementation's own business and nothing
+here says what goes in them beyond that they name one — and they name the writer, which is not the
+same question as which state a figure was quoted from. **A state is named by a stamp**, because
+these are written when a tree is made and a tree keeps moving afterwards.
 
 **`bulk.sqlite`** — everything else. A new record type is a new table, not a new mechanism.
 
@@ -332,6 +400,11 @@ CREATE TABLE acts (
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
   model   INTEGER, params INTEGER, terminator TEXT); -- 'generate' only
+
+CREATE TABLE stamps (                      -- what the record hashed to, and when
+  id      INTEGER PRIMARY KEY,
+  hash    TEXT NOT NULL,                   -- 64 lowercase hex characters; not unique
+  created TEXT NOT NULL);                  -- ISO 8601, UTC, ending 'Z'
 ```
 
 `bytes` is a BLOB, so no escape is needed anywhere in the store. It lives in `vocab` rather than
@@ -463,6 +536,22 @@ never from `acts`. Deleting what is already effectively deleted is legal — it 
 paragraph above work — and records an act that changed nothing, exactly as an act whose every node
 already existed does.
 
+### Attesting the record
+
+| operation | writes | leaves |
+| --- | --- | --- |
+| `stamp()` | one stamp | the tree exactly as it was |
+
+**This is the sixth write and the only one that is not an act.** The five above are the whole of
+what can change a tree, and that is still true: stamping reads every table and writes a digest of
+what it read. It takes the writer's claim all the same, because it writes — so a tree another
+writer holds is not stamped underneath them, and the digest is of a record nothing was changing
+while it was computed.
+
+**Verifying is not an operation.** A hash in hand is checked by recomputing and comparing, which
+writes nothing and needs no claim. What the stored stamps add is *when*: a hash that matches no
+current tree may still match a stamp, and then the tree has moved rather than the hash being wrong.
+
 ## Derived reads
 
 Nothing here is stored. **These are the derivations a reader would otherwise get wrong**; what
@@ -507,6 +596,9 @@ else the tables admit is a query rather than a fact about the format.
 - Which paths a backend will evaluate. The core forms positions; a backend accepts them or
   refuses, and the refusal is recorded.
 - Sampling parameters and what they mean, beyond the length limit the core imposes.
+- **When a tree is stamped, or by what.** The digest is specified and the occasion is not: a
+  command a reader runs, a hook, a timer and nothing at all are all conforming, and a tree with no
+  stamps is complete.
 - Any reading surface — layout, navigation, selection, or what a client chooses to show, bytes
   that do not decode included.
 - Concurrency beyond the claim: no protocol across machines.
