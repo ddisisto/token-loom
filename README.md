@@ -48,16 +48,19 @@ logprobs on a *raw continuation*, and no hosted provider returns those.
 scripts/llama-server.sh
 
 uv sync
-uv run tokenloom init data/mine --vocabulary qwen2.5-7b-base
-uv run tokenloom create data/mine --text 'It is a truth universally acknowledged, that'
+uv run tokenloom init data/mine --vocab qwen2.5-7b-base
+uv run tokenloom create data/mine 'It is a truth universally acknowledged, that'
 uv run tokenloom generate data/mine --at 12 --length 80 --temperature 0.9
 uv run tokenloom serve data/mine --port 8097     # the reading surface, at /
+uv run tokenloom stamp data/mine                 # what it hashes to, for quoting a figure
 ```
 
 `uv run tokenloom --help` lists the rest. Reads take no lock and need no server; `realise`,
 `delete` and `undelete` need neither a server nor a tokeniser; `create` needs a tokeniser; only
 `generate` calls a model. **Every write the surface can make, the command line can make** — the
 five acts are `create`, `generate`, `realise`, `delete`, `undelete`, and each has a verb.
+`stamp` is the sixth write and the only one that is not an act: it records what the tree hashed
+to, and changes nothing about it.
 
 `uv run pytest` needs no server. The live tests skip without one, and `-m live` runs only those.
 

@@ -153,6 +153,14 @@ This is the analyst's layer, and it asks nothing of the reading loop: it is quer
 From the continuation probe, and carried here when `docs/CONTROLLER.md` was superseded — that
 document's loop is gone and its measurements are not. Each bears on something below.
 
+**The trees these were taken from have grown since, and the figures were not all taken at one
+state.** They are stamped now — `data/continuations` at `4099f102…`, `data/logozoa` at
+`10d921ba…`, both on 2026-09-28 — so a figure taken from here on can name a state, and the ones
+above that date cannot be pinned to one more exactly than *before it*. Neither tree is in the
+repository, so a stamp is checkable by whoever holds the tree and by nobody else. **Nothing here
+turns on an exact count**; what the figures carry is direction and order of magnitude, and a
+reading that needed the third digit would be reading them wrong.
+
 **Selecting positions by the gap picks scrambles, not decisions.** Over the probe's 12,683
 recorded positions, the top five per cent of nodes chosen by each criterion: by **absolute
 probability**, a top token of 0.479 and a second of 0.352, the two carrying 83% of the mass

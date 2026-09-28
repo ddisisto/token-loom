@@ -265,26 +265,38 @@ becomes an answer where *this hash does not match* was the only one available.
 names nothing.
 
 - **BLAKE2b, 256 bits**, over one byte stream, rendered as 64 lowercase hex characters.
-- **Every table this format defines except `stamps`**, in the order *On disk* declares them. A
-  stamp cannot attest itself, and that is the only exception. A table added later is covered
-  unless it says otherwise: a digest that silently stops covering something is a worse failure
-  than one that changes when it need not have.
+- **Every table the store holds except `stamps`** — those this format defines in the order *On
+  disk* declares them, then any others by name. A stamp cannot attest itself, and that is the
+  only exception. **What is covered is what is there and not what the reader has heard of**: a
+  table or column added without a bump is covered by an implementation that predates it, so two
+  implementations reading one tree agree. The other way round — covering what the reader knows —
+  would have an older one and a newer one digest the same tree differently, which is the same
+  failure as a digest nobody else can compute.
 - **A table with no rows contributes nothing, not even its name.** A table arriving is not a
   `marker` change, so a tree that predates one is a conforming tree that simply lacks it — and a
   digest that moved when an empty table was added would invalidate every stamp taken before it,
   silently and at exactly the moment nothing else said anything had happened. The digest is over
   the rows, and a table nothing has written is indistinguishable from a table that is not there
   yet, because it holds the same nothing.
-- **Each table's rows in its primary key order**, each row's columns in the order the DDL declares
-  them. No table stores an order, so the key is what makes the walk reproducible.
+- **Each table's rows in its primary key order**, each row's columns in the order that table
+  declares them. No table stores an order, so the key is what makes the walk reproducible.
 - **Each table's name written in before its rows**, framed as text is below, so that rows cannot
   move between tables without the digest noticing.
-- **Each value tagged and framed**: `00` for null and nothing after it; `01` and eight bytes,
-  big-endian two's complement, for an integer; `02` and eight bytes, IEEE-754 binary64 big-endian,
-  for a real; `03` for text and `04` for a blob, each followed by an eight-byte big-endian length
-  and then the bytes, UTF-8 for text. **A logprob is hashed as its bits and never as a rendering
-  of them** — a decimal would make two equal trees differ, or two different ones agree, depending
-  on which way the formatting rounded.
+- **Each row opening with `05`**, so that a row holding two values and two rows holding one apiece
+  cannot write the same bytes.
+- **Each value named by its column and framed by its type**: the column's name as text, then `01`
+  and eight bytes, big-endian two's complement, for an integer; `02` and eight bytes, IEEE-754
+  binary64 big-endian, for a real; `03` for text and `04` for a blob, each followed by an
+  eight-byte big-endian length and then the bytes, UTF-8 for text. **A logprob is hashed as its
+  bits and never as a rendering of them** — a decimal would make two equal trees differ, or two
+  different ones agree, depending on which way the formatting rounded.
+- **A null contributes nothing, and neither does the column's name.** This is the same rule as the
+  one above it, one level down, and it is here for the same reason: a column arriving is not a
+  `marker` change either, so a tree that predates one holds nulls where a tree written after it
+  holds values, and a digest that could tell those apart would break every stamp the moment an
+  additive column reached an old tree. A column absent and a column null throughout are the same
+  nothing. It costs nothing elsewhere: `deleted` is null or `1`, and those still differ, because
+  one contributes nothing and the other contributes a value.
 
 **It covers what was observed and nothing derived**, which is every table there is: this format
 stores no derivation, so the rule needs no exception beyond `stamps` itself. `sources` and `params`
@@ -580,10 +592,15 @@ else the tables admit is a query rather than a fact about the format.
 - **A reader ignores tables, columns and `tree.json` keys it does not know**, and none of the three
   arriving changes `marker`. This is what allows the format to grow without invalidating a reader:
   what a reader already understands still means what it did.
-- **A writer does not.** A writer that finds a column it does not know, in a table it writes, stops.
-  A reader that ignores one is incomplete; a writer that ignores one fills it with nothing, and the
-  record is then quietly short in a way no later reader can tell from a value that was never
-  available. This asymmetry is what makes the rule above safe to rely on.
+- **A writer creates what its `marker` defines and the tree lacks.** A table or column added
+  without a bump reaches an existing tree only when something puts it there, and the writer is the
+  only thing that can. This is why a digest is blind to an empty table and to a null column: the
+  tree gains them at a moment nothing else records, so nothing may turn on their arrival.
+- **A writer does not ignore what it does not know.** A writer that finds a column it does not
+  know, in a table it writes, stops. A reader that ignores one is incomplete; a writer that ignores
+  one fills it with nothing, and the record is then quietly short in a way no later reader can tell
+  from a value that was never available. This asymmetry is what makes the reader's rule safe to
+  rely on.
 - **A new value in an existing column changes what that column means, and does change `marker`**,
   as does any other change to what an existing table means — the one circumstance that makes an
   older reader wrong rather than merely incomplete.

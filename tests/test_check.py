@@ -34,6 +34,7 @@ CREATE TABLE params (id INTEGER, json TEXT NOT NULL);
 CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, actor INTEGER NOT NULL, origin INTEGER,
                      tip INTEGER, created TEXT NOT NULL, model INTEGER, params INTEGER,
                      terminator TEXT);
+CREATE TABLE stamps (id INTEGER, hash TEXT NOT NULL, created TEXT NOT NULL);
 """
 
 

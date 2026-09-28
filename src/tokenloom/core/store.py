@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import re
 import sqlite3
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -15,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
 
-from . import check, reads
+from . import check, digest, reads
 from .ports import Adapter, Generation, Ranked, Source, Vocabulary
 from .schema import (
     BULK_FILE,
@@ -108,6 +109,7 @@ class Store:
         store = cls(path, _connect(path / BULK_FILE), tree, write=write, claim=claim)
         if write:
             try:
+                store._create_missing_tables()
                 # A store that fails an invariant is not repaired silently: a reader
                 # reports it, and a writer will not write.
                 if verify:
@@ -130,6 +132,29 @@ class Store:
             fd.close()
             raise StoreError(f"another writer holds {path}") from exc
         return fd
+
+    def _create_missing_tables(self) -> None:
+        """A writer creates what its `marker` defines and the tree lacks.
+
+        A table added without a bump reaches an existing tree only when something puts it
+        there, and the writer is the only thing that can -- so a tree written before `stamps`
+        existed gains it here rather than failing at the first stamp. Each statement is
+        applied on its own and only where the table is absent, so this adds and never alters.
+
+        Nothing turns on the arrival: the digest is blind to a table with no rows, which is
+        what makes doing this silently safe. Columns are not this method's business; a column
+        arriving is the same shape of problem and wants the same care when one first does.
+        """
+        have = {
+            r[0] for r in self.conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        }
+        # Split at each `CREATE TABLE` and not at each `;` -- a comment in the DDL may carry
+        # one, and `edges` does, so splitting on the delimiter cuts a statement in half.
+        for statement in re.split(r"\n(?=CREATE TABLE)", DDL.strip()):
+            name = re.match(r"CREATE TABLE (\w+)", statement)
+            if name is not None and name.group(1) not in have:
+                self.conn.execute(statement)
+        self.conn.commit()
 
     def reader(self) -> sqlite3.Connection:
         """A connection of its own, for a read that must not wait behind a write.
@@ -356,6 +381,28 @@ class Store:
                 raise Rejected(f"no ranked edge at node {node}, source {source}, token {token_id}")
             tip = self._merge_node(node, token_id, edge_source)
             return self._write_act("realise", actor_id, origin=node, tip=tip)
+
+    # ---- attesting the record ------------------------------------------------------
+
+    def stamp(self) -> tuple[int, str]:
+        """One digest over the record, dated and kept. The sixth write and no act.
+
+        It reads every table and writes what it read, so the tree is exactly as it was
+        afterwards -- but it is a write, and takes the claim like one. That is what makes the
+        digest a digest of something: no other writer can be moving the rows while it walks
+        them.
+
+        No actor, because a digest is recomputable by anyone and influenced by nobody, and a
+        name beside it would be a fact about the record's keeping rather than about the
+        record. Two stamps may carry one hash: stamping a tree that has not moved records
+        that it had not moved.
+        """
+        with self._writing():
+            found = digest.of(self.conn)
+            stamp = self.conn.execute(
+                "INSERT INTO stamps (hash, created) VALUES (?, ?)", (found, _now())
+            ).lastrowid
+            return stamp, found
 
     def generate(
         self,

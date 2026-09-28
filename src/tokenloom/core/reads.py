@@ -75,6 +75,15 @@ class Spread:
 
 
 @dataclass(frozen=True, slots=True)
+class Stamp:
+    """What the record hashed to, and when. Oldest first wherever these are listed."""
+
+    id: int
+    hash: str
+    created: str
+
+
+@dataclass(frozen=True, slots=True)
 class RankedEdge:
     """A ranked edge, what its token spells, and the child that realised it, if any."""
 
@@ -390,6 +399,16 @@ def unrealised_edges(conn: sqlite3.Connection, node: int) -> list[Edge]:
         (node,),
     ).fetchall()
     return [Edge(*r) for r in rows]
+
+
+def stamps(conn: sqlite3.Connection) -> list[Stamp]:
+    """Every stamp, oldest first. A tree that has never been stamped has none, which is a
+    complete tree and not a gap -- `docs/CORE.md` leaves the occasion unspecified."""
+    try:
+        rows = conn.execute("SELECT id, hash, created FROM stamps ORDER BY id").fetchall()
+    except sqlite3.OperationalError:
+        return []  # a tree written before the table existed, which no writer has opened since
+    return [Stamp(*r) for r in rows]
 
 
 def recorded_depths(

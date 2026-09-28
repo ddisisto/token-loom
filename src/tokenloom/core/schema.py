@@ -51,6 +51,11 @@ CREATE TABLE acts (
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
   model   INTEGER, params INTEGER, terminator TEXT); -- 'generate' only
+
+CREATE TABLE stamps (                      -- what the record hashed to, and when
+  id      INTEGER PRIMARY KEY,
+  hash    TEXT NOT NULL,                   -- 64 lowercase hex characters; not unique
+  created TEXT NOT NULL);                  -- ISO 8601, UTC, ending 'Z'
 """
 
 OPS = ("create", "generate", "realise", "delete", "undelete")

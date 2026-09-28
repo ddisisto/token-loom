@@ -404,29 +404,22 @@ edge is addressed by its token everywhere, a source reports what its own draw wa
 censored-draw bound is deleted, and `tree.json` admits `writer`, `repo` and `commit`. The
 migration is `scripts/migrate-to-3.py`.
 
-**The debt is already on the page.** `docs/SPINE.md` cites 13,315 ranked positions in
-`data/continuations` of which 4,553 hold two rows, and elsewhere 23,592 nodes carrying edges and
-11,487 rankings of two. Both were true when taken, both are off a tree that has grown since, and
-nothing in either document says which. So the first use of a stamp is not a new figure — it is
-going back over the ones already quoted, stamping the trees they came from, and saying beside each
-which state it is.
+**What names a state is built.** `docs/CORE.md` has the `stamps` table, the digest and a sixth
+write that is not an act; `tokenloom stamp` takes one and `tokenloom stamps --verify` says
+whether a hash is this tree, was this tree, or neither. `docs/SPINE.md`'s figures are stamped and
+say so. A tree written before the table gains it when a writer next opens it, which is the
+general rule for an additive change reaching an existing tree.
 
-**What names a state is settled and is not a bump.** `docs/CORE.md` has the `stamps` table, what
-the digest covers and how it is encoded, and a sixth write that is not an act. A new table leaves
-an older reader incomplete rather than wrong, so this is built against `token-loom/3` and a tree
-written before it simply has no stamps. What is left is the code.
+**The occasion stays unspecified and manual stays the one built.** A hash wants taking *when a
+figure is*, and a timer would stamp between figures rather than at them — a tree stamped on a
+schedule invites reading the nearest stamp as the one a figure came from. A hook on server close
+is the better of the two if either is wanted, because closing is a moment a reader can point at.
 
-**The occasion is deliberately unspecified and manual is the one to build.** A command a reader
-runs when they take a figure is the case that matters, because the hash wants to be taken *when
-the figure is*, and a timer would stamp between figures rather than at them. A hook on server
-close and a timer are both conforming and both wait — neither is needed to quote a number, and a
-tree stamped on a schedule invites reading the nearest stamp as the one a figure came from.
-
-**It costs about a second and a half on the largest tree in hand.** 695,640 rows over `data/logozoa`
-at 1.4 s, 219,719 over `data/continuations` at 0.42 s, and a millisecond on a small one. That is
-why it is a command and not something an act carries: an act costs milliseconds, and a digest
-maintained across one would want an order-independent construction to survive `delete` flipping a
-row that is already written.
+**What is left here is the part that is not the instrument's to fix.** Neither working tree is in
+the repository, so a stamp is checkable by whoever holds the tree and by nobody else. That is
+accepted rather than solved: nothing in the documents turns on an exact count, and a figure that
+needed to be independently verifiable would need the tree published, which is a different
+question about a different kind of artefact.
 
 **What the writer was stays with the act.** `writer`, `repo` and `commit` are keys the format
 admits and nothing fills, and they are left that way: a tree is written by however many versions
@@ -434,4 +427,3 @@ of this it outlives, so naming one of them on the tree names the wrong thing mos
 Which code wrote a row is a condition of the act that wrote it, which is section 2 — token-loom's
 own commit beside llama.cpp's `build_info`. A `creator` key on the tree is the fallback if a need
 for one turns up, and none has.
-

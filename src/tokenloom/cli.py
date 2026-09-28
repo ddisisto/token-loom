@@ -13,7 +13,7 @@ import secrets
 import sys
 from pathlib import Path
 
-from .core import Rejected, Source, Store, StoreError, violations
+from .core import Rejected, Source, Store, StoreError, digest, violations
 from .core import reads as R
 from .core.check import Corrupt
 
@@ -284,6 +284,53 @@ def cmd_acts(args) -> int:
     return 0
 
 
+def cmd_stamp(args) -> int:
+    """One digest over the record, dated and kept. Opening for writing takes the claim, so
+    nothing is moving the rows while they are walked."""
+    with Store.open(args.tree, write=True) as store:
+        stamp, found = store.stamp()
+        print(f"stamp {stamp}  {found}")
+    return 0
+
+
+def cmd_stamps(args) -> int:
+    """The stamps, or what a hash in hand refers to. Neither writes.
+
+    Verifying is a recomputation and not an operation, so this takes no claim. What the
+    stored stamps add is *when*: a hash matching no current tree may still match one that was
+    taken, and then the tree has moved rather than the hash being wrong.
+    """
+    with Store.open(args.tree) as store:
+        kept = R.stamps(store.conn)
+        if args.verify is None:
+            for stamp in kept:
+                print(f"  {stamp.id:>4}  {stamp.created}  {stamp.hash}")
+            print(f"{len(kept)} stamp{'' if len(kept) == 1 else 's'}")
+            return 0
+
+        # A prefix is accepted because a hash is usually met in prose, where it is quoted
+        # short. An ambiguous one is refused rather than resolved.
+        want = args.verify.lower()
+        now = digest.of(store.conn)
+        matched = [stamp for stamp in kept if stamp.hash.startswith(want)]
+        if len({stamp.hash for stamp in matched}) > 1:
+            print(f"{want!r} is a prefix of {len(matched)} different stamps; give more of it")
+            return 1
+        if now.startswith(want):
+            when = f", and stamped {matched[-1].created}" if matched else ", and never stamped"
+            print(f"matches the tree as it stands{when}")
+            print(f"  {now}")
+            return 0
+        if matched:
+            print(f"the tree has moved since: stamped {matched[-1].created}, and now")
+            print(f"  {matched[-1].hash}  the stamp")
+            print(f"  {now}  the tree")
+            return 0
+        print("no stamp carries that hash, and it is not what the tree hashes to now")
+        print(f"  {now}  the tree")
+        return 1
+
+
 def cmd_check(args) -> int:
     with Store.open(args.tree) as store:
         found = violations(store.conn)
@@ -443,6 +490,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("acts", help="what was done")
     p.add_argument("tree", type=Path)
     p.set_defaults(fn=cmd_acts)
+
+    p = sub.add_parser("stamp", help="record what this tree hashes to now")
+    p.add_argument("tree", type=Path)
+    p.set_defaults(fn=cmd_stamp)
+
+    p = sub.add_parser("stamps", help="the stamps taken, or what a hash refers to")
+    p.add_argument("tree", type=Path)
+    p.add_argument("--verify", metavar="HASH", help="a hash, whole or a prefix of one: "
+                                                    "whether it is this tree, and when")
+    p.set_defaults(fn=cmd_stamps)
 
     p = sub.add_parser("check", help="every invariant")
     p.add_argument("tree", type=Path)
