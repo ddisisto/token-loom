@@ -251,10 +251,18 @@ one that happened.
 **It does load one flag with two meanings**, and they are near enough to share it: *I have put
 this away*, and *nobody has taken this up yet*. What tells them apart is the act and not the
 node — an act carries its actor — so a reader who needs the difference has it and the column
-does not have to draw it. A source of its own is what an act with no user behind it would carry,
-and naming one waits until there is such an act. What it does not reach is *where* such a node
-sits: a stub hangs beside a path rather than below its end, and the rule above only carries a path
-on from the end. Seeing one is Rankings' business and not the column's.
+does not have to draw it. What it does not reach is *where* such a node sits: a stub hangs beside
+a path rather than below its end, and the rule above only carries a path on from the end. Seeing
+one is Rankings' business and not the column's.
+
+**Anything that spends inference without the reader pointing at it acts as its own source.** A
+hover is the reader asking, so a rollout under one is theirs and lands under the actor every other
+act of theirs does. A policy that rolls stubs ahead of them is not, and it carries a named source
+of kind `user` as its `actor` — separate from the unnamed reader, and free to name the reader it
+acts for. `sources` already admits this: the empty name is reserved for the unnamed user rather
+than required of every one, so it is a rule about use and changes nothing in the record. What it
+buys is that *what the reader did* stays separable from *what the instrument did on its own*,
+which `docs/SPINE.md` wants of every aggregate and cannot recover after the fact.
 
 ## Forks
 

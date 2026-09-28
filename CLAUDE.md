@@ -77,6 +77,11 @@ each one is here because it was got wrong.
   pays it. Its *Derived reads* names only what a reader would otherwise get wrong and is not a
   catalogue of queries — one grew there before anything used it, and four of its entries were
   reads nothing called.
+- **`docs/CORE.md`'s invariant list is checked against the code, in both directions and by
+  count.** `tests/test_check.py` parses `INV-` names out of the document and out of `check.py` and
+  fails on any difference, which is what catches one of them moving without the other. So renaming
+  or adding an invariant turns the suite red until the checker follows — a documents-only edit is
+  not always a documents-only change.
 - **`docs/ADAPTER.md` moves as backends are met**, which is the point of the split, and it
   carries its own status inline.
 - **`docs/INTERFERENCE.md` is what `docs/SURFACE.md` defers to whenever it says a question is

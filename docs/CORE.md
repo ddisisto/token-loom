@@ -312,7 +312,7 @@ CREATE TABLE nodes (
   UNIQUE (parent, token_id, source));      -- roots are exempt: NULL parents never collide,
                                            -- which is Sources' rule, not an artefact
 
-CREATE TABLE edges (                       -- ranked, not taken
+CREATE TABLE edges (                       -- what was ranked at a node
   node     INTEGER NOT NULL,
   source   INTEGER NOT NULL,
   token_id INTEGER NOT NULL,

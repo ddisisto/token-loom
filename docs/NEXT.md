@@ -307,13 +307,20 @@ open; opening `acts` twice is the thing to avoid.
 **What would sit on an edge, and what would not.** The condition gives every value an *a priori*
 bound. A second observation that disagrees under conditions recorded as identical is the residual,
 and it is the only thing that can find a variable nobody listed — so an observed span beside a value
-is calibration and not a copy of it. As `low` and `high` beside a `logprob` that still means *the
-first observation*, that is new columns and stays out of the bundle; making `logprob` a value derived
-from them is what would put it in.
+is calibration and not a copy of it.
+
+**A value and a spread, not two endpoints** — and what happens when a new observation disagrees is
+the question rather than a detail of it. Widening on every disagreement is what makes a span grow
+with visit count; the alternative is a threshold, past which an observation is not folded in but set
+apart as having been taken elsewhere. **That is only decidable with the condition**, which is what
+turns the condition record from context into the thing the estimator runs on. What the threshold is,
+and whether a rejection leaves a trace, is open. As columns beside a `logprob` that still means *the
+first observation* this stays out of the bundle; making `logprob` a value derived from them is what
+would put it in.
 
 **The cost is a derived value that moves.** *Rankings* has it that nothing derived from a ranking
 changes retroactively, which a refined measurement breaks by design. The surface is already
-indifferent — `reads.py` sorts rows by value and the page addresses a row by its own column, so an
+indifferent — `reads.py` sorts rows by value and the page addresses a row by its token, so an
 order that differs between renderings is current rather than wrong. What is left is that a figure
 quoted from a tree is a figure against a state of it, which is the item below.
 
