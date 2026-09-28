@@ -203,33 +203,36 @@ lands the path on positions that are wider. Which of those two paths is flatter 
 it was drawn, rather than because of where it went, is not settled by this and would want one
 context drawn several ways.
 
-**A ranking says most about what it left out where it holds least.** A draw that landed outside
-the recorded rows is censored rather than missing — what was written is a prefix, so the token
-taken sits at or below the lowest row — and how much that says is the span from the top row to
-the last, which `docs/SURFACE.md` draws as a bound. Over the 13,315 ranked positions of
-`data/continuations`, that span is **widest at the shallowest depth**: the 4,553 positions holding
-two rows, which is the floor the rule sets, span a median of 5.81 nats, against 3.1 to 4.4 across
-every depth from three to nine. The rule is the reason. Two rows suffice only where one token
-already carried the mass, and those positions carry a median top probability of 0.991, so the
-second row is far beneath the first. Where the rule ran to its ceiling instead the position was
-flat — median top probability 0.26 at ten rows and 0.28 at twenty — and the rows are packed, 2.46
-nats across ten of them and 3.95 across twenty. **So a bound is strong exactly where a reader
-would expect the record to be weak**, and the deepest records give the loosest ones.
+**The recording rule spends its rows where the ranking is flat**, so the span from the top row to
+the last is **widest at the shallowest depth**. Over the 13,315 ranked positions of
+`data/continuations`, the 4,553 positions holding two rows — the floor the rule sets — span a median
+of 5.81 nats, against 3.1 to 4.4 across every depth from three to nine. The rule is the reason. Two
+rows suffice only where one token already carried the mass, and those positions carry a median top
+probability of 0.991, so the second row is far beneath the first. Where the rule ran to its ceiling
+instead the position was flat — median top probability 0.26 at ten rows and 0.28 at twenty — and the
+rows are packed, 2.46 nats across ten of them and 3.95 across twenty. **So depth and span run
+opposite ways**, and a reading taken across positions of unlike depth is comparing two different
+things.
 
-**Censoring is the draw read against the record, and not either one alone.** `data/continuations`
-holds 62 censored positions in 13,595 nodes, and every one came from a single 90-token draw at
+**The measurements below are what a draw with no recorded value used to cost, and they are the case
+for `docs/ADAPTER.md`'s obligation 7.** A source now reports what its own draw was worth, so a draw
+landing past the recorded rows is priced like any other. They remain true of every tree written
+before that, where such a draw has no value and the record does not say why.
+
+**Censoring was the draw read against the record, and not either one alone.** `data/continuations`
+holds 62 such positions in 13,595 nodes, and every one came from a single 90-token draw at
 temperature 1.4 recorded to ten rows — 62 of that act's 90 tokens, against none at all from the
-sixteen earlier acts at the same temperature that recorded to twenty. So a hot draw does not
-censor by being hot; it censors where the record was sized for a colder one. That makes
-`record_rows` a choice about how much of a hot path stays readable rather than only a cost, and
-it is the one parameter whose right value cannot be known before the draw it is recording.
+sixteen earlier acts at the same temperature that recorded to twenty. So a hot draw did not go
+unpriced by being hot; it went unpriced where the record was sized for a colder one. That made
+`record_rows` a choice about how much of a hot path stayed readable rather than only a cost, and
+the one parameter whose right value cannot be known before the draw it is recording. Obligation 7
+takes the readability out of that trade and leaves the cost.
 
-**On a worked tree it is not a curiosity but the majority case.** `data/logozoa` was recorded at
-ten rows until late and is 88% greedy draws, so its divergences concentrate in the hot minority
-the record was sized too small for: 2,730 of its 4,406 divergences are censored against 1,676
-priced. Two thirds of what a sum over that tree would add is therefore a bound and not a value —
-which is a fact about summing deviation over a document the method actually produced, and touches
-no reading of a single position.
+**On a worked tree it was not a curiosity but the majority case.** `data/logozoa` was recorded at
+ten rows until late and is 88% greedy draws, so its divergences concentrate in the hot minority the
+record was sized too small for: 2,730 of its 4,406 divergences carry no value against 1,676 priced.
+Two thirds of what a sum over that tree would add is therefore missing rather than small — which is
+what made this worth fixing in the contract rather than working around in a reading.
 
 **A steered tree disagrees with its own top rows at a third of its forks.** Over the 53 forks
 of `data/continuations`, the most-grown arm is the model's top-ranked token at 36 of them and

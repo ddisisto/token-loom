@@ -87,11 +87,10 @@ tree, converted node by node through bytes.
 
 ## Rankings
 
-The alternatives recorded at a node. One row per `(node, source, rank)`:
+The alternatives recorded at a node. One row per `(node, source, token_id)`:
 
 | column | meaning |
 | --- | --- |
-| `rank` | `0` is first; distinct and contiguous within a node and source |
 | `token_id` | the candidate; appears at most once within a node and source |
 | `logprob` | its log probability |
 
@@ -99,19 +98,21 @@ The alternatives recorded at a node. One row per `(node, source, rank)`:
 model and the path, so two generations reaching a node describe one distribution and the record
 does not depend on which arrived first.
 
-**Rank is the order the source presented.** Descending logprob is expected of a model and is not
-enforced. Near-ties come back in whatever order a backend produces, and imposing a global sort
-would make the stored order turn on values that are not reproducible to the last bit.
+**A ranking is a set and not a list.** Nothing records the order its rows arrived in or the order
+the source presented them, and a row is addressed by its `token_id`, which is unique within a node
+and source. This table says what was ranked at a position; `acts` is what records what was done.
+**Arrival is creation, and creation belongs there or nowhere** — which is also why no global sort is
+imposed: an order over values that are not reproducible to the last bit would be a fact about the
+store rather than about the model. A reader wanting one sorts.
 
 **A ranking extends and is never truncated or rewritten.** A later generation contributes only
-tokens not already recorded, appended at continuing ranks. Rows already present keep their
-values, so anything derived from a ranking — a node's logprob above all — never changes
-retroactively.
+tokens not already recorded. Rows already present keep their values, so anything derived from a
+ranking — a node's logprob above all — never changes retroactively.
 
-It follows that **rank means the k-th alternative recorded here, not the model's k-th choice.** A
-generation recording twenty alternatives after one recorded five may contribute a token that
-would outrank a stored one; it is appended below it regardless. A node's recorded depth is
-whatever has accumulated there, and is not derivable from any one generation's parameters.
+It follows that **a ranking is not the model's top-*k*.** A generation recording twenty alternatives
+after one recorded five leaves twenty rows, and a token neither of them reported is absent however
+highly the model ranked it. A node's recorded depth is whatever has accumulated there, and is not
+derivable from any one generation's parameters.
 
 **Two generations may report one row differently, and the value first written stands.** This is
 what *never rewritten* means where observations disagree, and it is how they are reconciled: a
@@ -128,19 +129,21 @@ position was computed at, and for that position there is none. The distribution 
 context is a real thing this format does not hold.
 
 **A node may be absent from its parent's ranking.** A generation that can give no ranking for a
-position declines rather than guesses, a backend may emit a token on a stop condition without it
-passing through a sampler, and a draw may land outside the alternatives that were recorded for its
-position. Such a node has no derivable logprob until a later generation supplies the covering edge
-— which extension then does, with no further mechanism. The store does not require the covering
-edge.
+position declines rather than guesses, and a backend may emit a token on a stop condition without
+it passing through a sampler. Such a node has no derivable logprob until a later generation
+supplies the covering edge — which extension then does, with no further mechanism. The store does
+not require the covering edge.
+
+**A drawn token is not one of those ways.** What a source drew, it can say the value of, so the
+row is there however few alternatives were recorded beside it — condition 7 below. A source that
+cannot say leaves the absence, and the record does not mark it apart from the others.
 
 **Nothing records why an edge is missing.** A declination is not distinguished from a position
 nothing has generated at; in both the absence is the whole record.
 
-**A drawn token is ordinarily among its parent's ranked edges**, which is what makes a node's
-logprob derivable in the ordinary case, and rank `0` is frequently not the one drawn: the draw is
-a sample from the distribution rather than its maximum. Values are the model's own and sum to
-less than one, by the mass of the vocabulary that was not recorded.
+**The drawn token is frequently not the highest-valued row**: the draw is a sample from the
+distribution rather than its maximum. Values are the model's own and sum to less than one, by the
+mass of the vocabulary that was not recorded.
 
 ## Acts
 
@@ -157,7 +160,6 @@ changes whether it is live, or records that it did neither.
 | `model` | `generate` | the model it asked |
 | `params` | `generate` | index into the interned parameter table |
 | `terminator` | `generate` | its outcome; `null` while in flight |
-| `rank` | `realise` | the rank of the edge that was taken |
 
 **An act's tokens are the path from `origin` (exclusive) to `tip` (inclusive).** Nothing else is
 stored, because each node has one parent and that path is therefore unique.
@@ -243,11 +245,16 @@ and `docs/ADAPTER.md` states the operations and obligations that satisfy them.
    unchanged, and `create` checks it on the text at hand rather than assuming it.
 4. **A token sequence is evaluated verbatim.** A path re-tokenised before evaluation is not the
    path that was recorded, and replay is the property the whole format exists to hold.
-5. **A ranking is the model's own distribution, not a sampler's.** Its ids, their order and their
-   values depend on the model and the path and on nothing in the parameters. A ranking already
-   shaped by temperature or truncation could not be keyed on the node, and so could not merge.
+5. **A ranking is the model's own distribution, not a sampler's.** Its ids and their values depend
+   on the model and the path and on nothing in the parameters. A ranking already shaped by
+   temperature or truncation could not be keyed on the node, and so could not merge.
 6. **A request is met or refused, never adjusted.** No parameter is substituted, softened or
    silently clamped, so what an act records is both what was asked for and what was done.
+7. **What was drawn is valued.** A source reports what the token it drew was worth, so a drawn node
+   has a logprob whatever the recording bounds reached beside it. This is the one condition whose
+   cost falls on nothing: the value was computed to make the draw. A source that cannot report it
+   is not thereby unusable — the node is one without a covering edge, which *Rankings* provides
+   for — but a source that has it and withholds it is recording an absence that is not one.
 
 **What cannot be delivered is declined, never guessed.** A ranking that could not be recorded is
 an absent ranked edge, not an estimate; a request that cannot be met is refused rather than met
@@ -266,14 +273,22 @@ entirely in SQL.
 
 ```json
 {
-  "marker": "token-loom/nodes-2",
+  "marker": "token-loom/3",
   "created": "2026-08-25T11:56:00Z",
-  "vocabulary": "qwen2.5-7b-base"
+  "vocabulary": "qwen2.5-7b-base",
+  "writer": "token-loom 0.4.1",
+  "repo": "https://github.com/…",
+  "commit": "9d3a063…"
 }
 ```
 
 A reader that does not recognise `marker` stops. The vocabulary name is advisory; what enforces
 it is the `vocab` table.
+
+**`marker`, `created` and `vocabulary` are required and the rest is optional.** `writer`, `repo`
+and `commit` say what produced the tree, which is what lets a figure quoted from it name what it
+was quoted from. They are the implementation's own business and nothing here says what goes in
+them beyond that they name one.
 
 **`bulk.sqlite`** — everything else. A new record type is a new table, not a new mechanism.
 
@@ -300,11 +315,9 @@ CREATE TABLE nodes (
 CREATE TABLE edges (                       -- ranked, not taken
   node     INTEGER NOT NULL,
   source   INTEGER NOT NULL,
-  rank     INTEGER NOT NULL,
   token_id INTEGER NOT NULL,
   logprob  REAL NOT NULL,
-  PRIMARY KEY (node, source, rank),
-  UNIQUE (node, source, token_id));
+  PRIMARY KEY (node, source, token_id));   -- a set; no order is stored
 
 CREATE TABLE params (
   id   INTEGER PRIMARY KEY,
@@ -318,8 +331,7 @@ CREATE TABLE acts (
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
-  model   INTEGER, params INTEGER, terminator TEXT,  -- 'generate' only
-  rank    INTEGER);                                  -- 'realise' only
+  model   INTEGER, params INTEGER, terminator TEXT); -- 'generate' only
 ```
 
 `bytes` is a BLOB, so no escape is needed anywhere in the store. It lives in `vocab` rather than
@@ -359,10 +371,9 @@ waiting. A reader takes no lock.
 - **`INV-SOURCE-CLOSED`** — every source named in `nodes`, `edges` and `acts` is in `sources`.
 - **`INV-SOURCE-NAMED`** — a source of kind `model` has a non-empty `name`. The empty name is
   the unnamed user and belongs to nothing else.
-- **`INV-RANK-ANCHORED`** — no `edges` row names a node that does not exist. A deleted node is
+- **`INV-EDGE-ANCHORED`** — no `edges` row names a node that does not exist. A deleted node is
   still held, so its rows are not orphans.
-- **`INV-RANK-DENSE`** — ranks within a `(node, source)` are distinct and contiguous from `0`.
-- **`INV-RANK-UNIQUE`** — a `token_id` appears at most once within a `(node, source)`.
+- **`INV-EDGE-UNIQUE`** — a `token_id` appears at most once within a `(node, source)`.
 - **`INV-ACT-PATH`** — an act's non-null `origin` and non-null `tip` each name a node that
   exists; a `tip` descends from `origin` — or from a root, if `origin` is null — and the range
   from `origin` exclusive to `tip` inclusive is non-empty.
@@ -371,20 +382,19 @@ waiting. A reader takes no lock.
 - **`INV-ACT-SOURCE`** — every node an act produced carries one source: for `generate` the act's
   `model`, for `realise` the source of the edge it took, and for `create` one source along the
   whole path.
-- **`INV-ACT-CREATE`** — a `create` act has a non-null `tip`, and no `model`, `params`,
-  `terminator` or `rank`.
-- **`INV-ACT-GENERATE`** — a `generate` act has `model` and `params`, and no `rank`. A null
+- **`INV-ACT-CREATE`** — a `create` act has a non-null `tip`, and no `model`, `params` or
+  `terminator`.
+- **`INV-ACT-GENERATE`** — a `generate` act has `model` and `params`. A null
   `terminator` means in flight. A null `tip` requires a `terminator` of `cancelled`, `failed`,
   `aborted` or `refused`, or none at all.
 - **`INV-ACT-LIMIT`** — a `generate` act with terminator `limit` covers exactly the `length` its
   parameters name. It is the one terminator whose meaning the record can be held to.
-- **`INV-ACT-REALISE`** — a `realise` act has `rank` and a non-null `origin` and `tip`, and no
-  `model`, `params` or `terminator`; `tip` is a child of `origin`; and the edge
-  `(origin, tip.source, rank)` exists and carries `tip.token_id`.
+- **`INV-ACT-REALISE`** — a `realise` act has a non-null `origin` and `tip`, and no `model`,
+  `params` or `terminator`; `tip` is a child of `origin`; and the edge
+  `(origin, tip.source, tip.token_id)` exists. **The act stores no address**: `tip` is the edge's
+  own name, so a column for it would be a second copy of one fact.
 - **`INV-ACT-DELETE`** — a `delete` or `undelete` act has a non-null `origin`, and no `tip`,
-  `model`, `params`, `terminator` or `rank`.
-
-Descending logprob within a ranking is **not** an invariant. Rankings says why.
+  `model`, `params` or `terminator`.
 
 ## Operations
 
@@ -394,7 +404,7 @@ Descending logprob within a ranking is **not** an invariant. Rankings says why.
 | --- | --- | --- |
 | `create(at, bytes, source)` | one act, and nodes for the tokens | tokenised against the tree's vocabulary; rejected if the round trip does not hold |
 | `generate(at, params)` | one act, and nodes for what was drawn | provenance first, then the nodes |
-| `realise(node, source, rank)` | one act and one node | the ranked edge, taken; no model call |
+| `realise(node, source, token_id)` | one act and one node | the ranked edge, taken; no model call |
 
 **Creating is bytes in, tokens out.** Authored bytes must be valid UTF-8. The text is tokenised,
 the resulting nodes are reassembled exactly as Derived reads will reassemble them, and the result
@@ -412,13 +422,14 @@ act with no terminator is therefore a generation in flight, and no node can ever
 the store has not heard of. A refusal comes back on the same path as an answer, and lands in the
 same second write.
 
-**`realise` is one write and no call.** The ranked edge at `(node, source, rank)` is already
+**`realise` is one write and no call.** The ranked edge at `(node, source, token_id)` is already
 recorded, so taking it is a lookup and a node — and if that node already exists, the merge key
 finds it and only the act is written. Nothing is in flight and nothing can abort.
 
-**An edge is named by node, source and rank.** Two sources may rank at one node, so a rank alone
-names nothing. The act stores `origin`, `tip` and `rank`; the edge's source is `tip`'s, so the
-record needs no column for it.
+**An edge is named by node, source and token.** Two sources may rank at one node, so a token alone
+names nothing. **The act stores `origin` and `tip` and no more**: the node it made carries the
+token and the source, which is the whole of the edge's name, so `realise` is the one operation
+whose argument is recoverable from its result.
 
 **Branching is `realise` then `generate`.** Realising gives the node; generating from it
 continues. The two are separate acts, so an alternative can be taken and left unexplored, or
@@ -474,10 +485,16 @@ else the tables admit is a query rather than a fact about the format.
 
 ## Conformance and extension
 
-- A reader that does not recognise `marker` stops.
-- **A reader ignores tables and columns it does not know**, and neither a new table nor a new
-  column changes `marker`. This is what allows the format to grow without invalidating a reader:
+- A reader that does not recognise `marker` stops. **Recognising it is comparing the string**: one
+  value is legal, and a reader meeting another stops rather than guessing which of its rules still
+  apply.
+- **A reader ignores tables, columns and `tree.json` keys it does not know**, and none of the three
+  arriving changes `marker`. This is what allows the format to grow without invalidating a reader:
   what a reader already understands still means what it did.
+- **A writer does not.** A writer that finds a column it does not know, in a table it writes, stops.
+  A reader that ignores one is incomplete; a writer that ignores one fills it with nothing, and the
+  record is then quietly short in a way no later reader can tell from a value that was never
+  available. This asymmetry is what makes the rule above safe to rely on.
 - **A new value in an existing column changes what that column means, and does change `marker`**,
   as does any other change to what an existing table means — the one circumstance that makes an
   older reader wrong rather than merely incomplete.
@@ -547,15 +564,17 @@ Act 2: `generate`, actor 1, `model` 2, `origin` 2, `tip` 5, `params` 1,
 
 The ranking recorded at node 2 — the alternatives for the position that produced node 3:
 
-| `rank` | `token_id` | bytes | `logprob` |
-| --- | --- | --- | --- |
-| 0 | 374 | ` is` | −1.3218 |
-| 1 | 702 | ` has` | −1.6666 |
-| 2 | 5023 | ` currently` | −2.0363 |
-| 3 | 572 | ` was` | −2.7138 |
-| 4 | 594 | `'s` | −3.7901 |
+| `token_id` | bytes | `logprob` |
+| --- | --- | --- |
+| 374 | ` is` | −1.3218 |
+| 702 | ` has` | −1.6666 |
+| 5023 | ` currently` | −2.0363 |
+| 572 | ` was` | −2.7138 |
+| 594 | `'s` | −3.7901 |
 
-**Rank 0 is not the token drawn.** ` currently` was, at rank 2. Rankings are recorded at nodes 3
+**Shown by descending value, which is a choice made here and not a fact about the rows.**
+
+**The highest-valued row is not the token drawn.** ` currently` was, third by value. Rankings are recorded at nodes 3
 and 4 the same way. **Node 5 has no ranking**: generation stopped there, so no distribution for a
 following position was ever computed. That is a tip with no ranking, not a declination.
 
@@ -571,18 +590,21 @@ Act 3: `generate`, actor 1, `model` 2, `origin` 2, `tip` 7, `params` 2,
 
 **The ranking at node 2 extends from five rows to twenty.** The five already stored keep their
 values — this generation reported them bit-identically, which is what obligation 5 in
-`docs/ADAPTER.md` asks of a backend — and the fifteen it reported below them are appended:
+`docs/ADAPTER.md` asks of a backend — and the fifteen it reported below them are added:
 
-| `rank` | `token_id` | bytes | `logprob` | | `rank` | `token_id` | bytes | `logprob` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 5 | 1030 | ` had` | −4.3049 | | 13 | 748 | `’s` | −5.1507 |
-| 6 | 518 | ` at` | −4.3088 | | 14 | 646 | ` can` | −5.7753 |
-| 7 | 3685 | ` below` | −4.3841 | | 15 | 17167 | ` consists` | −5.8098 |
-| 8 | 3403 | ` above` | −4.3868 | | 16 | 5868 | ` looks` | −5.8294 |
-| 9 | 1431 | ` now` | −4.8847 | | 17 | 2669 | ` already` | −5.9023 |
-| 10 | 304 | ` in` | −4.9828 | | 18 | 4041 | ` comes` | −5.9496 |
-| 11 | 323 | ` and` | −5.0173 | | 19 | 1083 | ` also` | −5.9643 |
-| 12 | 686 | ` will` | −5.1101 | | | | | |
+| `token_id` | bytes | `logprob` | | `token_id` | bytes | `logprob` |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1030 | ` had` | −4.3049 | | 748 | `’s` | −5.1507 |
+| 518 | ` at` | −4.3088 | | 646 | ` can` | −5.7753 |
+| 3685 | ` below` | −4.3841 | | 17167 | ` consists` | −5.8098 |
+| 3403 | ` above` | −4.3868 | | 5868 | ` looks` | −5.8294 |
+| 1431 | ` now` | −4.8847 | | 2669 | ` already` | −5.9023 |
+| 304 | ` in` | −4.9828 | | 4041 | ` comes` | −5.9496 |
+| 323 | ` and` | −5.0173 | | 1083 | ` also` | −5.9643 |
+| 686 | ` will` | −5.1101 | | | | |
+
+**Nothing in the store now says these fifteen came second.** The ranking is a set of twenty rows,
+and which act contributed which is not a question it answers — `acts` records what was done.
 
 Node 3's logprob is −2.0363 before the extension and −2.0363 after it.
 
@@ -603,7 +625,7 @@ every field but the id identical to act 2.
 merge, so this act covers nodes 3, 4 and 5 — every one of them already covered by act 2. The
 rankings it reported were already recorded, so extension appends nothing.
 
-### Stage 5 — `realise(node 2, source 2, rank 0)`
+### Stage 5 — `realise(node 2, source 2, token 374)`
 
 The unnamed user takes ` is` — the alternative the model ranked highest at node 2 and that neither
 generation drew. No model is called.
@@ -612,11 +634,12 @@ generation drew. No model is called.
 | --- | --- | --- | --- | --- |
 | 8 | 2 | 374 | ` is` | 2 |
 
-Act 5: `realise`, actor 1, `origin` 2, `tip` 8, `rank` 0.
+Act 5: `realise`, actor 1, `origin` 2, `tip` 8.
 
 **The node carries the model, and no act named it.** A `realise` takes an edge the model ranked,
 so the node's source comes from the edge rather than from anything the act stores. Node 8 has no
-ranking, because nothing has generated from it.
+ranking, because nothing has generated from it. **The act records no token either**: node 8 carries
+374 and source 2, which names the edge at node 2 exactly.
 
 ### Stage 6 — `create(node 8, "<|endoftext|>🜁")`
 
@@ -663,7 +686,7 @@ so the store keeps what was asked for whether or not it was met.
   literally.
 - **Node 3's logprob** — −2.0363, the edge at node 2 for source 2 carrying token 5023. Stored
   once, derived rather than duplicated.
-- **Unrealised edges at node 2** — ranks 3 through 19. Ranks 0, 1 and 2 have children: nodes 8, 6
-  and 3. This is the branchable set.
+- **Unrealised edges at node 2** — seventeen of the twenty. The rows carrying 374, 702 and 5023
+  have children: nodes 8, 6 and 3. This is the branchable set.
 - **An act's tokens for act 4** — nodes 3, 4 and 5, the same three act 2 covered. An act's range
   begins below its origin, so neither covers node 2.

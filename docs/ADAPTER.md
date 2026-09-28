@@ -46,11 +46,16 @@ they exist to satisfy them.
 4. **The token sequence is evaluated verbatim.** No re-tokenising a prompt, no truncating it to
    fit, no template applied on the way in. An adapter that alters the sequence cannot replay a
    path, which is the property the whole format exists to hold.
-5. **Rankings are the model's own distribution.** Their ids, order and values depend on the model
+5. **Rankings are the model's own distribution.** Their ids and values depend on the model
    and the path and on nothing in `params`. A backend that can only report a ranking already
    shaped by temperature or truncation cannot satisfy this — and the core would then have to key
    rankings on the act rather than the node, which is to say it could not merge at all.
 6. **A request is met or refused, never adjusted.** See *Refusal*.
+7. **What was drawn is valued.** `generate` reports what the token it drew was worth, beside the
+   alternatives and whether or not the recording bounds reached it. The value was computed to make
+   the draw, so a backend that exposes it costs nothing to satisfy this; one that does not leaves a
+   node without a covering edge, which the core allows and which is then a shortfall rather than
+   the ordinary case.
 
 What follows is stated separately because it is what a backend is most likely to fail quietly —
 each of these is met or missed without anything erroring.
@@ -65,24 +70,25 @@ cumulative probability, and they do entirely different things.
 **`record_rows >= 2`.** `record_rows` is the most ranked ids that will be reported for a
 position, and two is what makes every position offer an alternative to branch into.
 
-**A drawn token may be absent from the alternatives reported for its position.** *Rankings*
-provides for a node with no covering ranked edge, and a draw landing past `record_rows` is one
-more way to arrive there; nothing here obliges a backend to prevent it. Whether it *can* be
-prevented is a question about the sampler and not about `record_rows`: only a sampler whose
-support has a size fixed before the position is evaluated can be covered by a row count decided
-in advance, and recording more rows does not converge on coverage — the fraction of draws landing
-outside the top `n` can be near flat in `n`, which is a thing to measure rather than to assume.
+**A drawn token landing past `record_rows` is ordinary, and it is not what makes a node uncovered.**
+Obligation 7 has its value reported regardless, so the row is there. What the row count decides is
+how many *alternatives* stood beside it, and the answer can be none but the draw itself. Whether a
+draw can be kept inside the recorded set at all is a question about the sampler and not about
+`record_rows`: only a sampler whose support has a size fixed before the position is evaluated can be
+covered by a row count decided in advance, and recording more rows does not converge on coverage —
+the fraction of draws landing outside the top `n` can be near flat in `n`, which is a thing to
+measure rather than to assume.
 **Where a backend can settle it in advance, that backend's notes say how.** Naming the sampler
 here instead would put one backend's parameters in every backend's contract, and a backend
 without that parameter would carry the rule vacuously while the guarantee it was written for
 quietly lapsed.
 
-**`record_mass` bounds the same set by probability, and the two bounds compose.** What is reported
-for a position is the shortest prefix of the ranking whose probabilities reach `record_mass`,
-extended to two rows and to include the token actually drawn, and cut at `record_rows`. Three
-lower bounds and one upper: two rows so that every position offers at least one alternative to
-branch into, and the drawn token so that a stochastic draw landing past the mass bound does not
-leave a node with no derivable logprob where the ranking in fact holds one.
+**`record_mass` bounds the same set by probability, and the two bounds compose.** The alternatives
+reported for a position are the shortest prefix of the ranking whose probabilities reach
+`record_mass`, extended to two rows and cut at `record_rows` — two lower bounds and one upper, the
+floor so that every position offers at least one alternative to branch into. **The drawn token is
+reported beside that set and not by widening it**, which is obligation 7 and is why a deep draw no
+longer costs the rows above it.
 **Failing to reach `record_mass` is not a failure.** Where the ceiling binds first, the recorded
 set is what the ceiling allowed; that is an outcome and never a refusal, and no request is unmet
 by it.
@@ -263,7 +269,7 @@ that left the cold one at position 11 of 20. That adapter's notes have the numbe
 state is internally reproducible this is a *second variable* rather than noise, and a ranking
 recorded with the cache on is a function of the model, the path and what was generated before it.
 That is the thing obligation 5 asks a backend not to be. The format would survive either way —
-ranks are recorded in the order presented and nothing is ever rewritten — but what survives
+rows keep the values first written and nothing is ever rewritten — but what survives
 corruption is not the same as what is worth recording.
 
 **It is not contamination between calls, which is why either setting is defensible.** The cache is

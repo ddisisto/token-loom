@@ -278,9 +278,9 @@ Every ranked edge at that node is shown, and each is one of three things:
 | realised elsewhere | a node exists for it, off the current path | a selection; no act at all |
 | unrealised | no node exists for it | one `realise`, and then a `generate` to continue |
 
-**Rows are shown in descending logprob, and source by source.** In the store, rank is recorded
-order and descending is expected rather than enforced — a ranking deepened by a later act appends
-rows, and a near-tie at the join can leave the two apart, so the surface sorts. Across sources it
+**Rows are shown in descending logprob, and source by source.** The store holds no order at all —
+`docs/CORE.md` has a ranking as a set — so the order on screen is the surface's, made each time it
+draws. Across sources it
 does not: a node several models have ranked holds several rankings, and one order over their union
 would sit rows side by side that were never alternatives to each other.
 
@@ -293,7 +293,7 @@ the reader made of any of it. That is the downward family read across the siblin
 position instead of down a path — an overlay and a ranking transposed, which is the same
 identity Overlays states from the other side — and it is drawn as how much room the token takes.
 So the two axes of a row are the two families of measure, and neither needed a name it did not
-already have. A row's rank is fixed the moment it is recorded and its weight moves with every
+already have. A row's value is fixed the moment it is recorded and its weight moves with every
 act, so the two disagreeing is the whole of what there is to see: **where the heaviest row is
 not the top one is where the reader steered.** Over the 53 forks of `data/continuations` that is
 17 of them, which `docs/SPINE.md` records along with what it does and does not settle.
@@ -460,10 +460,10 @@ later analysis computes arrive through the same machinery and be read the same w
 
 **Deviation is the first overlay and it costs nothing the record does not already hold.** It is
 the log-ratio between the top-ranked token and the one the draw took — what the draw paid to go
-where it went, and zero where it went nowhere. Both rows are guaranteed: a recorded ranking is a
-prefix of the model's, so the top row is the model's top row, and the drawn token is in the set
-unless it fell past the ceiling. **So a deviation's value is honest at any depth**, which no other
-overlay's is.
+where it went, and zero where it went nowhere. Both rows are guaranteed: the highest recorded row is
+the model's top row, since `docs/ADAPTER.md` has the recorded alternatives reach down from it, and
+the drawn token has a row of its own by obligation 7. **So a deviation's value is honest at any
+depth**, which no other overlay's is.
 
 **Its value is depth-free and what a reader may conclude from it is not.** The recording rule
 spends rows where the ranking is flat, so depth falls as the top-to-second gap rises: a large
@@ -501,28 +501,23 @@ measure: a draw-relative one is silent, and a draw-independent one reads the ran
 
 An **authored** token stands in a ranking it has no row in, which is the ordinary case and not a
 fault — a reader writes at a position a model ranked. It is off the scale rather than at its end.
-A **drawn** token can have no row because it landed past the recorded depth, and that one is not
-absent but **censored**: what was written is a prefix of what the model ranked, so the token taken
-sits at or below the lowest row written, which bounds what the draw paid from one side. The bound
-is tight — it is exactly where a draw that took the last recorded row would sit — so an overlay
-says *at least this much and no nearer* rather than saying nothing. `source` tells the two apart,
-they do not get one mark, and a bound is marked apart from a reading because what a reader may
-conclude from the two is not the same.
+**A drawn token has a row**, however few alternatives stand beside it: `docs/ADAPTER.md`'s
+obligation 7 has the source report what its own draw was worth, so a draw that landed past the
+recording bounds is a row like any other and not a value the surface has to reason around. `source`
+tells the two cases apart and they do not get one mark.
 
-**A bound rests on the obligation deviation already rests on**, which is that a recorded ranking is
-a prefix of the model's. Nothing in the record can check it and `docs/ADAPTER.md` carries it, so
-the two fail together rather than one being safe while the other is not — which is the right
-coupling, since they are two readings of one prefix. What a bound is worth varies with the record
-and not with the draw, and **it says most where the record holds least**: the rule stops at its
-floor of two rows only where one token already carried the mass, which is exactly where the
-second row is far below the first. `docs/SPINE.md` measures it.
+**Where a backend could not report it, the value is simply absent**, and the surface says so rather
+than bounding it. A one-sided reading is available — the unrecorded tokens sit at or below the
+lowest row — but it stands on the recorded rows being a prefix of the model's, which nothing in the
+record can check and which a set of rows accumulated across acts is not. So the position reads as
+having no value, which is what it has.
 
 **The mark under a segment carries three things, and they are three axes rather than one list of
 states.** Its **existence** says something diverged here — the token taken was not the one the
 model ranked first. Its **colour** says who took it: the sampler, or a reader taking a row the
 model offered. Its **style** says how far the value can be trusted — plain where it is a reading,
-and marked where it is a bound, a hole, a segment holding more nodes than values, or a position
-two sources ranked.
+and marked where it is a hole, a segment holding more nodes than values, or a position two sources
+ranked.
 
 **An authored token is not a third colour, because it is not a divergence.** Nothing ranked at its
 parent for its source, so there is no first row it was taken instead of, and the existence axis
@@ -1044,9 +1039,8 @@ two divisions make — deviation, the top-to-second gap, and the mass the record
 each declares both its sides, so the machinery is exercised rather than described. A scale is
 fixed or path-relative and is read in log or in linear, and a measure carries both readings with
 a domain apiece, a domain running high to low being how a descending reading states its polarity.
-A span of more than one node is marked and never coloured; a censored draw carries its bound; and
-the panel says how much of the path the measure reached, at what depths, and how much of that is
-bound rather than read.
+A span of more than one node is marked and never coloured, and the panel says how much of the path
+the measure reached and at what depths.
 
 **The family that looks down reaches the same panel, and the rule the path follows is chosen
 from the same list.** Height, subtree size, the forks below and the run to the next fork come

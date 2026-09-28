@@ -389,63 +389,61 @@ once and carries everything that wants it.** A new table or column does not chan
 changing what an existing one means does. That makes this a bundle and not a task — items land
 here as they are found, and it is opened when something in it is worth the bump on its own.
 
-**It sits last because everything in it buys clarity and no capability.** Nothing becomes
-reachable that is not reachable now, and the cost of waiting is accretion rather than a cliff: a
-tree built meanwhile is not wrong, it spells a column differently. So new work is scoped ahead of
-this rather than behind it, and being pushed down is the expected thing to happen to it.
+**The bundle is open and `docs/CORE.md` has moved.** `marker` is `token-loom/3`, `rank` is gone from
+both tables, `tree.json` admits optional provenance, *Conformance and extension* has the writer
+rule, and a seventh condition has a source report what its own draw was worth. What is left is the
+code, the migration and the tests.
 
-### `rank` → `ordinal`, on `edges` and on `acts`
+### `rank` is removed, and an edge is addressed by its token
 
-**The column holds arrival order and is named for the model's ranking.** *Rankings* spends a
-paragraph un-teaching it — *rank means the k-th alternative recorded here, not the model's k-th
-choice* — and the two readings coincide right up until a second generation extends a node, which
-is the merge this format exists for. A name that is right until the central case is the wrong
-name, and it is close enough to the term every inference setting uses that a reader will not
-notice they have the other one.
+**The column held arrival order and was named for the model's ranking**, and renaming it to
+`ordinal` was the plan until the question of what wanted it came up. Two things did: `realise`
+addressed an edge by a small readable integer, and contiguity from `0` kept accumulation order
+recoverable. The first dissolves under the rename — an integer that means *the row that happened to
+arrive first* is not readable in the way `rank 0` was — and the second is creation information,
+which `acts` is the table for. `edges` says what was ranked at a position and is not a record of its
+own making.
 
-**The column stays; only the name moves.** `UNIQUE (node, source, token_id)` already identifies a
-row, so nothing needs it for that. It earns its place twice over anyway: `realise` addresses an
-edge by a small readable integer rather than by an opaque id, and contiguity from `0` is what
-keeps accumulation order recoverable.
+**`(node, source, token_id)` was already a key**, so removing the column costs no addressing: the
+edge is named by the token, and the surface indexes on `token_id` all the way up. A future hook onto
+a row uses the same key.
 
-**`ordinal`, not `index`.** SQLite parses `index` as a keyword and refuses it as a bare column
-name, and *On disk* is DDL a reader implements from — a column needing quotes everywhere is a
-cost carried for the life of the format. `ordinal` means arrival position and nothing else.
+**`acts.rank` disappears rather than moving.** `INV-ACT-REALISE` already required the edge to carry
+`tip.token_id`, so `origin` and `tip` name the edge between them and the column was a second copy of
+one fact. `realise` becomes the one operation whose argument is recoverable from its result.
 
-**What it reaches**: the `edges` and `acts` DDL, `INV-RANK-DENSE`, `INV-RANK-ANCHORED` and
-`INV-RANK-UNIQUE`, the reads and the checker that name them, the `--rank` argument and the
-surface's use of it, and `docs/CORE.md` throughout. Every existing tree is rebuilt or migrated;
+**What it reaches**: the `edges` and `acts` DDL, `INV-RANK-DENSE` deleted outright,
+`INV-RANK-ANCHORED` and `INV-RANK-UNIQUE` renamed to `INV-EDGE-*`, the invariant count 17 → 16, the
+reads and the checker, the `--rank` argument, the wire key and the page's use of it, and
+`ranking.js`'s local named `rank` that holds a depth. Every existing tree is rebuilt or migrated;
 `data/` is disposable, so that is free now and less free the longer the bundle stays shut.
 
-### The draw's own row, told apart from the ranked prefix
+### The draw's own value, recorded, and the bound deleted
 
-**A draw that landed past `record_rows` has no recorded logprob, and the backend reported one.**
+**A draw that landed past `record_rows` had no recorded logprob, and the backend reported one.**
 `src/tokenloom/adapters/llamacpp/README.md` measures what the value is: the raw ranking value,
 bit-identical to its own row wherever that row exists, and present even where no row count would
 have reached the draw. 351 of the 23,874 drawn nodes in `data/continuations` have a ranked parent and
 no covering edge, and each of them was handed a value that was discarded.
 
-**Appending it as an ordinary row is legal today, and is the thing not to do.** Rank is arrival
-order, descending logprob is not an invariant, and an append keeps `INV-RANK-DENSE` — so nothing in
-the format refuses it. What it silently breaks is that the recorded rows are a prefix of the model's
-ordering, which is what makes `Spread.least` a bound, what the deviation overlay's *at least* reading
-rests on, and what `docs/SPINE.md` measures its span against. A draw appended at −11.4 beneath rows
-reaching −6.0 makes `least` the draw and leaves every unrecorded token above it unbounded.
+**With `rank` gone there is nothing to tell the row apart from, so the row is just a row.** A ranking
+is a set, so the draw's value is one more member and no column marks it. Condition 7 in the core and
+obligation 7 in the contract are the whole of the format change; the adapter stops extending a
+ranking down to reach the draw, which is what a deep draw used to cost.
 
-**So a row has to say which kind it is, and that is what makes this a bump.** It is a new column, but
-an older reader computing `least` over a set holding draw-only rows gets a wrong answer rather than a
-partial one, which is the line this section draws. With the distinction, `least` is the lowest prefix
-row, a node's recorded depth is the prefix depth, the draw carries an exact value instead of a
-one-sided bound, and the adapter's `bound` — which today extends a ranking down to the draw — no
-longer has to.
+**The bound goes with it.** `Spread.least` and the deviation overlay's *at least this much and no
+nearer* existed because the value was missing, and they stood on the recorded rows being a prefix of
+the model's — which a set accumulated across acts is not. Keeping a column to preserve a workaround
+after the fault is fixed is the wrong way round. A position whose backend could not report the value
+now reads as having no value, which is what it has, and `docs/SPINE.md` keeps the measurements as the
+case for the obligation rather than as a live reading.
 
-**The draw's rank is not available, and the bracket is what is.** The server reports the value and
-never its position, so a record with a hole in it confines what lies between two rows without saying
-how many rows that is; recovering the rank costs a second wide request per position. Whether a
-two-sided bracket earns a read of its own is for after the column exists.
+**Old trees do not gain anything by migration.** The 351 uncovered nodes stay uncovered: the value
+was discarded when the act ran, and only re-running inference recovers it. So the first check after
+migrating is not a failure.
 
-**What it reaches**: the `edges` DDL, *Rankings*, `Spread` and the reads over it, the deviation
-overlay's bound, and the adapter's recording bounds.
+**What it reaches**: `Position` and the adapter's `walk` and `bound`, `Spread.least` and `rows`,
+`wire.py`, `overlay.js`'s bound reading, and the tests over the derived values.
 
 ### A tree that can be cited
 
