@@ -60,14 +60,9 @@ def root(item: R.Node, name: S.Label) -> dict[str, Any]:
 def spread(item: R.Spread) -> dict[str, Any]:
     """What one source's ranking says about the position a node stands at.
 
-    `top`, `second` and `least` are logprobs, as every such number here is: a probability is
-    one `exp` away for a client that wants one, and the reverse loses precision exactly where
-    a ranking's tail lives. `mass` is a probability, because a sum of them is not a logprob.
-
-    `least` is what makes a position the draw left no row at readable rather than blank: the
-    token it took sits at or below the lowest row written, so what it cost is bounded from
-    one side. That the rows are a prefix of the model's is `docs/ADAPTER.md`'s obligation,
-    and it is the same one a deviation already rests on.
+    `top` and `second` are logprobs, as every such number here is: a probability is one
+    `exp` away for a client that wants one, and the reverse loses precision exactly where a
+    ranking's tail lives. `mass` is a probability, because a sum of them is not a logprob.
     """
     return {
         "source": item.source,
@@ -75,7 +70,6 @@ def spread(item: R.Spread) -> dict[str, Any]:
         "mass": item.mass,
         "top": item.top,
         "second": item.second,
-        "least": item.least,
     }
 
 
@@ -128,7 +122,6 @@ def ranked(
     """
     out = {
         "source": row.edge.source,
-        "rank": row.edge.rank,
         "token": row.edge.token_id,
         "logprob": row.edge.logprob,
         **spelled(row.spelling),
@@ -176,7 +169,7 @@ def act(conn: sqlite3.Connection, which: int) -> dict[str, Any]:
     The source map is not here: an act list would carry the same one on every row.
     """
     row = conn.execute(
-        "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, a.rank, a.model, "
+        "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, a.model, "
         "a.actor, p.json FROM acts a LEFT JOIN params p ON p.id = a.params WHERE a.id = ?",
         (which,),
     ).fetchone()
@@ -189,9 +182,8 @@ def act(conn: sqlite3.Connection, which: int) -> dict[str, Any]:
         "tip": row[3],
         "created": row[4],
         "terminator": row[5],
-        "rank": row[6],
-        "model": row[7],
-        "actor": row[8],
-        "params": json.loads(row[9]) if row[9] else None,
+        "model": row[6],
+        "actor": row[7],
+        "params": json.loads(row[8]) if row[8] else None,
         "nodes": [node(n) for n in R.act_tokens(conn, which)],
     }

@@ -21,9 +21,9 @@ const R = await import(
 const MODEL = 2, OTHER = 3;
 const SOURCES = { 2: "model:qwen", 3: "model:other" };
 
-let rank = 0;
+let next = 100;
 const row = (p, over = {}) => ({
-  source: MODEL, rank: rank++, token: 100 + rank, logprob: Math.log(p),
+  source: MODEL, token: next++, logprob: Math.log(p),
   text: "x", decodes: true, child: null, ...over,
 });
 
@@ -50,9 +50,9 @@ function says(what, got, want) {
 
 // ---- the order ----------------------------------------------------------------------------------
 
-/* Recorded order is arrival order, and a ranking deepened by a later act appends -- so a
- * near-tie at the join leaves two rows the wrong way round and every other position looks
- * fine. The rows below are in the order the store would hand them over. */
+/* A ranking is a set and the store keeps no order, so the order rows arrive in is whatever
+ * the read imposed -- and the page sorts rather than trusting it. The rows below are handed
+ * over out of order, which is a shape the wire is free to send. */
 const joined = [row(0.6), row(0.2), row(0.25), row(0.01)];
 const [[, ordered]] = R.sorted(joined);
 is("rows within a source are put in descending logprob",

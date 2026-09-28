@@ -74,9 +74,17 @@ def drew(*pairs) -> Generation:
     A ranking of `None` is a declination: a position the backend could give no
     distribution for, which the core records as an absent ranked edge and never as an
     estimate.
+
+    A third element is what the draw itself was worth -- `docs/ADAPTER.md`'s obligation 7 --
+    and it is given explicitly rather than derived, so that a test can hand over a draw the
+    rows never reached, and a test can leave it out to stand for a backend that cannot say.
     """
     positions = tuple(
-        Position(tok, None if ranking is None else tuple(Ranked(i, lp) for i, lp in ranking))
-        for tok, ranking in pairs
+        Position(
+            spec[0],
+            None if spec[1] is None else tuple(Ranked(i, lp) for i, lp in spec[1]),
+            spec[2] if len(spec) > 2 else None,
+        )
+        for spec in pairs
     )
     return Generation("limit", positions)

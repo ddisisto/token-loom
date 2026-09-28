@@ -45,23 +45,28 @@ def tree(tmp_path):
 
 @pytest.fixture
 def ranked(tmp_path):
-    """One node, four alternatives recorded out of logprob order, and each of the three
-    things an alternative can be."""
+    """One node, four alternatives handed over out of logprob order, and each of the three
+    things an alternative can be.
+
+    The order they arrive in is deliberately not the order they read in: the store keeps a
+    set, so nothing carries the arrival order forward and the surface's sort is the only
+    thing that decides how they come back.
+    """
     with Store.initialise(tmp_path / "r", vocabulary="toy") as store:
         tip = tip_of(store, store.create(None, "The sky", vocabulary=ToyVocabulary(),
                                          actor=USER))
         store.generate(
             tip, {"length": 1},
             adapter=ToyAdapter([drew((102, [
-                (102, -0.10),   # rank 0, drawn -- a child exists
-                (104, -2.00),   # rank 1, realised below and then deleted
-                (103, -0.50),   # rank 2, realised below; out of logprob order on purpose
-                (105, -3.00),   # rank 3, never realised
-            ]))]),
+                (102, -0.10),   # drawn -- a child exists
+                (104, -2.00),   # realised below and then deleted
+                (103, -0.50),   # realised below; handed over out of logprob order
+                (105, -3.00),   # never realised
+            ], -0.10))]),
             actor=USER,
         )
-        store.realise(tip, MODEL, 2, actor=USER)
-        store.delete(tip_of(store, store.realise(tip, MODEL, 1, actor=USER)), actor=USER)
+        store.realise(tip, MODEL, 103, actor=USER)
+        store.delete(tip_of(store, store.realise(tip, MODEL, 104, actor=USER)), actor=USER)
         yield store, tip
 
 
@@ -385,11 +390,16 @@ def test_overlays_are_one_query_whatever_the_path_holds(ranked):
 
 
 def test_a_ranking_is_shown_in_descending_logprob(ranked):
-    """The store keeps recorded order and expects descending rather than enforcing it.
-    The surface sorts, which is why the fixture records them out of order."""
+    """The store keeps a set and no order, so descending value is the surface's reading of
+    it and not the record's. The core answers in the rows' own address, which is what the
+    surface sorts away."""
     store, tip = ranked
-    assert [e.edge.rank for e in R.ranking_with_children(store.conn, tip)] == [0, 1, 2, 3]
-    assert [e.edge.token_id for e in S.ranking(store.conn, tip)] == [102, 103, 104, 105]
+    assert [e.edge.token_id for e in R.ranking_with_children(store.conn, tip)] == [
+        102, 103, 104, 105
+    ], "the core answers by token"
+    assert [e.edge.logprob for e in S.ranking(store.conn, tip)] == [
+        -0.10, -0.50, -2.00, -3.00
+    ]
 
 
 def test_a_ranking_shows_what_was_taken_among_the_alternatives(ranked):
@@ -420,7 +430,7 @@ def test_a_deleted_child_is_still_a_child(ranked):
 
 
 def test_two_sources_are_two_rankings_and_are_not_interleaved(tmp_path):
-    """A rank alone names nothing, and one order over the union of two distributions would
+    """A token alone names nothing, and one order over the union of two distributions would
     sit rows side by side that were never alternatives to each other."""
     with Store.initialise(tmp_path / "s", vocabulary="toy") as store:
         tip = tip_of(store, store.create(None, "The sky", vocabulary=ToyVocabulary(),

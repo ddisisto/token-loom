@@ -48,8 +48,8 @@ def violations(conn: sqlite3.Connection) -> list[Violation]:
     bad += _vocab_closed(conn, nodes, vocab)
     bad += _source_closed(conn, nodes, sources)
     bad += _source_named(sources)
-    bad += _rank_anchored(conn, nodes)
-    bad += _rank_dense_and_unique(conn)
+    bad += _edge_anchored(conn, nodes)
+    bad += _edge_unique(conn)
     bad += _acts(conn, nodes, sources)
     return bad
 
@@ -129,14 +129,14 @@ def _vocab_closed(conn: sqlite3.Connection, nodes: dict, vocab: set[int]) -> lis
     bad += [
         Violation(
             "INV-VOCAB-CLOSED",
-            f"edge ({r[0]}, {r[1]}, {r[2]}) carries token {r[3]}, absent from vocab",
+            f"edge ({r[0]}, {r[1]}) carries token {r[2]}, absent from vocab",
         )
         for r in conn.execute(
             """
-            SELECT e.node, e.source, e.rank, e.token_id
+            SELECT e.node, e.source, e.token_id
               FROM edges e LEFT JOIN vocab v ON v.token_id = e.token_id
              WHERE v.token_id IS NULL
-             ORDER BY e.node, e.source, e.rank
+             ORDER BY e.node, e.source, e.token_id
             """
         )
     ]
@@ -178,63 +178,48 @@ def _source_named(sources: dict) -> list[Violation]:
 # ---- rankings ----------------------------------------------------------------------
 
 
-def _rank_anchored(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
-    """INV-RANK-ANCHORED -- no `edges` row names a node that does not exist.
+def _edge_anchored(conn: sqlite3.Connection, nodes: dict) -> list[Violation]:
+    """INV-EDGE-ANCHORED -- no `edges` row names a node that does not exist.
 
     A deleted node is still held, so its rows are not orphans.
     """
     return [
-        Violation("INV-RANK-ANCHORED", f"edge at node {r[0]}, which does not exist")
+        Violation("INV-EDGE-ANCHORED", f"edge at node {r[0]}, which does not exist")
         for r in conn.execute("SELECT DISTINCT node FROM edges")
         if r[0] not in nodes
     ]
 
 
-#: A `(node, source)` whose ranks are not 0..n-1, or whose tokens are not distinct.
-#: Counted rather than assumed: the relaxed DDL this checker is tested against declares
-#: neither key, and a checker that takes a UNIQUE clause's word for it checks nothing.
-_SUSPECT_GROUPS = """
-SELECT node, source
-  FROM edges
- GROUP BY node, source
-HAVING COUNT(DISTINCT rank) <> COUNT(*)
-    OR MIN(rank) <> 0
-    OR MAX(rank) <> COUNT(*) - 1
-    OR COUNT(DISTINCT token_id) <> COUNT(*)
- ORDER BY node, source
-"""
+def _edge_unique(conn: sqlite3.Connection) -> list[Violation]:
+    """INV-EDGE-UNIQUE -- a `token_id` appears at most once within a `(node, source)`.
 
-
-def _rank_dense_and_unique(conn: sqlite3.Connection) -> list[Violation]:
-    """INV-RANK-DENSE -- ranks within a `(node, source)` are distinct and contiguous from 0.
-    INV-RANK-UNIQUE -- a `token_id` appears at most once within a `(node, source)`.
-
-    The grouping finds which groups fail and says nothing about how; a second query per
-    failing group fetches its rows, so the report can still name the ranks and the repeated
-    tokens. A clean store makes no second query at all, which is the case that runs.
+    Counted rather than assumed: the relaxed DDL this checker is tested against declares no
+    key at all, and a checker that takes a PRIMARY KEY's word for it checks nothing. The
+    grouping finds which groups fail and says nothing about how; a second query per failing
+    group fetches its rows, so the report can name the repeated tokens. A clean store makes
+    no second query, which is the case that runs.
     """
     bad = []
-    for node, source in conn.execute(_SUSPECT_GROUPS).fetchall():
-        rows = conn.execute(
-            "SELECT rank, token_id FROM edges WHERE node = ? AND source = ?", (node, source)
-        ).fetchall()
-        ranks = sorted(r for r, _ in rows)
-        if ranks != list(range(len(ranks))):
-            bad.append(
-                Violation(
-                    "INV-RANK-DENSE",
-                    f"node {node}, source {source}: ranks {ranks} "
-                    f"are not 0..{len(ranks) - 1}",
-                )
+    suspect = conn.execute(
+        """
+        SELECT node, source
+          FROM edges
+         GROUP BY node, source
+        HAVING COUNT(DISTINCT token_id) <> COUNT(*)
+         ORDER BY node, source
+        """
+    ).fetchall()
+    for node, source in suspect:
+        tokens = [
+            r[0]
+            for r in conn.execute(
+                "SELECT token_id FROM edges WHERE node = ? AND source = ?", (node, source)
             )
-        tokens = [t for _, t in rows]
-        if len(set(tokens)) != len(tokens):
-            dupes = {t for t in tokens if tokens.count(t) > 1}
-            bad.append(
-                Violation(
-                    "INV-RANK-UNIQUE", f"node {node}, source {source}: token(s) {dupes} twice"
-                )
-            )
+        ]
+        dupes = {t for t in tokens if tokens.count(t) > 1}
+        bad.append(
+            Violation("INV-EDGE-UNIQUE", f"node {node}, source {source}: token(s) {dupes} twice")
+        )
     return bad
 
 
@@ -261,9 +246,8 @@ def _lengths(conn: sqlite3.Connection) -> dict[int, int]:
 def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violation]:
     bad = []
     lengths = _lengths(conn)
-    for act, op, actor, origin, tip, model, params, terminator, rank in conn.execute(
-        "SELECT id, op, actor, origin, tip, model, params, terminator, rank "
-        "FROM acts ORDER BY id"
+    for act, op, actor, origin, tip, model, params, terminator in conn.execute(
+        "SELECT id, op, actor, origin, tip, model, params, terminator FROM acts ORDER BY id"
     ):
         where = f"act {act} ({op})"
         if op not in OPS:
@@ -330,7 +314,6 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                     ("model", model),
                     ("params", params),
                     ("terminator", terminator),
-                    ("rank", rank),
                 )
                 if v is not None
             ]
@@ -345,8 +328,6 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                 bad.append(
                     Violation("INV-ACT-GENERATE", f"{where}: model {model} is not a model")
                 )
-            if rank is not None:
-                bad.append(Violation("INV-ACT-GENERATE", f"{where}: carries a rank"))
             # INV-ACT-LIMIT -- `limit` means it drew the requested length, and this is
             # the only terminator whose meaning the record can be held to after the fact.
             want = lengths.get(params)
@@ -370,8 +351,8 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
 
         elif op == "realise":
             # INV-ACT-REALISE
-            if rank is None or origin is None or tip is None:
-                bad.append(Violation("INV-ACT-REALISE", f"{where}: needs rank, origin and tip"))
+            if origin is None or tip is None:
+                bad.append(Violation("INV-ACT-REALISE", f"{where}: needs an origin and a tip"))
             extra = [
                 n
                 for n, v in (
@@ -383,7 +364,7 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
             ]
             if extra:
                 bad.append(Violation("INV-ACT-REALISE", f"{where}: carries {extra}"))
-            if tip in nodes and origin is not None and rank is not None:
+            if tip in nodes and origin is not None:
                 parent, token_id, node_source, _ = nodes[tip]
                 if parent != origin:
                     bad.append(
@@ -391,23 +372,17 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                             "INV-ACT-REALISE", f"{where}: tip {tip} is not a child of {origin}"
                         )
                     )
+                # The tip is the edge's own name, so there is no stored address to agree
+                # with -- what is left to check is that the edge it names is there.
                 row = conn.execute(
-                    "SELECT token_id FROM edges WHERE node = ? AND source = ? AND rank = ?",
-                    (origin, node_source, rank),
+                    "SELECT 1 FROM edges WHERE node = ? AND source = ? AND token_id = ?",
+                    (origin, node_source, token_id),
                 ).fetchone()
                 if row is None:
                     bad.append(
                         Violation(
                             "INV-ACT-REALISE",
-                            f"{where}: no edge ({origin}, {node_source}, {rank})",
-                        )
-                    )
-                elif row[0] != token_id:
-                    bad.append(
-                        Violation(
-                            "INV-ACT-REALISE",
-                            f"{where}: edge ({origin}, {node_source}, {rank}) carries "
-                            f"token {row[0]}, but tip {tip} carries {token_id}",
+                            f"{where}: no edge ({origin}, {node_source}, {token_id})",
                         )
                     )
 
@@ -422,7 +397,6 @@ def _acts(conn: sqlite3.Connection, nodes: dict, sources: dict) -> list[Violatio
                     ("model", model),
                     ("params", params),
                     ("terminator", terminator),
-                    ("rank", rank),
                 )
                 if v is not None
             ]

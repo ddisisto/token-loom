@@ -28,12 +28,12 @@ CREATE TABLE vocab  (token_id INTEGER, bytes BLOB NOT NULL);
 CREATE TABLE sources(id INTEGER, kind TEXT NOT NULL, name TEXT NOT NULL);
 CREATE TABLE nodes  (id INTEGER, parent INTEGER, token_id INTEGER NOT NULL,
                      source INTEGER NOT NULL, deleted INTEGER);
-CREATE TABLE edges  (node INTEGER NOT NULL, source INTEGER NOT NULL, rank INTEGER NOT NULL,
+CREATE TABLE edges  (node INTEGER NOT NULL, source INTEGER NOT NULL,
                      token_id INTEGER NOT NULL, logprob REAL NOT NULL);
 CREATE TABLE params (id INTEGER, json TEXT NOT NULL);
 CREATE TABLE acts   (id INTEGER, op TEXT NOT NULL, actor INTEGER NOT NULL, origin INTEGER,
                      tip INTEGER, created TEXT NOT NULL, model INTEGER, params INTEGER,
-                     terminator TEXT, rank INTEGER);
+                     terminator TEXT);
 """
 
 
@@ -68,11 +68,11 @@ def node(conn, nid, parent, token=10, source=1, deleted=None):
 
 
 def act(conn, aid, op, actor=1, origin=None, tip=None, model=None, params=None,
-        terminator=None, rank=None):
+        terminator=None):
     conn.execute(
         "INSERT INTO acts (id, op, actor, origin, tip, created, model, params, "
-        "terminator, rank) VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?, ?)",
-        (aid, op, actor, origin, tip, model, params, terminator, rank),
+        "terminator) VALUES (?, ?, ?, ?, ?, '2026-01-01T00:00:00Z', ?, ?, ?)",
+        (aid, op, actor, origin, tip, model, params, terminator),
     )
 
 
@@ -144,7 +144,7 @@ def test_inv_vocab_closed_on_a_node_and_on_an_edge():
 
     conn = bare()
     node(conn, 1, None)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 99, -1.0)")
+    conn.execute("INSERT INTO edges VALUES (1, 2, 99, -1.0)")
     assert "INV-VOCAB-CLOSED" in names(conn)
 
 
@@ -163,60 +163,44 @@ def test_inv_source_named():
 # ---- rankings -----------------------------------------------------------------------
 
 
-def test_inv_rank_anchored():
+def test_inv_edge_anchored():
     conn = bare()
-    conn.execute("INSERT INTO edges VALUES (999, 2, 0, 10, -1.0)")
-    assert "INV-RANK-ANCHORED" in names(conn)
+    conn.execute("INSERT INTO edges VALUES (999, 2, 10, -1.0)")
+    assert "INV-EDGE-ANCHORED" in names(conn)
 
 
 def test_a_deleted_nodes_edges_are_not_orphans():
     """A deleted node is still held, so its rows are not orphans."""
     conn = bare()
     node(conn, 1, None, deleted=1)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 10, -1.0)")
-    assert "INV-RANK-ANCHORED" not in names(conn)
+    conn.execute("INSERT INTO edges VALUES (1, 2, 10, -1.0)")
+    assert "INV-EDGE-ANCHORED" not in names(conn)
 
 
-def test_inv_rank_dense_on_a_gap_a_repeat_and_a_late_start():
-    """Distinct and contiguous from 0 has more ways to fail than a gap, and only the relaxed
-    schema can pose most of them: the real DDL's PRIMARY KEY makes a repeated rank
-    unstorable. The last two are the shapes a count and a range cannot see between them --
-    a repeat *inside* the range, and a range of the right width in the wrong place.
-    """
-    for edges in (
-        "(1, 2, 0, 10, -1.0), (1, 2, 2, 11, -2.0)",   # a gap
-        "(1, 2, 0, 10, -1.0), (1, 2, 0, 11, -2.0)",   # the same rank twice
-        "(1, 2, 1, 10, -1.0), (1, 2, 2, 11, -2.0)",   # contiguous, and not from 0
-        "(1, 2, 0, 10, -1.0), (1, 2, 0, 11, -2.0), (1, 2, 2, 12, -3.0)",   # 0, 0, 2
-        "(1, 2, -1, 10, -1.0), (1, 2, 1, 11, -2.0)",  # two ranks, widest 1, and no 0
-    ):
-        conn = bare()
-        node(conn, 1, None)
-        conn.execute(f"INSERT INTO edges VALUES {edges}")
-        assert "INV-RANK-DENSE" in names(conn), edges
-
-
-def test_inv_rank_unique():
+def test_inv_edge_unique():
+    """Only the relaxed schema can pose this: the real DDL's PRIMARY KEY makes a repeated
+    token unstorable, which is exactly why the checker does not take it on trust."""
     conn = bare()
     node(conn, 1, None)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 10, -1.0), (1, 2, 1, 10, -2.0)")
-    assert "INV-RANK-UNIQUE" in names(conn)
+    conn.execute("INSERT INTO edges VALUES (1, 2, 10, -1.0), (1, 2, 10, -2.0)")
+    assert "INV-EDGE-UNIQUE" in names(conn)
 
 
-def test_ranks_are_per_node_and_source_so_two_sources_both_start_at_zero():
+def test_a_token_is_unique_per_source_so_two_sources_may_both_rank_it():
+    """The key is `(node, source, token_id)`, so one token ranked by two sources at one
+    node is two rows and not a repeat."""
     conn = bare()
     node(conn, 1, None)
-    conn.execute("INSERT INTO edges VALUES (1, 1, 0, 10, -1.0), (1, 2, 0, 11, -2.0)")
+    conn.execute("INSERT INTO edges VALUES (1, 1, 10, -1.0), (1, 2, 10, -2.0)")
     assert violations(conn) == []
 
 
-def test_descending_logprob_is_not_an_invariant():
-    """Rank is the order the source presented. Near-ties come back in whatever order a
-    backend produces, and imposing a sort would turn stored order on values that are not
-    reproducible to the last bit."""
+def test_a_ranking_is_a_set_and_the_rows_stand_in_no_order():
+    """Nothing about the values is checked, because nothing about them is required: a
+    ranking stores no order, so there is no order to be wrong."""
     conn = bare()
     node(conn, 1, None)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 10, -9.0), (1, 2, 1, 11, -0.1)")
+    conn.execute("INSERT INTO edges VALUES (1, 2, 10, -9.0), (1, 2, 11, -0.1)")
     assert violations(conn) == []
 
 
@@ -237,7 +221,7 @@ def test_inv_act_delete_names_a_node_and_carries_nothing_else():
     conn = bare()
     node(conn, 1, None)
     act(conn, 1, "delete", origin=None)
-    act(conn, 2, "undelete", origin=1, rank=0)
+    act(conn, 2, "undelete", origin=1, model=2)
     assert names(conn) == {"INV-ACT-DELETE"}
 
 
@@ -363,20 +347,33 @@ def test_inv_act_generate_allows_a_null_tip_under_these(terminator):
     assert "INV-ACT-GENERATE" not in names(conn)
 
 
-def test_inv_act_realise_needs_the_edge_it_names():
+def test_inv_act_realise_needs_the_edge_the_tip_names():
+    """The act stores no address, so the edge it took is `(origin, tip.source,
+    tip.token_id)` -- and a tip naming no such edge is the only way that can be wrong."""
     conn = bare()
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
-    act(conn, 1, "realise", origin=1, tip=2, rank=0)
+    act(conn, 1, "realise", origin=1, tip=2)
     assert "INV-ACT-REALISE" in names(conn)
 
 
-def test_inv_act_realise_edge_must_carry_the_tips_token():
+def test_inv_act_realise_is_not_satisfied_by_some_other_edge_at_the_origin():
+    """A ranking at the origin is not enough: it has to carry the token the tip does."""
     conn = bare()
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 12, -1.0)")  # a different token
-    act(conn, 1, "realise", origin=1, tip=2, rank=0)
+    conn.execute("INSERT INTO edges VALUES (1, 2, 12, -1.0)")  # a different token
+    act(conn, 1, "realise", origin=1, tip=2)
+    assert "INV-ACT-REALISE" in names(conn)
+
+
+def test_inv_act_realise_is_not_satisfied_by_another_sources_edge():
+    """Nor is the right token under the wrong source: an edge is named by all three."""
+    conn = bare()
+    node(conn, 1, None, source=2)
+    node(conn, 2, 1, token=11, source=2)
+    conn.execute("INSERT INTO edges VALUES (1, 1, 11, -1.0)")  # the user's, not model 2's
+    act(conn, 1, "realise", origin=1, tip=2)
     assert "INV-ACT-REALISE" in names(conn)
 
 
@@ -384,8 +381,8 @@ def test_a_well_formed_realise_is_clean():
     conn = bare()
     node(conn, 1, None, source=2)
     node(conn, 2, 1, token=11, source=2)
-    conn.execute("INSERT INTO edges VALUES (1, 2, 0, 11, -1.0)")
-    act(conn, 1, "realise", origin=1, tip=2, rank=0)
+    conn.execute("INSERT INTO edges VALUES (1, 2, 11, -1.0)")
+    act(conn, 1, "realise", origin=1, tip=2)
     assert violations(conn) == []
 
 
@@ -433,4 +430,4 @@ def test_every_invariant_the_core_document_names_is_one_this_checker_can_report(
     reported = set(re.findall(r'"(INV-[A-Z-]+)"', pathlib.Path(check.__file__).read_text()))
     assert named == reported, {"only in CORE.md": named - reported,
                                "only in check.py": reported - named}
-    assert len(named) == 17
+    assert len(named) == 16

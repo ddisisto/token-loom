@@ -398,14 +398,14 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
         return JSONResponse(shape, status_code=201)
 
     async def realise(request: Request) -> JSONResponse:
-        """The source is named rather than inferred: a rank alone names nothing where two
+        """The source is named rather than inferred: a token alone names nothing where two
         models have ranked, and the ranking read gives every row its own."""
         body = await request.json()
         source = Source.parse(_field(body, "source"))
 
         def work(store: Store) -> dict:
             act = store.realise(
-                _field(body, "at"), source, _field(body, "rank"), actor=_actor(body)
+                _field(body, "at"), source, _field(body, "token"), actor=_actor(body)
             )
             return wire.act(store.conn, act)
 

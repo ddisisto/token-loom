@@ -55,8 +55,8 @@ TOKENISATION: dict[tuple[bytes, bool], list[int]] = {
     ("<|endoftext|>\U0001f701".encode(), True): [151643, 9284, 250, 223],
 }
 
-#: Stage 2's ranking at node 2, exactly as the appendix prints it. Rank 0 is not the token
-#: drawn: ` currently` was, at rank 2.
+#: Stage 2's ranking at node 2, exactly as the appendix prints it, in the order it prints
+#: them. The highest-valued row is not the token drawn: ` currently` was, third by value.
 NODE2_TOP5 = [
     Ranked(374, -1.3218),
     Ranked(702, -1.6666),
@@ -66,8 +66,8 @@ NODE2_TOP5 = [
 ]
 
 #: Stage 3's ranking at node 2 -- the same five, reported bit-identically, and fifteen
-#: below them. The appendix prints the fifteen at ranks 5..19; a model reports its own top
-#: twenty in its own order, and the extension is what puts them there.
+#: below them. A model reports its own top twenty in its own order; the store keeps a set,
+#: and nothing in it says which fifteen arrived second.
 NODE2_TOP20 = NODE2_TOP5 + [
     Ranked(1030, -4.3049),
     Ranked(518, -4.3088),
@@ -98,7 +98,14 @@ INVENTED_AT_6 = [Ranked(6519, -1.1), Ranked(1431, -1.5), Ranked(220, -2.2),
 
 
 def _pos(token_id: int, ranking: list[Ranked]) -> Position:
-    return Position(token_id, tuple(ranking))
+    """A drawn token, its alternatives, and what the draw itself was worth.
+
+    Every draw here lands inside the rows reported beside it, so obligation 7 costs this
+    backend nothing and the value is read back off the ranking. A backend whose draw fell
+    past the rows would report the same field and the core would write one more row.
+    """
+    value = next(row.logprob for row in ranking if row.token_id == token_id)
+    return Position(token_id, tuple(ranking), value)
 
 
 #: One entry per `generate` the appendix performs, in order: the params it was asked for,

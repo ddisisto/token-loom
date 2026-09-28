@@ -89,21 +89,19 @@ const MEASURES = [
     what: "what the draw paid to go where the model would not have",
     draw: "relative",
     needs: "top",
-    missing: a => `the row the draw took is not among the ${a.rows} recorded`,
-    /* A draw the rows do not hold is censored and not missing. What was written is a prefix
-     * of what the model ranked, so the token taken sits at or below the lowest row -- which
-     * bounds the deviation from one side. `bound` is that limit in the reading's own space, and
-     * `word` is which side of the value it stands on, since inverting the space inverts it. */
+    missing: () => "the draw here carries no value",
+    /* What the draw was worth is recorded whether or not the rows reached it, so a deviation
+     * is a reading or it is nothing. A draw with no value at all is a backend that could not
+     * say -- a shortfall against `docs/ADAPTER.md`'s obligation 7 -- and the column marks it
+     * as a hole, because there is nothing here to bound it with. */
     reads: {
       log: {
         unit: "nats", dp: 2, domain: [0, 5],
         of: (a, n) => a.top - n.logprob,
-        bound: { word: "at least", of: a => a.top - a.least },
       },
       linear: {
         unit: "ratio", dp: 3, domain: [1, 0],
         of: (a, n) => Math.exp(n.logprob - a.top),
-        bound: { word: "at most", of: a => Math.exp(a.least - a.top) },
       },
     },
   },
@@ -267,9 +265,9 @@ export function weighed() {
  * told apart here and marked apart in the column -- because a reader who could not tell them
  * apart would read a gap in the record as a quiet position.
  *
- * One of them is not a no-value at all on a second look. A draw that fell past what was
- * recorded is *censored* rather than missing: the rows that were written bound it, so it
- * carries a value from one side and says so.
+ * A draw that fell past the recorded rows is not one of them. Its value is recorded beside
+ * them, so it reads like any other; what remains is a draw the backend could say nothing
+ * about, and that is a hole like the rest.
  */
 function at(mark, m, prev) {
   // A measure that looks down reads nothing a ranking holds, so none of the states below can
@@ -306,16 +304,10 @@ function at(mark, m, prev) {
     // Nothing this source drew stands here -- the token was authored, or another model put
     // it there. Off the scale rather than at its end, and not a gap in the record.
     if (a.source !== mark.source) return { mark, state: "off", among: a };
-    // Drawn from this very ranking and absent from it, which is the recording ceiling
-    // cutting the row off. The model had a number the record does not -- but the rows it
-    // does hold say how low that number is, so this is a bound wherever the reading can
-    // take one, and only a hole where it cannot.
-    if (mark.logprob === null) {
-      const edge = m.reads[reading].bound;
-      const limit = edge ? edge.of(a, mark) : null;
-      if (limit === null || !Number.isFinite(limit)) return { mark, state: "hole", among: a };
-      return { mark, state: "bound", value: limit, among: a };
-    }
+    // Drawn from this very ranking and carrying no value, which is a backend that did not
+    // report one. Nothing here stands in for it: the rows say where they stop and not what
+    // lies under them, so this is a hole and is marked as one.
+    if (mark.logprob === null) return { mark, state: "hole", among: a };
   }
   const value = m.reads[reading].of(a, mark);
   if (value === null || !Number.isFinite(value)) return { mark, state: "hole", among: a };
@@ -359,11 +351,6 @@ function tell(m, p, sources) {
       const r = m.reads[reading];
       return `${p.value.toFixed(r.dp)} ${r.unit}${deep}`;
     }
-    case "bound": {
-      const r = m.reads[reading];
-      return `${r.bound.word} ${p.value.toFixed(r.dp)} ${r.unit}${deep}`
-        + ` · the draw fell past the ${p.among.rows} rows recorded here`;
-    }
     case "off":
       return m.looks === "down"
         ? "nothing was passed over to arrive here: the path begins"
@@ -390,9 +377,6 @@ function paint(m, row, span, sources) {
   const p = row[0];
   const title = `${m.key} · ${tell(m, p, sources)}`;
   if (p.state === "value") return { cls: "val", t: place(span, p.value), title };
-  // A bound is placed like a value and marked unlike one: the colour says how far the draw
-  // went at minimum, and the mark says the record stops there rather than agreeing.
-  if (p.state === "bound") return { cls: "bound", t: place(span, p.value), title };
   return { cls: p.state, title };
 }
 
@@ -415,27 +399,26 @@ export function read(segments, sources) {
     rows.push(row);
   }
 
-  // A bound places on the same scale as a value and is counted apart from one, because what
-  // a reader may conclude from the two is not the same.
+  // Only the positions that carry a value are on the scale; the rest are counted into the
+  // total, so the survey says how much of the path the measure reached.
   const values = [];
-  let bounded = 0;
   let deep = null;
   let total = 0;
   for (const row of rows) {
     for (const p of row) {
       total += 1;
-      if (p.state !== "value" && p.state !== "bound") continue;
-      if (p.state === "bound") bounded += 1;
+      if (p.state !== "value") continue;
       values.push(p.value);
       // Which depth a value came from is only ever asked of a measure that read a tail, and
       // a measure that looks down read no ranking to have a depth in.
       if (m.needs !== "tail") continue;
-      const rank = p.among.rows;
-      deep = deep === null ? [rank, rank] : [Math.min(deep[0], rank), Math.max(deep[1], rank)];
+      const depth = p.among.rows;
+      deep = deep === null ? [depth, depth]
+                           : [Math.min(deep[0], depth), Math.max(deep[1], depth)];
     }
   }
   const span = domain(m, values);
-  survey(m, values, bounded, deep, total);
+  survey(m, values, deep, total);
   return rows.map(row => paint(m, row, span, sources));
 }
 
@@ -452,7 +435,7 @@ let note = null;
 /** What the path held, once it was read. The count is how much of the path the measure
  *  reached, and the depths are what `docs/SURFACE.md` has a depth-bound overlay carry: values
  *  gathered at different depths are not comparable, and a uniform wash would not say so. */
-function survey(m, values, bounded, deep, total) {
+function survey(m, values, deep, total) {
   if (!note) return null;
   if (!m) { note.replaceChildren(); return null; }
   if (!values.length) {
@@ -475,9 +458,6 @@ function survey(m, values, bounded, deep, total) {
       ? "this measure chose the path as well as drawing it"
       : `the path follows ${taken}`);
   }
-  // How much of that range is a bound and not a reading, which is the difference between
-  // *the draw paid this* and *the draw paid at least this*.
-  if (bounded) lines.push(`${bounded} of them are bounds · ${r.bound.word} and no nearer`);
   if (m.needs === "tail") {
     lines.push(deep[0] === deep[1]
       ? `${deep[0]} rows throughout`

@@ -55,9 +55,12 @@ class Spelling:
         return len(SPELL)
 
 
-def group(token_id: int, data: bytes, ranked=((1, -1.0),)) -> dict:
+def group(token_id: int, data: bytes, ranked=((1, -1.0),), logprob=-0.5) -> dict:
+    """One `completion_probabilities` entry. `logprob` is the drawn token's own value,
+    which the server reports beside `top_logprobs` whether or not it is among them."""
     return {
         "id": token_id,
+        "logprob": logprob,
         "bytes": list(data),
         "top_logprobs": [{"id": i, "logprob": lp} for i, lp in ranked],
     }
@@ -94,14 +97,22 @@ def test_walk_reunites_a_measured_response_with_merged_groups():
     # The ranking lands on the token the group names, which is its last.
     assert positions[2].ranking is not None and positions[2].token_id == 107
     assert positions[9].ranking is not None and positions[9].token_id == 222
+    # And a declination carries no value either: the server reports nothing at all for the
+    # interior fragments, so there is no draw's own logprob to pass on.
+    assert [p.logprob for p in positions if p.ranking is None] == [None] * 4
 
 
 def test_walk_is_the_identity_when_nothing_merged():
     tokens = [3555, 374, 198]
-    groups = [group(3555, b" What"), group(374, b" is"), group(198, b"\n")]
+    groups = [group(3555, b" What", logprob=-0.25),
+              group(374, b" is", logprob=-1.5),
+              group(198, b"\n", logprob=-3.0)]
     positions = walk(tokens, groups, Spelling())
     assert [p.token_id for p in positions] == tokens
     assert all(p.ranking is not None for p in positions)
+    # The group's own logprob is what the token it names was worth, and it is carried off
+    # the group rather than looked up among the alternatives beside it.
+    assert [p.logprob for p in positions] == [-0.25, -1.5, -3.0]
 
 
 def test_a_control_token_reports_empty_bytes_and_is_matched_on_its_id():
@@ -207,27 +218,35 @@ def test_bound_floors_at_two_rows():
     assert len(kept.ranking) == 2
 
 
-def test_bound_extends_to_the_token_drawn():
-    """A sampler reaching past the mass bound would otherwise leave the node with no
-    covering ranked edge, and so no derivable logprob."""
+def test_a_deep_draw_no_longer_costs_the_rows_above_it():
+    """The bound reads the alternatives and nothing else.
+
+    A draw at the fourth row once dragged the three above it into the record, because the
+    row was the only place its value could be kept. Its value now rides beside the
+    ranking, so the cut is the same whatever was drawn -- which is the whole of what
+    obligation 7 bought here.
+    """
     assert reaches(RANKING, 0.01) == 1
     drawn = RANKING[3]
-    [kept] = bound([Position(drawn.token_id, RANKING)], 0.01)
-    assert kept.ranking[-1] == drawn
-    assert drawn.token_id in [row.token_id for row in kept.ranking]
+    [shallow] = bound([Position(RANKING[0].token_id, RANKING, RANKING[0].logprob)], 0.01)
+    [deep] = bound([Position(drawn.token_id, RANKING, drawn.logprob)], 0.01)
+    assert deep.ranking == shallow.ranking == RANKING[:2]
+    assert deep.logprob == drawn.logprob
 
 
-def test_bound_does_not_invent_a_row_for_a_token_that_was_never_ranked():
-    """The extension finds the drawn token or does nothing. It never appends one."""
-    [kept] = bound([Position(9999, RANKING)], 0.01)
+def test_bound_carries_the_draws_value_through_untouched():
+    """Including for a draw the ranking never held, which is the case the record most
+    needs and the one the cut can say nothing about."""
+    [kept] = bound([Position(9999, RANKING, -11.5)], 0.01)
     assert len(kept.ranking) == 2
     assert 9999 not in [row.token_id for row in kept.ranking]
+    assert kept.logprob == -11.5
 
 
 def test_bound_passes_a_declination_through():
     """`None` is a position the backend could give no distribution for, and it is not an
     empty ranking. Nothing here fills it."""
-    declined = Position(RANKING[0].token_id, None)
+    declined = Position(RANKING[0].token_id, None, -0.7)
     assert bound([declined], 0.9) == [declined]
 
 

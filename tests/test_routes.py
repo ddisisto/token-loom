@@ -254,12 +254,12 @@ def test_an_overlay_is_what_the_ranking_above_says_about_the_position(client):
     assert stood["top"] == max(row["logprob"] for row in rows)
     assert stood["second"] == sorted((row["logprob"] for row in rows), reverse=True)[1]
     assert stood["mass"] == pytest.approx(sum(math.exp(row["logprob"]) for row in rows))
-    assert stood["least"] == min(row["logprob"] for row in rows)
     # The deviation: what node 3 paid to be where it is, which here is nothing.
     assert marks[3]["logprob"] == stood["top"]
     assert stood["source"] == marks[3]["source"]
-    # What a draw the rows do not hold is bounded by, which is the reason `least` crosses.
-    assert stood["least"] <= stood["top"]
+    # Nothing crosses that would bound what the rows do not hold: a draw carries its own
+    # value, so a summary of the rows has no work to do for one.
+    assert set(stood) == {"source", "rows", "mass", "top", "second"}
 
 
 def test_a_ranking_says_which_rows_have_been_realised(client):
@@ -411,13 +411,17 @@ def test_a_create_may_attribute_its_text_to_someone_other_than_the_actor(client)
 
 
 def test_realise_takes_the_edge_the_ranking_named(client):
+    """The row is addressed by its token all the way up, and the act answers with the node
+    rather than with the address -- which is the whole of what it stored."""
     row = next(r for r in client.get("/ranking/2").json()["rows"] if r["child"] is None)
     body = client.post(
-        "/realise", json={"at": 2, "rank": row["rank"], "source": str(MODEL)}
+        "/realise", json={"at": 2, "token": row["token"], "source": str(MODEL)}
     ).json()
-    assert body["op"] == "realise" and body["rank"] == row["rank"]
+    assert body["op"] == "realise" and "rank" not in body
     assert [n["token"] for n in body["nodes"]] == [row["token"]]
-    assert client.get("/ranking/2").json()["rows"][1]["child"] == body["tip"]
+    again = next(r for r in client.get("/ranking/2").json()["rows"]
+                 if r["token"] == row["token"])
+    assert again["child"] == body["tip"]
 
 
 def test_delete_and_undelete_answer_with_the_liveness_they_changed(client):
@@ -496,7 +500,7 @@ def test_a_tree_is_read_and_three_acts_are_made_with_no_backend_at_all(writer):
     assert client.post("/delete", json={"node": 4}).status_code == 201
     assert client.post("/undelete", json={"node": 4}).status_code == 201
     assert client.post(
-        "/realise", json={"at": 2, "rank": 1, "source": str(MODEL)}
+        "/realise", json={"at": 2, "token": 104, "source": str(MODEL)}
     ).status_code == 201
 
 

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import IO
 
 from . import check, reads
-from .ports import Adapter, Generation, Source, Vocabulary
+from .ports import Adapter, Generation, Ranked, Source, Vocabulary
 from .schema import (
     BULK_FILE,
     DDL,
@@ -246,26 +246,25 @@ class Store:
     def _extend_ranking(self, node: int, source_id: int, ranking: Sequence) -> None:
         """A ranking extends and is never truncated or rewritten.
 
-        Only tokens not already recorded are contributed, appended at continuing ranks.
-        Rows already present keep their values, so anything derived from a ranking -- a
-        node's logprob above all -- never changes retroactively. It follows that rank
-        means the k-th alternative recorded here, not the model's k-th choice: a token
-        that would outrank a stored one is appended below it regardless.
+        Only tokens not already recorded are contributed. Rows already present keep their
+        values, so anything derived from a ranking -- a node's logprob above all -- never
+        changes retroactively. Where two observations of one token disagree, the value
+        first written stands, and the record keeps no trace that another was seen.
         """
-        rows = self.conn.execute(
-            "SELECT rank, token_id FROM edges WHERE node = ? AND source = ?", (node, source_id)
-        ).fetchall()
-        seen = {token_id for _, token_id in rows}
-        next_rank = max((rank for rank, _ in rows), default=-1) + 1
+        seen = {
+            r[0]
+            for r in self.conn.execute(
+                "SELECT token_id FROM edges WHERE node = ? AND source = ?", (node, source_id)
+            )
+        }
         for ranked in ranking:
             if ranked.token_id in seen:
                 continue
             seen.add(ranked.token_id)
             self.conn.execute(
-                "INSERT INTO edges (node, source, rank, token_id, logprob) VALUES (?, ?, ?, ?, ?)",
-                (node, source_id, next_rank, ranked.token_id, ranked.logprob),
+                "INSERT INTO edges (node, source, token_id, logprob) VALUES (?, ?, ?, ?)",
+                (node, source_id, ranked.token_id, ranked.logprob),
             )
-            next_rank += 1
 
     def _actor_id(self, actor: Source) -> int:
         """INV-ACT-ACTOR. A `model` is what produces tokens, and acting is not producing,
@@ -336,11 +335,12 @@ class Store:
                 cur = self._merge_node(cur, token.id, source_id)
             return self._write_act("create", actor_id, origin=at, tip=cur)
 
-    def realise(self, node: int, source: Source, rank: int, *, actor: Source) -> int:
-        """The ranked edge at `(node, source, rank)`, taken. One write and no call.
+    def realise(self, node: int, source: Source, token_id: int, *, actor: Source) -> int:
+        """The ranked edge at `(node, source, token_id)`, taken. One write and no call.
 
         The act's source is who acted; the node carries the source of the model that
-        ranked the edge, which is why the act needs no column for the edge's source.
+        ranked the edge, which is why the act needs no column for the edge's source -- nor
+        for the token, which the node it made already carries.
         """
         with self._writing():
             actor_id = self._actor_id(actor)
@@ -349,13 +349,13 @@ class Store:
             if edge_source is None:
                 raise Rejected(f"no source {source} in this store")
             row = self.conn.execute(
-                "SELECT token_id FROM edges WHERE node = ? AND source = ? AND rank = ?",
-                (node, edge_source, rank),
+                "SELECT 1 FROM edges WHERE node = ? AND source = ? AND token_id = ?",
+                (node, edge_source, token_id),
             ).fetchone()
             if row is None:
-                raise Rejected(f"no ranked edge at node {node}, source {source}, rank {rank}")
-            tip = self._merge_node(node, row[0], edge_source)
-            return self._write_act("realise", actor_id, origin=node, tip=tip, rank=rank)
+                raise Rejected(f"no ranked edge at node {node}, source {source}, token {token_id}")
+            tip = self._merge_node(node, token_id, edge_source)
+            return self._write_act("realise", actor_id, origin=node, tip=tip)
 
     def generate(
         self,
@@ -451,10 +451,16 @@ class Store:
             # A ranking belongs to the node the position was computed at -- the one the
             # previous token landed on. A root-beginning generation has no such node for
             # position 0, and that distribution has nowhere in this format to go.
-            if position.ranking is not None and cur is not None:
-                for ranked in position.ranking:
+            if cur is not None:
+                rows = list(position.ranking or ())
+                # What was drawn is valued, and its row stands beside the alternatives
+                # rather than among them: a draw the recording bounds never reached is
+                # recorded all the same, and one they did is already here.
+                if position.logprob is not None:
+                    rows.append(Ranked(position.token_id, position.logprob))
+                for ranked in rows:
                     self.put_token(ranked.token_id, vocabulary.bytes_for(ranked.token_id))
-                self._extend_ranking(cur, source_id, position.ranking)
+                self._extend_ranking(cur, source_id, rows)
             self.put_token(position.token_id, vocabulary.bytes_for(position.token_id))
             cur = self._merge_node(cur, position.token_id, source_id)
         self.conn.execute(
@@ -495,13 +501,12 @@ class Store:
         tip: int | None,
         model: int | None = None,
         params: int | None = None,
-        rank: int | None = None,
         terminator: str | None = None,
     ) -> int:
         return self.conn.execute(
             "INSERT INTO acts (op, actor, origin, tip, created, model, params, "
-            "terminator, rank) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (op, actor_id, origin, tip, _now(), model, params, terminator, rank),
+            "terminator) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (op, actor_id, origin, tip, _now(), model, params, terminator),
         ).lastrowid
 
 

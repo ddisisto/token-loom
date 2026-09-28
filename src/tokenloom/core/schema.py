@@ -5,7 +5,7 @@ indices beyond the keys the document states. Closure is checked by `check.py` ra
 declared, because a checker that trusts the schema checks nothing.
 """
 
-MARKER = "token-loom/nodes-2"
+MARKER = "token-loom/3"
 
 TREE_FILE = "tree.json"
 BULK_FILE = "bulk.sqlite"
@@ -31,14 +31,12 @@ CREATE TABLE nodes (
   UNIQUE (parent, token_id, source));      -- roots are exempt: NULL parents never collide,
                                            -- which is Sources' rule, not an artefact
 
-CREATE TABLE edges (                       -- ranked, not taken
+CREATE TABLE edges (                       -- what was ranked at a node
   node     INTEGER NOT NULL,
   source   INTEGER NOT NULL,
-  rank     INTEGER NOT NULL,
   token_id INTEGER NOT NULL,
   logprob  REAL NOT NULL,
-  PRIMARY KEY (node, source, rank),
-  UNIQUE (node, source, token_id));
+  PRIMARY KEY (node, source, token_id));   -- a set; no order is stored
 
 CREATE TABLE params (
   id   INTEGER PRIMARY KEY,
@@ -52,8 +50,7 @@ CREATE TABLE acts (
   origin  INTEGER,                         -- NULL if the act began a root
   tip     INTEGER,                         -- NULL if the act produced no nodes
   created TEXT NOT NULL,                   -- ISO 8601, UTC, ending 'Z'
-  model   INTEGER, params INTEGER, terminator TEXT,  -- 'generate' only
-  rank    INTEGER);                                  -- 'realise' only
+  model   INTEGER, params INTEGER, terminator TEXT); -- 'generate' only
 """
 
 OPS = ("create", "generate", "realise", "delete", "undelete")

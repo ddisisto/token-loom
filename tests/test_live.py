@@ -209,9 +209,16 @@ def test_record_mass_cuts_the_ranking_and_1_0_does_not(adapter):
     ]
 
 
-def test_a_stochastic_draw_past_the_mass_bound_is_still_covered(adapter):
-    """A sampler reaching past `record_mass` would otherwise leave a node with no
-    derivable logprob. The drawn token extends the recorded set, so it never does."""
+def test_a_stochastic_draw_past_the_mass_bound_is_still_valued(adapter):
+    """A sampler reaching past `record_mass` would otherwise leave a node with no derivable
+    logprob. The draw's own value is reported beside the set, so it never does.
+
+    Run hot and with a tight mass, so that draws do land past the recorded rows -- which is
+    asserted, because a run where none did would pass without exercising anything. The
+    value is checked against the ranking where the two overlap, since a server reporting a
+    `logprob` field that did not agree with its own rows would satisfy everything else here.
+    """
+    outside = 0
     for seed in range(12):
         answer = adapter.generate(
             [785, 12884],
@@ -221,7 +228,13 @@ def test_a_stochastic_draw_past_the_mass_bound_is_still_covered(adapter):
         assert answer.terminator == "limit"
         for position in answer.positions:
             assert position.ranking is not None
-            assert position.token_id in [r.token_id for r in position.ranking]
+            assert position.logprob is not None, "obligation 7: what was drawn is valued"
+            rows = {r.token_id: r.logprob for r in position.ranking}
+            if position.token_id in rows:
+                assert position.logprob == pytest.approx(rows[position.token_id])
+            else:
+                outside += 1
+    assert outside, "no draw fell past the rows, so this proved nothing"
 
 
 def test_every_position_offers_at_least_one_alternative_to_branch_into(adapter):
@@ -333,7 +346,7 @@ def test_a_tree_built_against_the_real_server_holds_every_invariant(adapter, tmp
         # Branch at a ranked edge nothing took. This is the operation the format exists for.
         unrealised = R.unrealised_edges(store.conn, tip)
         assert unrealised, "a generation must leave alternatives at the node it started from"
-        branch = store.realise(tip, adapter.source, unrealised[0].rank, actor=user)
+        branch = store.realise(tip, adapter.source, unrealised[0].token_id, actor=user)
         taken = store.conn.execute(
             "SELECT tip FROM acts WHERE id = ?", (branch,)
         ).fetchone()[0]

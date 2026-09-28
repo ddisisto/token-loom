@@ -58,9 +58,9 @@ def build(path: Path, nodes: int, top_n: int, seed: int) -> Store:
 
     edges = []
     for node_id in range(1, nodes + 1):
-        for rank, token in enumerate(random.sample(range(VOCAB_SIZE), top_n)):
-            edges.append((node_id, 2, rank, token, -random.random() * 8))
-    conn.executemany("INSERT INTO edges VALUES (?,?,?,?,?)", edges)
+        for token in random.sample(range(VOCAB_SIZE), top_n):
+            edges.append((node_id, 2, token, -random.random() * 8))
+    conn.executemany("INSERT INTO edges VALUES (?,?,?,?)", edges)
 
     conn.executemany(
         "INSERT INTO acts (op, actor, model, origin, tip, created, params, terminator) "

@@ -41,13 +41,15 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   | 1.0 | 10.1% | 7.1% | 4.5% | 3.1% | 1.8% |
   | 1.2 | 41.2% | 36.7% | 33.6% | 29.8% | 25.2% |
 
-  At 1.2 a twentyfold wider record moves it 41% → 25%: the tail is fat enough that coverage
-  has to be bought from the sampler or given up. **`docs/ADAPTER.md` gives it up** — a draw
-  past `record_rows` is one of the ways *Rankings* already allows a node to have no covering
-  ranked edge — so `record_rows >= top_k` is a check this adapter makes on a request that
-  names `top_k`, and not an obligation on anything else. Note what buying it costs: at
-  temperature 1.2, `top_k` 80 makes the 30% of draws living past rank 80 unreachable by
-  construction, and those are the draws a reading instrument exists to find.
+  At 1.2 a twentyfold wider record moves it 41% → 25%: the tail is fat enough that a row count
+  cannot be widened into covering the draw. **What the draw costs is no longer at stake** —
+  its own value is reported beside the rows, so a draw past `record_rows` is recorded whatever
+  the count was. What a wider record still buys is *alternatives*: how many rows stood beside
+  the draw for a reader to branch into. `record_rows >= top_k` is the check this adapter makes
+  where a request names `top_k`, and what it settles is that the sampler's whole support was
+  offered — which is the one thing a row count decided in advance can settle here. Note what
+  asking for it costs: at temperature 1.2, `top_k` 80 makes the 30% of draws living past rank
+  80 unreachable by construction, and those are the draws a reading instrument exists to find.
 - **The drawn token's own logprob is reported beside the rows, and it is the raw ranking value.**
   Each `completion_probabilities` entry carries `logprob` next to `top_logprobs`, and every entry
   measured had it — 874 positions over five prompts and three seeds, `top_k` off, `n_probs` 5 at
@@ -62,9 +64,10 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   carried a value and were absent from the 4000-row ranking entirely. So a value exists for every
   position the server reports, including the tail `record_rows` gives up on.
 
-  **A row recorded because the draw took it is not a row the model ranked into the recorded
-  prefix**, and several reads elsewhere rest on the recorded rows being such a prefix. What to do
-  about that is a question for the format and not for this file.
+  **A recorded ranking is therefore not a prefix of the model's**, since the draw's row can come
+  from anywhere below the others. The format says so rather than working around it: a ranking is
+  a set, no read takes the rows for a prefix, and obligation 7 is what this measurement is the
+  case for.
 - **`samplers` decides which sampler runs; the value decides nothing on its own.** A request
   naming `samplers: ["temperature"]` and omitting `top_k` draws identically to one sending
   `top_k: 0`, while the response still *reports* `top_k: 40` — inert. Sending `min_p: 0.9`

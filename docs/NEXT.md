@@ -114,13 +114,15 @@ forces. The footer is already always there — *what this is* on the left, *what
 the right.
 
 **`record_rows` goes with them as a readout and not as a dial.** `docs/SPINE.md` measured the
-coupling twice: 62 censored positions in `data/continuations`, every one from a 90-token draw at
-temperature 1.4 recorded to ten rows; and on `data/logozoa`, recorded at ten rows throughout its
-early work, two thirds of every divergence in the tree. Making temperature the easiest thing on
-the page to move while the row count stays behind a fold is how a reader shreds their own record
-without being told, and the worked tree is what that looks like after the fact. What it is still
-not is a threshold — the right depth depends on the draw it is recording, which is not known when
-it is chosen — so the surface shows the pair rather than inventing a line between them.
+coupling on `data/logozoa`, recorded at ten rows throughout its early work: two thirds of every
+divergence in the tree sits at a depth of two. Obligation 7 took the sharp edge off this — a draw
+is valued whatever the rows reached, so a low count no longer costs the record a value — and what
+is left is still not nothing. The row count is how many alternatives a reader has to branch into
+and what every quantity over a ranking is read against, and making temperature the easiest thing
+on the page to move while it stays behind a fold is how the two come apart without anything
+saying so. What it is still not is a threshold — the right depth depends on the draw it is
+recording, which is not known when it is chosen — so the surface shows the pair rather than
+inventing a line between them.
 
 **`length` starts at 8 and steps by 8, which forbids the length-1 draw the design names.** It
 also spends fifty positions on a linear range whose useful values cluster low — one to deepen a
@@ -261,7 +263,7 @@ covers a restart. It buys nothing on a first read, which is the one that is larg
 **What a page can cache with no protocol at all is the immutable half, and it is most of what a
 page pulls.** A node's parent, token and source never change and only `deleted` does; a token's
 bytes never change, because `put_token` refuses a vocabulary that disagrees at an id already
-held; and a ranking only grows, because `_extend_ranking` appends and never rewrites. Spellings
+held; and a ranking only grows, because `_extend_ranking` adds rows and never rewrites one. Spellings
 and rankings are therefore cacheable for the life of the page, and liveness is the only thing
 that has to be asked again. **A measure that looks down joins liveness rather than the spellings.**
 What lies below a node changes every time the reader generates, so the structural family is the
@@ -328,7 +330,8 @@ quoted from a tree is a figure against a state of it, which is the item below.
 
 Not in the ordering; each stands on its own.
 
-- **How realisation falls with rank, measured before anything spends inference on hover.**
+- **How realisation falls with a row's place by value, measured before anything spends inference
+  on hover.**
   `docs/SPINE.md` has the question and what it would settle; what makes it urgent rather than
   interesting is that rolling rows out on a hover would drive the top row's share to one and
   leave the curve measuring a pointer. One query over `data/continuations`, and the tree is
@@ -389,70 +392,18 @@ Not in the ordering; each stands on its own.
   pre-temperature. So beside a deviation the two halve the question — one says how much noise was
   permitted at a position, the other how far the draw then went.
 
-## 3. The next marker
+## 3. A tree that can be cited
 
 **A marker bump is what makes an older reader wrong rather than merely incomplete, so it is paid
 once and carries everything that wants it.** A new table or column does not change `marker`;
-changing what an existing one means does. That makes this a bundle and not a task — items land
-here as they are found, and it is opened when something in it is worth the bump on its own.
+changing what an existing one means does. So a bump is a bundle and not a task — items land here
+as they are found, and it is opened when something in it is worth the bump on its own.
 
-**The bundle is open and `docs/CORE.md` has moved.** `marker` is `token-loom/3`, `rank` is gone from
-both tables, `tree.json` admits optional provenance, *Conformance and extension* has the writer
-rule, and a seventh condition has a source report what its own draw was worth. What is left is the
-code, the migration and the tests.
-
-### `rank` is removed, and an edge is addressed by its token
-
-**The column held arrival order and was named for the model's ranking**, and renaming it to
-`ordinal` was the plan until the question of what wanted it came up. Two things did: `realise`
-addressed an edge by a small readable integer, and contiguity from `0` kept accumulation order
-recoverable. The first dissolves under the rename — an integer that means *the row that happened to
-arrive first* is not readable in the way `rank 0` was — and the second is creation information,
-which `acts` is the table for. `edges` says what was ranked at a position and is not a record of its
-own making.
-
-**`(node, source, token_id)` was already a key**, so removing the column costs no addressing: the
-edge is named by the token, and the surface indexes on `token_id` all the way up. A future hook onto
-a row uses the same key.
-
-**`acts.rank` disappears rather than moving.** `INV-ACT-REALISE` already required the edge to carry
-`tip.token_id`, so `origin` and `tip` name the edge between them and the column was a second copy of
-one fact. `realise` becomes the one operation whose argument is recoverable from its result.
-
-**What it reaches**: the `edges` and `acts` DDL, `INV-RANK-DENSE` deleted outright,
-`INV-RANK-ANCHORED` and `INV-RANK-UNIQUE` renamed to `INV-EDGE-*`, the invariant count 17 → 16, the
-reads and the checker, the `--rank` argument, the wire key and the page's use of it, and
-`ranking.js`'s local named `rank` that holds a depth. Every existing tree is rebuilt or migrated;
-`data/` is disposable, so that is free now and less free the longer the bundle stays shut.
-
-### The draw's own value, recorded, and the bound deleted
-
-**A draw that landed past `record_rows` had no recorded logprob, and the backend reported one.**
-`src/tokenloom/adapters/llamacpp/README.md` measures what the value is: the raw ranking value,
-bit-identical to its own row wherever that row exists, and present even where no row count would
-have reached the draw. 351 of the 23,874 drawn nodes in `data/continuations` have a ranked parent and
-no covering edge, and each of them was handed a value that was discarded.
-
-**With `rank` gone there is nothing to tell the row apart from, so the row is just a row.** A ranking
-is a set, so the draw's value is one more member and no column marks it. Condition 7 in the core and
-obligation 7 in the contract are the whole of the format change; the adapter stops extending a
-ranking down to reach the draw, which is what a deep draw used to cost.
-
-**The bound goes with it.** `Spread.least` and the deviation overlay's *at least this much and no
-nearer* existed because the value was missing, and they stood on the recorded rows being a prefix of
-the model's — which a set accumulated across acts is not. Keeping a column to preserve a workaround
-after the fault is fixed is the wrong way round. A position whose backend could not report the value
-now reads as having no value, which is what it has, and `docs/SPINE.md` keeps the measurements as the
-case for the obligation rather than as a live reading.
-
-**Old trees do not gain anything by migration.** The 351 uncovered nodes stay uncovered: the value
-was discarded when the act ran, and only re-running inference recovers it. So the first check after
-migrating is not a failure.
-
-**What it reaches**: `Position` and the adapter's `walk` and `bound`, `Spread.least` and `rows`,
-`wire.py`, `overlay.js`'s bound reading, and the tests over the derived values.
-
-### A tree that can be cited
+**The last bundle is closed.** `marker` is `token-loom/3`, `rank` is gone from both tables and an
+edge is addressed by its token everywhere, a source reports what its own draw was worth, the
+censored-draw bound is deleted, and `tree.json` admits `writer`, `repo` and `commit`. The
+migration is `scripts/migrate-to-3.py`. What is below is what that bundle left open, and it is
+the first item of the next one.
 
 **A figure quoted from a tree should name what it was quoted from, and nothing in the record
 identifies a state.** `docs/SPINE.md` cites 13,315 ranked positions in `data/continuations`, of which
@@ -461,15 +412,17 @@ figures were true when taken and nothing in either document tells a reader wheth
 the count means something else. Section 2 sharpens this by letting a derived value be refined, but the
 problem is already here and already unnoticed.
 
-**A commit in a named repository is the naming, and what the tree owes is a hash over the right
-objects.** `data/` is disposable, so the mechanism is not the question; what the bundle settles is
-what gets hashed. A tree whose derived values move cannot be identified by its conclusions, so the
-hash covers the observations — the vocabulary, nodes, edges and acts — and nothing computed from them.
+**`tree.json` now carries the naming and nothing writes it.** `writer`, `repo` and `commit` are
+optional keys the format admits, which is the additive half and is already paid for; what is left
+is a writer that fills them and a hash over the right objects. `data/` is disposable, so the
+mechanism is not the question; what is to settle is what gets hashed. A tree whose derived values
+move cannot be identified by its conclusions, so the hash covers the observations — the
+vocabulary, nodes, edges and acts — and nothing computed from them.
 
 **Whether it is a requirement or a capability is what decides the bump.** As a capability it is
 additive and older trees are simply unhashed; as an invariant every tree must satisfy, every older
 tree fails the new checker. Existing trees are not citable and that is accepted, so what is being
 asked is only what is required of the trees after.
 
-**Implications and implementation wait.** What is settled now is that a tree written under the next
-marker can be cited and one written under this one cannot.
+**Implications and implementation wait.** What is settled now is that a tree carrying the naming
+can be cited and one that does not cannot.

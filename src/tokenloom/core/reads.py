@@ -30,7 +30,6 @@ class Node:
 class Edge:
     node: int
     source: int
-    rank: int
     token_id: int
     logprob: float
 
@@ -63,11 +62,9 @@ class Spread:
     Both are what accumulated here and neither is any act's parameter, since rankings
     extend -- so a reader comparing two positions carries `rows` along with what it read.
 
-    `least` is the lowest logprob recorded, and it is here because a token absent from the
-    rows is not a token nothing is known about. Where what was written is a prefix of what
-    the model ranked -- which `docs/ADAPTER.md` obliges and this cannot check -- anything
-    the rows do not hold sits at or below `least`. So an absent row is a bound rather than a
-    hole, and a reader that has `least` can say how far a draw went at minimum.
+    Nothing here bounds what is *not* recorded. A ranking is a set that accumulates, so the
+    lowest value in it says where the rows happen to stop and nothing about the tokens
+    below; an absent row is a hole and not a bound.
     """
 
     source: int
@@ -75,7 +72,6 @@ class Spread:
     mass: float
     top: float
     second: float | None
-    least: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -319,16 +315,18 @@ def path_bytes(conn: sqlite3.Connection, node: int) -> bytes:
 
 
 def ranking(conn: sqlite3.Connection, node: int, source: int | None = None) -> list[Edge]:
-    """The alternatives recorded at a node, in the order the source presented them.
+    """The alternatives recorded at a node, by source and then by token.
 
-    Descending logprob is expected of a model and is not enforced, so this does not sort.
+    A ranking is a set and stores no order, so the order here is the rows' own address and
+    is a fact about the record rather than about the model. A reader that wants them by
+    value sorts, and `surface/reads.py` is where this one does.
     """
-    sql = "SELECT node, source, rank, token_id, logprob FROM edges WHERE node = ?"
+    sql = "SELECT node, source, token_id, logprob FROM edges WHERE node = ?"
     args: tuple = (node,)
     if source is not None:
         sql += " AND source = ?"
         args += (source,)
-    return [Edge(*r) for r in conn.execute(sql + " ORDER BY source, rank", args)]
+    return [Edge(*r) for r in conn.execute(sql + " ORDER BY source, token_id", args)]
 
 
 def node_logprob(conn: sqlite3.Connection, node: int) -> float | None:
@@ -356,24 +354,24 @@ def ranking_with_children(conn: sqlite3.Connection, node: int) -> list[RankedEdg
     carrying `deleted` is still a child: the merge key is what forbids realising it again,
     and `undelete` rather than `realise` is what brings it back.
 
-    Recorded order, source by source. Descending logprob is expected of a model rather than
-    enforced, so this does not sort.
+    By source and then by token, as `ranking` is and for the same reason: the set stores no
+    order, so what is imposed here is the address and not a reading of the values.
     """
     rows = conn.execute(
         """
-        SELECT e.node, e.source, e.rank, e.token_id, e.logprob, v.bytes,
+        SELECT e.node, e.source, e.token_id, e.logprob, v.bytes,
                c.id, c.parent, c.token_id, c.source, c.deleted
           FROM edges e
           JOIN vocab v ON v.token_id = e.token_id
           LEFT JOIN nodes c
             ON c.parent = e.node AND c.token_id = e.token_id AND c.source = e.source
          WHERE e.node = ?
-         ORDER BY e.source, e.rank
+         ORDER BY e.source, e.token_id
         """,
         (node,),
     ).fetchall()
     return [
-        RankedEdge(Edge(*r[:5]), bytes(r[5]), _node(r[6:11]) if r[6] is not None else None)
+        RankedEdge(Edge(*r[:4]), bytes(r[4]), _node(r[5:10]) if r[5] is not None else None)
         for r in rows
     ]
 
@@ -382,12 +380,12 @@ def unrealised_edges(conn: sqlite3.Connection, node: int) -> list[Edge]:
     """Ranked edges at a node with no matching child. This is the branchable set."""
     rows = conn.execute(
         """
-        SELECT e.node, e.source, e.rank, e.token_id, e.logprob
+        SELECT e.node, e.source, e.token_id, e.logprob
           FROM edges e
           LEFT JOIN nodes c
             ON c.parent = e.node AND c.token_id = e.token_id AND c.source = e.source
          WHERE e.node = ? AND c.id IS NULL
-         ORDER BY e.source, e.rank
+         ORDER BY e.source, e.token_id
         """,
         (node,),
     ).fetchall()
@@ -450,7 +448,6 @@ def spreads(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, list[Sp
                 sum(math.exp(p) for p in ranked),
                 ranked[0],
                 ranked[1] if len(ranked) > 1 else None,
-                ranked[-1],
             )
             for source, ranked in sorted(by_source.items())
         ]

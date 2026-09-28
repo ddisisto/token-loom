@@ -48,17 +48,17 @@ const SOURCES = { 1: "user", 2: "model:qwen", 3: "model:other" };
 
 /* Round numbers in probability space, so every expectation below is arithmetic and not a
  * constant someone read off a run. */
-const P_TOP = 0.6, P_SECOND = 0.25, P_TOOK = 0.1, P_LEAST = 0.02;
+const P_TOP = 0.6, P_SECOND = 0.25, P_TOOK = 0.1, P_DEEP = 0.02;
 const TOP = Math.log(P_TOP), SECOND = Math.log(P_SECOND), TOOK = Math.log(P_TOOK);
-const LEAST = Math.log(P_LEAST);
-const DEVIATION = TOP - TOOK; // = ln 6
-const GAP = TOP - SECOND;     // = ln 2.4
-const FLOOR = TOP - LEAST;    // = ln 30, the least a censored draw can have paid
-const CEILING = 5;            // deviation's fixed domain, in nats
+const DEEP = Math.log(P_DEEP);   // a draw well below the alternatives recorded beside it
+const DEVIATION = TOP - TOOK;    // = ln 6
+const GAP = TOP - SECOND;        // = ln 2.4
+const DEEP_DEVIATION = TOP - DEEP;  // = ln 30
+const CEILING = 5;               // deviation's fixed domain, in nats
 
 let ids = 0;
 const among = (over = {}) =>
-  ({ source: MODEL, rows: 5, mass: 0.95, top: TOP, second: SECOND, least: LEAST, ...over });
+  ({ source: MODEL, rows: 5, mass: 0.95, top: TOP, second: SECOND, ...over });
 const node = (over = {}) => ({
   id: ++ids, parent: 0, token: 7, source: MODEL, deleted: null,
   live: true, logprob: TOOK, fork: false, among: [among()], ...over,
@@ -113,46 +113,39 @@ is("the token that took the top row is the one that paid nothing", [took.cls, to
 // ---- a position with no value is not a position with a low one -----------------------------------
 
 const authored = apart(node({ source: USER, logprob: null }))[0];
-const past = apart(node({ logprob: null }))[0];
+const unvalued = apart(node({ logprob: null }))[0];
 const two = apart(node({ among: [among(), among({ source: OTHER })] }))[0];
 const bare = apart(node({ among: [] }))[0];
 
 is("a token this source did not draw is off the scale", authored.cls, "off");
 says("  and says who put it there", authored.title, "user");
+is("a draw this source made and could not value is a hole", unvalued.cls, "hole");
 is("two sources get no value and no choice between them", two.cls, "clash");
 is("a position nothing ranked is not marked at all", bare, null);
 is("none of the marks is the foot of the scale, and none is another",
-   new Set([authored.cls, past.cls, two.cls, "val"]).size, 4);
+   new Set([authored.cls, unvalued.cls, two.cls, "val"]).size, 4);
 is("and nothing without a value carries a place on the scale",
-   [authored.t, two.t], [undefined, undefined]);
+   [authored.t, unvalued.t, two.t], [undefined, undefined, undefined]);
 
-// ---- a draw past the recorded rows is censored and not missing -------------------------------
+// ---- a draw past the recorded rows reads like any other ------------------------------------
 
-/* The rows written are a prefix of the model's, so a token they do not hold sits at or below
- * the lowest of them -- which bounds the deviation from one side. Reading that as *no value* throws
- * away the one thing the record does say, and reading it as *a value* claims what it does not. */
-is("a draw the rows do not hold is bounded rather than blank", past.cls, "bound");
-near("  placed where the rows say it is at least", past.t, FLOOR / CEILING);
-says("  and saying it is a floor", past.title, `at least ${FLOOR.toFixed(2)} nats`);
-says("  and why there is no more to say", past.title, "fell past the 5 rows recorded");
+/* What was drawn is valued, so a draw the alternatives never reached carries its own number and
+ * is read rather than bounded. The rows it fell past say how many alternatives stood beside it
+ * and nothing about what it was worth -- which is why the depth crosses and no floor does. */
+const far = apart(node({ logprob: DEEP }))[0];
+is("a draw below every alternative recorded is a value like any other", far.cls, "val");
+near("  placed at its own deviation", far.t, DEEP_DEVIATION / CEILING);
+says("  and saying what it paid, not what it paid at least",
+     far.title, `${DEEP_DEVIATION.toFixed(2)} nats`);
+is("  with no mark saying the record stops short", far.title.includes("at least"), false);
 
-/* A bound is measured to the last recorded row, so it sits exactly where a draw that *took*
- * that row would sit -- no further, because nothing says how much further, and no nearer,
- * because every recorded row is one the draw did not take. That holds in either reading,
- * which is what makes it the invariant rather than the arithmetic of one of them. */
-for (const reading of ["nats", "ratio"]) {
-  tap("reading", reading);
-  const [limit, last] = apart(node({ logprob: null }), node({ logprob: LEAST }));
-  near(`a bound sits where the last recorded row would, read in ${reading}`, limit.t, last.t);
-  is(`  and is marked as a bound and not as that value, in ${reading}`,
-     [limit.cls, last.cls], ["bound", "val"]);
-}
-
+/* The reading inverts and the value goes with it. Nothing here is a limit, so nothing has a
+ * side to be on -- which is what removing the bound removed. */
 tap("reading", "ratio");
-const other = apart(node({ logprob: null }))[0];
-says("inverting the space inverts which side the bound is on", other.title, "at most");
-says("  and the number is the ratio at the last recorded row", other.title,
-     Math.exp(LEAST - TOP).toFixed(3));
+const ratio = apart(node({ logprob: DEEP }))[0];
+says("inverting the space is a reading of the same value", ratio.title,
+     Math.exp(DEEP - TOP).toFixed(3));
+is("  and it is still a value", ratio.cls, "val");
 tap("reading", "nats");
 
 // ---- the two divisions cross -------------------------------------------------------------------
@@ -166,7 +159,7 @@ near("  and it is the top row against the next", same.t, (CEILING - GAP) / CEILI
 
 const thin = apart(node({ among: [among({ rows: 1, second: null })] }))[0];
 is("one recorded row leaves the gap with nothing to measure", thin.cls, "hole");
-says("  and no bound either, because nothing here is one", thin.title, "no value");
+says("  and says so rather than reading the one row twice", thin.title, "no value");
 
 /* A distribution measure marks where work was available, so a pair of rivals is the loud
  * position and one the model had nearly settled is the quiet one. Read the other way round

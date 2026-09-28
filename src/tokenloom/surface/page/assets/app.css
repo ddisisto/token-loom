@@ -244,20 +244,12 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
            background: color-mix(in srgb,
                                  var(--accent) calc(var(--t) * var(--wash)), transparent); }
 
-/* A draw that fell past what was recorded is bounded rather than blank: the wash says how far
-   it went at minimum and the line says the record stops there, so the colour is not read as a
-   reading. It is the one mark that carries both. */
-.seg.bound { border-radius: 2px;
-             background: color-mix(in srgb,
-                                   var(--accent) calc(var(--t) * var(--wash)), transparent); }
-
 /* A position with no value is not a position with a low one, and the ways to arrive there are
    marked apart. Each is a line under the text rather than a wash, so none can be read as a
    place on the scale, and each is a different line, so none can be read as another. */
-.seg.off, .seg.hole, .seg.bound, .seg.split, .seg.clash { text-underline-offset: 3px; }
+.seg.off, .seg.hole, .seg.split, .seg.clash { text-underline-offset: 3px; }
 .seg.off   { text-decoration: underline dotted var(--faint); }  /* not this source's draw */
-.seg.bound { text-decoration: underline solid var(--accent); }  /* known from one side only */
-.seg.hole  { text-decoration: underline double var(--accent); } /* nothing bounds it either */
+.seg.hole  { text-decoration: underline double var(--accent); } /* no value to read here */
 .seg.split { text-decoration: underline dashed var(--dim); }    /* more nodes than values */
 .seg.clash { text-decoration: underline wavy var(--accent); }   /* two sources, no answer */
 

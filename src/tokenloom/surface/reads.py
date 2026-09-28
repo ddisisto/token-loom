@@ -386,10 +386,14 @@ def ranking(conn: sqlite3.Connection, node: int) -> list[R.RankedEdge]:
     Descending logprob, and source by source: a node several models have ranked holds
     several rankings, and one order over the union would sit rows side by side that were
     never alternatives to each other.
+
+    **The order is the surface's and not the record's.** A ranking is a set, so sorting is
+    what a reader does with one; the token breaks a tie so that two rows of equal value
+    come back the same way twice.
     """
     return sorted(
         R.ranking_with_children(conn, node),
-        key=lambda r: (r.edge.source, -r.edge.logprob, r.edge.rank),
+        key=lambda r: (r.edge.source, -r.edge.logprob, r.edge.token_id),
     )
 
 

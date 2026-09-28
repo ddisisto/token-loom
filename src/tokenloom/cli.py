@@ -152,16 +152,16 @@ def cmd_generate(args) -> int:
 def cmd_realise(args) -> int:
     with Store.open(args.tree, write=True) as store:
         source = _edge_source(store, args.at, args.source)
-        act = store.realise(args.at, source, args.rank, actor=actor(args))
+        act = store.realise(args.at, source, args.token, actor=actor(args))
         tip = store.conn.execute("SELECT tip FROM acts WHERE id = ?", (act,)).fetchone()[0]
         node = R.get_node(store.conn, tip)
-        print(f"act {act}  realise  rank {args.rank} of {source}  -> node {tip}")
+        print(f"act {act}  realise  token {args.token} of {source}  -> node {tip}")
         print(f"  {tip:>6}  {node.token_id:>7}  {token_repr(store, node)}")
     return 0
 
 
 def _edge_source(store: Store, node: int, named: str | None) -> Source:
-    """Two sources may rank at one node, so a rank alone names nothing. Where only one
+    """Two sources may rank at one node, so a token alone names nothing. Where only one
     has ranked there, naming it is a formality this spares the caller."""
     if named:
         return Source("model", named)
@@ -225,7 +225,7 @@ def cmd_show(args) -> int:
                 spelled = store.conn.execute(
                     "SELECT bytes FROM vocab WHERE token_id = ?", (edge.token_id,)
                 ).fetchone()[0]
-                print(f"    rank {edge.rank:>3}  {edge.logprob:8.4f}  "
+                print(f"    token {edge.token_id:>7}  {edge.logprob:8.4f}  "
                       f"{show_bytes(bytes(spelled))!r:<16}  {source_name(store, edge.source)}")
             if len(edges) > args.limit:
                 print(f"    ... {len(edges) - args.limit} more (--limit)")
@@ -262,11 +262,11 @@ def cmd_tree(args) -> int:
 def cmd_acts(args) -> int:
     with Store.open(args.tree) as store:
         rows = store.conn.execute(
-            "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, a.rank, "
+            "SELECT a.id, a.op, a.origin, a.tip, a.created, a.terminator, "
             "p.json, a.actor, a.model FROM acts a LEFT JOIN params p ON p.id = a.params "
             "ORDER BY a.id"
         ).fetchall()
-        for act, op, origin, tip, created, terminator, rank, params, act_or, model in rows:
+        for act, op, origin, tip, created, terminator, params, act_or, model in rows:
             who = source_name(store, act_or)
             if model is not None:
                 who += f" asked {source_name(store, model)}"
@@ -278,8 +278,6 @@ def cmd_acts(args) -> int:
                     f"origin {origin}", f"tip {tip}"]
             if terminator:
                 bits.append(terminator)
-            if rank is not None:
-                bits.append(f"rank {rank}")
             if params:
                 bits.append(params)
             print("  ".join(bits))
@@ -411,7 +409,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("realise", help="take a ranked edge; no model is called")
     p.add_argument("tree", type=Path)
     p.add_argument("--at", type=int, required=True)
-    p.add_argument("--rank", type=int, required=True)
+    p.add_argument("--token", type=int, required=True, help="the ranked token id to take")
     p.add_argument("--source", help="whose ranking; needed only where more than one ranked")
     acting(p)
     p.set_defaults(fn=cmd_realise)

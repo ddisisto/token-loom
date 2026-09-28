@@ -80,22 +80,24 @@ def rankings(store: Store) -> dict[str, list[dict]]:
     """The whole ranking at each node, each row marked with the child that realised it.
 
     Not `unrealised_edges`, which is the branchable set alone. A reader looking at a
-    position wants to see the token that was taken sitting in its own ranking -- at what
-    rank, against what else -- and the branchable set is then the rows with no child.
+    position wants to see the token that was taken sitting in its own ranking -- against
+    what else -- and the branchable set is then the rows with no child.
+
+    Descending logprob, which is a reading and not the record: a ranking is a set, and the
+    dump has to put the rows somewhere.
     """
     out: dict[str, list[dict]] = {}
-    for node, source, rank, token, logprob, child in store.conn.execute(
+    for node, source, token, logprob, child in store.conn.execute(
         """
-        SELECT e.node, e.source, e.rank, e.token_id, e.logprob, c.id
+        SELECT e.node, e.source, e.token_id, e.logprob, c.id
           FROM edges e
           LEFT JOIN nodes c
             ON c.parent = e.node AND c.token_id = e.token_id AND c.source = e.source
-         ORDER BY e.node, e.source, e.rank
+         ORDER BY e.node, e.source, e.logprob DESC, e.token_id
         """
     ):
         out.setdefault(str(node), []).append({
             "source": source,
-            "rank": rank,
             "token": token,
             "logprob": logprob,
             "realised": child,
@@ -105,16 +107,16 @@ def rankings(store: Store) -> dict[str, list[dict]]:
 
 def acts(store: Store) -> list[dict]:
     out = []
-    for act, op, actor, model, origin, tip, created, params, terminator, rank in (
+    for act, op, actor, model, origin, tip, created, params, terminator in (
         store.conn.execute(
             "SELECT a.id, a.op, a.actor, a.model, a.origin, a.tip, a.created, p.json, "
-            "a.terminator, a.rank FROM acts a LEFT JOIN params p ON p.id = a.params ORDER BY a.id"
+            "a.terminator FROM acts a LEFT JOIN params p ON p.id = a.params ORDER BY a.id"
         )
     ):
         out.append({
             "id": act, "op": op, "actor": actor, "model": model, "origin": origin, "tip": tip,
             "created": created, "params": json.loads(params) if params else None,
-            "terminator": terminator, "rank": rank,
+            "terminator": terminator,
             "nodes": [n.id for n in R.act_tokens(store.conn, act)],
         })
     return out

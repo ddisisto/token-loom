@@ -56,8 +56,8 @@ def tree(tmp_path):
     )
     clean(4)
 
-    # Stage 5 -- realise(node 2, source 2, rank 0). The unnamed user takes ` is`.
-    acts[5] = store.realise(2, MODEL, 0, actor=USER)
+    # Stage 5 -- realise(node 2, source 2, token 374). The unnamed user takes ` is`.
+    acts[5] = store.realise(2, MODEL, 374, actor=USER)
     clean(5)
 
     # Stage 6 -- create(node 8, "<|endoftext|>🜁"), through the special-token path.
@@ -117,17 +117,22 @@ def test_node_4_and_node_6_are_both_has_and_are_different_nodes(tree):
 
 
 def test_stage_3_extends_node_2s_ranking_from_five_rows_to_twenty(tree):
-    """The five already stored keep their values; the fifteen below them are appended."""
+    """The five already stored keep their values, and the fifteen below them are added.
+
+    Asserted as a set of twenty pairs, because a set is what the store holds: nothing in it
+    says which five arrived first, and a test that asked would be testing the read's own
+    ordering rather than the record.
+    """
     store, *_ = tree
     rows = R.ranking(store.conn, 2, source=2)
-    assert [(e.rank, e.token_id, round(e.logprob, 4)) for e in rows] == [
-        (0, 374, -1.3218), (1, 702, -1.6666), (2, 5023, -2.0363),
-        (3, 572, -2.7138), (4, 594, -3.7901),
-        (5, 1030, -4.3049), (6, 518, -4.3088), (7, 3685, -4.3841), (8, 3403, -4.3868),
-        (9, 1431, -4.8847), (10, 304, -4.9828), (11, 323, -5.0173), (12, 686, -5.1101),
-        (13, 748, -5.1507), (14, 646, -5.7753), (15, 17167, -5.8098), (16, 5868, -5.8294),
-        (17, 2669, -5.9023), (18, 4041, -5.9496), (19, 1083, -5.9643),
-    ]
+    assert {(e.token_id, round(e.logprob, 4)) for e in rows} == {
+        (374, -1.3218), (702, -1.6666), (5023, -2.0363), (572, -2.7138), (594, -3.7901),
+        (1030, -4.3049), (518, -4.3088), (3685, -4.3841), (3403, -4.3868),
+        (1431, -4.8847), (304, -4.9828), (323, -5.0173), (686, -5.1101),
+        (748, -5.1507), (646, -5.7753), (17167, -5.8098), (5868, -5.8294),
+        (2669, -5.9023), (4041, -5.9496), (1083, -5.9643),
+    }
+    assert len(rows) == 20
 
 
 def test_node_3s_logprob_is_unchanged_by_the_extension(tree):
@@ -158,15 +163,21 @@ def test_stage_4_writes_an_act_and_no_nodes(tree):
     assert two == four == ("generate", 1, 2, 2, 5, 1, "limit")
 
 
-def test_a_realise_names_no_source_and_its_node_carries_the_models(tree):
+def test_a_realise_stores_no_address_and_its_node_carries_the_models(tree):
     """The node's source comes from the edge rather than from anything the act stores, so
-    a `realise` names an actor and nothing else about provenance."""
+    a `realise` names an actor and nothing else about provenance -- and no token either.
+
+    The whole of the edge's name is read back off the tip, which is what INV-ACT-REALISE
+    means by *the act stores no address*: asking the act what was taken and asking the node
+    it made cannot come apart, because there is only the one answer.
+    """
     store, acts, _, _ = tree
-    op, actor, model, origin, tip, rank = store.conn.execute(
-        "SELECT op, actor, model, origin, tip, rank FROM acts WHERE id = ?", (acts[5],)
+    row = store.conn.execute(
+        "SELECT op, actor, model, origin, tip FROM acts WHERE id = ?", (acts[5],)
     ).fetchone()
-    assert (op, actor, model, origin, tip, rank) == ("realise", 1, None, 2, 8, 0)
-    assert R.get_node(store.conn, 8).source == 2
+    assert row == ("realise", 1, None, 2, 8)
+    tip = R.get_node(store.conn, 8)
+    assert (tip.parent, tip.source, tip.token_id) == (2, 2, 374)
 
 
 def test_stage_7_is_an_act_with_no_tip(tree):
@@ -229,10 +240,16 @@ def test_node_3s_logprob(tree):
     assert R.node_logprob(store.conn, 1) is None  # a root has no parent to carry one
 
 
-def test_unrealised_edges_at_node_2_are_ranks_3_through_19(tree):
-    """Ranks 0, 1 and 2 have children: nodes 8, 6 and 3. This is the branchable set."""
+def test_seventeen_of_node_2s_twenty_edges_are_unrealised(tree):
+    """The rows carrying 374, 702 and 5023 have children: nodes 8, 6 and 3. The other
+    seventeen are the branchable set."""
     store, *_ = tree
-    assert [e.rank for e in R.unrealised_edges(store.conn, 2)] == list(range(3, 20))
+    taken = {374, 702, 5023}
+    free = R.unrealised_edges(store.conn, 2)
+    assert {e.token_id for e in free} == {
+        e.token_id for e in R.ranking(store.conn, 2, source=2)
+    } - taken
+    assert len(free) == 17
 
 
 def test_an_acts_tokens_are_the_path_from_origin_exclusive_to_tip_inclusive(tree):

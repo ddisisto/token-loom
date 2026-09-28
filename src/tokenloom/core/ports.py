@@ -49,7 +49,7 @@ class Token:
 
 @dataclass(frozen=True, slots=True)
 class Ranked:
-    """One alternative at a position, as the source presented it."""
+    """One token ranked at a position, and what it was worth."""
 
     token_id: int
     logprob: float
@@ -57,16 +57,23 @@ class Ranked:
 
 @dataclass(frozen=True, slots=True)
 class Position:
-    """One drawn token, and what else was ranked where it was drawn.
+    """One drawn token, what it was worth, and what else was ranked where it was drawn.
 
     `ranking` is `None` for a declination -- a position the backend could give no
     distribution for. The core records that as an absent ranked edge and never as an
     estimate, so `None` and an empty tuple are not the same thing and the empty tuple is
     not legal.
+
+    `logprob` is the drawn token's own value, which `docs/ADAPTER.md`'s obligation 7 asks
+    for and a backend that cannot say leaves `None`. It stands beside `ranking` rather
+    than in it, because the recording bounds cut the alternatives and a draw is recorded
+    whether or not they reached it. The core writes it as one more row of the same set, so
+    a draw already among the alternatives costs nothing and adds nothing.
     """
 
     token_id: int
     ranking: tuple[Ranked, ...] | None
+    logprob: float | None = None
 
     def __post_init__(self) -> None:
         if self.ranking is not None and not self.ranking:

@@ -39,7 +39,7 @@ def build(path: Path) -> Store:
     store.generate(
         2, {"top_k": 5, "top_n": 5, "length": 3, "seed": 42}, adapter=adapter, actor=USER
     )
-    store.realise(2, MODEL, 0, actor=USER)
+    store.realise(2, MODEL, 374, actor=USER)
     store.create(8, "<|endoftext|>\U0001f701", vocabulary=adapter, actor=USER, special=True)
     store.generate(
         12, {"top_k": 5, "top_n": 200, "length": 4, "seed": 7}, adapter=adapter, actor=USER

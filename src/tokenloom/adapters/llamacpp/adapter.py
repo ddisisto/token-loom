@@ -312,11 +312,16 @@ def reaches(ranking: tuple[Ranked, ...], mass: float) -> int:
 
 
 def bound(positions: list[Position], mass: float) -> list[Position]:
-    """Cut each position's ranking to `record_mass`, two rows, and the token drawn --
-    whichever of the three reaches furthest.
+    """Cut each position's alternatives to `record_mass` or two rows, whichever reaches
+    further.
 
     The `record_rows` ceiling is already applied: it is what `n_probs` asked the server
     for. A position the backend declined to rank is passed through untouched.
+
+    **The drawn token is not what this measures.** Its value rides beside the ranking and
+    is recorded whether or not the cut reached it, which is obligation 7 -- so a draw deep
+    in the tail costs nothing here, where widening to include it once cost every row above
+    it.
     """
     out: list[Position] = []
     for position in positions:
@@ -324,11 +329,9 @@ def bound(positions: list[Position], mass: float) -> list[Position]:
             out.append(position)
             continue
         keep = max(reaches(position.ranking, mass), 2)
-        for index, row in enumerate(position.ranking):
-            if row.token_id == position.token_id:
-                keep = max(keep, index + 1)
-                break
-        out.append(Position(position.token_id, tuple(position.ranking[:keep])))
+        out.append(
+            Position(position.token_id, tuple(position.ranking[:keep]), position.logprob)
+        )
     return out
 
 
@@ -375,7 +378,9 @@ def walk(tokens: list[int], groups: list[dict], vocabulary: GgufVocabulary) -> l
     fragment's id, logprob and alternatives.
 
     So each group is consumed by spelling tokens until they equal the bytes it reports,
-    and the ranking lands on the last token of the group. The interior ones are
+    and the ranking lands on the last token of the group. A group's own `logprob` is what
+    the token it names was worth -- the raw ranking value, reported whether or not
+    `top_logprobs` reached it, which is what obligation 7 rests on here. The interior ones are
     declinations -- positions with no distribution, which the core records as an absent
     ranked edge and never as an estimate.
 
@@ -410,6 +415,7 @@ def walk(tokens: list[int], groups: list[dict], vocabulary: GgufVocabulary) -> l
             Position(
                 group["id"],
                 tuple(Ranked(alt["id"], alt["logprob"]) for alt in group["top_logprobs"]),
+                group["logprob"],
             )
         )
     # Anything after the last group was emitted but never accounted for in text.

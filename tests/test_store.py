@@ -394,26 +394,90 @@ def test_every_key_but_length_reaches_the_adapter_uninterpreted_and_is_stored(st
 
 
 def test_a_ranking_extends_and_is_never_rewritten(store):
-    """A later generation contributes only tokens not already recorded, appended at
-    continuing ranks -- so a token that would outrank a stored one is appended *below* it.
+    """A later generation contributes only tokens not already recorded, and the value first
+    written stands where two observations disagree.
 
-    Rank means the k-th alternative recorded here, not the model's k-th choice.
+    The second generation reports 103 at a different value and a token above everything
+    stored; the first is ignored and the second lands like any other row, because the set
+    holds no order for it to land in.
     """
     tip = seeded(store)
     adapter = ToyAdapter([
         drew((103, [(103, -1.0), (104, -2.0)])),                 # two rows at `tip`
-        drew((105, [(102, -0.1), (103, -1.0), (105, -3.0)])),    # 102 outranks both
+        drew((105, [(102, -0.1), (103, -1.4), (105, -3.0)])),    # 103 again, differing
     ])
     store.generate(tip, {"length": 1}, adapter=adapter, actor=USER)
     store.generate(tip, {"length": 1}, adapter=adapter, actor=USER)
 
     rows = R.ranking(store.conn, tip)
-    assert [(e.rank, e.token_id, e.logprob) for e in rows] == [
-        (0, 103, -1.0),   # kept its value and its rank
-        (1, 104, -2.0),
-        (2, 102, -0.1),   # would outrank rank 0; appended below it regardless
-        (3, 105, -3.0),
-    ]
+    assert {(e.token_id, e.logprob) for e in rows} == {
+        (103, -1.0),   # kept the value it was first written with, not -1.4
+        (104, -2.0),
+        (102, -0.1),
+        (105, -3.0),
+    }
+
+
+def test_what_was_drawn_is_valued_even_where_the_rows_never_reached_it(store):
+    """The draw's own value is recorded beside the alternatives, so a node is covered
+    however few rows stood with it.
+
+    This is the case the recording bounds used to censor: a draw far down the tail once
+    left the node with no covering edge, and a logprob derived for it would have been the
+    lowest row rather than the value. Here the rows stop at -2.0 and the draw is worth
+    -9.5, which no reading of the rows could have produced.
+    """
+    tip = seeded(store)
+    store.generate(
+        tip, {"length": 1},
+        adapter=ToyAdapter([drew((105, [(103, -1.0), (104, -2.0)], -9.5))]), actor=USER,
+    )
+    node = R.children(store.conn, tip)[0].id
+    assert R.node_logprob(store.conn, node) == pytest.approx(-9.5)
+    # One more row in the same set, indistinguishable from the alternatives beside it.
+    assert {e.token_id for e in R.ranking(store.conn, tip)} == {103, 104, 105}
+    assert violations(store.conn) == []
+
+
+def test_a_draw_already_among_the_rows_adds_nothing(store):
+    """Reporting the draw's value costs nothing where the rows already carry it: the row
+    is one row, and the value first written is the one that stands."""
+    tip = seeded(store)
+    store.generate(
+        tip, {"length": 1},
+        adapter=ToyAdapter([drew((103, [(103, -1.0), (104, -2.0)], -1.0))]), actor=USER,
+    )
+    rows = R.ranking(store.conn, tip)
+    assert {(e.token_id, e.logprob) for e in rows} == {(103, -1.0), (104, -2.0)}
+
+
+def test_a_valued_draw_with_no_alternatives_is_a_ranking_of_one_row(store):
+    """A declination is about the distribution and not about the draw. Where a backend can
+    say what it drew and nothing else, the row is there alone -- which is `docs/CORE.md`'s
+    *however few alternatives were recorded beside it*, at none."""
+    tip = seeded(store)
+    store.generate(
+        tip, {"length": 1}, adapter=ToyAdapter([drew((105, None, -0.3))]), actor=USER
+    )
+    node = R.children(store.conn, tip)[0].id
+    assert R.node_logprob(store.conn, node) == pytest.approx(-0.3)
+    assert [e.token_id for e in R.ranking(store.conn, tip)] == [105]
+    assert violations(store.conn) == []
+
+
+def test_a_backend_that_cannot_value_its_draw_leaves_the_node_uncovered(store):
+    """Obligation 7 is an obligation and not a guarantee the core can make. A draw with no
+    value reported is a node with no covering edge -- the same absence a declination
+    leaves, and nothing marks the two apart."""
+    tip = seeded(store)
+    store.generate(
+        tip, {"length": 1},
+        adapter=ToyAdapter([drew((105, [(103, -1.0), (104, -2.0)]))]), actor=USER,
+    )
+    node = R.children(store.conn, tip)[0].id
+    assert R.node_logprob(store.conn, node) is None
+    assert {e.token_id for e in R.ranking(store.conn, tip)} == {103, 104}
+    assert violations(store.conn) == []
 
 
 def test_a_declined_position_records_no_covering_edge(store):
@@ -436,7 +500,7 @@ def test_a_declined_position_records_no_covering_edge(store):
 
 
 def test_a_ranking_belongs_to_the_node_not_to_the_generation(store):
-    """Two sources ranking at one node are two rankings; a rank alone names nothing."""
+    """Two sources ranking at one node are two rankings; a token alone names nothing."""
     tip = seeded(store)
     store.generate(
         tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), actor=USER
@@ -448,7 +512,10 @@ def test_a_ranking_belongs_to_the_node_not_to_the_generation(store):
     rows = R.ranking(store.conn, tip)
     assert len(rows) == 2
     assert len({e.source for e in rows}) == 2
-    assert all(e.rank == 0 for e in rows)  # rank is per (node, source)
+    # One token each, and the two rows are told apart by their source and nothing else.
+    assert {(e.source, e.token_id) for e in rows} == {
+        (store.find_source(MODEL), 102), (store.find_source(OTHER), 103)
+    }
 
 
 # ---- realise ------------------------------------------------------------------------
@@ -460,7 +527,7 @@ def test_realise_takes_an_edge_and_calls_no_model(store):
         tip, {"length": 1},
         adapter=ToyAdapter([drew((102, [(103, -0.2), (102, -0.5)]))]), actor=USER,
     )
-    act = store.realise(tip, MODEL, 0, actor=USER)  # rank 0 is 103, which nothing drew
+    act = store.realise(tip, MODEL, 103, actor=USER)  # 103 was ranked and nothing drew it
     node = [n for n in R.children(store.conn, tip) if n.token_id == 103][0]
     # The act names the actor; the node carries the model that ranked the edge, and the
     # act stores no model of its own. All looked up rather than assumed -- ids are opaque.
@@ -479,14 +546,14 @@ def test_realising_a_realised_edge_writes_only_the_act(store):
         tip, {"length": 1}, adapter=ToyAdapter([drew((102, [(102, -0.5)]))]), actor=USER
     )
     before = store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
-    store.realise(tip, MODEL, 0, actor=USER)
+    store.realise(tip, MODEL, 102, actor=USER)
     assert store.conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == before
 
 
 def test_realise_needs_an_edge_that_exists(store):
     tip = seeded(store)
     with pytest.raises(Rejected, match="no source"):
-        store.realise(tip, MODEL, 0, actor=USER)
+        store.realise(tip, MODEL, 102, actor=USER)
 
 
 # ---- vocabulary ---------------------------------------------------------------------

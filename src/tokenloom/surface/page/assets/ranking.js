@@ -12,11 +12,11 @@
 
 /** Sources in the order they first appear, each with its own rows in descending logprob.
  *
- *  Within a source the order is a model's and the store does not enforce it -- a ranking
- *  deepened by a later act appends, and a near-tie at the join can leave two rows out of
- *  order -- so it is sorted here. Across sources it is not: a node several models ranked
- *  holds several rankings, and one order over their union would stand rows side by side that
- *  were never alternatives to each other.
+ *  Within a source the order is a reading of the values and not a thing the record holds --
+ *  a ranking is a set and stores no order -- so it is sorted here, as the server sorts what
+ *  it sends. Across sources it is not: a node several models ranked holds several rankings,
+ *  and one order over their union would stand rows side by side that were never alternatives
+ *  to each other.
  */
 export function sorted(rows) {
   const by = new Map();
@@ -65,8 +65,8 @@ let on = false;
 export const asked = () => on;
 export const want = yes => { on = yes; };
 
-/* What has been read, by node. A ranking only grows -- `_extend_ranking` appends and never
- * rewrites -- so the rows themselves would keep for the life of the page. What does not keep
+/* What has been read, by node. A ranking only grows -- `_extend_ranking` adds rows and never
+ * rewrites one -- so the rows themselves would keep for the life of the page. What does not keep
  * is `child`: an act realises a row, and the same response then says something different
  * about what became of it. So this is dropped whenever the record changes, which is the one
  * thing hovering makes load-bearing rather than an optimisation. */
@@ -80,14 +80,14 @@ export const forget = () => { held.clear(); };
  *
  * The order of a list of rows is the model's, and the bar behind each one is how far below
  * the top of that ranking it stands -- both of them the same opinion, stated twice because a
- * rank does not say by how much. What neither says is what the reader made of any of it.
+ * place in a list does not say by how much. What neither says is what the reader made of any of it.
  *
  * That is the downward family, read across the siblings at one position instead of down the
  * path -- `docs/SURFACE.md` has an overlay and a ranking as one quantity on two axes, and
  * this is the axis the rows were missing. It is drawn as the size of the token itself, since
  * what it reports is how much is there.
  *
- * It is not a second opinion about the model. A row's rank is fixed the moment it is
+ * It is not a second opinion about the model. A row's value is fixed the moment it is
  * recorded; its weight moves with every act, and the two disagreeing is the whole of what
  * there is to see -- where the heaviest row is not the top one is where the reader steered.
  */

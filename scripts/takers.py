@@ -15,9 +15,11 @@ sit in nearly the same place on it.
     uv run python scripts/takers.py data/logozoa/bulk.sqlite data/continuations/bulk.sqlite
 
 A position is judged against the ranking at its parent for its own source, so an authored token
-contributes nothing. A censored position -- the taken token absent from the recorded rows -- has
-no excess to read and is left out of both populations, but its deviation is bounded from below
-and it carries that bound into the window sums.
+contributes nothing. An uncovered position -- the taken token absent from the recorded rows --
+has no excess to read and is left out of both populations, and carries the span to the lowest
+row into the window sums so that a sum is over every position. **These are what an older tree
+discarded**: under `token-loom/3` a draw is valued whatever the rows reached, so a tree written
+since should show none of them where a source drew.
 """
 
 from __future__ import annotations
@@ -65,19 +67,21 @@ def load(db):
 class Position(NamedTuple):
     """What one position on a path says, read against the ranking it stood in."""
 
-    kind: str          # 'ranked' | 'censored'
+    kind: str          # 'ranked' | 'uncovered'
     gap: float         # top1 - top2
-    deviation: float        # top1 - taken, or its lower bound where censored
+    deviation: float   # top1 - taken, or the span to the lowest row where uncovered
     depth: int         # rows recorded here, which is the choice the taker actually had
-    rank: int          # the taken row in logprob order, or the depth where censored
+    rank: int          # computed here: the taken row's place in logprob order
 
 
 def split(rows, token):
     """A Position, or None where the ranking holds fewer than two rows.
 
-    A censored token sits at or below the lowest recorded row, so its deviation is bounded from
-    below by the span to that row. That bound is what is returned, which is honest for a sum
-    and marked so it can be excluded from anything that needs a value.
+    A token the ranking does not carry has no deviation to read. **A tree written under
+    `token-loom/3` should have none of these where the source drew**, since what was drawn is
+    valued -- so the count is a count of what an older tree discarded at record time, and the
+    span to the lowest row is put in the deviation's place only so a sum has something. It is
+    marked apart so anything needing a value can drop it.
     """
     if len(rows) < 2:
         return None
@@ -85,7 +89,7 @@ def split(rows, token):
     gap = ordered[0] - ordered[1]
     taken = rows.get(token)
     if taken is None:
-        return Position("censored", gap, ordered[0] - ordered[-1], len(rows), len(rows))
+        return Position("uncovered", gap, ordered[0] - ordered[-1], len(rows), len(rows))
     by_logprob = sorted(rows, key=lambda t: -rows[t])
     return Position("ranked", gap, ordered[0] - taken, len(rows), by_logprob.index(token))
 
@@ -114,10 +118,14 @@ def runs(conn, node, ranking):
 
 
 def reader(conn, node, ranking):
-    """Every `realise` as a Position, with the top-row and stored-rank counts beside it."""
-    out, unranked, argmax, misordered = [], 0, 0, 0
-    for origin, tip, rank in conn.execute(
-        "select origin,tip,rank from acts where op='realise' and tip is not null"
+    """Every `realise` as a Position, with the top-row count beside it.
+
+    The edge an act took is read off the node it made -- `origin`, the tip's source and the
+    tip's token -- because that is the whole of what the act stores.
+    """
+    out, unranked, argmax = [], 0, 0
+    for origin, tip in conn.execute(
+        "select origin,tip from acts where op='realise' and tip is not null"
     ):
         token, source = node[tip][1], node[tip][2]
         rows = ranking.get((origin, source), {})
@@ -125,15 +133,11 @@ def reader(conn, node, ranking):
         if got is None:
             unranked += 1
             continue
-        # `rank` is the order the source presented, which `docs/CORE.md` does not require to
-        # descend. Every number below is computed from logprobs; this only counts the drift.
-        if rank is not None and rank != got.rank:
-            misordered += 1
         if got.deviation <= TIE:
             argmax += 1
             continue
         out.append(got)
-    return out, unranked, argmax, misordered
+    return out, unranked, argmax
 
 
 def gap_band(gap):
@@ -251,12 +255,11 @@ def main(dbs):
         paths = runs(conn, node, ranking)
         drawn = [(h, p) for h, path in paths for p in path
                  if p.kind == "ranked" and p.deviation > TIE]
-        censored = sum(1 for _, path in paths for p in path if p.kind == "censored")
-        taken, unranked, argmax, misordered = reader(conn, node, ranking)
-        print(f"sampler divergences {len(drawn)}, censored {censored}")
+        uncovered = sum(1 for _, path in paths for p in path if p.kind == "uncovered")
+        taken, unranked, argmax = reader(conn, node, ranking)
+        print(f"sampler divergences {len(drawn)}, uncovered {uncovered}")
         print(f"reader divergences  {len(taken)}, unranked {unranked}, "
               f"realises of the top row {argmax}")
-        print(f"stored rank disagrees with logprob order at {misordered} realises")
 
         print("\n--- where each population sits on deviation = gap + excess ---")
         if taken:

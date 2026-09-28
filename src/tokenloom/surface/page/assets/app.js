@@ -281,7 +281,7 @@ function took(row, payload) {
  *  down that ask, wherever the page is standing. So the reader takes an alternative and keeps
  *  reading, and the act that costs inference is still one gesture of their own.
  *
- *  The source is sent rather than inferred: a rank alone names nothing at a node two models
+ *  The source is sent rather than inferred: a token alone names nothing at a node two models
  *  have ranked. The row carries the id the wire keys sources by and the act wants the name,
  *  which the payload the row came from already holds -- as it holds the node these are the
  *  alternatives at. That node and not the caret: with the rows shown, the pointer moves them
@@ -292,7 +292,7 @@ async function realise(row, payload) {
   working = true;
   try {
     const act = await ask("/realise", {
-      at: payload.node, source: payload.sources[String(row.source)], rank: row.rank,
+      at: payload.node, source: payload.sources[String(row.source)], token: row.token,
     });
     await refresh();
     await show(act.tip, act.tip);
