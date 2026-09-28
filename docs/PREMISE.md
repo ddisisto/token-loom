@@ -192,8 +192,7 @@ one place it is easiest to see.
 ## What would show this wrong
 
 An argument that names nothing that would unseat it is decoration. These are not a programme of
-work and carry no order; what gets built is `docs/NEXT.md`, and what has been measured is
-`docs/SPINE.md` under *Evidence in hand*.
+work and carry no order; what has been measured is `docs/SPINE.md` under *Evidence in hand*.
 
 - **Crystallisation should be visible, and cheaply.** If a term acquires operational meaning
   through use, the same term should cost fewer nats late in a context than early — one token,

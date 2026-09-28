@@ -311,8 +311,7 @@ def beneath(
     and this adds 16.5 -- one descent of 2,953 nodes and the fold over them. Anchoring above
     the roots instead would answer as well and descend all 13,595 to do it, which measured
     at 88 ms for the same call. What it cannot be is cached: what lies below a node changes
-    with every act, which is why `docs/NEXT.md` puts it with liveness and not with the
-    spellings.
+    with every act.
     """
     if not cells:
         return {}

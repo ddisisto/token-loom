@@ -370,12 +370,4 @@ Each of these is left to be settled by use of the instrument, and each names wha
   legible. It does not answer whether a reader wants inference spent without asking, which is the
   part that was ever in question. Settled by whether readers, given the manual loop, converge on
   repetitive selection patterns a policy could serve — and the manual loop has to exist first.
-- **Whether a stub the reader never asked for should be written down at all.** An idle policy that
-  rolls stubs ahead of the reader writes acts nobody requested, and the record is otherwise a
-  record of intent: `docs/NEXT.md` reads sampler settings back out of `generate` acts, and the
-  measurements above read a tree as the work someone did on it. Both want the reader's acts apart
-  from the instrument's. **The field exists** — an act carries its actor, so an idle policy acts as
-  its own and every read that needs the difference has it. What is open is whether speculation
-  should be committed at all or held until it is taken, which is a question about what a record is
-  for and not about where to put a mark.
 - **Which embeddings, if analysis wants them.** Settled by probing candidates against chains that already exist; nothing upstream depends on the choice.

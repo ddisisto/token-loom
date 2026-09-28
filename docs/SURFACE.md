@@ -242,14 +242,19 @@ preferred to a live one, because it is never offered beside one.
 
 **Nothing the reader did not ask for need arrive live.** A stub is inference the instrument
 spent rather than a continuation the reader chose, so it can be born set aside and be reached the
-way everything else set aside is reached. That costs no new field and no new state.
+way everything else set aside is reached. That costs no new field and no new state. **It is
+written rather than withheld until it is taken**, which is the answer for a stub the reader never
+asked for as much as for one they hovered: a rollout nobody took is still something the instrument
+did, and a record that drops what was spent unbidden is a record of a different session than the
+one that happened.
 
 **It does load one flag with two meanings**, and they are near enough to share it: *I have put
 this away*, and *nobody has taken this up yet*. What tells them apart is the act and not the
 node — an act carries its actor — so a reader who needs the difference has it and the column
-does not have to draw it. What it does not reach is *where* such a node sits: a stub hangs beside
-a path rather than below its end, and the rule above only carries a path on from the end. Seeing
-one is Rankings' business and not the column's.
+does not have to draw it. A source of its own is what an act with no user behind it would carry,
+and naming one waits until there is such an act. What it does not reach is *where* such a node
+sits: a stub hangs beside a path rather than below its end, and the rule above only carries a path
+on from the end. Seeing one is Rankings' business and not the column's.
 
 ## Forks
 
