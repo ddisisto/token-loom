@@ -209,7 +209,15 @@ work and carry no order; what has been measured is `docs/SPINE.md` under *Eviden
 - **The bridge should generalise, or it is one reader's habit.** A term perturbed, paraphrased,
   or replaced by a synonym should behave differently from an established one, and a second reader
   given only what persisted should be able to reconstruct the distinctions. If nothing survives
-  either, the thesis is about accommodation and not about meeting.
+  either, the thesis is about accommodation and not about meeting. **What makes the first half an
+  observation rather than an intuition is holding the continuation fixed and varying the
+  context**: two contexts from one shared prefix, the same downstream tokens under both, and the
+  price read position by position. **The profile is the reading and the sum is not** — unlike a
+  deviation, which is never negative, this difference carries a sign at every position, so the few
+  positions a perturbation reaches are cancelled by drift at all the ones it does not and a total
+  can report nothing where one position carried everything. It is the crystallisation measure run
+  the other way round, and unlike that one it wants something the store cannot yet do — nothing
+  prices a sequence the model did not draw.
 - **The measures should survive leaving the conditions they were found in.** They are developed
   where a divergence is cheap and easy to see — low temperature, short contexts, a seven-billion
   parameter base model — and the bet is that what they read scales into long and complex ones.

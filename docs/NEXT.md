@@ -38,10 +38,12 @@ reader took a row the model offered, and style stays where it is, saying how far
 trusted. What it replaces is colour being spent on the value's status, which left the two takers
 sharing one appearance.
 
-**It is small and it is not cosmetic.** `docs/SPINE.md` measures that nothing read off a ranking
-separates a reader's divergence from a sampler's — the two populations sit in the same place under
-every split of a deviation the record admits — so under drive the overlay cannot say whose a large
-value is, and the acts can, for one query. Four parts: a read collecting the nodes that are the
+**It is small and it is not cosmetic.** `docs/SPINE.md` allocates a position's displacement whole
+— to the operator where a `realise` stands at the node, to the sampler otherwise — so the set of
+realised nodes *is* the attribution and nothing else computes it. Nothing read off a ranking
+separates the two: the populations sit in the same place under every split of a deviation the
+record admits, and a position carries one scalar and one bit that does not follow from it. Under
+drive the overlay cannot say whose a large value is, and the acts can, for one query. Four parts: a read collecting the nodes that are the
 tip of a `realise`, a key on `path_node`, a class on the segment, and the rule.
 
 **The read is a lookup and not a descent, which is most of why it can go first.**
@@ -291,9 +293,12 @@ makes it the half that can be put beside every value.
 but the flag says what was asked for, and a full hit and a partial one move the values by different
 amounts. `timings.prompt_n` separates the three states exactly, and the adapter reads it to
 cross-check the flag and then drops it. `build_info` and `model_ftype` come from a `/props` call the
-adapter already makes. Hardware is the one part no endpoint offers, so it is asserted or it is
-absent, and `CLAUDE.md`'s rule that the alias names the vocabulary and not the source is the same
-problem one level up.
+adapter already makes, and **token-loom's own commit belongs beside them**: which code wrote a row
+is a condition of the act that wrote it, which is why `tree.json`'s `writer`, `repo` and `commit`
+are admitted and left unfilled — a tree is written by however many versions of this it outlives, so
+naming one of them on the tree names the wrong thing most of the time. Hardware is the one part no
+endpoint offers, so it is asserted or it is absent, and `CLAUDE.md`'s rule that the alias names the
+vocabulary and not the source is the same problem one level up.
 
 **It is not a marker change.** New columns leave an older reader incomplete rather than wrong, which
 is the line section 3 draws, so this is built against the current marker and a tree written before it
@@ -391,39 +396,41 @@ Not in the ordering; each stands on its own.
   already produced, which is the same fact the adapter's notes record as the logprobs being
   pre-temperature. So beside a deviation the two halve the question — one says how much noise was
   permitted at a position, the other how far the draw then went.
+- **Whether stamping wants an occasion beyond the command.** `docs/CORE.md` specifies the digest
+  and leaves the occasion open, and `tokenloom stamp` is the only one built. A hash wants taking
+  *when a figure is*, and a timer would stamp between figures rather than at them — which invites
+  reading the nearest stamp as the one a figure came from. A hook on server close is the better of
+  the two if either is wanted, because closing is a moment a reader can point at. Nothing forces
+  it while figures are quoted by hand.
+- **Nothing prices a sequence the model did not draw, and one reading wants it.** The three
+  producing operations cover authored bytes, a draw, and a ranked edge taken; none of them puts a
+  value on a known token sequence under a context. So the same text cannot be laid under two
+  contexts and read against itself, which is what `docs/PREMISE.md`'s generalisation test now asks
+  for — and it is the one configuration where two paths are position-aligned by construction
+  rather than compared by judgement, which is what *Stubs* leaves to the reader because a trie
+  never merges them back. The workaround with the acts that exist is a length-1 `generate` per
+  position and a `realise` of the token wanted, which costs a call a token **and fails exactly
+  where it would say the most**: where the second context makes the sequence unlikely, the token
+  falls outside the recorded rows and there is nothing to take. That is `docs/SPINE.md`'s
+  censoring finding in a second place, and obligation 7 does not reach it — a source reports what
+  its *own draw* was worth, and this token was not drawn. **The backend is not what blocks it.**
+  `src/tokenloom/adapters/llamacpp/README.md` now records both halves: nothing reports the
+  prompt's own tokens, so a sequence cannot be scored in one pass — but a request at the full
+  vocabulary prices every token at a position in a single call, so the token wanted is always
+  among the rows and the walk never fails. Asking narrowly and widening only where the token is
+  absent needed 14 wide calls in 154. **So what is missing is an act and not a capability**: a
+  source that reports what a *named* token was worth, which is obligation 7 generalised from the
+  draw it made to a token it was asked about. Whether that is a sixth write, a parameter on
+  `generate`, or something that records nothing and only reads, is the open part — and it is a
+  `docs/CORE.md` change either way, so it moves as its own piece of work.
 
-## 3. A tree that can be cited
+## 3. The next marker bump
 
 **A marker bump is what makes an older reader wrong rather than merely incomplete, so it is paid
 once and carries everything that wants it.** A new table or column does not change `marker`;
 changing what an existing one means does. So a bump is a bundle and not a task — items land here
 as they are found, and it is opened when something in it is worth the bump on its own.
 
-**The last bundle is closed.** `marker` is `token-loom/3`, `rank` is gone from both tables and an
-edge is addressed by its token everywhere, a source reports what its own draw was worth, the
-censored-draw bound is deleted, and `tree.json` admits `writer`, `repo` and `commit`. The
-migration is `scripts/migrate-to-3.py`.
-
-**What names a state is built.** `docs/CORE.md` has the `stamps` table, the digest and a sixth
-write that is not an act; `tokenloom stamp` takes one and `tokenloom stamps --verify` says
-whether a hash is this tree, was this tree, or neither. `docs/SPINE.md`'s figures are stamped and
-say so. A tree written before the table gains it when a writer next opens it, which is the
-general rule for an additive change reaching an existing tree.
-
-**The occasion stays unspecified and manual stays the one built.** A hash wants taking *when a
-figure is*, and a timer would stamp between figures rather than at them — a tree stamped on a
-schedule invites reading the nearest stamp as the one a figure came from. A hook on server close
-is the better of the two if either is wanted, because closing is a moment a reader can point at.
-
-**What is left here is the part that is not the instrument's to fix.** Neither working tree is in
-the repository, so a stamp is checkable by whoever holds the tree and by nobody else. That is
-accepted rather than solved: nothing in the documents turns on an exact count, and a figure that
-needed to be independently verifiable would need the tree published, which is a different
-question about a different kind of artefact.
-
-**What the writer was stays with the act.** `writer`, `repo` and `commit` are keys the format
-admits and nothing fills, and they are left that way: a tree is written by however many versions
-of this it outlives, so naming one of them on the tree names the wrong thing most of the time.
-Which code wrote a row is a condition of the act that wrote it, which is section 2 — token-loom's
-own commit beside llama.cpp's `build_info`. A `creator` key on the tree is the fallback if a need
-for one turns up, and none has.
+**Nothing is in it.** `token-loom/3` closed the last one, and everything wanted since has been
+additive: a writer creates what its `marker` defines and the tree lacks, which is how a tree
+written before `stamps` gains it, and section 2 is built the same way.

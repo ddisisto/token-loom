@@ -53,8 +53,9 @@ def test_the_same_store_digests_the_same_twice(tree):
 
 def test_a_renamed_source_moves_it(tree):
     """`sources` is reached through an id every node carries, so a tree whose model was
-    renamed has identical nodes and is not the same tree. Leaving this table out is the easy
-    mistake and `docs/NEXT.md` had made it."""
+    renamed has identical nodes and is not the same tree. Naming only the tables a reader thinks
+    of as the observation -- vocabulary, nodes, edges, acts -- is the easy mistake, and it leaves
+    the two reached through ids out."""
     assert moves(tree, lambda c: c.execute("UPDATE sources SET name = 'elsewhere' "
                                            "WHERE kind = 'model'"))
 
@@ -99,8 +100,9 @@ def test_a_table_arriving_empty_does_not_move_it(tree):
 
 
 def test_a_column_arriving_null_does_not_move_it_and_a_value_in_it_does(tree):
-    """The same rule one level down, and the case that is coming: `docs/NEXT.md`'s per-act
-    condition adds columns to `acts`, and every act written before it holds null in them."""
+    """The same rule one level down, and the case that is coming: recording the conditions an
+    act was made under adds columns to `acts`, and every act written before that holds null in
+    them."""
     assert not moves(tree, lambda c: c.execute("ALTER TABLE acts ADD COLUMN condition TEXT"))
     assert moves(tree, lambda c: c.execute("UPDATE acts SET condition = 'cold' WHERE id = 1"))
 

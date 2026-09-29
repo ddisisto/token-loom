@@ -232,6 +232,31 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   many alternatives can be recorded is therefore not a thing this build has — but a request
   above the vocabulary is a parameter met approximately, which is the one thing an adapter
   may not pass on.
+- **Nothing reports the prompt's own tokens, on either endpoint.** `completion_probabilities`
+  covers what was *drawn* and never what was given: at `n_predict` 0 it holds one entry, the
+  generated token, and no key in the response is about the prompt. `echo`, `prompt_probs`,
+  `return_prompt_probs`, `return_prompt_logprobs` and `logprobs_prompt` are each accepted with
+  HTTP 200 and each changes nothing — an unknown field is dropped in silence, so a probe for one
+  cannot be told from a probe that found one. `/v1/completions` with `echo: true` and
+  `logprobs: 5` does not carry OpenAI's meaning either; it returns the generated token's rows and
+  nothing for the prompt. **So a known sequence cannot be priced in one pass**, which is what a
+  reading that lays one text under two contexts would want, and the walk below is the way there.
+- **Any named token can be priced at a position, because the rows reach the whole vocabulary.**
+  One request at `n_probs` 152064 returns all 152064 rows, and they are a distribution rather
+  than a truncation of one — `sum(exp(logprob))` is 1.000690, the excess being float32
+  accumulation over that many terms. A token the model would never draw is therefore always
+  present and always priced: after `The capital of France is`, ` banana` sits at rank 12,203 and
+  −15.49, ` Ж` at 21,071 and −16.46. **The model does no more work for it.** Across 20, 1,000,
+  20,000 and 152,064 rows `prompt_ms` holds at about 85 ms and only the response grows — 3.4 KB,
+  95 KB, 1.9 MB, 14.4 MB — so the whole cost is serialisation and transfer, 0.73 s wall at the
+  full vocabulary against 0.10 s at twenty. Asking narrowly first and widening only where the
+  wanted token is absent took 14 wide calls in 154 over three worked readings. Wide and narrow
+  agree on the rows they share to 8.6e-06, which is the same step measured above.
+- **`n_predict: 0` draws one token and calls it `limit`.** Not zero tokens: `tokens_predicted` is
+  1, `content` is the argmax, and `stop_type` is `limit`, identical in every respect to
+  `n_predict: 1`. It is the same fault as the truncation below — the core's `limit` means *it drew
+  the requested length*, and here it drew one more than was asked for. There is no way to make
+  this server evaluate a prompt without also generating from it.
 - **A generation that will not fit is truncated, and still reports `stop_type: limit`.**
   With `n_ctx` 16384: a 16000-token prompt asking for 500 answers HTTP 200 with
   `truncated: true`, 384 tokens drawn, and `stop_type: limit`. A 16380-token prompt asking
