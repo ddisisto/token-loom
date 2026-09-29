@@ -34,9 +34,11 @@ BANDS = [(0.001, "0.0 greedy"), (0.35, "0.05-0.35"), (0.8, "0.4-0.8"), (9.9, "0.
 def read(db):
     """Every generated run, as a list of (deviation, gap) in path order.
 
-    A censored position -- the draw fell past what was recorded -- carries a deviation we know
-    only a bound for, so it is given one larger than any real value. That is honest for a gate,
-    which only ever asks whether a threshold was passed.
+    A position whose ranking does not carry the token drawn has no deviation to read. **A tree
+    written under `token-loom/3` should have none of these**, since what a source draws is
+    valued where it is recorded; what is left is what an older tree discarded at record time.
+    Such a position is given a deviation larger than any real value, which is honest for a gate
+    -- it only ever asks whether a threshold was passed, and this one passed every threshold.
     """
     conn = sqlite3.connect(db)
     parent, token, source = {}, {}, {}

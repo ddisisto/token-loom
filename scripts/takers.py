@@ -206,9 +206,9 @@ def by_depth(name, positions):
 def windows(path):
     """One run's windows, as (divergence count, summed deviation).
 
-    If the two rank a run's windows alike, counting flags and summing their prices are one map
-    over that run; if they do not, they are two. Pooling runs would answer a different question,
-    since a hotter run carries more of both.
+    If the two rank a run's windows alike, counting divergences and summing their prices are
+    one map over that run; if they do not, they are two. Pooling runs would answer a different
+    question, since a hotter run carries more of both.
     """
     out = []
     for start in range(0, len(path) - WINDOW + 1, WINDOW):
