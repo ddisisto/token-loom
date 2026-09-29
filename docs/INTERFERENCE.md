@@ -47,6 +47,32 @@ choice — as voice, as the thing having decided something — when it was a die
 first arrangement in which that attribution is checkable: `docs/SPINE.md`'s deviation says the
 dice moved it, and how far.
 
+**The act that puts the person in the slot is `realise`, and it is a replacement at a mapped
+point.** It takes a row the model ranked and the draw did not take, at the position the draw
+would have stood — not an edit of the text afterwards. That is what keeps the substitution
+legible rather than merely equivalent: the record holds which row was taken, out of what, and at
+what price, so the reader's selection is expressed in the same terms the sampler's would have
+been. `docs/SPINE.md` has who that price is charged to and how `realise` moves it.
+
+**The operator samples the way a sampler does, from the head.** They read the top row, or the
+rows covering most of the mass where there are few of them, or a spread they judge
+representative — and they do not enumerate. Consulting a distribution at its head and choosing
+one thing is what makes this a sampler rather than a search, and it is why the gesture stays
+cheap. What makes it a better sampler than noise is only that the choice is about the text.
+
+**Attention is the scarce thing, and learning where to spend it is the skill.** A reader working
+a document quickly finds which stretches need looking at and which can be let run, and that
+judgement is the adaptive half of *Fixed model, adaptive operator*. It is also why nothing here
+wants exhaustive rollout: a position the reader passed over is one they judged not worth the
+cost, and a machine spending inference there is buying back an assessment already made.
+
+**What the record keeps of that is what was rolled out.** A row hovered into a stub is a
+`generate` and is in the record; a row the eye passed over leaves nothing, there being no verb
+for a hover and the five acts being the whole of what can be written. So the trace is of
+attention *spent* and not of attention paid, and the positions carrying several stubs are the
+ones the reader thought were worth the question. That is a finer record of method than anything
+here asked for, and it accumulates as a side effect of working.
+
 ## Interference
 
 **Two sources, and a document that is the pattern between them.** The model produces a preference

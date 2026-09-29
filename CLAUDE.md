@@ -235,6 +235,13 @@ How decisions get made here — what has paid off, and what it cost to skip.
   the llama.cpp adapter's notes overturned a confident assumption in minutes. The general
   form: **absence of observation cannot settle a question about what is possible.** Ask the
   vocabulary, not the samples.
+- **What cannot be interacted with cannot be assessed, and designing past that point is
+  guessing.** Five underline styles were specified, built and shipped before there was any way
+  to see them on a real path against each other, and there still is not one — so whether they
+  add anything has never been a question the tree could answer. A feature that reaches the page
+  earns more than one that reaches a document. **Default it on and give it a switch**: that is
+  what makes the question askable, and the answer is the default for a later version rather than
+  something prose settles first.
 
 ## What carries the unfinished
 
