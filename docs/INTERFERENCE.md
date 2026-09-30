@@ -357,13 +357,17 @@ turns out to be answerable from the store.
 | `cache_prompt` | `false` near zero; *Determinism stops being a diagnostic* is why, and why it matters less under drive |
 | `seed` | nothing to seed at zero; under drive it is what makes a driven path replayable |
 
-**The aperture has to open with the dial, and the two are not independent.** Driving harder lands
-the draw further down the ranking, and a record sized for a colder draw censors it: the row the
-draw took falls past what was written, so that price comes back as a bound rather than
-a reading. `docs/SPINE.md` measures exactly this — every censored position in `data/continuations`
-came from one hot draw recorded to a depth that earlier, equally hot draws had exceeded, so a
-draw censors not by being hot but by being recorded for something colder. Turning one dial without
-the other buys deviation the record cannot price.
+**The aperture still wants to open with the dial, and what it costs to leave it shut has
+changed.** Driving harder lands the draw further down the ranking, and a record sized for a colder
+draw once left that draw unpriced: the row it took fell past what was written, so the price came
+back as a bound rather than a reading. `docs/SPINE.md` measures it — every such position in
+`data/continuations` came from one hot draw recorded to a depth that earlier, equally hot draws
+had exceeded, so a draw went unpriced not by being hot but by being recorded for something colder.
+`docs/ADAPTER.md`'s obligation 7 closed that, and a source now reports what its own draw was worth
+whatever the rows reached. What a shallow record still costs under drive is the company the draw
+kept — the alternatives there are to branch into, and what any quantity over a ranking is read
+against. So the two dials still move together, and the failure is now one a reader can see rather
+than one the record swallowed.
 
 **Preferred, and not required.** The band answers *what lies below this fork*, which is reading
 across branches and a different activity from composing along one.
