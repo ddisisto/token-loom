@@ -22,6 +22,17 @@ The spine is the reader's object. They are reading their output, as they would a
 
 **Every position carries a deviation: the log-ratio between the token the model ranked first and the token that was taken.** It is zero where the top row was taken and positive where anything else was, so what runs along a path is one quantity over its whole length rather than a set of marks on otherwise plain text. A position whose deviation is positive is a **divergence** — there, the taker moved the continuation off what the model would have produced alone; everywhere else the sampler was decoration.
 
+**In the field's terms a deviation is a surprisal baselined against the position's mode, and the
+baseline is why it is not perplexity.** Perplexity and cross-entropy price the tokens that were
+realised; deviation subtracts the price of the cheapest token available, so it reads what the
+taking did rather than how well the model predicted — `surprisal(taken) − surprisal(top₁)` is the
+whole of it. The unbaselined quantity is used here as well, since what a path costs per unit of
+text is a cross-entropy, so the two sit side by side and only the baselined one is this document's
+own. **It is not a divergence between distributions**: a KL is an expectation and nothing here
+takes one, while a deviation is a single realised log-ratio. Its nearest named relative is a
+per-step regret against greedy decoding, and the name is not borrowed because regret asserts the
+argmax was correct — which is what *What this asks of a reading surface* exists to prevent.
+
 A deviation is an observation, not a hypothesis. Machinery that tries to decide where a model *might* be movable — orderings over candidate branch points, admission thresholds, frontier policies — is placing bets before spending. A divergence is a bet already placed and settled: a different token *was* taken, at a recorded price.
 
 Three properties fall out immediately:
@@ -37,6 +48,14 @@ Three properties fall out immediately:
 **A deviation is an amount and the record says who paid it.** What the log-ratio does not carry is whether the sampler moved the continuation or the reader did. Nothing read off a ranking has separated them yet. `scripts/takers.py` splits a deviation into the toll for leaving the argmax and how far past the best alternative the taker went, on the proposal that the second tells a deliberate divergence from a hot draw, and the two populations sit in nearly the same place on it; *Evidence in hand* has what banding them by depth and by list length then found. The acts separate them exactly, because a `realise` names the node it produced.
 
 **Read as a share, the price is bounded and the payer is a partition of it.** Take `p(taken) / p(top)` as the model's share of a position: one where the draw took the argmax, and falling toward zero as the taker went further down. The balance is the **displacement**, and it is allocated whole — to the operator where a `realise` stands at that node, and to the sampler otherwise. It is the quantity deviation already is, in a bounded space rather than a log one, since `deviation = −log(share)`. What the bounded form buys is a domain nobody had to choose, and something that can be attributed. **Both terms are always there.** A draw records its own value beside the ranking rather than inside it, so the share reads at every drawn position however few alternatives were kept with it, and a deep draw does not have to be reached by widening the rows above it.
+
+**The share is the coordinate `min_p` thresholds on, exactly.** That sampler keeps a token when
+`p(token) / p(top)` is at least its setting, which is the share under another name — so a
+threshold on deviation is a threshold on `min_p` read in log space, and any gate here can be
+stated as the setting that would have excluded what it selects. A gap of 2.0 nats is a second row
+at a share of 0.135; a deviation of 3.0 is 0.050, which is this server's default. The
+correspondence is exact rather than analogous, and it is worth saying because a reader who has
+tuned that dial has already calibrated this axis — nothing had to be chosen for that to be true.
 
 **The balance is to the argmax and not to one.** A position's remaining probability is the model's own uncertainty, which is a different thing from something other than the model having decided. A greedy draw where the top row holds 0.4 is maximally uncertain and has displaced nothing — it took the argmax, deterministically, which is the whole of what makes it the reference arm. Balancing to one would charge it 0.6 and leave the instrument with no zero.
 
