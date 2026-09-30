@@ -43,8 +43,9 @@ sharing one appearance.
 realised nodes *is* the attribution and nothing else computes it. Nothing read off a ranking
 separates the two: the populations sit in the same place under every split of a deviation the
 record admits, and a position carries one scalar and one bit that does not follow from it. Under
-drive the overlay cannot say whose a large value is, and the acts can, for one query. Four parts: a read collecting the nodes that are the
-tip of a `realise`, a key on `path_node`, a class on the segment, and the rule.
+drive the overlay cannot say whose a large value is, and the acts can, for one query. Four parts:
+a read collecting the nodes that are the tip of a `realise`, a key on `path_node`, a class on the
+segment, and the rule.
 
 **The read is a lookup and not a descent, which is most of why it can go first.**
 `INV-ACT-REALISE` gives every `realise` a non-null `tip` that is a child of its `origin`, so the
@@ -402,6 +403,19 @@ Not in the ordering; each stands on its own.
   reading the nearest stamp as the one a figure came from. A hook on server close is the better of
   the two if either is wanted, because closing is a moment a reader can point at. Nothing forces
   it while figures are quoted by hand.
+- **What a draw does when it merges onto a stub is decided and not built.** A stub is born set
+  aside, so its nodes carry a `delete`; a later `generate` that samples the same tokens reaches
+  them through `(parent, token_id, source)` and would otherwise lay a live path over hidden nodes.
+  The rule is that **the deletion moves up to the point of divergence, and clears entirely on full
+  overlap** — where the draw parts from the stub at the fourth token the first three go live and
+  the flag sits at the fourth, which is the shape liveness already derives from, and where the
+  draw reproduces the stub whole nothing stays set aside. It asks for no new verb: `undelete`
+  where the stub began and `delete` where the draw left it, and one gesture writing several acts
+  is what *taking an alternative* already is. **Full overlap is a reading and not only a case to
+  handle**, being a draw that reproduced a greedy rollout token for token. It also leaves those
+  nodes covered by two `generate` acts at different temperatures, where *What a node was drawn at*
+  reduces by `min` — which lands on zero and says *reachable greedily*, and is true. Whether the
+  code does any of this has not been checked.
 - **Nothing prices a sequence the model did not draw, and one reading wants it.** The three
   producing operations cover authored bytes, a draw, and a ranked edge taken; none of them puts a
   value on a known token sequence under a context. So the same text cannot be laid under two
@@ -423,6 +437,15 @@ Not in the ordering; each stands on its own.
   draw it made to a token it was asked about. Whether that is a sixth write, a parameter on
   `generate`, or something that records nothing and only reads, is the open part — and it is a
   `docs/CORE.md` change either way, so it moves as its own piece of work.
+  Three things narrow it. **A seed's positions are wanted branchable on the same footing as any
+  others**, the unit being a position in a context and not a token of a particular origin, so the
+  generalisation test is one caller and not the reason. **The operation stands on its own whatever
+  `create` does with it**, because the trees that exist already hold authored runs nothing ranked
+  and an operation that only ran at authoring time would leave them dark for good — `create`
+  calling it is then a policy on top rather than the thing itself. And **keeping `create` workable
+  with no model running is not a reason to prefer one shape**: what has to hold unattended is that
+  existing text renders and reads, an authoring act that prices what it writes is one that wants a
+  server, and `README.md`'s line about what runs without one moves when this does.
 
 ## 3. The next marker bump
 
