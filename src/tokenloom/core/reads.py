@@ -504,6 +504,31 @@ def unrealised_counts(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[in
 # ---- acts --------------------------------------------------------------------------
 
 
+def realised(conn: sqlite3.Connection, nodes: Iterable[int]) -> set[int]:
+    """Which of `nodes` a `realise` produced, which is who the displacement is charged to.
+
+    `INV-ACT-REALISE` gives every `realise` a non-null `tip` that is a child of its `origin`,
+    so a realise's range is one node and its `tip` *is* its membership. That makes this a
+    lookup where the same question about a `generate` or a `create` is a walk over a range,
+    and it is why the attribution of a drawn token can be read without one.
+
+    A node absent from the result was not the tip of one. It may still be one a `create`
+    wrote, which is that act's range and not answered here.
+
+    **A node can be realised and drawn both**, since `(parent, token_id, source)` merges and
+    `realise` writes its act whichever way it arrived. Nothing distinguishes the two here, and
+    a caller that needs to must ask what else covers the node.
+    """
+    out: set[int] = set()
+    for holes, part in _chunks(nodes):
+        out.update(
+            tip for (tip,) in conn.execute(
+                f"SELECT tip FROM acts WHERE op = 'realise' AND tip IN ({holes})", part
+            )
+        )
+    return out
+
+
 def act_tokens(conn: sqlite3.Connection, act: int) -> list[Node]:
     """The path from `origin` (exclusive) to `tip` (inclusive), in order.
 

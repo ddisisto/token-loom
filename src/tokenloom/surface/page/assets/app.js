@@ -17,6 +17,7 @@
 
 import * as cursor from "./cursor.js";
 import { draw, panel } from "./draw.js";
+import * as mark from "./mark.js";
 import {
   panel as overlayPanel, read as overlays, rule as taken, wants, weighed,
 } from "./overlay.js";
@@ -147,7 +148,7 @@ function boundary(cell) {
 /** `marks` is what the overlay made of each span, or null where none is drawn -- which is
  *  the column a reader has not asked anything of, and is why the mark is applied here rather
  *  than being something a span always carries. */
-function spans(segments, marks) {
+function spans(segments, marks, takers) {
   const out = [];
   let cut = false;
   for (const [i, cell] of segments.entries()) {
@@ -157,6 +158,10 @@ function spans(segments, marks) {
     el.className = `seg${cell.decodes ? "" : " raw"}${hidden ? " hidden" : ""}`;
     el.textContent = cell.text;
     el.dataset.node = cell.nodes[cell.nodes.length - 1].id;
+    // Who took the token is its own class and never the overlay's: the two axes are
+    // independent, so a segment whose value cannot be trusted still says whose it is.
+    const taker = takers?.[i];
+    if (taker) el.classList.add(taker);
     const mark = marks?.[i];
     if (mark) {
       el.classList.add(mark.cls);
@@ -339,8 +344,11 @@ async function show(node, where) {
   // none of it. The rule is a parameter of the read and never of the page: what is drawn is
   // the path the server derived, so the page holds no opinion about where it went.
   const want = wants();
+  // The mark is not an overlay and reads the same ranking one of them would, so what is
+  // asked for is the union of what is on rather than what the panel alone chose.
+  const ranked = want.overlays || mark.wants();
   const read = await ask(`/path/${node}?hidden=${showHidden ? 1 : 0}&rule=${taken()}`
-    + `&overlays=${want.overlays ? 1 : 0}&beneath=${want.beneath ? 1 : 0}`);
+    + `&overlays=${ranked ? 1 : 0}&beneath=${want.beneath ? 1 : 0}`);
   let cells = read.segments;
   if (!showHidden) {
     // The read carries a hidden ancestry whatever the toggle says, since a path through a
@@ -362,7 +370,7 @@ async function show(node, where) {
   flow.onmouseleave = () => { clearTimeout(peeking); settled(); };
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
   // range from the text in front of the reader.
-  flow.append(...spans(cells, overlays(cells, read.sources)));
+  flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells)));
   $("column").replaceChildren(flow);
   frontier();
   settled();
@@ -698,6 +706,19 @@ $("hidden").onchange = async () => {
 /* Whether what else was live is shown. A way of looking, like what is set aside: it records
  * nothing, and it asks for nothing until it is on -- a position can run to dozens of rows,
  * and `docs/SURFACE.md` has density staying behind intent. */
+/* Whether who took each token is marked. Default on, and a way of looking like the two
+ * above: it records nothing and changes no text. Flipping it re-reads, because the sampler's
+ * half of the mark needs the ranking and a read made without it did not carry one. */
+$("taker").onchange = async () => {
+  mark.want($("taker").checked);
+  const here = cursor.node();
+  try {
+    if (here !== null) await show(here, here);
+  } catch (why) {
+    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  }
+};
+
 $("rows").onchange = () => {
   ranking.want($("rows").checked);
   settled();

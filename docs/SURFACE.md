@@ -521,11 +521,26 @@ record can check and which a set of rows accumulated across acts is not. So the 
 having no value, which is what it has.
 
 **The mark under a segment carries three things, and they are three axes rather than one list of
-states.** Its **existence** says something diverged here — the token taken was not the one the
-model ranked first. Its **colour** says who took it: the sampler, or a reader taking a row the
-model offered. Its **style** says how far the value can be trusted — plain where it is a reading,
-and marked where it is a hole, a segment holding more nodes than values, or a position two sources
+states.** Its **existence** says the token was put here by something other than the model's own
+preference. Its **colour** says who took it: the sampler, or a reader taking a row the model
+offered. Its **style** says how far the value can be trusted — plain where it is a reading, and
+marked where it is a hole, a segment holding more nodes than values, or a position two sources
 ranked.
+
+**The two halves of existence are not symmetric, and that follows from the allocation.** A
+`realise` is marked whatever it cost, because `docs/SPINE.md` allocates the displacement to the
+operator wherever one stands and an operator who takes the top row has displaced nothing and still
+acted — the bit does not follow from the scalar. A draw is marked only where it diverged, because
+a sampler that took the argmax displaced nothing *and* did nothing, and marking those would draw a
+line under the model's own preference, which is most of a cold path. So the mark says *something
+other than the model put this here*, which is one sentence over both halves and reads off the
+record either way.
+
+**Only the sampler's half needs a ranking.** Whether a `realise` stands at a node is on the wire
+whatever was asked for, so the reader's half is drawn against an empty column; the draw's half
+needs the top row, which is the ranking read an upward measure also rides on. They are one mark
+and are drawn together or not at all, so what a read asks for is the union of what is on rather
+than what the overlay panel alone chose.
 
 **An authored token is not a third colour, because it is not a divergence.** Nothing ranked at its
 parent for its source, so there is no first row it was taken instead of, and the existence axis
@@ -920,9 +935,15 @@ when it is settled.
   and seeing whether anything is lost track of.
 - **Whether the mark should be drawn when no overlay is.** Who put a token there is not a measure
   and so is not covered by *An overlay is asked for*, which argues it is always on; *The floor case
-  is a text reader* argues the column a reader has asked nothing of stays plain. Settled by
-  whether a reader with no overlay up still wants to see which words are theirs, which is a
-  question about reading and not about the record.
+  is a text reader* argues the column a reader has asked nothing of stays plain. It is **drawn by
+  default and carries a switch**, which is what makes the question askable rather than argued —
+  what is still open is the answer, settled by whether a reader with no overlay up keeps it on.
+  Density is lighter than the divergence rate suggests and is the thing to watch: over
+  `data/logozoa` the mark stands under 3.6% of nodes, 1.2% the reader's and 2.4% the sampler's,
+  and over `data/continuations` 18.2%, almost all of it the sampler's. A passage drawn near the
+  top of the dial diverges at three positions in five, so it is a hot *stretch* and not a tree
+  that fills with lines — which makes the sampler's half the one that would want a switch of its
+  own, if either does.
 
 - **How composition is summoned at a position.** Starting a root is answered: a row where the
   root will appear, staging a composer in the column that a submit turns into the act, so the
@@ -1104,6 +1125,14 @@ at an ordinary position and 20 at the root of a fourteen-thousand-node tree. The
 whole trade and the panel already owns it: log keeps a small explored arm legible beside a large
 one, linear states the ratio honestly and puts the small one on the floor beside the arms nobody
 ever took.
+
+**A mark under a segment says who put the token there, and it is not an overlay.** It is drawn
+whether or not a measure is, and carries a toggle beside the two that say what is set aside and
+whether the rows are shown. A `realise` is marked whatever it cost and a draw only where it left
+the top row, so what a line means is *something other than the model put this here*; colour says
+which of the two, and the four lines that say a value cannot be trusted keep the style axis
+untouched. The set of realised nodes crosses the wire as a plain boolean per node, since who took
+a token has no domain and nothing to compare across positions.
 
 What does not exist is everything past that: no continuation shown beside a row, no depth limit
 and so no view that presets one, and no way back to the boundary of an act to take one draw

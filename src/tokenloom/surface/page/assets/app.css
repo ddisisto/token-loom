@@ -248,10 +248,24 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    marked apart. Each is a line under the text rather than a wash, so none can be read as a
    place on the scale, and each is a different line, so none can be read as another. */
 .seg.off, .seg.hole, .seg.split, .seg.clash { text-underline-offset: 3px; }
+
+/* ---- who took the token ----
+   Three axes on one line, and they are set in three passes because that is what keeps them
+   independent. **Existence** is here: a line stands where a `realise` put the token, or
+   where a draw left the model's top row. **Style** is the block above, saying how far the
+   value can be trusted -- so a mark whose value is a hole is still a hole, and still says
+   whose. **Colour** is the block below, and it comes last so that it wins over whichever
+   style rule ran, which is what makes it an axis rather than a leftover.
+
+   Plain is solid, which is free: the bound state that once held it went with the censored
+   draw. A segment with a value and one with none never share a style, so nothing collides. */
+.seg.took, .seg.drew { text-underline-offset: 3px; text-decoration: underline solid; }
 .seg.off   { text-decoration: underline dotted var(--faint); }  /* not this source's draw */
 .seg.hole  { text-decoration: underline double var(--accent); } /* no value to read here */
 .seg.split { text-decoration: underline dashed var(--dim); }    /* more nodes than values */
 .seg.clash { text-decoration: underline wavy var(--accent); }   /* two sources, no answer */
+.seg.drew  { text-decoration-color: var(--faint); }  /* the sampler left the top row */
+.seg.took  { text-decoration-color: var(--accent); } /* the reader took a row */
 
 /* ---- what else was live ----
    In the half the reading column leaves empty, at the line of whatever the rows are about, so

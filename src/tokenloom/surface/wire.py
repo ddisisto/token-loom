@@ -77,6 +77,7 @@ def path_node(
     mark: R.PathNode,
     among: dict[int, list[R.Spread]] | None = None,
     under: dict[int, dict[str, int]] | None = None,
+    realised: set[int] | None = None,
 ) -> dict[str, Any]:
     """A node of a path with what is derived at it: whether it is live, what the ranking
     above gave it, and whether its parent parts here.
@@ -91,12 +92,20 @@ def path_node(
     present only when asked for, so an absent key is *nobody asked*. It is one object rather
     than a key apiece because the measures are read from one descent and a client choosing
     between them has them all for the cost of the one it wanted.
+
+    `realised` is the set a `realise` produced, and the key it becomes is a plain boolean:
+    who took a token is not a measure and has no domain, so it crosses as the fact it is.
+    False is *the sampler drew it or the reader wrote it*, which the ranking above tells
+    apart -- a token nothing ranked was authored, and `docs/SPINE.md` has why that is not a
+    third state of this one.
     """
     out = {**node(mark.node), "live": mark.live, "logprob": mark.logprob, "fork": mark.fork}
     if among is not None:
         out["among"] = [spread(s) for s in among.get(mark.node.id, ())]
     if under is not None:
         out["under"] = under.get(mark.node.id)
+    if realised is not None:
+        out["realised"] = mark.node.id in realised
     return out
 
 

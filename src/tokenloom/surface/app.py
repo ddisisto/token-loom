@@ -268,6 +268,11 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
         costs a second descent. It takes `hidden` with it rather than the rule's liveness,
         which is what makes a measure and the rule it generates disagree about a set-aside
         arm -- `docs/SURFACE.md` has why that is the point and not a fault.
+
+        Who took each token is not behind a flag, because it is not an overlay: it has no
+        domain and nothing to compare across positions, and a reader reading prose wants to
+        know which words are theirs whether or not they asked for a colour. It costs one
+        statement bounded by the path, against the descent `beneath` pays for.
         """
         node = request.path_params["node"]
         rule = _rule(request, bare=True)
@@ -278,6 +283,9 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             cells = S.path(conn, node, rule, hidden)
             among = S.overlays(conn, cells) if wanted else None
             below = S.beneath(conn, cells, hidden) if under else None
+            took = R.realised(
+                conn, (m.node.id for cell in cells for m in cell.nodes)
+            )
             return JSONResponse({
                 "node": node,
                 "leaf": cells[-1].nodes[-1].node.id,
@@ -288,7 +296,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 "measures": sorted(S.DOWNWARD),
                 "rules": sorted(RULES),
                 "segments": [
-                    wire.segment(cell, lambda m: wire.path_node(m, among, below))
+                    wire.segment(cell, lambda m: wire.path_node(m, among, below, took))
                     for cell in cells
                 ],
                 "sources": wire.source_names(conn),

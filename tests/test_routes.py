@@ -240,6 +240,32 @@ def test_a_path_carries_no_overlay_until_one_is_asked_for(client):
     assert marks[2]["among"] == [], "node 1 ranked nothing, so node 2 stood in nothing"
 
 
+def test_who_took_a_token_is_not_behind_a_flag(client):
+    """It is not an overlay -- no domain, nothing to compare across positions -- so a reader
+    reading prose gets it without asking, which is what `docs/SURFACE.md` distinguishes it
+    from a measure for. The floor case still pays only one statement over its own path."""
+    nodes = [n for cell in client.get("/path/2").json()["segments"] for n in cell["nodes"]]
+    assert all("realised" in n for n in nodes)
+    assert not any(n["realised"] for n in nodes), "nothing in this tree was realised"
+
+
+def test_the_key_says_a_realise_put_the_token_there_and_a_draw_did_not(client):
+    """Node 3 the draw made; taking another row at node 2 writes a node the reader took.
+    The two are the populations `docs/SPINE.md` says nothing read off a ranking separates,
+    so this is the read that does it and the one place it can go wrong quietly."""
+    made = client.post("/realise", json={"at": 2, "token": 104, "source": str(MODEL)})
+    assert made.status_code == 201, made.text
+    took = made.json()["nodes"][-1]["id"]
+
+    whose = {
+        n["id"]: n["realised"]
+        for cell in client.get(f"/path/{took}").json()["segments"] for n in cell["nodes"]
+    }
+    assert whose[took] is True
+    assert whose[2] is False, "a `create` wrote this one"
+    assert 3 not in whose, "the realised arm is a different path from the drawn one"
+
+
 def test_an_overlay_is_what_the_ranking_above_says_about_the_position(client):
     """Node 2 carries the only ranking in this tree, so node 3 is the one node that stood
     in one. What it reports has to agree with the rows the ranking read hands back, which

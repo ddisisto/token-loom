@@ -804,3 +804,38 @@ def test_what_is_beneath_costs_the_same_whatever_the_path_holds(tree):
     short, long = asked(9), asked(1)
     assert short[0] < long[0], "the two paths are different lengths"
     assert short[1] == long[1], "and cost the same to measure"
+
+
+# ---- who took a token ----------------------------------------------------------------
+
+
+def test_realised_names_the_nodes_a_reader_took_and_not_the_ones_a_draw_made(ranked):
+    """The set is the attribution, so a drawn node in it would charge the reader for the
+    dice. `docs/SPINE.md` allocates the displacement whole on exactly this bit."""
+    store, tip = ranked
+    taken = {
+        r.edge.token_id: r.child.id
+        for r in R.ranking_with_children(store.conn, tip) if r.child is not None
+    }
+    # 103 and 104 were realised; 102 the draw made and nobody took again.
+    assert R.realised(store.conn, taken.values()) == {taken[103], taken[104]}
+
+
+def test_a_node_a_draw_made_and_a_reader_then_took_is_in_the_set(ranked):
+    """`(parent, token_id, source)` merges, so `realise` on a drawn row reaches the node the
+    draw made and writes its act anyway. The act is the attribution and the merge is not."""
+    store, tip = ranked
+    drawn = next(
+        r.child.id for r in R.ranking_with_children(store.conn, tip)
+        if r.child is not None and r.edge.token_id == 102
+    )
+    assert R.realised(store.conn, [drawn]) == set()
+    store.realise(tip, MODEL, 102, actor=USER)
+    assert R.realised(store.conn, [drawn]) == {drawn}
+
+
+def test_realised_answers_only_about_the_nodes_it_was_asked(ranked):
+    """It takes the nodes rather than the whole store, so a path read pays for its path."""
+    store, tip = ranked
+    assert R.realised(store.conn, []) == set()
+    assert R.realised(store.conn, [tip]) == set()
