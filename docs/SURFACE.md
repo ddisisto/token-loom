@@ -523,9 +523,17 @@ having no value, which is what it has.
 **The mark under a segment carries three things, and they are three axes rather than one list of
 states.** Its **existence** says the token was put here by something other than the model's own
 preference. Its **colour** says who took it: the sampler, or a reader taking a row the model
-offered. Its **style** says how far the value can be trusted — plain where it is a reading, and
-marked where it is a hole, a segment holding more nodes than values, or a position two sources
-ranked.
+offered. Its **style** says how far the value can be trusted — plain where it is a
+reading, and marked where it is not.
+
+**The ways a value can fail to be readable are one mark and not four.** A hole, a segment
+holding more nodes than values, a position two sources ranked, and a ranking that is not this
+node's source are four different facts, and the record tells them apart — but none has been met
+on a worked path, so choosing four appearances is choosing between things nobody has seen beside
+each other. One mark meaning **the value here needs handling** is what the tree can currently
+support, and each splits off when it is met and there is something to compare. **Nothing is lost
+by collapsing them**: the states stay distinct in the read and the segment's title still names
+which, so the split is a rule and never a rewrite.
 
 **The two halves of existence are not symmetric, and that follows from the allocation.** A
 `realise` is marked whatever it cost, because `docs/SPINE.md` allocates the displacement to the
@@ -535,6 +543,33 @@ a sampler that took the argmax displaced nothing *and* did nothing, and marking 
 line under the model's own preference, which is most of a cold path. So the mark says *something
 other than the model put this here*, which is one sentence over both halves and reads off the
 record either way.
+
+**Colour carries the degree as well as the taker, on two scales that do not overlap.** Each
+taker owns a hue — warm for the reader, cool for the sampler — and the share locates the
+position on its own scale, so the bit picks the scale and the scalar picks the place on it. That
+is the allocation drawn rather than described, and it costs no channel: the mark was already
+spending colour on the taker and the degree rides the same ink.
+
+**The quantity is the share and not the deviation.** A deviation is unbounded and would want a
+domain chosen, which is the fixed-against-relative argument the overlay already has and does not
+want a second copy of. The share is bounded by construction, it is the quantity being allocated,
+and `docs/SPINE.md` has it as `min_p`'s coordinate exactly — so the axis arrives calibrated and
+an operator who has tuned that dial already knows what a third of the way up means.
+
+**Both scales run from legible to strong and never from nothing.** A `realise` of the top row
+sits at zero and is still an act; a ramp reaching transparent would erase the mark at precisely
+the position that shows the bit does not follow from the scalar. So the floor is where a fixed
+colour would have been and the ramp is what rises above it. The sampler's floor is the same
+height for the same reason at one remove: its near-zero divergences are the common case, and a
+scale that fades them out would say the sampler had done nothing where it had done a little.
+
+**Whether weight is a third channel is open, and it may be the operator's to set.** Hue and
+ramp put two things in one ink, which is legible while the ramp is the only thing modulating it
+— the line's thickness is untouched and could carry the degree instead, or carry thresholds a
+reader places themselves, so that *what counts as far* is a dial rather than a constant. What
+recommends the ramp first is that it reuses the machinery the wash already has and needs nothing
+new; what recommends weight is that it keeps hue at full contrast at every value. *What is not
+decided here* has what would settle it.
 
 **Only the sampler's half needs a ranking.** Whether a `realise` stands at a node is on the wire
 whatever was asked for, so the reader's half is drawn against an empty column; the draw's half
@@ -923,11 +958,15 @@ across all of them. Three things hold it in place:
 **Questions prose cannot close.** Each says what would settle it, and moves into the body above
 when it is settled.
 
-- **Whether a measure and a mark are enough under drive.** *Two channels, read together, are four
-  readings* argues they are and loses how far past the second row a taker went. Settled by
-  reading a driven passage with them and finding whether that quantity is ever reached for — and
-  if it is, by what it would be drawn with, since the wash holds a measure, the mark holds who,
-  and `docs/INTERFERENCE.md` has already given weight to the watermark.
+- **Whether the mark's ramp says enough, or wants weight beside it.** *Colour carries the degree
+  as well as the taker* answers the question this entry used to ask — how far past the top row a
+  taker went had no channel, and now it has the one the taker was already spending. What is open
+  is whether one ink can hold both: a strongly-ramped cool line and a weakly-ramped one have to
+  read apart at a glance, and a line that also carries a style for an unreadable value is
+  carrying three things. Settled by reading a driven passage with it. If the ramp is not enough,
+  `text-decoration-thickness` is the untouched channel and takes either the degree or a threshold
+  the reader places — which would make *what counts as far* an operator's dial rather than a
+  constant, and is the first thing in the column that would be.
 - **Whether a viewport scale needs more than zoom to stay still.** A position approached can dim
   as it centres, and widening the view is the answer the reader already has. What is open is
   whether that is enough in practice or whether the domain wants a window wider than the view, or
@@ -1130,8 +1169,8 @@ ever took.
 whether or not a measure is, and carries a toggle beside the two that say what is set aside and
 whether the rows are shown. A `realise` is marked whatever it cost and a draw only where it left
 the top row, so what a line means is *something other than the model put this here*; colour says
-which of the two, and the four lines that say a value cannot be trusted keep the style axis
-untouched. The set of realised nodes crosses the wire as a plain boolean per node, since who took
+which of the two, at a flat value apiece rather than the ramp above, and the four lines that say
+a value cannot be trusted are each still drawn apart rather than collapsed. The set of realised nodes crosses the wire as a plain boolean per node, since who took
 a token has no domain and nothing to compare across positions.
 
 What does not exist is everything past that: no continuation shown beside a row, no depth limit
