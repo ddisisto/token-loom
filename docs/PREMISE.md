@@ -171,6 +171,24 @@ order for the filtering to work. What they declined is evidence about the purpos
 and `docs/SPINE.md`'s questions about how an operator learns a model are questions about exactly
 that residue.
 
+**The path on screen is the operator's argmax, and only the model's has a number beside it.** At
+each position the reader takes what best fits whatever they are after in that moment — an
+objective that is theirs, that moves, and that nothing asks them to state. Naming it an argmax
+changes nothing about how it is exercised; it is still arrived at by declining, which is what the
+paragraphs above are about. What it makes visible is the shape of the asymmetry: **the model
+supplies a field and the operator supplies a point.** A ranking is a number at every token; a
+choice is one token, with no distribution behind it to read off. Nothing recovers what the reader
+would have assigned to the row they passed over, and an instrument that asked them would be
+measuring the answer rather than the choice.
+
+**That is why a displacement is charged whole rather than split.** `docs/SPINE.md` locates the
+choice in the model's units, which is the only coordinate the two have in common — so the
+quantity says how far past the model's preference the choice went, and never how far toward
+anything of the reader's. Read instead as two arms that interfere where they agree, the
+instrument would need two fields and there is one. Read as a point located in a field, it needs
+exactly what the record already holds. The allocation is the correct one and not merely the
+tractable one, which is worth saying because it looks like a simplification.
+
 **So the failure to watch for is not a bad context but a reader with nothing left to decline.** A
 context can be driven so far that every continuation is the one that was wanted, and from the
 inside that is indistinguishable from having learned the model. `docs/SPINE.md` carries the
