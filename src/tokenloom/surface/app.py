@@ -300,6 +300,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                     for cell in cells
                 ],
                 "sources": wire.source_names(conn),
+                "kinds": wire.source_kinds(conn),
             })
 
     def ranking(request: Request) -> JSONResponse:

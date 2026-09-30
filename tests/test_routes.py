@@ -266,6 +266,34 @@ def test_the_key_says_a_realise_put_the_token_there_and_a_draw_did_not(client):
     assert 3 not in whose, "the realised arm is a different path from the drawn one"
 
 
+def test_the_path_says_what_kind_each_source_is_beside_what_it_is_called(client):
+    """The hue over an authored token follows the provenance field, and `docs/SURFACE.md`
+    is explicit that it is not a proxy for one -- so the kind reaches the page as itself.
+    The names cannot stand in: `/realise` takes the string `sources` produced, so that map
+    is round-tripped rather than parsed, and a client splitting one would be reading a
+    write's address as data."""
+    read = client.get("/path/2").json()
+    assert read["kinds"].keys() == read["sources"].keys(), "one entry per source, both maps"
+    by_name = {name: read["kinds"][sid] for sid, name in read["sources"].items()}
+    assert by_name[str(USER)] == "user"
+    assert by_name[str(MODEL)] == "model"
+    # And a name is not a kind with a prefix on it, which is the mistake this map prevents.
+    assert str(MODEL) != "model"
+
+
+def test_a_created_node_carries_the_reader_as_its_source(client):
+    """What the mark's reader-hue is read off. A `create` names the source its nodes take
+    and it defaults to the actor, so the two facts together -- the node's source and that
+    source's kind -- say the reader wrote this without walking any act's range."""
+    nodes = {n["id"]: n for cell in client.get("/path/2").json()["segments"]
+             for n in cell["nodes"]}
+    kinds = client.get("/path/2").json()["kinds"]
+    assert kinds[str(nodes[2]["source"])] == "user", "`create` wrote node 2"
+    drawn = client.get("/path/3").json()
+    made = {n["id"]: n for cell in drawn["segments"] for n in cell["nodes"]}
+    assert drawn["kinds"][str(made[3]["source"])] == "model", "a `generate` wrote node 3"
+
+
 def test_an_overlay_is_what_the_ranking_above_says_about_the_position(client):
     """Node 2 carries the only ranking in this tree, so node 3 is the one node that stood
     in one. What it reports has to agree with the rows the ranking read hands back, which

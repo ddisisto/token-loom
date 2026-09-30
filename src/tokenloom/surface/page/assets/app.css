@@ -16,6 +16,12 @@
   /* How much colour the top of an overlay's scale is worth. The scale hands over a place
      between 0 and 1 and this is what it is multiplied by, so the palette stays here. */
   --wash: 46%;
+  /* The mark's two scales, and they do not overlap: warm is the reader's and cool is the
+     sampler's, so the hue is the taker and the place along it is how far past the model's
+     preference the token sits. Neither runs from nothing -- `near` is the floor a
+     displacement of zero draws at, which is where a flat colour would have been. */
+  --took-near: #c08a63; --took-far: #8a3408;
+  --drew-near: #93a6b5; --drew-far: #1f5b85;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -23,6 +29,8 @@
     --rule: #2a2721; --accent: #d98a55; --accent-bg: #33251b;
     --panel: #1c1a15;
     --wash: 34%;
+    --took-near: #9a6440; --took-far: #f5a469;
+    --drew-near: #4a6a7c; --drew-far: #7cc2ea;
   }
 }
 
@@ -244,28 +252,43 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
            background: color-mix(in srgb,
                                  var(--accent) calc(var(--t) * var(--wash)), transparent); }
 
-/* A position with no value is not a position with a low one, and the ways to arrive there are
-   marked apart. Each is a line under the text rather than a wash, so none can be read as a
-   place on the scale, and each is a different line, so none can be read as another. */
-.seg.off, .seg.hole, .seg.split, .seg.clash { text-underline-offset: 3px; }
-
-/* ---- who took the token ----
+/* ---- who took the token, and how far past the model they went ----
    Three axes on one line, and they are set in three passes because that is what keeps them
-   independent. **Existence** is here: a line stands where a `realise` put the token, or
-   where a draw left the model's top row. **Style** is the block above, saying how far the
-   value can be trusted -- so a mark whose value is a hole is still a hole, and still says
-   whose. **Colour** is the block below, and it comes last so that it wins over whichever
-   style rule ran, which is what makes it an axis rather than a leftover.
+   independent. **Existence** is here: a line stands where a `realise` put the token, where
+   the reader wrote it, or where a draw left the model's top row. **Style** is the block
+   below, saying whether the value under the line can be read at all. **Colour** is the block
+   after that, and it comes last so that it wins over whichever style rule ran, which is what
+   makes it an axis rather than a leftover.
 
    Plain is solid, which is free: the bound state that once held it went with the censored
-   draw. A segment with a value and one with none never share a style, so nothing collides. */
-.seg.took, .seg.drew { text-underline-offset: 3px; text-decoration: underline solid; }
-.seg.off   { text-decoration: underline dotted var(--faint); }  /* not this source's draw */
-.seg.hole  { text-decoration: underline double var(--accent); } /* no value to read here */
-.seg.split { text-decoration: underline dashed var(--dim); }    /* more nodes than values */
-.seg.clash { text-decoration: underline wavy var(--accent); }   /* two sources, no answer */
-.seg.drew  { text-decoration-color: var(--faint); }  /* the sampler left the top row */
-.seg.took  { text-decoration-color: var(--accent); } /* the reader took a row */
+   draw. `--m` is the place on the taker's own scale and is always set where a line stands,
+   so the fallback here is only for a class applied without one. */
+.seg.took, .seg.drew { --m: 0; text-underline-offset: 3px;
+                       text-decoration-line: underline; text-decoration-style: solid; }
+
+/* A position with no value is not a position with a low one, and **every way of arriving
+   there draws the same**. Five reached it -- four from an overlay and one from a mark over a
+   token nothing ranked -- and none of the five has been met beside the others on a worked
+   path, so choosing between appearances is choosing between things nobody has seen.
+   `CLAUDE.md` has why that is the wrong order. They stay apart in the read and the title
+   still names which, so each splits off again the moment it is met.
+
+   It is a line and never a wash, so it cannot be read as a place on a scale, and it sets no
+   colour where a taker will: the block below is what says whose the line is. */
+.seg.off, .seg.hole, .seg.split, .seg.clash, .seg.odd {
+  text-underline-offset: 3px;
+  text-decoration-line: underline; text-decoration-style: dotted;
+  text-decoration-color: var(--dim);
+}
+
+/* Each taker owns a hue and `--m` locates the token on that taker's scale, so one ink holds
+   the bit and the scalar both. Neither scale reaches transparent: a `realise` of the top row
+   is a displacement of zero and still an act, and a ramp that faded it out would erase the
+   mark at exactly the position proving the bit does not follow from the scalar. */
+.seg.drew { text-decoration-color:
+              color-mix(in oklab, var(--drew-far) calc(var(--m) * 100%), var(--drew-near)); }
+.seg.took { text-decoration-color:
+              color-mix(in oklab, var(--took-far) calc(var(--m) * 100%), var(--took-near)); }
 
 /* ---- what else was live ----
    In the half the reading column leaves empty, at the line of whatever the rows are about, so

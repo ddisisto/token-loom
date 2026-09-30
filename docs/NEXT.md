@@ -32,44 +32,7 @@ for and what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. The mark's colour says how far as well as by whom, and the edge cases collapse to one.**
-Two changes to a mark that is built and in use, and they are one piece of work because they are
-one line's appearance. `docs/SURFACE.md` has both.
-
-**The ramp is the cheaper half and it closes an open question.** Each taker owns a hue and the
-share locates the position on that taker's own scale, so the bit picks the scale and the scalar
-picks the place on it. What it costs is what the wash already pays: a place between 0 and 1 set
-as a custom property, the stylesheet owning the colour. What it buys is *how far past the top row
-the taker went*, which had no channel and was an open question in that document until now. The
-quantity is the share and not the deviation, so there is no domain to choose and none to keep in
-step with the overlay's.
-
-**The floor is the part to get right.** A `realise` of the top row sits at zero and is still an
-act, so a ramp reaching transparent erases the mark exactly where it proves the bit does not
-follow from the scalar. Both scales run from legible to strong. That is also the reported fault
-in what is built: the sampler's flat `--faint` is too close to the page, and the floor is where
-a fixed colour should have been.
-
-**The collapse is four appearances becoming one**, because none of the four has been met on a
-worked path and choosing between things nobody has seen beside each other is what
-`CLAUDE.md`'s rule forbids. The states stay distinct in the read and the title still names
-which, so this is a stylesheet rule and not a rewrite, and each splits off when it is met.
-
-**Authored text joins the reader's hue, and it costs one column.** A node carries whoever
-produced it and a `create` names the source its nodes take, so a source of kind `user` *is* the
-reader — no act's range to walk, and the id is already on the wire with `sources` giving the
-kind. Where nothing ranked above it the token draws at the top of the warm scale as a
-placeholder, marked by the style axis as a value needing handling rather than a reading; the
-item below is what would replace it with a share. What must not be used for this is the ranked
-edge: it says what the model thought and never who put the token there, and the two look alike
-only while authored positions go unranked.
-
-**What would say it worked** is reading a driven passage and finding a strongly-ramped line and a
-weakly-ramped one apart at a glance. If they are not, `text-decoration-thickness` is untouched and
-takes either the degree or a threshold the reader sets — which `docs/SURFACE.md` keeps open, and
-which would be the first dial in the column the operator owns.
-
-**2. A screenshot and worked samples in `README.md`.** It reads as concept and says nothing about
+**1. A screenshot and worked samples in `README.md`.** It reads as concept and says nothing about
 what came out. *Where it is* describes capability — a page that lists roots, sets a path as prose,
 draws a measure — and a reader cannot tell from it that the instrument has been used or what using
 it found. `docs/SPINE.md`'s *Evidence in hand* is the missing half: counting divergences reads the
@@ -78,18 +41,19 @@ measure banded by gap reads the rule back out, and nothing on a ranking separate
 divergence from a sampler's. The last of those is what a picture of the mark shows, which is why
 it waited on it.
 
-**It is the one item here that is not code, and it is placed where it is worth doing rather than
-where it is cheapest.** Every later increment would improve the picture, so by the rule the rest
-of this list follows it belongs last and would never arrive. What is ahead of it is the column's
-own appearance — the measure it is read in, done, and the mark above, which would otherwise have
-to be photographed twice — and nothing below it moves the picture enough to be worth waiting for.
+**It is the one item here that is not code, and it is first because waiting is what it would
+never stop doing.** Every later increment would improve the picture, so by the rule the rest of
+this list follows it belongs last and would never arrive. What it was waiting for has landed:
+the column's own appearance is settled — the measure it is read in and the mark over it, which
+would otherwise have to be photographed twice — and nothing below moves the picture enough to be
+worth another wait.
 
 **A sample is a different thing from the picture and nothing produces one yet.** What it would
 show is a path read against an alternative it parted from, which is the thing the format is for
 and the thing prose about the format cannot do. `scripts/dump.py` projects a tree and decodes
 nothing, so it is not that; whether a sample is generated or hand-cut from a real tree is open.
 
-**3. Length and temperature, out of the panel and always on the page.** They are the two an
+**2. Length and temperature, out of the panel and always on the page.** They are the two an
 operator moves per draw, because they are the two that change what *kind* of act it is —
 sampling the model, or running the greedy path out where that is cheap to read. Everything else
 in the panel is set once a session. The cut is along what each thing governs: **what is drawn**
@@ -135,7 +99,7 @@ also spends fifty positions on a linear range whose useful values cluster low �
 ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
 out. The axis wants a floor of 1 and a spacing that is not linear.
 
-**4. A way back to where an act began, and the settings it was made under.** A reader who wants a
+**3. A way back to where an act began, and the settings it was made under.** A reader who wants a
 different continuation at a position should not have to find that position again: what they want
 is the boundary of the act they just read, to draw from it under different settings, at a higher
 sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
@@ -179,7 +143,7 @@ the record and cannot be derived; it is a constant the page offers. A recent is 
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**5. The rankings panel, as the place every alternative is met.** It is too light to read and
+**4. The rankings panel, as the place every alternative is met.** It is too light to read and
 too sparse to work from, and the changes are one piece of work because they are one surface:
 **open by default**, since a reader working a path always wants to know what else was at the
 position they are at; **how much each row holds drawn and not only printed**; **the
@@ -202,7 +166,7 @@ wanted. The one thing decided in advance: a position that grows something unseen
 without moving, or may move only outside the band the caret reserves — motion where the reader
 is looking is a demand and not an offer.
 
-**6. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+**5. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
 answers *how much, absolutely* and pins more than half a greedy path to one end, and a
 path-relative one over a long path is nearly as global. A domain built from the segments
 currently on screen answers *how much, compared to here*, which is the question a reader scanning
@@ -221,7 +185,7 @@ those measures without bounding the descent, and what would remain below is the 
 the name for what branching counts. It is also much the cheaper of the two, so knowing which
 answer was needed costs little.
 
-**7. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**6. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
@@ -357,6 +321,16 @@ Not in the ordering; each stands on its own.
   something being read — *a request appears where its result will*, and a reader who backed out
   of one would have lost their place. It wants an inline composer at the caret, which is the
   same shape a ranking opened there will want, so the two are worth doing together.
+- **Whether two greedy rollouts from distant nodes ever produce the same token sequence.** A
+  trie merges shared prefixes, so `docs/SPINE.md` has re-convergence as a comparison over token
+  sequences and never a merge — and says the tree will not hand that analysis its answer. It
+  will hand it the input: hashing each rollout's tokens and grouping is one query. What a
+  collision would be is the thing *Nothing prices a sequence the model did not draw* says
+  nothing produces — **the same sequence under two contexts, position-aligned by construction
+  and priced on both sides**, since each was drawn rather than judged against the other. It does
+  not wait on the hover that makes stubs: 5,087 of `data/3`'s 6,063 generations are greedy and
+  2,251 of `logozoa`'s 2,641, so the reference arms are already in the record, live rather than
+  set aside. Whether any two of them coincide is unmeasured, and a null result costs one query.
 - **One colour scale, chosen without comparison.** A place on the scale reaches the column as a
   number between 0 and 1 and the stylesheet makes the colour, so a second scale is a rule and not
   a rewrite — but only one has been tried, against one palette, in two themes. What would settle

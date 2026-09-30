@@ -168,6 +168,21 @@ def source_names(conn: sqlite3.Connection) -> dict[str, str]:
     }
 
 
+def source_kinds(conn: sqlite3.Connection) -> dict[str, str]:
+    """What kind each source is, beside the names rather than inside them.
+
+    A name is what a write is addressed to -- `/realise` takes the string `source_names`
+    produced -- so it is round-tripped and not parsed, and a client wanting the kind should
+    not be splitting one. This is the provenance field itself: `docs/CORE.md` has a node
+    carrying whoever produced it and a `create` naming the source its nodes take, so a node
+    whose source is of kind `user` is one the reader wrote.
+
+    It crosses as a map for the reason the names do -- a path of a thousand nodes carries the
+    same handful of sources over and over -- and only on the reads that draw with it.
+    """
+    return {str(row[0]): row[1] for row in conn.execute("SELECT id, kind FROM sources")}
+
+
 def act(conn: sqlite3.Connection, which: int) -> dict[str, Any]:
     """An act and the nodes it produced.
 

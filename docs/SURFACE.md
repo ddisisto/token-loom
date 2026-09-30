@@ -1185,15 +1185,19 @@ whole trade and the panel already owns it: log keeps a small explored arm legibl
 one, linear states the ratio honestly and puts the small one on the floor beside the arms nobody
 ever took.
 
-**A mark under a segment says who put the token there, and it is not an overlay.** It is drawn
-whether or not a measure is, and carries a toggle beside the two that say what is set aside and
-whether the rows are shown. A `realise` is marked whatever it cost and a draw only where it left
-the top row, so what a line means is *something other than the model put this here*; colour says
-which of the two, at a flat value apiece rather than the ramp above, and the four lines that say
-a value cannot be trusted are each still drawn apart rather than collapsed. The reader's half is
-read off a `realise` alone and not yet off the source, so authored text still draws as the
-model's. The set of realised nodes crosses the wire as a plain boolean per node, since who took a
-token has no domain and nothing to compare across positions.
+**A mark under a segment says who put the token there and how far past the model they went, and
+it is not an overlay.** It is drawn whether or not a measure is, and carries a toggle beside the
+two that say what is set aside and whether the rows are shown. A `realise` is marked whatever it
+cost and a draw only where it left the top row, so what a line means is *something other than the
+model put this here*. Each taker owns a hue, the balance of the share locates the token on that
+taker's own scale, and neither scale reaches transparent at its foot. The reader's half is read
+off a `realise` or a source of kind `user`, so authored text draws as the reader's — at the top
+of the warm scale where nothing ranked the position, marked as a placeholder rather than a
+reading. **Every way of arriving at an unreadable value now draws the same**, the four overlay
+states and that placeholder together; they stay apart in the read and the title still names
+which. The set of realised nodes crosses the wire as a plain boolean per node and the source
+kinds as a map beside the names, since who took a token has no domain and nothing to compare
+across positions.
 
 What does not exist is everything past that: no continuation shown beside a row, no depth limit
 and so no view that presets one, and no way back to the boundary of an act to take one draw

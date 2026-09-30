@@ -145,9 +145,11 @@ function boundary(cell) {
   return mark;
 }
 
-/** `marks` is what the overlay made of each span, or null where none is drawn -- which is
- *  the column a reader has not asked anything of, and is why the mark is applied here rather
- *  than being something a span always carries. */
+/** `marks` is what the overlay made of each span and `takers` what the mark made of it,
+ *  either being null where that one is not drawn -- which is the column a reader has not
+ *  asked anything of, and is why both are applied here rather than being something a span
+ *  always carries. The two have the same shape and share nothing else: each names a class, a
+ *  place on its own scale and what it says, and neither knows the other ran. */
 function spans(segments, marks, takers) {
   const out = [];
   let cut = false;
@@ -159,17 +161,28 @@ function spans(segments, marks, takers) {
     el.textContent = cell.text;
     el.dataset.node = cell.nodes[cell.nodes.length - 1].id;
     // Who took the token is its own class and never the overlay's: the two axes are
-    // independent, so a segment whose value cannot be trusted still says whose it is.
+    // independent, so a segment whose value cannot be trusted still says whose it is. Each
+    // hands over a place on its own scale, under its own property, and the stylesheet owns
+    // both colours -- so a palette stays in one file and a theme changes nothing here.
+    const said = [];
     const taker = takers?.[i];
-    if (taker) el.classList.add(taker);
+    if (taker) {
+      el.classList.add(taker.cls);
+      // A line whose value was never priced says so in the style it is drawn in, which is
+      // the same appearance every other unreadable value gets.
+      if (taker.odd) el.classList.add("odd");
+      el.style.setProperty("--m", taker.t.toFixed(3));
+      said.push(taker.title);
+    }
     const mark = marks?.[i];
     if (mark) {
       el.classList.add(mark.cls);
-      el.title = mark.title;
-      // The scale hands over a place and the stylesheet owns the colour, so a palette stays
-      // in one file and a theme changes nothing here.
       if (mark.t !== undefined) el.style.setProperty("--t", mark.t.toFixed(3));
+      said.push(mark.title);
     }
+    // Both axes are on one span and both have something to say about it, so the title holds
+    // whichever are drawn rather than whichever was applied last.
+    if (said.length) el.title = said.join("\n");
     // A plain click points at this token, which puts the caret where an alternative to it
     // would stand. `docs/SURFACE.md` has that same gesture opening a ranking, and it is the
     // same selection: the rows it would show are the rows at the node the caret lands on.
@@ -370,7 +383,7 @@ async function show(node, where) {
   flow.onmouseleave = () => { clearTimeout(peeking); settled(); };
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
   // range from the text in front of the reader.
-  flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells)));
+  flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells, read.kinds)));
   $("column").replaceChildren(flow);
   frontier();
   settled();
