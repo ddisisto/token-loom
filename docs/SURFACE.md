@@ -577,12 +577,32 @@ needs the top row, which is the ranking read an upward measure also rides on. Th
 and are drawn together or not at all, so what a read asks for is the union of what is on rather
 than what the overlay panel alone chose.
 
-**An authored token is not a third colour, because it is not a divergence.** Nothing ranked at its
-parent for its source, so there is no first row it was taken instead of, and the existence axis
-has nothing to say about it. It is already apart under any overlay — the measure did not reach it,
-the wash is absent, and the panel counts it among what was not reached — so a colour would be a
-second way of saying that. It is a different question of the record besides: a `realise` names the
-node it produced and is a lookup, while a `create`'s nodes are its range, which is the descent.
+**An authored token is the reader's, and the record says so in a column.** `docs/CORE.md` has a
+node carrying whoever produced it and a `create` naming the source its nodes take, which defaults
+to the actor — so a node whose source is of kind `user` is one the reader wrote, and the hue
+follows that rather than any act's range. It is not a proxy for provenance; it is the provenance
+field. Text a model produced elsewhere is recorded as that model's and draws as the model's, which
+is the right answer to *whose voice is this* and the one thing the mark could otherwise lie about.
+
+**So the hue is the reader's where the source is a user or a `realise` stands, and the model's
+otherwise.** Two states, from two facts the record keeps, and neither wants a walk over a range.
+What the ranking says is a separate axis and stays one: an edge tells what the model thought of a
+token, never who put it there, and the two are only correlated while authored positions go
+unranked.
+
+**An authored token with no ranking above it draws at the top of the reader's scale, and that is
+a placeholder rather than a reading.** The model offered nothing and the reader supplied all of
+it, so the top is where it belongs while nothing is known — but it carries no information, and a
+seed read this way is one flat block of colour saying only that a person wrote it. The style axis
+marks it as a value that needs handling, which is what keeps the convention from reading as a
+measurement.
+
+**Ranking those positions is what gives the voice an edge.** Once a share can be read there, the
+block resolves: authored text the model would have produced sits low on the warm scale and
+authored text that surprised it sits high, so where a reader's own writing stops being
+distinguishable from the model's becomes something the column shows rather than something the
+reader assumes. The hue cannot do this and was never going to — it is a fact about acts, and the
+edge of a voice is a fact about the model. `docs/NEXT.md` has the act that would supply it.
 
 **Who took a token is not a measure, and that is why it is not an overlay.** It has no domain, no
 second reading, and nothing to compare across positions — it is a fact with two values. So it
@@ -1170,8 +1190,10 @@ whether or not a measure is, and carries a toggle beside the two that say what i
 whether the rows are shown. A `realise` is marked whatever it cost and a draw only where it left
 the top row, so what a line means is *something other than the model put this here*; colour says
 which of the two, at a flat value apiece rather than the ramp above, and the four lines that say
-a value cannot be trusted are each still drawn apart rather than collapsed. The set of realised nodes crosses the wire as a plain boolean per node, since who took
-a token has no domain and nothing to compare across positions.
+a value cannot be trusted are each still drawn apart rather than collapsed. The reader's half is
+read off a `realise` alone and not yet off the source, so authored text still draws as the
+model's. The set of realised nodes crosses the wire as a plain boolean per node, since who took a
+token has no domain and nothing to compare across positions.
 
 What does not exist is everything past that: no continuation shown beside a row, no depth limit
 and so no view that presets one, and no way back to the boundary of an act to take one draw

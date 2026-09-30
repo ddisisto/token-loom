@@ -55,6 +55,15 @@ worked path and choosing between things nobody has seen beside each other is wha
 `CLAUDE.md`'s rule forbids. The states stay distinct in the read and the title still names
 which, so this is a stylesheet rule and not a rewrite, and each splits off when it is met.
 
+**Authored text joins the reader's hue, and it costs one column.** A node carries whoever
+produced it and a `create` names the source its nodes take, so a source of kind `user` *is* the
+reader — no act's range to walk, and the id is already on the wire with `sources` giving the
+kind. Where nothing ranked above it the token draws at the top of the warm scale as a
+placeholder, marked by the style axis as a value needing handling rather than a reading; the
+item below is what would replace it with a share. What must not be used for this is the ranked
+edge: it says what the model thought and never who put the token there, and the two look alike
+only while authored positions go unranked.
+
 **What would say it worked** is reading a driven passage and finding a strongly-ramped line and a
 weakly-ramped one apart at a glance. If they are not, `text-decoration-thickness` is untouched and
 takes either the degree or a threshold the reader sets — which `docs/SURFACE.md` keeps open, and
@@ -431,6 +440,11 @@ Not in the ordering; each stands on its own.
   draw it made to a token it was asked about. Whether that is a sixth write, a parameter on
   `generate`, or something that records nothing and only reads, is the open part — and it is a
   `docs/CORE.md` change either way, so it moves as its own piece of work.
+  **A second reading wants it, and it is the nearer one.** Until an authored position is ranked
+  the mark over it is a placeholder — one flat block of the reader's hue over the part of a
+  document that is most theirs, carrying nothing but *a person wrote this*. Ranked, the block
+  resolves into where the reader's own writing stopped being distinguishable from the model's,
+  which `docs/SURFACE.md` has as the edge of a voice and the one thing the hue cannot supply.
   Three things narrow it. **A seed's positions are wanted branchable on the same footing as any
   others**, the unit being a position in a context and not a token of a particular origin, so the
   generalisation test is one caller and not the reason. **The operation stands on its own whatever
