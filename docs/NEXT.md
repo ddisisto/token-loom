@@ -32,26 +32,71 @@ for and what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. A screenshot and worked samples in `README.md`.** It reads as concept and says nothing about
-what came out. *Where it is* describes capability — a page that lists roots, sets a path as prose,
-draws a measure — and a reader cannot tell from it that the instrument has been used or what using
-it found. `docs/SPINE.md`'s *Evidence in hand* is the missing half: counting divergences reads the
-temperature dial rather than the text, the recording rule ties depth inversely to the gap so a
-measure banded by gap reads the rule back out, and nothing on a ranking separates a reader's
-divergence from a sampler's. The last of those is what a picture of the mark shows, which is why
-it waited on it.
+**1. The pointer rolls the reference arm, and the panel opens where it is pointed.**
+`docs/SPINE.md` has the stub as the reference arm — the model left alone from a position — and
+nothing on the page rolls one. What makes this one item rather than three is that the rankings,
+the stub and the gesture that summons either are one surface reached from two places.
 
-**It is the one item here that is not code, and it is first because waiting is what it would
-never stop doing.** Every later increment would improve the picture, so by the rule the rest of
-this list follows it belongs last and would never arrive. What it was waiting for has landed:
-the column's own appearance is settled — the measure it is read in and the mark over it, which
-would otherwise have to be photographed twice — and nothing below moves the picture enough to be
-worth another wait.
+**One gesture, two origins.** A hover on a row asks *where would that alternative go*. A hover
+on a token of the path asks *where does the model go from here*, which is the reference arm
+against the position the reader is pointing at. Same rollout, same cost, same reading: the
+origin is a ranked edge in the first case and a node in the second, and `generate` already takes
+either. So the second is nearly free once the first is built — and it is the one that turns
+reading into searching, since a pointer swept down the column asks the model, position by
+position, where it would have gone.
 
-**A sample is a different thing from the picture and nothing produces one yet.** What it would
-show is a path read against an alternative it parted from, which is the thing the format is for
-and the thing prose about the format cannot do. `scripts/dump.py` projects a tree and decodes
-nothing, so it is not that; whether a sample is generated or hand-cut from a real tree is open.
+**A sweep is the cheapest sequence of rollouts there is.** `docs/SPINE.md` measures hovering
+rows at one node at `prompt_n` 1 and 26 ms after the first, because every row there shares the
+path above it. Moving down the path has the same shape — each token's prompt is the one before
+it plus a token — so the cache is warm in exactly the direction a reader moves. What that costs
+is already written down: warm is the inexact case, so **a row's token is a fact and every
+continuation is advisory**.
+
+**What a stub at a path position answers is whether to stay.** A rollout that is immediately
+dull says the model is not pulling anywhere from here, and one that goes somewhere says the
+opposite. That is a different question from how far the draw fell, and it is a test the reader
+applies before spending anything rather than after.
+
+**The panel opens at a click on a token and is not a global toggle.** *What else was live here*
+is a question about a position, so a switch that is on for the whole path answers it everywhere
+and is asked for nowhere — which supersedes *open by default*, the answer this item carried
+while the toggle was the only way in. A click opens it where it was clicked, it is dismissable,
+and a hover on the path shows it temporarily. That is the same gesture that rolls the stub, so
+looking and asking are one motion.
+
+**Where each of the two lives is open, and the layout turns on it.** The rankings sit at the
+line they belong to now, so the connection between a position and its alternatives is seen
+rather than remembered. The proposal is that the **stub** takes that space, being the thing with
+a position — it continues from *here* — and the rankings move to a fixed panel at the top right,
+joining the overlay controls and the sampler's as tabs. What recommends it is that a menu does
+not need to be at a line and a continuation does. What is unsettled is whether a ranking read
+away from its position still reads, which is what the current placement was built to protect.
+**Settled by building the stub track first and seeing what the rankings are then left needing.**
+
+**The panel's own faults travel with it and are unchanged.** It is too light to read and too
+sparse to work from; **how much each row holds wants drawing and not only printing**; **the
+continuation beside each row that already has one**, set below the weight of the branch token,
+which is what `docs/SURFACE.md` says instead of a band; **a click takes as much of a row as it
+lands on**, token or continuation or all of it; and **a click on nothing releases the caret**
+back to the end of the path, which is currently reachable only by reloading.
+
+**A `realise` does not leave the caret where it put the token**, which is the same plumbing and
+is why it is here rather than on its own. The act lands and the column redraws, but where the
+reader is pointing afterwards is not the node they just took — so the gesture that is supposed to
+be *take this and carry on from it* ends somewhere else and the next act has to be aimed again.
+It is held for this item because the panel is where the gesture starts and the two are one path
+through the code; fixing it with the panel shut would be fixing it twice.
+
+**It closes more than it opens.** The band was an increment of its own once and is now the rows
+given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
+section is gone. *Whether looking may spend inference* is answered the same way, by use, and a
+hover that rolls from the path answers it twice over.
+
+**Idle spending is deferred entirely and is not part of this.** When it returns it is a pre-fill
+for one of the two hovers above and nothing else, and `docs/SPINE.md` holds what would settle
+whether it is wanted. The one thing decided in advance: a position that grows something unseen
+may say so without moving, or may move only outside the band the caret reserves — motion where
+the reader is looking is a demand and not an offer.
 
 **2. Length and temperature, out of the panel and always on the page.** They are the two an
 operator moves per draw, because they are the two that change what *kind* of act it is —
@@ -82,6 +127,12 @@ one, the pad is what to try next.
 panel sits inside it, the fold takes them together, and the fold is what the overflow below
 forces. The footer is already always there — *what this is* on the left, *what a draw will be* on
 the right.
+
+**It does not compete with the tabs the item above proposes, and the two are one cut read from
+each side.** Only the pair leaves; what is kept and what is chained stay a panel, and a panel is
+what becomes a tab. So this empties the draw panel of the two controls used most, which makes
+whatever it is folded into smaller — and the order holds either way, since a footer is a
+different region from a corner.
 
 **`record_rows` goes with them as a readout and not as a dial.** `docs/SPINE.md` measured the
 coupling on `data/logozoa`, recorded at ten rows throughout its early work: two thirds of every
@@ -143,37 +194,7 @@ the record and cannot be derived; it is a constant the page offers. A recent is 
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**4. The rankings panel, as the place every alternative is met.** It is too light to read and
-too sparse to work from, and the changes are one piece of work because they are one surface:
-**open by default**, since a reader working a path always wants to know what else was at the
-position they are at; **how much each row holds drawn and not only printed**; **the
-continuation beside each row that already has one**, set below the weight of the branch token,
-which is what `docs/SURFACE.md` now says instead of a band; **a hover rolls out a row that has
-none**, which is where a stub comes from and what a stub is for; **a click takes as much of a
-row as it lands on**, token or continuation or all of it; and **a click on nothing releases the
-caret** back to the end of the path, which is currently reachable only by reloading.
-
-**A `realise` does not leave the caret where it put the token**, which is the same plumbing and
-is why it is here rather than on its own. The act lands and the column redraws, but where the
-reader is pointing afterwards is not the node they just took — so the gesture that is supposed to
-be *take this and carry on from it* ends somewhere else and the next act has to be aimed again.
-It is held for this item because the panel is where the gesture starts and the two are one path
-through the code; fixing it with the panel shut would be fixing it twice.
-
-**It closes more than it opens.** The band was an increment of its own once and is now the rows
-given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
-section is gone. *Whether looking may spend inference* is answered the same way, by use. What the
-change costs is written down beside it: a rollout is exact only cold, so a row's **token is a
-fact and its continuation advisory**, and `docs/SPINE.md` carries the adapter's measurement of
-how far a warm partial hit moves a greedy path.
-
-**Idle spending is deferred entirely and is not part of this.** When it returns it is a pre-fill
-for the hover above and nothing else, and `docs/SPINE.md` holds what would settle whether it is
-wanted. The one thing decided in advance: a position that grows something unseen may say so
-without moving, or may move only outside the band the caret reserves — motion where the reader
-is looking is a demand and not an offer.
-
-**5. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+**4. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
 answers *how much, absolutely* and pins more than half a greedy path to one end, and a
 path-relative one over a long path is nearly as global. A domain built from the segments
 currently on screen answers *how much, compared to here*, which is the question a reader scanning
@@ -192,7 +213,7 @@ those measures without bounding the descent, and what would remain below is the 
 the name for what branching counts. It is also much the cheaper of the two, so knowing which
 answer was needed costs little.
 
-**6. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**5. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
@@ -328,6 +349,12 @@ Not in the ordering; each stands on its own.
   something being read — *a request appears where its result will*, and a reader who backed out
   of one would have lost their place. It wants an inline composer at the caret, which is the
   same shape a ranking opened there will want, so the two are worth doing together.
+- **A worked sample, which is a different thing from a picture and which nothing produces.**
+  What it would show is a path read against an alternative it parted from, which is the thing
+  the format is for and the thing prose about the format cannot do. `README.md` now carries the
+  picture, so what is left is the text beside it. `scripts/dump.py` projects a tree and decodes
+  nothing, so it is not that; whether a sample is generated or hand-cut from a real tree is open,
+  and `data/demo` is what either would come from.
 - **Whether two greedy rollouts from distant nodes ever produce the same token sequence.** A
   trie merges shared prefixes, so `docs/SPINE.md` has re-convergence as a comparison over token
   sequences and never a merge — and says the tree will not hand that analysis its answer. It
