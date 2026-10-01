@@ -434,6 +434,32 @@ when the reader walks into the counterfactual, and under this reading the promot
 first sampled or authored token on it rather than an act that announces one. A stub is a stub
 while nothing has been done to it.
 
+**What a hover waits for is prompt evaluation, and it is a question of locality rather than of
+latency.** Measured against the live server on a 2,000-token path of `data/3`, greedy, forty
+tokens:
+
+| | wall | prompt | generation |
+|---|---|---|---|
+| cold at depth | 8,724 ms | 1,807 tok in 7,422 ms | 40 in 1,065 ms |
+| the same prefix again | 1,074 ms | 1 tok in 28 ms | 40 in 1,043 ms |
+| one row along | 1,080 ms | 1 tok in 28 ms | 40 in 1,048 ms |
+| a shallower position | 1,171 ms | 1 tok in 29 ms | 40 in 1,017 ms |
+| back down to depth | 7,104 ms | 1,594 tok in 6,053 ms | 40 in 1,048 ms |
+
+Warm against cold is 28 ms against 7.4 s, a factor of 250, and the cache holds for anything
+that is a prefix of what was last asked -- so reading *down* a path costs nothing and the rows
+at one position cost nothing after the first. What thrashes is going back up and down again,
+because `--parallel 1` is one slot and one cache, and a shorter prompt truncates it. **So a
+hover is cheap exactly where reading is sequential and dear exactly where the reader jumps**,
+which is a different shape from a per-request cost and is what any pacing has to be built
+against.
+
+**Generation is 38 tok/s, and that sets the burst rather than taste.** A forty-token arm is
+about 1.05 s even fully warm, which is too long to read as an arrival; a tenth of it is 265 ms,
+which is not. So an arm that has to be paid for arrives in parts, and the part size is this
+number -- the loop is what gives the page streaming without the adapter learning to stream.
+Reading an arm the record already holds is not paced at all, since nothing is being waited for.
+
 ## Deliberately open
 
 Each of these is left to be settled by use of the instrument, and each names what would settle it:

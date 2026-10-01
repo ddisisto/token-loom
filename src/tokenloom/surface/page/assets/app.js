@@ -336,25 +336,26 @@ async function realise(row, payload) {
   }
 }
 
-/* ---- the reference arm, grown by pointing at something ----
+/* ---- the reference arm, read by pointing at something ----
  *
- * `docs/SPINE.md` has a stub asked for by hovering the row it belongs to, and the loop is
- * what makes that a gesture rather than a request: the pointer rests, a little lands, and if
- * it has not moved it asks again. So the reader sets the pace by holding still, and stops it
- * by moving -- there is no control to find and nothing to dismiss.
+ * `docs/SPINE.md` has a stub asked for by hovering the row it belongs to. **What the record
+ * already holds arrives at once and unpaced**: a greedy rollout merges onto what an earlier
+ * one wrote, so reading the top-row descent is reading what asking again would produce, and
+ * a wait before it would be charging the reader for looking.
  *
- * **What it spends here is nothing.** `/stub` reads the arm the record already holds, which
- * is what a greedy rollout would merge onto anyway. A row whose arm the tree does not have
- * shows what there is and stops; paying to extend one is the increment after this.
+ * So two things follow the pointer and neither follows a clock. The arm appears where there
+ * is one, and the pulse appears where reaching further would cost inference -- which is the
+ * reader's map of what is free to scan. A row the tree has no arm for shows nothing at all,
+ * and paying to roll one is the increment after this.
  */
 
-let rolling = null;   // the timer between landings
-let armed = null;     // the node the loop is currently growing, or null
+let armed = null;  // the node whose arm the pointer is on, or null
 
-/** The pulse at the tail of an arm. It is shown while a length is being waited for and taken
- *  away when there is nothing more to wait for, so what it means is *more is coming* and
- *  never *this is a stub* -- a reader who learned it as a decoration would read a full arm
- *  as a broken one. */
+/** The pulse at the tail of a row. **It is a price and not a progress bar**: it says that
+ *  reaching further from here would cost inference, so a row without one is free to look at
+ *  and a reader scanning the list can land on those without spending. It follows the pointer
+ *  rather than the reading, which is why it is set on arrival and not when an answer comes
+ *  back. */
 function pulse(where, on) {
   const had = where.querySelector(".more");
   if (!on) return had?.remove();
@@ -371,61 +372,78 @@ function paint(where, out) {
   if (arm === null) had?.remove();
   else if (had) had.replaceWith(arm);
   else where.append(arm);
-  // Moved to the end, so the pulse sits past the text rather than before it.
-  const more = where.querySelector(".more");
-  if (more) where.append(more);
 }
 
-/** One turn of the loop: wait, ask for a longer arm, draw it, and go again.
+/** Read the arm below a node and draw it, if there is one left to read.
  *
- *  Every turn re-reads what to ask for rather than counting, because what is held may have
- *  moved under it -- another row's answer landing, an act dropping the lot. `armed` is
- *  checked on both sides of the wait for the same reason the ranking read checks `showing`:
- *  the pointer may have left while this was in the air, and drawing then would put an arm
- *  under a row nobody is looking at.
+ *  **No wait before it and no parts to it.** The record answers in full, so a reader who
+ *  pointed at a row gets what is there at once -- a pause would be charging them for looking
+ *  at what has already been paid for. `armed` is checked after the read for the same reason
+ *  the ranking read checks `showing`: the pointer may have left while it was in the air, and
+ *  drawing then would put an arm under a row nobody is looking at.
  */
-function grow(node, where) {
+async function grow(node) {
   const want = stub.reach(node);
-  if (want === null) return pulse(where, false);
-  pulse(where, true);
-  rolling = setTimeout(async () => {
+  if (want === null) return;
+  stub.asking(node, true);
+  try {
+    const got = await ask(`/stub/${node}?length=${want}&hidden=${showHidden ? 1 : 0}`);
+    const out = stub.landed(node, got);
     if (armed !== node) return;
-    stub.asking(node, true);
-    try {
-      const got = await ask(`/stub/${node}?length=${want}&hidden=${showHidden ? 1 : 0}`);
-      const out = stub.landed(node, got);
-      if (armed !== node) return;
-      paint(where, out);
-      grow(node, where);
-    } catch {
-      // A failed read is not reported: nothing was asked for out loud, and an error where a
-      // reader only moved a pointer is noise about something they did not do.
-      stub.asking(node, false);
-      pulse(where, false);
-    }
-  }, stub.DWELL);
+    dress(out);
+  } catch {
+    // A failed read is not reported: nothing was asked for out loud, and an error where a
+    // reader only moved a pointer is noise about something they did not do.
+    stub.asking(node, false);
+  }
+}
+
+/** Put an arm on whichever row the pointer is on now.
+ *
+ *  **The row that asked is not always the row that is there to answer.** Leaving the column
+ *  rebuilds the list at the caret, so a read begun on one element can land after that
+ *  element has been replaced by an identical one under the same pointer -- and painting into
+ *  the one that asked puts the text in a node nothing is showing. Asking the stylesheet who
+ *  is hovered is the same question the rebuild answers with, and it is the live one.
+ */
+function dress(out) {
+  const li = $("column").querySelector(".rows li:hover");
+  if (li === null || armed === null) return;
+  paint(li, out);
+  pulse(li, stub.costly(armed));
 }
 
 /** The pointer arriving at a row or leaving it.
  *
- *  **An arm that was grown stays drawn after the pointer leaves.** It cost something to
- *  reach and what the reader is doing is comparing two of them -- `docs/SPINE.md` has
- *  several stubs at one position saying whether the position matters, and a reader moving
- *  between neighbouring rows is performing exactly that. What stops is the growing.
+ *  **An arm that was read stays drawn after the pointer leaves.** What the reader is doing
+ *  is comparing two of them -- `docs/SPINE.md` has several stubs at one position saying
+ *  whether the position matters, and a reader moving between neighbouring rows is performing
+ *  exactly that.
  */
 function rolls(row, where, on) {
-  clearTimeout(rolling);
   if (!on) {
-    armed = null;
+    // Only if this row is still the one being read. A pointer crossing from one row to the
+    // next produces a leave and an enter, and nothing guarantees which the page sees first
+    // -- clearing unconditionally lets the row being left cancel the read its neighbour
+    // just started, which shows up as a hover that does nothing every other time.
+    if (armed === row.child) armed = null;
+    // The price goes with the pointer. It is about where the reader is looking and not about
+    // the row, so a list left behind holding half a dozen of them would be saying that six
+    // places are about to cost something.
     return pulse(where, false);
   }
-  // A row nothing realised has no node to read an arm from. Making one is a `realise` and
-  // then a rollout, which is a spend and is not what pointing at something does yet.
-  if (row.child === null) return;
   armed = row.child;
+  // Set before anything is read, because the pulse follows the pointer and not the answer.
+  // A row with no node under it is certainly costly and needs no read to say so.
+  pulse(where, stub.costly(row.child));
+  // A row nothing realised has nothing to descend from. Making one is a `realise` and then a
+  // rollout, which is a spend and is not what pointing at something does yet.
+  if (row.child === null) return;
+  // What is already held goes up at once and does not unfurl again -- the reader has seen
+  // this one, and replaying the gesture would say it had just arrived.
   const have = stub.recall(row.child);
-  if (have) paint(where, { cells: have.cells, fresh: have.cells.length });
-  grow(row.child, where);
+  if (have?.cells.length) paint(where, { cells: have.cells, fresh: have.cells.length });
+  grow(row.child).catch(() => {});
 }
 
 /** Show the rows the caret is at, which is where they sit when nothing is hovered. */

@@ -1199,17 +1199,29 @@ which. The set of realised nodes crosses the wire as a plain boolean per node an
 kinds as a map beside the names, since who took a token has no domain and nothing to compare
 across positions.
 
-**A row grows the model's own continuation while the pointer rests on it.** The reference arm
+**A row shows the model's own continuation under the pointer, at once.** The reference arm
 `docs/SPINE.md` names is read from the record rather than rolled: a greedy rollout merges onto
 what an earlier one wrote, so the descent that never leaves the top row is what asking again
-would produce, and it costs no inference and takes no lock. The gesture is a loop and not a
-request — half a second of rest buys ten tokens, and the pointer holding still buys ten more,
-to forty. A pulse at the tail says more is coming and goes when nothing is, which is the
-difference between an arm that filled its length and one the record has no more of. The arm
-runs off the right edge rather than wrapping or scrolling, because what a reader does with one
-is judge its shape, and it stays drawn after the pointer leaves so that two of them at one
-position can be read against each other. What is not here is the spending: a row the record
-has no arm for shows nothing, and paying to roll one is the increment after this.
+would produce, and it costs no inference and takes no lock. **What is already paid for is not
+paced** — it unfurls in one gesture on arrival, because a wait before it would be charging the
+reader for looking. Pacing belongs to what has to be bought, and arrives with the buying.
+
+**It is one line and nothing in the list moves.** The arm sits on the row's own line after the
+token, keeps the token beside it, and leaves by the right edge of the page rather than wrapping
+or scrolling; newlines are escaped as the rows escape theirs. A list a reader is scanning must
+not move the next row out from under the pointer about to reach it, which is also why the price
+below sits out of flow. `docs/NEXT.md` has the layout this is provisional against — where the
+arm takes the space beside the column it gets the page's height, and the break comes back.
+
+**A pulse in the left margin is a price and not a progress bar.** It marks a row where reaching
+further would cost inference — one with nothing realised under it, or one whose arm the record
+ran out of short of the length — so a row without one is free to look at and the column of them
+is what a reader scans to find where spending begins. It follows the pointer and not the
+reading, appearing on arrival rather than when an answer comes back.
+
+**An arm stays drawn after the pointer leaves**, because what a reader does with two of them is
+compare them, and moving between neighbouring rows is that comparison. What is not here is the
+spending: a row the record has no arm for shows a price and nothing else.
 
 What does not exist is everything past that: nothing shown beside a row unasked — what the
 reader already grew there is still only a size — no depth limit

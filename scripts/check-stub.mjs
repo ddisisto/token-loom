@@ -38,25 +38,16 @@ function is(what, got, want) {
 
 const fresh = () => stub.forget();
 
-// ---- the length asked for is a length ---------------------------------------------------
+// ---- the length asked for is a length -----------------------------------------------
 
 fresh();
-is("an arm nothing is held for asks for one burst", stub.reach(7), stub.BURST);
+is("an arm nothing is held for asks for the whole cap", stub.reach(7), stub.CAP);
+is("and a cap given at the call is the one used", stub.reach(7, { cap: 4 }), 4);
 
-/* The whole of why this is a length. `/stub` answers with a prefix, so the second ask is for
- * everything again and a little more -- an implementation that sent the increment would get
- * the first ten tokens back every time and grow for ever without moving. */
-stub.landed(7, answer(stub.BURST));
-is("and the next ask is for the longer prefix and not for the increment",
-  stub.reach(7), stub.BURST * 2);
-
-/* The cap is a cap on the arm and not on the number of asks, so the last one is short. */
-fresh();
-stub.landed(7, answer(stub.CAP - 3));
-is("the last ask is cut to the cap", stub.reach(7), stub.CAP);
-
-fresh();
-is("a cap below one burst is still the cap", stub.reach(7, { cap: 4 }), 4);
+/* The whole of why this is a length. `/stub` answers with a prefix, so an implementation
+ * that sent an increment would ask for the same first tokens every time. */
+stub.landed(7, answer(stub.CAP));
+is("an arm read to the cap asks for nothing more", stub.reach(7), null);
 
 // ---- the three ways of being finished ----------------------------------------------------
 
@@ -76,8 +67,8 @@ is("and says which of the two it was", [stub.full(7), stub.spent(7)], [false, tr
 fresh();
 stub.asking(7, true);
 is("an arm with a request in the air asks for nothing", stub.reach(7), null);
-stub.landed(7, answer(stub.BURST));
-is("and asks again once that one lands", stub.reach(7), stub.BURST * 2);
+stub.landed(7, answer(4));
+is("and asks once that one lands and came up short", stub.reach(7), stub.CAP);
 
 // ---- what is new, and what only looks new ------------------------------------------------
 
@@ -137,7 +128,7 @@ is("arms are held apart by the node they descend from",
 
 stub.forget();
 is("and dropped together when the record moves under them",
-  [stub.recall(7) === undefined, stub.reach(7)], [true, stub.BURST]);
+  [stub.recall(7) === undefined, stub.reach(7)], [true, stub.CAP]);
 
 // ---- what it is drawn as ------------------------------------------------------------------
 
@@ -155,7 +146,46 @@ arm = stub.draw(stub.landed(7, { segments: [cell("a"), { ...cell("\ufffd"), deco
 is("a cell that spells no character is marked and still shown",
   arm.children.map(c => c.classList.contains("raw")), [false, true]);
 
-is("the arm is one element the caller hangs where it likes", arm.className, "arm");
+is("the arm is one element the caller hangs where it likes",
+  arm.classList.contains("arm"), true);
+
+/* An arm read whole is one gesture and unfurls; an arm added to animates only its tail, so
+ * the two never both run and a reader never sees settled text move. */
+fresh();
+is("an arm read whole unfurls",
+  stub.draw(stub.landed(7, answer(3))).classList.contains("unfurl"), true);
+let grown = stub.draw(stub.landed(7, answer(6)));
+is("an arm added to does not unfurl again", grown.classList.contains("unfurl"), false);
+is("and marks only its tail as arriving",
+  grown.children.map(c => c.classList.contains("lands")),
+  [false, false, false, true, true, true]);
+
+/* A newline is escaped, not obeyed. One real break would move every row below it, and the
+ * panel holding still is what this stage is for. */
+fresh();
+is("a newline in an arm is shown and not obeyed",
+  words(stub.draw(stub.landed(7, { segments: [cell("a\nb")], spent: true }))), "a\\nb");
+
+// ---- the price, which is what the pulse says -------------------------------------------
+
+/* A row with nothing under it needs no read to be known costly: nothing was ever grown
+ * there, so every token of an arm from it would have to be made. */
+is("a row with no node under it is costly", stub.costly(null), true);
+
+fresh();
+is("an arm nobody has read is not yet costly", stub.costly(7), false);
+
+stub.landed(7, answer(stub.CAP));
+is("an arm the record carries to the cap is free", stub.costly(7), false);
+
+fresh();
+stub.landed(7, answer(5, true));
+is("an arm the record runs out of is costly", stub.costly(7), true);
+
+fresh();
+stub.landed(7, answer(stub.CAP, true));
+is("but one that ran out exactly at the cap is not, there being no room to spend",
+  stub.costly(7), false);
 
 /* An arm with nothing in it is a position to spend at and not a thing to read, so it draws
  * as nothing rather than as an empty box saying the model was asked. */

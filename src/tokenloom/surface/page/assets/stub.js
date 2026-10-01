@@ -1,39 +1,23 @@
-/* The reference arm as the page grows it: what is held for each position, how long an arm
- * to ask for next, and when to stop asking.
+/* The reference arm as the page holds it: what has been read for each position, whether
+ * there is more to be had, and whether having it would cost inference.
  *
  * `docs/SPINE.md` has the stub as the model left alone from a position, and the gesture that
- * asks for one is a hover -- so the shape of the thing is a loop rather than a request. The
- * pointer rests, a length is asked for, what comes back is longer than what was there, and
- * if the pointer has not moved it asks again. It stops at a cap, or where there is nothing
- * left to ask for.
+ * asks for one is a hover. **What the record already holds is not paced.** A greedy rollout
+ * merges onto what an earlier one wrote, so the descent that never leaves the top row is what
+ * asking again would produce -- it costs nothing, it is one read, and making the reader wait
+ * for it would be charging them for looking. The pacing is for what has to be bought, and it
+ * arrives with the buying; `docs/SPINE.md` has the timings it will be built from.
  *
  * **Lengths and not increments.** `/stub` answers with a prefix of the arm, so growing one is
  * asking for a longer prefix and never for a continuation of what is held. That is what lets
- * the loop be restarted from anywhere, survive a response arriving out of order, and read the
- * record and the model through one path -- the page does not know which of the two answered,
- * and nothing here should.
- *
- * **The burst is a measurement and not a taste.** A full arm is one request's worth of
- * generation at about a second, which is far too long to read as an arrival; a tenth of it
- * lands in roughly a quarter second, which is the eyeblink the gesture is built around. So
- * the loop is what gives the page streaming without the adapter learning to stream.
+ * a read be restarted from anywhere, survive an answer arriving after a longer one, and read
+ * the record and the model through one path -- the page does not know which of the two
+ * answered, and nothing here should.
  */
 
-/** Tokens a hovered arm grows to before it stops asking. The reader can still ask for more
- *  by other means; what this bounds is what pointing at something spends. */
+/** Tokens an arm is read to. `docs/SPINE.md` has a flat length as enough to start and what
+ *  would settle a better one; this is that flat length. */
 export const CAP = 40;
-
-/** Tokens per ask. ~265 ms of generation against the measured 38 tok/s, which is what makes
- *  each landing read as an arrival rather than as a wait. `docs/SPINE.md`'s *Evidence in
- *  hand* has the timings this comes from. */
-export const BURST = 10;
-
-/** Milliseconds of rest before each ask, and a ceiling rather than a target: it is the
- *  longest the reader should have to hold still, and the pace is then set by what the model
- *  actually returns. Resting before the *first* ask is what keeps crossing the page from
- *  being a request; resting before each one after is what makes the growth a thing the
- *  reader can stop by moving. */
-export const DWELL = 500;
 
 /* What is held, by the node an arm descends from. An arm only grows, and a longer one
  * supersedes a shorter one entirely rather than being appended to -- so this keeps across
@@ -43,29 +27,27 @@ const held = new Map();
 export const recall = node => held.get(node);
 export const forget = () => held.clear();
 
-/** How long an arm to ask for next, or null when there is nothing left to ask.
+const blank = () => ({ cells: [], grown: 0, spent: false, asking: false });
+
+/** How long an arm to ask for, or null when there is nothing to ask.
  *
- *  Three ways to be finished and they are not the same. **Full** is the cap reached, and the
- *  arm is as long as pointing at something buys. **Spent** is the record having no more of
- *  it, which is where a rollout would have to be paid for -- so it stops the loop here and
- *  is the hook whatever spends will take. **Asking** is one in flight, because a second
- *  request for the same arm would race the first and the later answer is not the longer one.
+ *  One read and not a sequence, because the record answers in full or not at all: an arm
+ *  that came back short came back short because the tree ends there, and asking again
+ *  returns the same thing. What is held is therefore final until something writes.
  */
-export function reach(node, { cap = CAP, burst = BURST } = {}) {
+export function reach(node, { cap = CAP } = {}) {
   const have = held.get(node);
-  if (have === undefined) return Math.min(burst, cap);
+  if (have === undefined) return cap;
   if (have.asking || have.spent || have.grown >= cap) return null;
-  return Math.min(have.grown + burst, cap);
+  return cap;
 }
 
-/** Mark an arm as having a request in flight, so the loop does not start a second. */
+/** Mark an arm as having a read in flight, so a second hover does not start another. */
 export function asking(node, yes) {
   const have = held.get(node) ?? blank();
   have.asking = yes;
   held.set(node, have);
 }
-
-const blank = () => ({ cells: [], grown: 0, spent: false, asking: false });
 
 /** Where in `cells` the part that was not there before begins.
  *
@@ -86,9 +68,9 @@ export function freshFrom(cells, had) {
 /** Take what a read returned, and say what of it is new.
  *
  *  A shorter answer than what is held is dropped rather than applied: an arm only grows, so
- *  a short one is a stale request landing after a long one and applying it would make the
- *  text retreat. The `spent` it carries is still taken, since that is a fact about the
- *  record and not about this answer's length.
+ *  a short one is a stale read landing after a long one and applying it would make the text
+ *  retreat. The `spent` it carries is still taken, since that is a fact about the record and
+ *  not about this answer's length.
  */
 export function landed(node, payload) {
   const have = held.get(node) ?? blank();
@@ -107,11 +89,33 @@ export function landed(node, payload) {
   return { cells, fresh };
 }
 
-/** Whether an arm is as long as it will get, which is what stops the pulse. An arm that is
- *  spent and one that is full both stop, and a reader is owed the difference: one has
- *  nothing more to show and the other has more to sell. */
 export const full = (node, { cap = CAP } = {}) => (held.get(node)?.grown ?? 0) >= cap;
 export const spent = node => held.get(node)?.spent === true;
+
+/** Whether reaching further from here would have to be paid for.
+ *
+ *  **This is what the pulse means, and it is a price rather than a progress bar.** A reader
+ *  scanning rows is deciding where to spend attention before deciding where to spend
+ *  inference, so what they need at a glance is which of these are free to look at. An arm
+ *  the record carries to the cap is free and says so by showing nothing.
+ *
+ *  A row with no node under it is the certain case and needs no read to know: nothing was
+ *  ever grown there, so every token of an arm from it would have to be made. A row with one
+ *  is costly only once the record has been seen to run out, which is why an unread arm is
+ *  not costly -- saying so before looking would mark every row in the list.
+ */
+export function costly(node) {
+  if (node === null || node === undefined) return true;
+  const have = held.get(node);
+  if (have === undefined) return false;
+  return have.spent && have.grown < CAP;
+}
+
+/* A newline is shown and not obeyed, the way a row's own spelling is: an arm is one line by
+ * construction here, and a real break would move every row below it -- `docs/NEXT.md` has
+ * the panel holding still as what this stage is for. Where an arm gets the room to run down
+ * the page, the newline comes back with it. */
+const oneLine = text => text.replace(/\n/g, "\\n");
 
 /** An arm as an element, with what has just arrived marked apart from what was already
  *  there.
@@ -120,8 +124,9 @@ export const spent = node => held.get(node)?.spent === true;
  *  is a decision about the record -- which part is new, which part spells nothing -- and
  *  where it hangs is a decision about the page.
  *
- *  **Only the new part is animated.** The reader is watching the tail, so motion over text
- *  they have already read would say *this changed* about something that did not.
+ *  **An arm read whole unfurls, and an arm added to animates only its tail.** The first is
+ *  one gesture because the reader asked one question and it was answered at once; the second
+ *  is the shape the spending will have, where the tail is the only part that was waited for.
  */
 export function draw(out) {
   // Nothing is drawn for an arm with nothing in it. The record has no continuation on the
@@ -130,13 +135,14 @@ export function draw(out) {
   if (!out.cells.length) return null;
   const arm = document.createElement("span");
   arm.className = "arm";
+  if (out.fresh === 0) arm.classList.add("unfurl");
   for (const [i, cell] of out.cells.entries()) {
     const span = document.createElement("span");
-    if (i >= out.fresh) span.classList.add("lands");
+    if (out.fresh > 0 && i >= out.fresh) span.classList.add("lands");
     // A cell that spells no character is marked rather than hidden: an arm that ends inside
     // one is a real ending and the reader is owed the sight of it.
     if (cell.decodes === false) span.classList.add("raw");
-    span.textContent = cell.text;
+    span.textContent = oneLine(cell.text);
     arm.append(span);
   }
   return arm;

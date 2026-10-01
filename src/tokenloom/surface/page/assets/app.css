@@ -352,35 +352,51 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 
 /* ---- the reference arm ----
 
-   An arm runs off the right edge rather than wrapping or scrolling, and that is the whole of
-   its layout. What a reader does with one is judge its shape -- a short-sequence repeater
-   stops being looked at about as fast as it arrives, and a rollout with somewhere to go is
-   conspicuous for exactly as long as it keeps going -- and a box that had to be scrolled to
-   be read would ask for a second decision about something they have not decided to care
-   about yet. `docs/NEXT.md` has the layout this is provisional against: the arm takes the
-   space beside the column and the rankings move to a corner. Until then it takes the row's
-   own line and leaves by the edge.
+   **One line, and nothing in the panel moves vertically.** An arm appears on the row's own
+   line, after the token, and leaves by the right edge -- the list it is drawn in is a thing
+   the reader is scanning, so an arm that pushed the rows below it would move the next row
+   out from under the pointer that was about to reach it. Newlines are escaped for the same
+   reason the rows escape theirs. `docs/NEXT.md` has the layout this is provisional against:
+   where the arm takes the space beside the column it gets the page's height to run down, and
+   the break comes back with it.
 
    `clip` and not `hidden` on the page, because `hidden` would make the body a scroll
    container and put the bar back on. */
-.rows li { flex-wrap: wrap; }
-.arm { flex: 0 0 100%; white-space: pre; margin: 1px 0 2px;
-       font-size: 12px; font-weight: 400; color: var(--faint);
-       border-left: 1px solid var(--rule); padding-left: 7px; }
+.arm { flex: 0 0 auto; white-space: pre; margin-left: 10px;
+       font-size: 12px; font-weight: 400; line-height: 1.35; color: var(--faint);
+       border-left: 1px solid var(--rule); padding-left: 8px; }
 .rows li:hover .arm { color: var(--dim); }
 .arm .raw { color: var(--accent); }
 
-/* What has just arrived, settling into what is already there. The reader is watching the
-   tail, so what the motion has to say is *this is further than it was* -- a sweep from the
-   left would say it instead about text they have already read. */
+/* The token gives up the stretch it was holding so the arm starts right after it, and keeps
+   its own width so the arm overflows rather than squeezing it out -- a row that showed the
+   continuation and not the token it continues would have lost the thing being pointed at.
+   The probability goes, because the arm is what the reader wants while pointing and the
+   value is what they were reading a moment ago. */
+.rows li:has(.arm) .spell { flex: 0 0 auto; }
+.rows li:has(.arm) .p { display: none; }
+
+/* An arm read whole arrives as one gesture, because one question was asked and answered at
+   once. It unfurls from where the token ends, which is the direction it is going. */
+@keyframes unfurl { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.arm.unfurl { animation: unfurl .32s ease-out both; }
+
+/* The tail of an arm that was added to -- the shape the spending has, where only the last
+   part was waited for. */
 @keyframes lands { from { opacity: 0; } to { opacity: 1; } }
 .arm .lands { animation: lands .28s ease-out both; }
 
-/* The pulse is a promise of more and not a label saying stub, so it goes when the asking
-   does. It breathes over the wait rather than at its own rate, which is what makes holding
-   still feel like the thing that is working. */
-.more { margin-left: 4px; color: var(--accent);
-        animation: breathe var(--dwell, .5s) ease-in-out infinite; }
+/* **The pulse is a price and not a progress bar.** It marks a row where reaching further
+   would cost inference, so a row without one is free to look at and the list can be scanned
+   for the safe ones. It follows the pointer, so it has no rhythm of its own to wait out.
+
+   Out of flow and in the panel's left margin, for two reasons. It cannot change a row's
+   height from there, and a mark that moved the rows below it would shift the next row out
+   from under a pointer that was about to reach it -- the thing this stage is for. And a
+   fixed column is scannable: prices line up with each other rather than with the ends of
+   whatever text happens to be on each row. */
+.more { position: absolute; left: -11px; top: 0; line-height: inherit;
+        color: var(--accent); animation: breathe 1.4s ease-in-out infinite; }
 
 /* ---- the composer ----
    A request appears where its result will, so this stands in the column at the position it
