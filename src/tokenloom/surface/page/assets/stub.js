@@ -93,13 +93,13 @@ export function landed(node, payload) {
   have.why = payload.why ?? ENDS;
   if (grown < have.grown) {
     held.set(node, have);
-    return { cells: have.cells, fresh: have.cells.length };
+    return { cells: have.cells, fresh: have.cells.length, why: have.why };
   }
   const fresh = freshFrom(cells, have.grown);
   have.cells = cells;
   have.grown = grown;
   held.set(node, have);
-  return { cells, fresh };
+  return { cells, fresh, why: have.why };
 }
 
 export const full = (node, { cap = CAP } = {}) => (held.get(node)?.grown ?? 0) >= cap;
@@ -131,6 +131,10 @@ export function costly(node) {
   return have.why === ENDS && have.grown < CAP;
 }
 
+/** The mark a closed continuation ends with, in the arm and in the column alike. One
+ *  character, because in a row it has to sit on a line that may not grow. */
+export const SHUT = "\u2298";
+
 /* A newline is shown and not obeyed, the way a row's own spelling is: an arm is one line by
  * construction here, and a real break would move every row below it -- `docs/NEXT.md` has
  * the panel holding still as what this stage is for. Where an arm gets the room to run down
@@ -151,8 +155,11 @@ const oneLine = text => text.replace(/\n/g, "\\n");
 export function draw(out) {
   // Nothing is drawn for an arm with nothing in it. The record has no continuation on the
   // top row here, which is a position to spend at rather than a thing to read, and an empty
-  // box would say the model had been asked and had nothing to say.
-  if (!out.cells.length) return null;
+  // box would say the model had been asked and had nothing to say. **Unless it was closed**
+  // -- then there is something to say and nothing to show it with, which is the one case
+  // the reader cannot work out for themselves.
+  const closed = out.why === CLOSED;
+  if (!out.cells.length && !closed) return null;
   const arm = document.createElement("span");
   arm.className = "arm";
   if (out.fresh === 0) arm.classList.add("unfurl");
@@ -165,5 +172,11 @@ export function draw(out) {
     span.textContent = oneLine(cell.text);
     arm.append(span);
   }
+  // **An arm that was closed is terminated where it closed.** It ran out short of the cap
+  // and nothing else in the row says why, so without this a stub cut at eight tokens reads
+  // as one that broke at eight tokens. The caller hangs what it does on it: the mark is
+  // what the record says and the gesture is the page's.
+  if (closed) arm.append(Object.assign(document.createElement("span"),
+    { className: "shut", textContent: SHUT, title: "the rest of this was set aside" }));
   return arm;
 }

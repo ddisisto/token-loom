@@ -25,7 +25,9 @@ from pathlib import Path
 
 import pytest
 
-SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS = ROOT / "scripts"
+ASSETS = ROOT / "src" / "tokenloom" / "surface" / "page" / "assets"
 CHECKS = [
     "check-cursor.mjs",
     "check-draw.mjs",
@@ -46,6 +48,42 @@ def test_an_asset_says_what_it_says_it_says(script):
         [node, str(SCRIPTS / script)], capture_output=True, text=True, timeout=60
     )
     assert done.returncode == 0, done.stdout + done.stderr
+
+
+def test_every_page_module_parses(tmp_path):
+    """**A module that does not parse takes the whole page down and says nothing.**
+
+    The page is ES modules with no build step, so nothing stands between the file and the
+    browser to object -- and a duplicate declaration or a stray bracket does not break the
+    module it is in, it stops the module graph loading. What the reader gets is a blank
+    column and no error anywhere they would look. One cost an afternoon's confusion here
+    before it was found by driving a browser.
+
+    The drivers above parse what they import, which is every module the page's arithmetic
+    lives in; what nothing imports is `app.js`, because it is the wiring and reaches for a
+    document. So this parses without running: the sources are copied under `.mjs`, since
+    `--check` takes the module goal from the extension and the page is served as `.js` from
+    a directory that has no `package.json` and should not grow one.
+    """
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed; the page's modules are parsed by the browser")
+    found = sorted(ASSETS.glob("*.js"))
+    assert found, f"no modules under {ASSETS}"
+    bad = []
+    for src in found:
+        copy = tmp_path / f"{src.stem}.mjs"
+        copy.write_text(src.read_text())
+        done = subprocess.run(
+            [node, "--check", str(copy)], capture_output=True, text=True, timeout=60
+        )
+        if done.returncode != 0:
+            # The fault and not the last line, which is node's own version banner.
+            said = [
+                line for line in done.stderr.splitlines() if "Error" in line
+            ] or done.stderr.splitlines()
+            bad.append(f"{src.name}: {said[0].strip()}")
+    assert not bad, "\n".join(bad)
 
 
 def test_every_driver_under_scripts_is_run():

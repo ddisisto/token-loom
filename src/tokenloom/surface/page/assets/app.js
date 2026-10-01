@@ -137,6 +137,12 @@ async function refresh(current) {
 
 // ---- the reading column ---------------------------------------------------------------
 
+/** The mark a closure carries, wherever one is drawn. It is its own element because it is
+ *  set in a face the words are not -- U+2298 is missing from some system UI faces and falls
+ *  back to a tofu box, the same hazard the fork mark in the roots list hedges against. */
+const shut = () => Object.assign(document.createElement("span"),
+  { className: "shut", textContent: stub.SHUT });
+
 /** Where the path leaves what is live, and the way back. One of these: what is hidden is a
  *  suffix, because the rule picks the live path first. */
 function boundary(cell) {
@@ -146,7 +152,27 @@ function boundary(cell) {
   go.textContent = "restore";
   go.title = "bring this back into the live tree";
   go.onclick = () => restore(cell);
-  mark.append("set aside", go);
+  mark.append(shut(), "set aside", go);
+  return mark;
+}
+
+/** The same boundary with nothing drawn after it: the path stops here because what carries
+ *  it on was set aside.
+ *
+ *  **It is the one thing the column could not say.** A path that has not been continued and
+ *  a path the reader closed both end with the text simply stopping, and the difference is
+ *  the difference between somewhere to spend and somewhere to reopen. Taking it shows the
+ *  tail, which puts `boundary` above it and the `undelete` with it -- so this is the same
+ *  component in the state where the text it would precede is not drawn.
+ */
+function closure() {
+  const mark = document.createElement("span");
+  mark.className = "cut";
+  const go = document.createElement("button");
+  go.textContent = "show";
+  go.title = "draw what was set aside below this";
+  go.onclick = reveal;
+  mark.append(shut(), "set aside", go);
   return mark;
 }
 
@@ -311,7 +337,7 @@ function swap(box, pace) {
 
 /** Draw the rows at a node beside `anchor`, which is the span they are about. */
 async function opened(node, anchor, pace = SCAN) {
-  if (!ranking.asked() || node === null || anchor === null) return shut();
+  if (!ranking.asked() || node === null || anchor === null) return clear();
   let payload = ranking.recall(node);
   if (payload === undefined) {
     // What lies below each row is always asked for, because it is one of the list's two axes
@@ -342,7 +368,7 @@ async function opened(node, anchor, pace = SCAN) {
   swap(box, pace);
 }
 
-function shut() {
+function clear() {
   drawnAt = null;
   for (const box of $("column").querySelectorAll(".rows")) box.remove();
 }
@@ -432,14 +458,30 @@ function pulse(where, on) {
     { className: "more", textContent: "\u2026" }));
 }
 
+/** What a closure mark does when it is taken: show what is set aside, wherever it is.
+ *
+ *  **It reveals and it does not revive.** Turning the toggle on brings the hidden tail back
+ *  into the column with `.cut` standing at its head, and that boundary is where `undelete`
+ *  already lives -- so the reader sees what they closed before deciding to reopen it, and
+ *  nothing the surface does on a click puts a node back that they put away. It is also why
+ *  the mark can sit in a hover panel at all: it costs a view and never an act.
+ */
+function reveal() {
+  if (showHidden) return;
+  $("hidden").checked = true;
+  $("hidden").onchange();
+}
+
 /** Hang an arm in the row it belongs to. What it is drawn as is `stub.draw`; this is where
- *  it goes and what it replaces. */
+ *  it goes, what it replaces, and what its closure mark does when taken. */
 function paint(where, out) {
   const arm = stub.draw(out);
   const had = where.querySelector(".arm");
   if (arm === null) had?.remove();
   else if (had) had.replaceWith(arm);
   else where.append(arm);
+  const mark = arm?.querySelector(".shut");
+  if (mark) mark.onclick = event => { event.stopPropagation(); reveal(); };
 }
 
 /** Hang what is already held on each row of a list that is about to go up.
@@ -456,7 +498,8 @@ function paint(where, out) {
 function prefill(box) {
   for (const li of box.querySelectorAll("li[data-node]")) {
     const have = stub.recall(Number(li.dataset.node));
-    if (have?.cells.length) paint(li, { cells: have.cells, fresh: have.cells.length });
+    if (have === undefined) continue;
+    paint(li, { cells: have.cells, fresh: have.cells.length, why: have.why });
   }
 }
 
@@ -525,8 +568,8 @@ function rolls(row, where, on) {
 function settled() {
   showing = cursor.node();
   const mark = $("column").querySelector(".seg.at");
-  if (!ranking.asked() || mark === null) return shut();
-  opened(showing, mark, SETTLE_IN).catch(() => shut());
+  if (!ranking.asked() || mark === null) return clear();
+  opened(showing, mark, SETTLE_IN).catch(() => clear());
 }
 
 function peek(i, el) {
@@ -534,7 +577,7 @@ function peek(i, el) {
   clearTimeout(peeking);
   const to = cursor.chosen(drawn, i);
   if (to === null || to === showing) return;
-  peeking = setTimeout(() => { showing = to; opened(to, el).catch(() => shut()); }, SEEN);
+  peeking = setTimeout(() => { showing = to; opened(to, el).catch(() => clear()); }, SEEN);
 }
 
 /** Draw the path through a node, and leave the caret at `where` -- or at the end of what is
@@ -558,13 +601,20 @@ async function show(node, where) {
   const read = await ask(`/path/${node}?hidden=${showHidden ? 1 : 0}&rule=${taken()}`
     + `&overlays=${ranked ? 1 : 0}&beneath=${want.beneath ? 1 : 0}`);
   let cells = read.segments;
+  // Whether the text stops where it does because something was set aside. Either the read's
+  // own leaf has nothing live below it, or the cut below happened first -- a path *through*
+  // a hidden node ends at the hidden part rather than at the leaf, and both are the reader
+  // having closed something rather than the model not having been asked.
+  let closed = read.why === "closed";
   if (!showHidden) {
     // The read carries a hidden ancestry whatever the toggle says, since a path through a
     // node that was set aside still reaches it. With the toggle off none of that is drawn,
     // and a reader left standing in it falls back to where the live tree ends.
     const stop = cells.findIndex(aside);
     if (stop === 0) return land(null);
-    if (stop > 0) cells = cells.slice(0, stop);
+    if (stop > 0) { cells = cells.slice(0, stop); closed = true; }
+  } else {
+    closed = false;  // what was set aside is drawn, so `boundary` is already saying it
   }
   drawn = cells;
   // Where the reader has not pointed, the caret rests at the end of what is drawn -- so the
@@ -579,6 +629,7 @@ async function show(node, where) {
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
   // range from the text in front of the reader.
   flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells, read.kinds)));
+  if (closed) flow.append(closure());
   $("column").replaceChildren(flow);
   frontier();
   settled();

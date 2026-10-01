@@ -431,6 +431,18 @@ def test_a_stub_that_fills_its_length_says_so_rather_than_that_the_tree_ran_out(
     assert client.get("/stub/2", params={"length": "1"}).json()["why"] == "full"
 
 
+def test_the_path_says_whether_it_stopped_or_was_closed(client):
+    """The column's half of the same distinction. The live path runs to node 4 and node 4
+    has nothing below it, so it ran out; setting node 4 aside leaves node 3 ending the path
+    with a child it is hiding, which is somewhere to reopen rather than somewhere to spend.
+    With the toggle on the tail is drawn and the boundary inside it says so instead."""
+    assert client.get("/path/2").json()["why"] == "ends"
+    client.post("/delete", json={"node": 4})
+    assert client.get("/path/2").json()["why"] == "closed"
+    assert client.get("/path/2", params={"hidden": "1"}).json()["why"] == "ends"
+    client.post("/undelete", json={"node": 4})
+
+
 def test_a_stub_the_reader_closed_says_so_and_is_not_offered_as_an_ending(client):
     """What the wire carries the reason for. Setting node 3 aside leaves the arm empty, and
     a client told only that it was short would price a roll that merges onto the flagged

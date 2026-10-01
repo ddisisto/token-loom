@@ -202,13 +202,24 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 .seg.hidden { color: var(--dim);
               background: color-mix(in srgb, var(--faint) 50%, transparent); }
 
-/* Where the path leaves what is live. One of these, since what is hidden is a suffix: the
-   rule picks the live path first and a hidden pass only carries it on from the end. */
-.cut { display: inline-flex; align-items: baseline; gap: 8px; vertical-align: baseline;
-       margin: 0 7px 0 3px; padding: 1px 4px 2px 9px;
+/* Where the path leaves what is live, in both of the states that has.
+
+   With the toggle on, what was set aside is drawn and this sits between the two -- one of
+   them, since what is hidden is a suffix: the rule picks the live path first and a hidden
+   pass only carries it on from the end. With it off there is nothing after it, and then it
+   is the one thing the column could not otherwise say: that the text stops because the
+   reader closed it and not because nothing has been asked here yet. **One component and
+   not two**, or there are two answers to where the live tree ended.
+
+   `--fork-face` for the mark alone: U+2298 is missing from some system UI faces and falls
+   back to a tofu box, which reads as corruption rather than as a mark -- the same hedge the
+   fork mark in the roots list takes, and for the same reason. */
+.cut { display: inline-flex; align-items: baseline; gap: 7px; vertical-align: baseline;
+       margin: 0 7px 0 3px; padding: 1px 4px 2px 7px;
        font: 400 11px/1.6 var(--mono); font-style: normal; color: var(--dim);
        border: 1px dashed var(--rule); border-radius: 4px; }
 .cut button { font: inherit; padding: 1px 6px; }
+.shut { font-family: var(--fork-face); color: var(--accent); }
 
 /* ---- where the reader is pointing ----
    A rule on the trailing edge of the segment the caret follows, which is the edge the next
@@ -411,6 +422,12 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
        border-left: 1px solid var(--rule); padding-left: 8px; }
 .rows li:hover .arm { color: var(--dim); }
 .arm .raw { color: var(--accent); }
+
+/* The arm's end, where a closure cut it short of its cap. It is a mark and a gesture both:
+   it says the rollout stopped because the reader shut it rather than because it broke, and
+   taking it draws what was shut. Set off from the text so it does not read as a token. */
+.arm .shut { margin-left: 6px; cursor: pointer; }
+.arm .shut:hover { color: var(--ink); }
 
 /* The token gives up the stretch it was holding so the arm starts right after it, and keeps
    its own width so the arm overflows rather than squeezing it out -- a row that showed the

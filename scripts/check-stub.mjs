@@ -218,5 +218,32 @@ fresh();
 is("an empty arm is not drawn at all",
   stub.draw(stub.landed(7, { segments: [], why: stub.ENDS })), null);
 
+// ---- where a closure cut the arm short ---------------------------------------------------
+
+/* The one case an arm cannot be read without. A rollout that stopped at eight tokens of
+ * forty is indistinguishable from one that broke at eight, and the difference is between
+ * somewhere to spend and somewhere to reopen -- so the ending is drawn rather than left for
+ * the reader to infer from a length they cannot see. */
+fresh();
+let cut = stub.draw(stub.landed(7, answer(3, stub.CLOSED)));
+is("an arm the reader closed is terminated where it closed",
+  cut.children.map(c => c.classList.contains("shut")), [false, false, false, true]);
+is("  and the mark is the one the column uses, so there is one of them",
+  cut.children[3].textContent, stub.SHUT);
+
+fresh();
+is("an arm that merely ran out is not terminated",
+  stub.draw(stub.landed(7, answer(3, stub.ENDS))).children
+    .some(c => c.classList.contains("shut")), false);
+
+/* Drawn even where there is nothing else to draw, which is the case the reader can least
+ * work out for themselves: a row that shows nothing at all and is not a row the model has
+ * been asked about. */
+fresh();
+const bare = stub.draw(stub.landed(7, { segments: [], why: stub.CLOSED }));
+is("a wholly closed arm is the mark alone rather than nothing",
+  [bare === null, bare?.children.length, bare?.children[0].classList.contains("shut")],
+  [false, 1, true]);
+
 console.log(bad ? `\n${bad} failed` : "\nnothing failed");
 process.exit(bad ? 1 : 0);

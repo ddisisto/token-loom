@@ -286,9 +286,15 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             took = R.realised(
                 conn, (m.node.id for cell in cells for m in cell.nodes)
             )
+            leaf = cells[-1].nodes[-1].node.id
             return JSONResponse({
                 "node": node,
-                "leaf": cells[-1].nodes[-1].node.id,
+                "leaf": leaf,
+                # Two of the four `reads.py` names, since a path has no limit to fill and
+                # no ranking to find two sources in. What it shares with the arm is the one
+                # that matters: a path that ran out and a path the reader closed stop in
+                # the same place and are not the same thing.
+                "why": S.CLOSED if S.shut(conn, leaf) else S.ENDS,
                 "rule": request.query_params.get("rule", "longest"),
                 "hidden": hidden,
                 "overlays": wanted,

@@ -297,6 +297,30 @@ def test_the_ancestry_alone_is_the_ancestry_whatever_the_toggle_says(tree):
     assert S.path(tree.conn, 6, rule=None, hidden=True) == S.path(tree.conn, 6, rule=None)
 
 
+def test_a_path_that_was_closed_is_told_apart_from_one_that_simply_ran_out(tree):
+    """**The two look identical once the text stops, and they are not the same thing.** A
+    leaf nothing has continued is somewhere to spend; a leaf whose arms the reader set aside
+    is somewhere to reopen, and with the toggle off nothing on the page said which.
+
+    Node 4 carries arms 7 and 8 and 8 is already set aside, so it is not closed while 7 is
+    live -- closed is every way onward being put away and not any of them.
+    """
+    assert S.shut(tree.conn, 4) is False
+    tree.delete(7, actor=USER)
+    assert S.shut(tree.conn, 4) is True
+    tree.undelete(7, actor=USER)
+    assert S.shut(tree.conn, 4) is False
+
+
+def test_a_leaf_with_nothing_below_it_at_all_is_not_closed(tree):
+    """The case the read exists to separate from. Nothing was put away here, so there is
+    nothing to reopen and the mark would send a reader looking for something that is not
+    there -- which is worse than the silence it replaces."""
+    leaf = S.path(tree.conn, 4)[-1].nodes[-1].node.id
+    assert R.children(tree.conn, leaf) == []
+    assert S.shut(tree.conn, leaf) is False
+
+
 # ---- overlays ------------------------------------------------------------------------
 
 

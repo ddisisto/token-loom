@@ -397,6 +397,23 @@ def path(
     return segments(marks, lambda m: spell[m.node.token_id])
 
 
+def shut(conn: sqlite3.Connection, node: int) -> bool:
+    """Whether the live tree stops at `node` because what is below it was set aside.
+
+    The same question `reference` answers about the top row, asked about a whole position:
+    a path that ran out and a path a reader closed look identical once the text stops, and
+    only one of them is somewhere the model has not been asked yet. **It is the difference
+    between *nothing has run here* and *this was shut deliberately***, which nothing on the
+    page could say with the toggle off.
+
+    A node carrying children of which none is live is closed whichever of them it was, so
+    this reports the state and names no node: what reaches a set-aside arm is the toggle,
+    and the boundary drawn inside it is what carries the `undelete`.
+    """
+    kids = R.children(conn, node)
+    return bool(kids) and all(kid.deleted for kid in kids)
+
+
 def beneath(
     conn: sqlite3.Connection, cells: list[Segment[R.PathNode]], hidden: bool = False
 ) -> dict[int, dict[str, int]]:

@@ -1224,11 +1224,28 @@ not move the next row out from under the pointer about to reach it, which is als
 below sits out of flow. `docs/NEXT.md` has the layout this is provisional against — where the
 arm takes the space beside the column it gets the page's height, and the break comes back.
 
-**A pulse in the left margin is a price and not a progress bar.** It marks a row where reaching
-further would cost inference — one with nothing realised under it, or one whose arm the record
-ran out of short of the length — so a row without one is free to look at and the column of them
-is what a reader scans to find where spending begins. It follows the pointer and not the
-reading, appearing on arrival rather than when an answer comes back.
+**An arm says why it stopped, and only one of the reasons is a price.** It filled the room it
+was given; the record has no more and a roll extends it; the top row continues under a flag the
+reader set; or two sources ranked the position and there is no one top row to follow. **The
+last two cannot be bought** — a roll at either merges onto what the record already holds and
+writes nothing — so reading *stopped* as *for sale* would charge for what cannot be delivered.
+The page prices the second alone.
+
+**A pulse in the left margin is that price and not a progress bar.** It marks a row where
+reaching further would cost inference — one with nothing realised under it, or one whose arm
+the record ran out of short of the length — so a row without one is free to look at and the
+column of them is what a reader scans to find where spending begins. It follows the pointer and
+not the reading, appearing on arrival rather than when an answer comes back.
+
+**A closed continuation is marked where it closed, and the mark is the way back.** *Nothing has
+run here* and *this was shut deliberately* end the same way with the toggle off — the text
+simply stops — and the difference is between somewhere to spend and somewhere to reopen. One
+mark says which, at the end of the column's path and at the end of an arm cut short of its cap,
+and it is the same boundary that stands between live text and hidden when the toggle is on:
+with it off there is nothing drawn after it, and taking it draws what was set aside rather than
+restoring it. So the reader sees what they closed before deciding to reopen it, and nothing a
+click does puts back a node they put away. **The mark costs a view and never an act**, which is
+what lets it sit in a panel a pointer summons.
 
 **The arm belongs to the row and the price belongs to the pointer**, and nothing else divides
 what the two do. An arm is drawn wherever its row is — when it lands, whether or not the hand
