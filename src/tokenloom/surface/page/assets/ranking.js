@@ -185,20 +185,24 @@ export function list(payload, next, pick, weigh, rolls) {
       // the row, which draws it as its own background -- `app.css` has why it may not be an
       // element behind the text.
       li.style.setProperty("--p", (p / top).toFixed(4));
-      li.append(el("span", `spell${row.decodes ? "" : " raw"}`, oneLine(row.text)),
-                el("span", "p", p.toFixed(3)));
+      li.append(el("span", `spell${row.decodes ? "" : " raw"}`, oneLine(row.text)));
       // The node the row realised, which is what anything hung on the row is about. A list
       // rebuilt under the pointer replaces every element with an equal one, so the node is
       // what survives that and the element is not.
       if (row.child !== null) li.dataset.node = String(row.child);
+      // **Both axes are drawn as a size and read as numbers here.** A glance is not a
+      // number, so what a reader checks either axis against is said in words -- and said in
+      // one place, because a row is one thing and a reader asking about it is asking about
+      // all of it. The probability is the model's opinion written out: the bar behind the
+      // row is this row against the top one, and the first of these is what that is a share
+      // of.
+      const said = [`${p.toFixed(3)} · ${(p / top).toFixed(2)} of the top row`];
       if (weigh) {
-        // The place goes to the stylesheet and the count to the title: how much room a row
-        // takes is the glance, and what it is a count of is the thing a reader checks.
         li.style.setProperty("--w", sizes[i].toFixed(4));
         const told = says(weights[i], weigh);
-        if (told) li.title = `${weigh.key} · ${told}`;
-        if (weights[i].state !== "value") li.classList.add("bare");
+        if (told) said.push(`${weigh.key} · ${told}`);
       }
+      li.title = said.join("\n");
       li.onclick = () => pick(row, payload);
       if (rolls) {
         // `pointerenter`/`pointerleave` and not `over`/`out`: an arm drawn inside the row is

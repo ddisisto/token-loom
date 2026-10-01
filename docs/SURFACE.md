@@ -1052,7 +1052,10 @@ when it is settled.
   sometimes the other. The bar drawn now is each row against the top row of its source, which
   keeps a flat position from reading as a page of empty bars and says nothing about how much
   was recorded; a bar against the recorded mass says the second and loses the first. What
-  settles it is drawing a real tree several ways.
+  settles it is drawing a real tree several ways. **A number beside the bar is one of the ways
+  and has been drawn**: it was a column read down while the list is read across, and it was
+  carrying what the bar beside it already said. It is in the title now, which is where the
+  other axis's number went for the same reason.
 - **Which overlay finds the positions worth branching at.** Entropy, the top-1 to top-2 gap, the
   mass in the head, or something composite — Overlays says what each can be computed from and not
   which is worth reading, and `docs/SPINE.md`'s *Evidence in hand* already rules out the obvious
@@ -1171,10 +1174,16 @@ in the half the column leaves empty, at the line they are about, following the c
 following the pointer while they are shown. Each is marked by what taking it would cost: the one
 the path took is where the reader already is, one realised elsewhere is a selection and is the
 way back to an arm a draw parted from, and one nothing took is the only one that writes. A row
-shows its probability against a bar scaled to the top row of its source, which is one answer to
-*how* and not the settled one. **The bar is the row's own ground and not a thing drawn behind
-it**, so whatever is hung in a row later is drawn over the bar rather than in front of it and a
-list filling with text still reads as the distribution it is.
+draws its probability as a bar scaled to the top row of its source and as nothing else, which is
+one answer to *how* and not the settled one. **The bar is the row's own ground and not a thing
+drawn behind it**, so whatever is hung in a row later is drawn over the bar rather than in front
+of it and a list filling with text still reads as the distribution it is.
+
+**The row is the token, and both of its axes are drawn as sizes.** Neither is written out beside
+it: a column of figures is read down rather than across, and it would stand against the one
+thing in a list that is not a measurement. A glance is still not a number, so the numbers behind
+both axes are in the row's title, which is also the one place a reader asks about a row rather
+than two.
 
 **The rows carry the other axis too, and it is the downward family transposed.** How much room
 a token takes is what has been grown from it, over the heaviest row of its source, by whichever

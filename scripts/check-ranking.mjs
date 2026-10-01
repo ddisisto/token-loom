@@ -194,7 +194,8 @@ is("with nothing grown anywhere the axis is flat",
    R.spread([row(0.5), row(0.5)].map(r => R.weight(r, BY_SIZE))), [0, 0]);
 
 /* The place goes to the stylesheet and the count to the title. What a row is worth has to be
- * legible exactly, because the size is a glance and a glance is not a number. */
+ * legible exactly, because the size is a glance and a glance is not a number -- and since
+ * the row draws neither axis as a figure, a title that dropped one loses it outright. */
 const sized = R.list(
   { node: 9, rows: [grown(999), grown(20, { child: 600 }), row(0.5)], sources: SOURCES },
   null, () => {}, BY_SIZE);
@@ -206,16 +207,25 @@ says("what the size is a count of is said in words", rows[0].title, "999 below t
 says("  and it names the measure it came from", rows[0].title, "size");
 says("a row nothing realised says that, rather than being a small one",
      rows[2].title, "nothing has realised this row");
-is("  and is marked as being at the floor rather than near it",
-   rows.map(li => li.classList.contains("bare")), [false, false, true]);
+
+/* Both axes are drawn as a size and neither is drawn as a number, so the title is where a
+ * reader checks either. The probability is only there -- a glance at a bar is not a reading
+ * of it, and nothing else on the page would disagree with a wrong one. */
+says("the probability a row's bar draws is said in words", rows[0].title, "0.500");
+says("  along with the share of the top row the bar is drawn at", rows[0].title,
+     "1.00 of the top row");
+is("  and both axes are said at once, each on its own line",
+   rows[0].title.split("\n").length, 2);
 
 /* A list drawn before a measure is chosen is the list as it was, and not a list of rows all
  * the same size -- because setting the place to nothing is a claim and leaving it off is not.
  */
 const plain = R.list({ node: 9, rows: [grown(999)], sources: SOURCES }, null, () => {}, null);
-is("with no measure the axis is not drawn at all",
-   plain.children.find(k => k.classList.contains("list")).children[0].style.props["--w"],
-   undefined);
+const only = plain.children.find(k => k.classList.contains("list")).children[0];
+is("with no measure the axis is not drawn at all", only.style.props["--w"], undefined);
+is("  and the title is the model's half alone, rather than empty",
+   only.title.split("\n").length, 1);
+says("  which is still a number and not a place", only.title, "0.500");
 
 // ---- what is held ------------------------------------------------------------------------------------
 

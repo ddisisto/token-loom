@@ -82,12 +82,14 @@ not need to be at a line and a continuation does. What is unsettled is whether a
 away from its position still reads, which is what the current placement was built to protect.
 **Settled by building the stub track first and seeing what the rankings are then left needing.**
 
-**The panel's own faults travel with it and are unchanged.** It is too light to read and too
-sparse to work from; **how much each row holds wants drawing and not only printing**; **the
-continuation beside each row that already has one**, set below the weight of the branch token,
-which is what `docs/SURFACE.md` says instead of a band; **a click takes as much of a row as it
-lands on**, token or continuation or all of it; and **a click on nothing releases the caret**
-back to the end of the path, which is currently reachable only by reloading.
+**What the panel still cannot do.** **A click takes as much of a row as it lands on**, token or
+continuation or all of it, so taking the first few tokens of an arm is a thing the reader can
+see and not a thing they can ask for. **A click on nothing releases the caret** back to the end
+of the path, which is currently reachable only by reloading. And **a pointer leaving the column
+sends the panel back to the caret**, which is right when the reader leaves the text and wrong
+when they are moving towards the rows they just opened: the hovered position's list cannot be
+reached without first clicking the token, so the one gesture that costs nothing is the one that
+has to be committed to.
 
 **A `realise` does not leave the caret where it put the token**, which is the same plumbing and
 is why it is here rather than on its own. The act lands and the column redraws, but where the
@@ -340,12 +342,14 @@ quoted from a tree is a figure against a state of it, which is the item below.
 
 Not in the ordering; each stands on its own.
 
-- **How realisation falls with a row's place by value, measured before anything spends inference
-  on hover.**
-  `docs/SPINE.md` has the question and what it would settle; what makes it urgent rather than
-  interesting is that rolling rows out on a hover would drive the top row's share to one and
-  leave the curve measuring a pointer. One query over `data/continuations`, and the tree is
-  innocent until it is not.
+- **Every title on the page is a browser tooltip, and none of them was designed.** They carry
+  real content — what a row's two axes are worth, what a measure read at a segment, which of
+  the ways of having no value this one is — and the browser draws all of it the same, late,
+  in one place, as a block of plain text that cannot be styled, cannot hold a number set apart
+  from its name, and goes away if the reader moves to read it. The page already knows how to
+  put something beside a thing without moving it, which is what the arm and the price do. What
+  settles the shape is the content: these say different kinds of thing and only one of them
+  needs to be dwelt on, so the question is whether that is one treatment or two.
 - **The reading measure, now that it is taken against the room there is.** `--col` is
   `min(34em, calc((100cqw - 48px) / 2))`, so the cap holds above about 1739 CSS pixels and the
   column narrows with the window below it — about 55 characters to the line at 1457 against about

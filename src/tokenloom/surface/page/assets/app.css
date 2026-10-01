@@ -348,25 +348,28 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    Two channels and not one, because the reading is usually the log of a count and a log
    divided by a log is a narrow number -- an arm three times another's size lands two pixels
    above it. Size and weight move together over the same value, so what one channel
-   compresses the other still carries. Only the spelling takes them: the probability keeps
-   its own size so the right edge stays a column to read down, and the bar keeps its own
-   height because it draws the other axis. */
+   compresses the other still carries. Only the spelling takes them, and the bar keeps its
+   own height because it draws the other axis.
+
+   **The row is the token and nothing else.** Both axes are already drawn, each as a size,
+   and a column of figures beside them would be a third drawing of what two of them say --
+   read down rather than across, competing with the one thing in the list that is not a
+   measurement. The numbers behind both are in the row's title. */
 .rows .spell { flex: 1; white-space: pre; overflow: hidden; text-overflow: ellipsis;
                font-size: calc(12px + var(--w, 0) * 9px); line-height: 1.35;
                font-weight: calc(400 + var(--w, 0) * 300); }
 .rows .spell.raw { color: var(--accent); }
-.rows .p { color: var(--faint); font-size: 11px; }
 
 /* Weight is the other axis now, so what the path took is marked by its colour and by the
    place it holds in the list, and not by being the heavy one. */
 .rows li.took { color: var(--ink); }
 .rows li.unrealised .spell { font-style: italic; }
-/* Nothing was grown from it, whether because nothing took it or because what did is hidden.
-   The floor of the size axis is the same place for both and the title is where they part.
-   Under the pointer it comes up anyway: the floor of the axis is a thing to read, and a row
-   that got quieter for being pointed at would be the one row a reader cannot check. */
-.rows li.bare .spell { color: var(--faint); }
-.rows li:hover.bare .spell { color: var(--dim); }
+/* Nothing was grown from a row is said by the floor of the size axis and by the title, and
+   it is not said a third time in the colour. **`--faint` is a rule and a placeholder and
+   never a text colour**: it is a step off the background, which is what a hairline wants and
+   what a token a reader is choosing between cannot afford -- least of all over a bar, which
+   closes what little gap there was. Most rows at most positions have nothing under them, so
+   this was the list's ordinary row drawn as its unreadable one. */
 /* A node exists for it, off the path -- so it is somewhere to go and not something to make. */
 .rows li.elsewhere::after { content: "\2197"; color: var(--accent); font-size: 11px; }
 
@@ -397,19 +400,22 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 
    `clip` and not `hidden` on the page, because `hidden` would make the body a scroll
    container and put the bar back on. */
+/* Below the token in weight and still a thing to read, which is two steps down from the
+   row's own colour and not off the end of it -- `--faint` is a rule colour, and an arm set
+   in it was a line of text the length of the panel that nobody could read, least of all
+   over the bar. It is mixed towards the ground rather than made transparent, so what it
+   reads as does not depend on how long the bar behind it happens to be. */
 .arm { flex: 0 0 auto; white-space: pre; margin-left: 10px;
-       font-size: 12px; font-weight: 400; line-height: 1.35; color: var(--faint);
+       font-size: 12px; font-weight: 400; line-height: 1.35;
+       color: color-mix(in srgb, var(--dim) 70%, var(--bg));
        border-left: 1px solid var(--rule); padding-left: 8px; }
 .rows li:hover .arm { color: var(--dim); }
 .arm .raw { color: var(--accent); }
 
 /* The token gives up the stretch it was holding so the arm starts right after it, and keeps
    its own width so the arm overflows rather than squeezing it out -- a row that showed the
-   continuation and not the token it continues would have lost the thing being pointed at.
-   The probability goes, because the arm is what the reader wants while pointing and the
-   value is what they were reading a moment ago. */
+   continuation and not the token it continues would have lost the thing being pointed at. */
 .rows li:has(.arm) .spell { flex: 0 0 auto; }
-.rows li:has(.arm) .p { display: none; }
 
 /* An arm read whole arrives as one gesture, because one question was asked and answered at
    once. It unfurls from where the token ends, which is the direction it is going. */
