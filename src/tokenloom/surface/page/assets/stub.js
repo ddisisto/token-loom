@@ -27,7 +27,20 @@ const held = new Map();
 export const recall = node => held.get(node);
 export const forget = () => held.clear();
 
-const blank = () => ({ cells: [], grown: 0, spent: false, asking: false });
+const blank = () => ({ cells: [], grown: 0, why: null, asking: false });
+
+/** The four `surface/reads.py` names, kept in step with it. **Only `ENDS` is a price.** An
+ *  arm that stopped is not an arm the model has no more of: a closed one continues under a
+ *  flag the reader set and a declining one has no single top row to follow, and a roll at
+ *  either merges onto what is already there and writes nothing. */
+export const FULL = "full";
+export const ENDS = "ends";
+export const CLOSED = "closed";
+export const DECLINES = "declines";
+
+/** Whether the record has no more of this arm, whichever of the three reasons it is. It is
+ *  what stops the reading and says nothing about whether anything can be bought. */
+const done = have => have.why !== null && have.why !== FULL;
 
 /** How long an arm to ask for, or null when there is nothing to ask.
  *
@@ -38,7 +51,7 @@ const blank = () => ({ cells: [], grown: 0, spent: false, asking: false });
 export function reach(node, { cap = CAP } = {}) {
   const have = held.get(node);
   if (have === undefined) return cap;
-  if (have.asking || have.spent || have.grown >= cap) return null;
+  if (have.asking || done(have) || have.grown >= cap) return null;
   return cap;
 }
 
@@ -69,7 +82,7 @@ export function freshFrom(cells, had) {
  *
  *  A shorter answer than what is held is dropped rather than applied: an arm only grows, so
  *  a short one is a stale read landing after a long one and applying it would make the text
- *  retreat. The `spent` it carries is still taken, since that is a fact about the record and
+ *  retreat. The `why` it carries is still taken, since that is a fact about the record and
  *  not about this answer's length.
  */
 export function landed(node, payload) {
@@ -77,7 +90,7 @@ export function landed(node, payload) {
   const cells = payload.segments ?? [];
   const grown = cells.reduce((sum, cell) => sum + cell.nodes.length, 0);
   have.asking = false;
-  have.spent = payload.spent === true;
+  have.why = payload.why ?? ENDS;
   if (grown < have.grown) {
     held.set(node, have);
     return { cells: have.cells, fresh: have.cells.length };
@@ -90,7 +103,9 @@ export function landed(node, payload) {
 }
 
 export const full = (node, { cap = CAP } = {}) => (held.get(node)?.grown ?? 0) >= cap;
-export const spent = node => held.get(node)?.spent === true;
+
+/** Which of the four ended this arm, or null where nothing has been read for it. */
+export const why = node => held.get(node)?.why ?? null;
 
 /** Whether reaching further from here would have to be paid for.
  *
@@ -103,12 +118,17 @@ export const spent = node => held.get(node)?.spent === true;
  *  ever grown there, so every token of an arm from it would have to be made. A row with one
  *  is costly only once the record has been seen to run out, which is why an unread arm is
  *  not costly -- saying so before looking would mark every row in the list.
+ *
+ *  **And only where it ran out with more to say.** An arm the reader closed continues under
+ *  a flag and one that declines has no top row to follow; a roll at either merges onto what
+ *  is already there and writes nothing, so a price on them would be charging for a thing
+ *  that cannot be delivered. What those two want is a mark of their own and not this one.
  */
 export function costly(node) {
   if (node === null || node === undefined) return true;
   const have = held.get(node);
   if (have === undefined) return false;
-  return have.spent && have.grown < CAP;
+  return have.why === ENDS && have.grown < CAP;
 }
 
 /* A newline is shown and not obeyed, the way a row's own spelling is: an arm is one line by

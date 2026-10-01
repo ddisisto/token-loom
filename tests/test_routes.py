@@ -414,21 +414,36 @@ def test_a_line_hangs_where_it_parts_and_not_where_it_is_deep(client):
 
 def test_the_stub_read_is_the_arm_the_record_already_holds(client):
     """Node 2's top row is the one the draw took, so the arm runs onto node 3 and stops --
-    node 4 was authored and there is no ranking above it to be the top of. `spent` is what
+    node 4 was authored and there is no ranking above it to be the top of. `why` is what
     tells a client the tree ran out rather than the length, which is the whole of what it
     checks before spending anything."""
     body = client.get("/stub/2", params={"length": "40"}).json()
     assert "".join(cell["text"] for cell in body["segments"]) == " is"
     assert [cell["nodes"][0]["id"] for cell in body["segments"]] == [3]
-    assert body["spent"] is True
+    assert body["why"] == "ends"
     assert body["tip"] == 3
 
 
-def test_a_stub_that_fills_its_length_says_it_was_not_spent(client):
-    """The two endings are told apart at the wire and not by counting, because a client
-    that inferred one from the other would ask the model to extend an arm that had
-    nowhere to go."""
-    assert client.get("/stub/2", params={"length": "1"}).json()["spent"] is False
+def test_a_stub_that_fills_its_length_says_so_rather_than_that_the_tree_ran_out(client):
+    """The endings are told apart at the wire and not by counting, because a client that
+    inferred one from the other would ask the model to extend an arm that had nowhere to
+    go."""
+    assert client.get("/stub/2", params={"length": "1"}).json()["why"] == "full"
+
+
+def test_a_stub_the_reader_closed_says_so_and_is_not_offered_as_an_ending(client):
+    """What the wire carries the reason for. Setting node 3 aside leaves the arm empty, and
+    a client told only that it was short would price a roll that merges onto the flagged
+    node and writes nothing. The toggle is what reaches it, and it says so by reading as an
+    ordinary ending once it is on."""
+    client.post("/delete", json={"node": 3})
+    body = client.get("/stub/2", params={"length": "40"}).json()
+    assert body["segments"] == []
+    assert body["why"] == "closed"
+    assert client.get(
+        "/stub/2", params={"length": "40", "hidden": "1"}
+    ).json()["why"] == "ends"
+    client.post("/undelete", json={"node": 3})
 
 
 def test_a_stub_below_a_node_that_is_not_there_is_not_an_empty_arm(client):

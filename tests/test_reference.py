@@ -48,7 +48,7 @@ def text(arm):
 
 def test_the_arm_follows_the_top_row_as_far_as_the_record_goes(store):
     """The ordinary case: a greedy run leaves a chain of top-row children, and the arm is
-    that chain. `spent` says the tree ran out first, which is what makes it extendable."""
+    that chain. `ENDS` says the tree ran out first, which is what makes it extendable."""
     rolled(
         store, 2,
         (IS, [(IS, -0.1), (RED, -2.0)]),
@@ -56,7 +56,7 @@ def test_the_arm_follows_the_top_row_as_far_as_the_record_goes(store):
     )
     arm = S.reference(store.conn, 2, 40)
     assert text(arm) == " is blue"
-    assert arm.spent is True
+    assert arm.why == S.ENDS
 
 
 def test_the_arm_stops_at_a_child_below_the_top_row(store):
@@ -79,41 +79,58 @@ def test_the_arm_prefers_the_top_row_over_a_sibling_that_was_also_taken(store):
 
 
 def test_the_limit_is_in_nodes_and_cuts_the_arm_short(store):
-    """`spent` is False here and that is the whole difference: an arm that filled the room
-    it was given is not evidence the tree has no more."""
+    """`FULL` and not one of the three refusals, which is the whole difference: an arm that
+    filled the room it was given is not evidence the tree has no more."""
     rolled(
         store, 2,
         (IS, [(IS, -0.1)]), (BLUE, [(BLUE, -0.1)]), (RED, [(RED, -0.1)]),
     )
     arm = S.reference(store.conn, 2, 2)
     assert [n.token_id for n in arm.nodes] == [IS, BLUE]
-    assert arm.spent is False
+    assert arm.why == S.FULL
 
 
 # ---- what it refuses to answer ---------------------------------------------------------
 
 
-def test_a_position_nothing_ranked_ends_the_arm(store):
+def test_a_position_nothing_ranked_ends_the_arm_and_is_somewhere_to_spend(store):
     """A `create` records no ranking, so its child is a token with no top row above it. An
-    arm that walked an only child would be reporting the reader's text as the model's."""
+    arm that walked an only child would be reporting the reader's text as the model's.
+
+    It reports `ENDS` and not a refusal, which is the part that costs money to get wrong: a
+    roll here writes the ranking the position is missing and the arm reads afterwards, so
+    this is one of the places a price is honest.
+    """
     store.create(2, " is", vocabulary=ToyVocabulary(), actor=USER)
-    assert S.reference(store.conn, 2, 40).nodes == []
+    arm = S.reference(store.conn, 2, 40)
+    assert arm.nodes == []
+    assert arm.why == S.ENDS
 
 
-def test_a_position_two_sources_ranked_ends_the_arm(store):
+def test_a_position_two_sources_ranked_declines_rather_than_ending(store):
     """`docs/SURFACE.md` has the surface refuse rather than choose where two models ranked,
     because their values were never alternatives to each other. The arm does not get to
-    pick a winner by having a stronger opinion than the page."""
+    pick a winner by having a stronger opinion than the page.
+
+    **And it is not the same answer as the record running out.** This read will never follow
+    this position however much is spent on it, so a caller that read the two as one absence
+    would offer to buy what cannot be sold.
+    """
     rolled(store, 2, (IS, [(IS, -0.1), (RED, -2.0)]))
     rolled(store, 2, (RED, [(RED, -0.05)]), source=OTHER)
-    assert S.reference(store.conn, 2, 40).nodes == []
+    arm = S.reference(store.conn, 2, 40)
+    assert arm.nodes == []
+    assert arm.why == S.DECLINES
 
 
 def test_a_declined_position_ends_the_arm(store):
     """A backend that gave no distribution leaves a node with no edges at its parent, which
-    is an absence and not a flat ranking."""
+    is an absence and not a flat ranking. It reads as the record running out rather than as
+    a refusal, because a roll here records the ranking that is missing."""
     rolled(store, 2, (IS, None))
-    assert S.reference(store.conn, 2, 40).nodes == []
+    arm = S.reference(store.conn, 2, 40)
+    assert arm.nodes == []
+    assert arm.why == S.ENDS
 
 
 def test_a_tie_at_the_top_takes_the_first_child_in_insertion_order(store):
@@ -136,6 +153,35 @@ def test_a_set_aside_arm_is_not_followed_and_the_toggle_reaches_it(store):
     store.delete(3, actor=USER)
     assert S.reference(store.conn, 2, 40).nodes == []
     assert text(S.reference(store.conn, 2, 40, hidden=True)) == " is"
+
+
+def test_a_closed_arm_says_so_rather_than_reading_as_the_record_running_out(store):
+    """**The one that costs real money to conflate.** The record has this continuation and
+    the reader put it away, so a roll here merges onto a node still carrying the flag and
+    writes nothing at all -- a caller that read this as the tree ending would charge for
+    inference and have nothing to show for it. What reaches it is `undelete`.
+
+    With the toggle on there is nothing closed about it: the arm follows straight through,
+    so the reason belongs to the read's liveness and not to the node.
+    """
+    rolled(store, 2, (IS, [(IS, -0.1), (RED, -2.0)]), (BLUE, [(BLUE, -0.2)]))
+    store.delete(4, actor=USER)
+    arm = S.reference(store.conn, 2, 40)
+    assert text(arm) == " is"
+    assert arm.why == S.CLOSED
+    assert S.reference(store.conn, 2, 40, hidden=True).why == S.ENDS
+
+
+def test_a_tie_with_one_live_child_carries_on_rather_than_reading_as_closed(store):
+    """Closed is every way onward being set aside and not any of them. A tie at the top is
+    several rows and one taken child, so putting one away leaves the other to follow -- and
+    an arm that stopped there would report a reader's tidying as the model's silence."""
+    rolled(store, 2, (IS, [(IS, -0.5), (RED, -0.5 + S.TIE / 2)]))
+    rolled(store, 2, (RED, [(IS, -0.5), (RED, -0.5 + S.TIE / 2)]))
+    store.delete(3, actor=USER)
+    arm = S.reference(store.conn, 2, 40)
+    assert [n.id for n in arm.nodes] == [4]
+    assert arm.why == S.ENDS
 
 
 # ---- segments --------------------------------------------------------------------------

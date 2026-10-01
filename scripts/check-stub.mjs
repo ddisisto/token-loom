@@ -2,13 +2,19 @@
  *
  * The arithmetic here is small and every piece of it fails quietly. A reach that asked for
  * an increment instead of a length would return a correct-looking arm one burst long for
- * ever; a loop that did not stop at `spent` would ask the same question until the pointer
- * moved; a landing that applied a short answer over a long one would make the text retreat
- * on a slow network and look like the model changing its mind.
+ * ever; a loop that did not stop would ask the same question until the pointer moved; a
+ * landing that applied a short answer over a long one would make the text retreat on a slow
+ * network and look like the model changing its mind.
  *
- * The three ways of being finished are checked apart, because they are one `null` to the
- * caller and three different things to the reader -- full has more to sell, spent has
- * nothing more to show, and asking is a request already in the air.
+ * The ways of being finished are checked apart, because they are one `null` to the caller
+ * and several different things to the reader -- a full arm has more to sell, an arm that
+ * ran out has nothing more to show for free, and a request is already in the air.
+ *
+ * **And the ways of running out are checked apart from each other**, because only one of
+ * them is a price. An arm the reader closed and one with no single top row both stop, and a
+ * roll at either merges onto what is already recorded and writes nothing -- so a `costly`
+ * that read *stopped* as *for sale* would charge for a thing that cannot be delivered, and
+ * nothing on the page would contradict it.
  */
 
 import { words } from "./stub-dom.mjs";
@@ -21,9 +27,11 @@ const cell = (text, nodes = 1) => ({
   text, decodes: true, nodes: Array.from({ length: nodes }, (_, i) => ({ id: i })),
 });
 
-/** An answer of `n` tokens, one cell each. `spent` is the record running out first. */
-const answer = (n, spent = false) => ({
-  segments: Array.from({ length: n }, (_, i) => cell(` t${i}`)), spent,
+/** An answer of `n` tokens, one cell each. `why` is what ended it, and an answer that said
+ *  nothing would be a server fault -- the page takes that as the record running out, which
+ *  stops the reading and offers nothing. */
+const answer = (n, why = stub.FULL) => ({
+  segments: Array.from({ length: n }, (_, i) => cell(` t${i}`)), why,
 });
 
 // ---- reporting ------------------------------------------------------------------------------
@@ -54,15 +62,16 @@ is("an arm read to the cap asks for nothing more", stub.reach(7), null);
 fresh();
 stub.landed(7, answer(stub.CAP));
 is("a full arm asks for nothing", stub.reach(7), null);
-is("and says it is full", [stub.full(7), stub.spent(7)], [true, false]);
+is("and says it is full", [stub.full(7), stub.why(7)], [true, stub.FULL]);
 
-/* Spent is the record having no more of this arm. Asking again returns the same answer, so
+/* Ends is the record having no more of this arm. Asking again returns the same answer, so
  * the loop stops -- and this is where whatever spends will take over, which is why it is a
  * state and not just a stopped timer. */
 fresh();
-stub.landed(7, answer(4, true));
-is("a spent arm asks for nothing although it is short", stub.reach(7), null);
-is("and says which of the two it was", [stub.full(7), stub.spent(7)], [false, true]);
+stub.landed(7, answer(4, stub.ENDS));
+is("an arm the record ran out of asks for nothing although it is short",
+  stub.reach(7), null);
+is("and says which of the two it was", [stub.full(7), stub.why(7)], [false, stub.ENDS]);
 
 fresh();
 stub.asking(7, true);
@@ -84,9 +93,9 @@ is("and only the part past what was held is new on the second",
  * so a boundary inside a character would put the count a cell out and animate text that was
  * already on the screen. */
 fresh();
-stub.landed(7, { segments: [cell("a"), cell("b")], spent: false });
+stub.landed(7, { segments: [cell("a"), cell("b")], why: stub.FULL });
 out = stub.landed(7, { segments: [cell("a"), cell("b"), cell("é", 2), cell("c")],
-                       spent: false });
+                       why: stub.FULL });
 is("a cell is new by the nodes before it and not by its place",
   out.fresh, 2);
 
@@ -94,8 +103,8 @@ is("a cell is new by the nodes before it and not by its place",
  * changed, and drawing it as arriving would animate a character the reader is already
  * reading. */
 fresh();
-stub.landed(7, { segments: [cell("a"), cell("�")], spent: false });
-out = stub.landed(7, { segments: [cell("a"), cell("é", 2), cell("b")], spent: false });
+stub.landed(7, { segments: [cell("a"), cell("�")], why: stub.FULL });
+out = stub.landed(7, { segments: [cell("a"), cell("é", 2), cell("b")], why: stub.FULL });
 is("a character completed by this answer is not counted as arriving", out.fresh, 2);
 
 is("the boundary walker stops at the end rather than past it",
@@ -111,12 +120,12 @@ out = stub.landed(7, answer(5));
 is("a shorter answer does not shorten the arm", out.cells.length, 20);
 is("and nothing of it is drawn as new", out.fresh, 20);
 
-/* But what it says about the record is still true, because `spent` is a fact about the tree
+/* But what it says about the record is still true, because `why` is a fact about the tree
  * and not about how much of it this answer carried. */
 fresh();
 stub.landed(7, answer(20));
-stub.landed(7, answer(5, true));
-is("although what it says about the record is taken", stub.spent(7), true);
+stub.landed(7, answer(5, stub.ENDS));
+is("although what it says about the record is taken", stub.why(7), stub.ENDS);
 
 // ---- what is held, and for how long ------------------------------------------------------
 
@@ -142,7 +151,7 @@ is("and only what arrived in this answer is marked as arriving",
 
 fresh();
 arm = stub.draw(stub.landed(7, { segments: [cell("a"), { ...cell("\ufffd"), decodes: false }],
-                                 spent: true }));
+                                 why: stub.ENDS }));
 is("a cell that spells no character is marked and still shown",
   arm.children.map(c => c.classList.contains("raw")), [false, true]);
 
@@ -164,7 +173,7 @@ is("and marks only its tail as arriving",
  * panel holding still is what this stage is for. */
 fresh();
 is("a newline in an arm is shown and not obeyed",
-  words(stub.draw(stub.landed(7, { segments: [cell("a\nb")], spent: true }))), "a\\nb");
+  words(stub.draw(stub.landed(7, { segments: [cell("a\nb")], why: stub.ENDS }))), "a\\nb");
 
 // ---- the price, which is what the pulse says -------------------------------------------
 
@@ -179,19 +188,35 @@ stub.landed(7, answer(stub.CAP));
 is("an arm the record carries to the cap is free", stub.costly(7), false);
 
 fresh();
-stub.landed(7, answer(5, true));
+stub.landed(7, answer(5, stub.ENDS));
 is("an arm the record runs out of is costly", stub.costly(7), true);
 
 fresh();
-stub.landed(7, answer(stub.CAP, true));
+stub.landed(7, answer(stub.CAP, stub.ENDS));
 is("but one that ran out exactly at the cap is not, there being no room to spend",
   stub.costly(7), false);
+
+/* The two that stop and cannot be bought. A roll at either merges onto what the record
+ * already holds and writes nothing, so a price would be charging for an arm that will not
+ * appear -- and the reader, having paid, would have no way to tell the failure from a model
+ * with nothing to say. Each wants a mark of its own, which is `docs/NEXT.md`'s glyph. */
+fresh();
+stub.landed(7, answer(5, stub.CLOSED));
+is("an arm the reader closed is short and is not for sale", stub.costly(7), false);
+is("  and still stops the reading, because the record has no more to give freely",
+  stub.reach(7), null);
+
+fresh();
+stub.landed(7, answer(0, stub.DECLINES));
+is("an arm with no single top row to follow is not for sale either",
+  stub.costly(7), false);
+is("  and stops the reading for the same reason", stub.reach(7), null);
 
 /* An arm with nothing in it is a position to spend at and not a thing to read, so it draws
  * as nothing rather than as an empty box saying the model was asked. */
 fresh();
 is("an empty arm is not drawn at all",
-  stub.draw(stub.landed(7, { segments: [], spent: true })), null);
+  stub.draw(stub.landed(7, { segments: [], why: stub.ENDS })), null);
 
 console.log(bad ? `\n${bad} failed` : "\nnothing failed");
 process.exit(bad ? 1 : 0);

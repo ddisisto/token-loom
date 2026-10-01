@@ -257,6 +257,18 @@ def _continue(tree: Subtree, node: int | None, rule: Rule) -> list[R.Node]:
 TIE = 1e-9
 
 
+#: Why an arm goes no further, and what each of them is worth buying.
+#:
+#: **Only one of these is a price.** An arm that stopped is not an arm the model has no more
+#: of: three of the four are the record declining to answer rather than running out, and a
+#: greedy roll at the position merges onto what is already there and writes nothing. A caller
+#: that read `full` as *done* and everything else as *for sale* would charge for two of them.
+FULL = "full"  #: it filled the room it was given, and a larger limit would give more
+ENDS = "ends"  #: the record has no more, and a roll extends it -- the one that costs
+CLOSED = "closed"  #: the top row continues and was set aside; what reaches it is `undelete`
+DECLINES = "declines"  #: two sources ranked here, so there is no one top row to follow
+
+
 @dataclass(frozen=True, slots=True)
 class Reference:
     """How far the model's own continuation from a node is already written down.
@@ -266,36 +278,51 @@ class Reference:
     tree already holds -- the descent that never leaves the top row -- which costs no
     inference and is the same nodes a rollout would merge onto.
 
-    `spent` is the record running out before the limit did, and it is what a caller checks
-    before spending: a stub that ends because the tree ends is extendable, and one that
-    ends because it filled the room it was given is what `docs/SPINE.md` calls full.
+    `why` is which of the four above ended it, and it is what a caller checks before
+    spending rather than the length, since three of the four are not for sale.
     """
 
     nodes: list[R.Node]
     cells: list[Segment[R.Node]]
-    spent: bool
+    why: str
 
 
-def _onward(conn: sqlite3.Connection, node: int, hidden: bool) -> R.Node | None:
-    """The child on the top row at `node`, or None where the record does not have one.
+def _onward(conn: sqlite3.Connection, node: int, hidden: bool) -> tuple[R.Node | None, str]:
+    """The child on the top row at `node`, or None and why the record does not have one.
 
     Follows the refusals a ranking is read under elsewhere rather than re-deciding them: a
     position two sources ranked has no single top row, and a position nothing ranked has
     none at all. A tie at the top is several rows, and the child taken is the first of them
     in insertion order -- the same tie-break the continuation rules use, and for the same
     reason, that the record stores no order to prefer.
+
+    **The two refusals are not the same answer.** Two sources is a position this read will
+    never follow, however much is spent on it; nothing ranked is a position a roll would
+    both rank and continue. Only the second is somewhere to spend, which is why they are
+    told apart here rather than folded into one absence.
+
+    A set-aside child is told apart from no child for the same reason and the opposite one:
+    the record has the continuation and the reader put it away, so what reaches it is an
+    `undelete` and never a rollout -- one would merge onto the node still carrying the flag
+    and write nothing at all. A tie where one of the best children is live and another is
+    not is not closed: the live one is taken and the arm carries on.
     """
     edges = R.ranking(conn, node)
     sources = {e.source for e in edges}
+    if len(sources) > 1:
+        return None, DECLINES
     values = [e.logprob for e in edges if e.logprob is not None]
-    if len(sources) != 1 or not values:
-        return None
+    if not sources or not values:
+        return None, ENDS
     source, top = sources.pop(), max(values)
     best = {e.token_id for e in edges if e.logprob is not None and e.logprob >= top - TIE}
+    shut = False
     for kid in R.children(conn, node):
-        if kid.source == source and kid.token_id in best and (hidden or not kid.deleted):
-            return kid
-    return None
+        if kid.source == source and kid.token_id in best:
+            if hidden or not kid.deleted:
+                return kid, ""
+            shut = True
+    return None, CLOSED if shut else ENDS
 
 
 def reference(
@@ -316,9 +343,14 @@ def reference(
     """
     out: list[R.Node] = []
     at = node
+    # An arm that never stops is one that filled the room it was given, which is the only
+    # one of the four nothing reports: `_onward` says why it declined and says nothing when
+    # it did not.
+    why = FULL
     while len(out) < limit:
-        kid = _onward(conn, at, hidden)
+        kid, stopped = _onward(conn, at, hidden)
         if kid is None:
+            why = stopped
             break
         out.append(kid)
         at = kid.id
@@ -326,7 +358,7 @@ def reference(
     return Reference(
         nodes=out,
         cells=segments(out, lambda n: spell[n.token_id]),
-        spent=len(out) < limit,
+        why=why,
     )
 
 

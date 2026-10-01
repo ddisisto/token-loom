@@ -330,9 +330,9 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
 
         It writes nothing and calls no model: a greedy rollout merges onto what an earlier
         one wrote, so what the tree holds on the top row is what rolling again would
-        produce. `spent` says the record ran out before the length did, which is what a
-        client checks before spending -- `docs/SPINE.md` has a row that already carries a
-        stub left unrolled.
+        produce. `why` is which of `reads.py`'s four ended it, and it is what a client
+        checks before spending -- only one of the four is somewhere a roll would write
+        anything, and the length alone does not say which.
         """
         node = request.path_params["node"]
         length = _int(request, "length") if "length" in request.query_params else 40
@@ -344,7 +344,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 "node": node,
                 "length": length,
                 "hidden": hidden,
-                "spent": arm.spent,
+                "why": arm.why,
                 "tip": arm.nodes[-1].id if arm.nodes else node,
                 "segments": [wire.segment(cell, wire.node) for cell in arm.cells],
                 "sources": wire.source_names(conn),
