@@ -55,6 +55,15 @@ logprobs on a *raw continuation*, and no hosted provider returns those.
 stamped, and reads take no lock and call no model — so the surface above is two commands from a
 clone. A model is needed to *grow* a tree and not to read one.
 
+**Its acts travel with it, and they are the method.** Every `generate` records the model it
+asked and the parameters it asked under, so how the tree was built is in the tree rather than in
+a note beside it. Reproduction is therefore a **replay of acts**, and what comes back differs by
+as much as the sampler and the machine permit. Pinning a seed would narrow that and is not done:
+what a tree is evidence of is a method and a model, not one path through them. **This is a
+different replay from the one the format is built on** — concatenating stored token ids
+reproduces a recorded path exactly, and that is a property of the record; replaying acts
+re-runs the work and is a property of the method.
+
 ```sh
 uv sync
 uv run tokenloom serve data/demo --port 8097     # the picture above, on your machine
