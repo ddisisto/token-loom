@@ -254,6 +254,20 @@ first**, so what the drive is answering is known, and the divergences it opens a
 what happens when greedy was never run. Whether there are contexts on which zero is unusable
 throughout is in *Deliberately open*.
 
+**Pushed further, a basin often names the lack rather than only reporting one.** Running cold
+into one deliberately and staying there, well past the point the loop is established, tends to
+distil something specific — the framing problem, or the piece the context is missing, as the
+model's own view of it has that. That is more than *nothing here*, and it costs only letting a
+greedy run continue past the point it stopped being useful as text.
+
+**What it is good for is retrospective, which is why it is worth running noncommittally.** The
+place to act on what a basin says is usually not the position it was found at but somewhere
+earlier, where the context could still have been shaped — so running one out with no intention
+of keeping it is a way of learning where to steer next time rather than a way of recovering
+this one. That makes it cheap in the way that matters: nothing is riding on the output, so the
+reader is free to read it as a report. **This is anecdotal**, from many deliberate pushes rather
+than from anything counted, and nothing here measures it.
+
 **And a loop is not always a fault.** Refrain, anaphora, liturgy, mantra and a chorus are
 repetition doing work, and the reader is the only thing here qualified to tell one from a
 collapse. The instrument reports that a passage repeats; it never reports that it is broken.

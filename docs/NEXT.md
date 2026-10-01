@@ -35,22 +35,22 @@ for and what is drawn over it. This section is what comes after that.
 **1. The pointer rolls the reference arm, and the panel opens where it is pointed.**
 `docs/SPINE.md` has the stub as the reference arm — the model left alone from a position — and
 nothing on the page rolls one. What makes this one item rather than three is that the rankings,
-the stub and the gesture that summons either are one surface reached from two places.
+the stub and the gesture that summons both are one surface.
 
-**One gesture, two origins.** A hover on a row asks *where would that alternative go*. A hover
-on a token of the path asks *where does the model go from here*, which is the reference arm
-against the position the reader is pointing at. Same rollout, same cost, same reading: the
-origin is a ranked edge in the first case and a node in the second, and `generate` already takes
-either. So the second is nearly free once the first is built — and it is the one that turns
-reading into searching, since a pointer swept down the column asks the model, position by
-position, where it would have gone.
+**The reference arm at a path position needs no second gesture.** A hover on a row asks where
+that alternative would go — and the row the path itself took is one of the rows at its parent,
+so *where does the model go from here* is the parent's ranking opened and the taken row hovered.
+Two steps, both of which this item already builds, and no new origin. Hovering several rows at
+one node is nearly free after the first, which `docs/SPINE.md` measures and this does not
+restate. **So what is left to decide is not a gesture but a length.**
 
-**A sweep is the cheapest sequence of rollouts there is.** `docs/SPINE.md` measures hovering
-rows at one node at `prompt_n` 1 and 26 ms after the first, because every row there shares the
-path above it. Moving down the path has the same shape — each token's prompt is the one before
-it plus a token — so the cache is warm in exactly the direction a reader moves. What that costs
-is already written down: warm is the inexact case, so **a row's token is a fact and every
-continuation is advisory**.
+**Stub length goes to about a page, and a hovered one that outgrows the panel wraps into
+whatever whitespace is beside the column.** A rollout held inside a box has to be scrolled to be
+judged, which is a second decision about something the reader has not decided to care about yet.
+Spilled into the margin it is judged by its shape: **the selection is visual and nothing scores
+it**. A short-sequence repeater stops being looked at about as fast as it arrives, and a rollout
+with somewhere to go is conspicuous for exactly as long as it keeps going — so what has been
+explored, and what turned out to be worth exploring, are the same picture.
 
 **What a stub at a path position answers is whether to stay.** A rollout that is immediately
 dull says the model is not pulling anywhere from here, and one that goes somewhere says the
