@@ -393,6 +393,19 @@ its rate did not.
 
 Each of these is left to be settled by use of the instrument, and each names what would settle it:
 
+- **How far from its origin a single perturbation can still be read, and in what.** *Stubs* has
+  re-convergence as a local question — did the divergence last a few tokens — and it is the wrong
+  shape for what traces of frozen paths actually show. Divergence in all directions at once is
+  rare. What is common is a disturbance whose immediate effect washes out and whose downstream
+  effect is a change of *rate* rather than of content: in a loop, a phase shift or a change of
+  repetition period; in open-ended text, a change of topic or of format. Those blur the line a
+  token-by-token comparison is drawn along, which is why a path can look recovered and not be.
+  **Entropy and the gap are the candidates, read as a series rather than per position**, so what
+  this asks for is frequency analysis over a path and not a second scalar at one. Observed over
+  cooling loops of 10 to 500 tokens across forks, and over open-ended contexts. Whether a
+  perturbation can act far from its origin after seemingly doing nothing is unsettled and is the
+  thing worth settling. It needs recorded pairs and no new act, so it waits on the surface rather
+  than on the format.
 - **Whether re-convergence has a workable formal measure.** Settled by comparing candidate measures against reader judgements over recorded chains — no generation required.
 - **Stub depth beyond the room it is given.** *Stubs* sets depth from the distance to the next
   stub, which makes the policy a consequence of the gate rather than a number of its own. What is

@@ -153,6 +153,13 @@ none**, which is where a stub comes from and what a stub is for; **a click takes
 row as it lands on**, token or continuation or all of it; and **a click on nothing releases the
 caret** back to the end of the path, which is currently reachable only by reloading.
 
+**A `realise` does not leave the caret where it put the token**, which is the same plumbing and
+is why it is here rather than on its own. The act lands and the column redraws, but where the
+reader is pointing afterwards is not the node they just took — so the gesture that is supposed to
+be *take this and carry on from it* ends somewhere else and the next act has to be aimed again.
+It is held for this item because the panel is where the gesture starts and the two are one path
+through the code; fixing it with the panel shut would be fixing it twice.
+
 **It closes more than it opens.** The band was an increment of its own once and is now the rows
 given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
 section is gone. *Whether looking may spend inference* is answered the same way, by use. What the
