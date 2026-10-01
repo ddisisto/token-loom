@@ -331,10 +331,13 @@ async function opened(node, anchor, pace = SCAN) {
   // out from under the reader's hand and strand whatever that row had asked for.
   if (drawnAt === node && $("column").querySelector(".rows:not(.leaving)")) return;
   const box = ranking.list(payload, after ? after.id : null, took, weighed(), rolls);
+  // Before it goes up, so a list arrives carrying what the reader already read from it
+  // rather than filling in once it has landed.
+  prefill(box);
   // Placed against the column rather than the window, so it scrolls with the text it is
   // about and nothing here listens for a scroll.
-  const seat = $("column").getBoundingClientRect();
-  box.style.top = `${anchor.getBoundingClientRect().top - seat.top}px`;
+  const frame = $("column").getBoundingClientRect();
+  box.style.top = `${anchor.getBoundingClientRect().top - frame.top}px`;
   drawnAt = node;
   swap(box, pace);
 }
@@ -395,13 +398,26 @@ async function realise(row, payload) {
  * one wrote, so reading the top-row descent is reading what asking again would produce, and
  * a wait before it would be charging the reader for looking.
  *
- * So two things follow the pointer and neither follows a clock. The arm appears where there
- * is one, and the pulse appears where reaching further would cost inference -- which is the
- * reader's map of what is free to scan. A row the tree has no arm for shows nothing at all,
- * and paying to roll one is the increment after this.
+ * **The arm belongs to the row and the price belongs to the pointer**, and that is the whole
+ * division here. An arm is drawn wherever its row is -- on arrival, on a list rebuilt later,
+ * whether or not the hand stayed -- because what it says is a fact about the position. The
+ * pulse is drawn only under the pointer, because what it says is what the next thing would
+ * cost the reader. So hovering only ever means *there is more here*, and a row the tree has
+ * no arm for shows nothing at all; paying to roll one is the increment after this.
  */
 
-let armed = null;  // the node whose arm the pointer is on, or null
+let armed = null;  // the node whose row the pointer is on, or null
+
+/** The row a node's arm belongs to, in whichever list is the live one.
+ *
+ *  **An arm belongs to the row and not to the pointer**, so it is drawn where its row is
+ *  rather than where the hand is. And the row that asked is not always the row that
+ *  answers: leaving the column rebuilds the list at the caret, so a read begun on one
+ *  element can land after that element has been replaced by an equal one. The node is what
+ *  survives that; the element is not.
+ */
+const seat = node =>
+  $("column").querySelector(`.rows:not(.leaving) li[data-node="${node}"]`);
 
 /** The pulse at the tail of a row. **It is a price and not a progress bar**: it says that
  *  reaching further from here would cost inference, so a row without one is free to look at
@@ -426,13 +442,34 @@ function paint(where, out) {
   else where.append(arm);
 }
 
+/** Hang what is already held on each row of a list that is about to go up.
+ *
+ *  **An arm that has been read stays read**, and a list the reader comes back to is the list
+ *  they left. What is held is a fact about the position and not about where the pointer has
+ *  been, so returning to a row shows what was there instead of asking for it again -- and
+ *  the comparison `docs/SPINE.md` wants, several stubs at one position read against each
+ *  other, is a thing the reader can look away from and still have.
+ *
+ *  Nothing animates. It did not just arrive, and saying it had would be the page claiming
+ *  something about the record that the reader can see is not so.
+ */
+function prefill(box) {
+  for (const li of box.querySelectorAll("li[data-node]")) {
+    const have = stub.recall(Number(li.dataset.node));
+    if (have?.cells.length) paint(li, { cells: have.cells, fresh: have.cells.length });
+  }
+}
+
 /** Read the arm below a node and draw it, if there is one left to read.
  *
  *  **No wait before it and no parts to it.** The record answers in full, so a reader who
  *  pointed at a row gets what is there at once -- a pause would be charging them for looking
- *  at what has already been paid for. `armed` is checked after the read for the same reason
- *  the ranking read checks `showing`: the pointer may have left while it was in the air, and
- *  drawing then would put an arm under a row nobody is looking at.
+ *  at what has already been paid for.
+ *
+ *  What comes back is drawn whether or not the pointer stayed. The arm is the row's and the
+ *  reader asked for it; dropping it because they moved on would leave the record holding
+ *  something the page had decided not to show. The price is the other way round -- it is
+ *  about where they are looking -- so that is the one thing `armed` still gates.
  */
 async function grow(node) {
   const want = stub.reach(node);
@@ -441,8 +478,10 @@ async function grow(node) {
   try {
     const got = await ask(`/stub/${node}?length=${want}&hidden=${showHidden ? 1 : 0}`);
     const out = stub.landed(node, got);
-    if (armed !== node) return;
-    dress(out);
+    const li = seat(node);
+    if (li === null) return;
+    paint(li, out);
+    if (armed === node) pulse(li, stub.costly(node));
   } catch {
     // A failed read is not reported: nothing was asked for out loud, and an error where a
     // reader only moved a pointer is noise about something they did not do.
@@ -450,27 +489,11 @@ async function grow(node) {
   }
 }
 
-/** Put an arm on whichever row the pointer is on now.
- *
- *  **The row that asked is not always the row that is there to answer.** Leaving the column
- *  rebuilds the list at the caret, so a read begun on one element can land after that
- *  element has been replaced by an identical one under the same pointer -- and painting into
- *  the one that asked puts the text in a node nothing is showing. Asking the stylesheet who
- *  is hovered is the same question the rebuild answers with, and it is the live one.
- */
-function dress(out) {
-  const li = $("column").querySelector(".rows li:hover");
-  if (li === null || armed === null) return;
-  paint(li, out);
-  pulse(li, stub.costly(armed));
-}
-
 /** The pointer arriving at a row or leaving it.
  *
- *  **An arm that was read stays drawn after the pointer leaves.** What the reader is doing
- *  is comparing two of them -- `docs/SPINE.md` has several stubs at one position saying
- *  whether the position matters, and a reader moving between neighbouring rows is performing
- *  exactly that.
+ *  **Only the price moves with it.** What is drawn in the row was put there by `prefill` or
+ *  by a read landing, and it stays -- so hovering says *there is more here* and never *here
+ *  is what there is*.
  */
 function rolls(row, where, on) {
   // A list still coming into place is not somewhere to point at. The row under the hand is
@@ -495,10 +518,6 @@ function rolls(row, where, on) {
   // A row nothing realised has nothing to descend from. Making one is a `realise` and then a
   // rollout, which is a spend and is not what pointing at something does yet.
   if (row.child === null) return;
-  // What is already held goes up at once and does not unfurl again -- the reader has seen
-  // this one, and replaying the gesture would say it had just arrived.
-  const have = stub.recall(row.child);
-  if (have?.cells.length) paint(where, { cells: have.cells, fresh: have.cells.length });
   grow(row.child).catch(() => {});
 }
 

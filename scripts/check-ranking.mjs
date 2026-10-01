@@ -123,10 +123,20 @@ is("  and the text is not what the column would have drawn",
    words(list.children[1]).includes("\n"), false);
 
 /* The bar is against the top row of this source, so a position the model was unsure of does
- * not read as a page of empty bars. */
-const bars = list.children.map(li => li.children[0].style.props["--p"]);
-is("the bar is each row against the top one of its source", bars,
+ * not read as a page of empty bars. It is handed to the row and drawn as the row's own
+ * ground: anything hung in a row later is drawn over it rather than in front of it, which is
+ * what a reader scanning a filling list reads the position off. */
+is("the bar is each row against the top one of its source",
+   list.children.map(li => li.style.props["--p"]),
    ["1.0000", (0.2 / 0.7).toFixed(4), (0.1 / 0.7).toFixed(4)]);
+
+/* The node a row realised, carried by the row. A list rebuilt under the pointer replaces
+ * every element with an equal one, so whatever is hung on a row has to find it again by
+ * something the record says rather than by the element it was first drawn in. A row nothing
+ * realised carries none, which is the same absence `kind` reads. */
+is("a row carries the node it realised, and one that realised nothing carries none",
+   list.children.map(li => li.dataset.node ?? "none"),
+   [String(TOOK), String(AWAY), "none"]);
 
 list.children[1].onclick();
 is("taking a row hands it over whole and decides nothing about it",

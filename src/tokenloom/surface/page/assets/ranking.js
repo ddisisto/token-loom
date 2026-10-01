@@ -179,13 +179,18 @@ export function list(payload, next, pick, weigh, rolls) {
     for (const [i, row] of rows.entries()) {
       const p = Math.exp(row.logprob);
       const li = el("li", kind(row, next));
-      const bar = el("span", "bar");
-      // The bar is against the top row of this source and not against one, so a position the
-      // model was unsure of does not read as a page of empty bars. What a logprob should look
-      // like is open in `docs/SURFACE.md`; this is one answer and not the settled one.
-      bar.style.setProperty("--p", (p / top).toFixed(4));
-      li.append(bar, el("span", `spell${row.decodes ? "" : " raw"}`, oneLine(row.text)),
+      // Against the top row of this source and not against one, so a position the model was
+      // unsure of does not read as a page of empty bars. What a logprob should look like is
+      // open in `docs/SURFACE.md`; this is one answer and not the settled one. It goes to
+      // the row, which draws it as its own background -- `app.css` has why it may not be an
+      // element behind the text.
+      li.style.setProperty("--p", (p / top).toFixed(4));
+      li.append(el("span", `spell${row.decodes ? "" : " raw"}`, oneLine(row.text)),
                 el("span", "p", p.toFixed(3)));
+      // The node the row realised, which is what anything hung on the row is about. A list
+      // rebuilt under the pointer replaces every element with an equal one, so the node is
+      // what survives that and the element is not.
+      if (row.child !== null) li.dataset.node = String(row.child);
       if (weigh) {
         // The place goes to the stylesheet and the count to the title: how much room a row
         // takes is the glance, and what it is a count of is the thing a reader checks.

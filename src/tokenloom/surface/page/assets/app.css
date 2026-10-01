@@ -320,13 +320,27 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
              border-bottom: 1px solid var(--rule); }
 .rows .who .much { flex: 1; text-align: right; font-size: 11px; color: var(--faint); }
 .rows .list { list-style: none; margin: 0 0 18px; padding: 0; }
+/* Behind the row and not beside it, so the list stays a list of tokens, and it is the row's
+   own background rather than an element under it. **Nothing in a row may be drawn behind
+   the text by a negative z-index.** That only holds a child behind its parent while some
+   ancestor is a stacking context, and the nearest one here comes and goes: `.rows` is one
+   while a swap's transform and opacity are mid-transition and stops being one when they
+   land, and past it is `main`, whose `container-type` contains layout -- from there a
+   negative child is behind the panel's own background and invisible. A background paints
+   with the row whatever is later hung in it. */
 .rows li { position: relative; display: flex; align-items: baseline; gap: 8px;
-           padding: 2px 6px; cursor: pointer; border-radius: 3px; }
-.rows li:hover { color: var(--ink); background: var(--panel); }
-/* Behind the row and not beside it, so the list stays a list of tokens. */
-.rows .bar { position: absolute; left: 0; top: 1px; bottom: 1px; z-index: -1;
-             width: calc(var(--p) * 100%); border-radius: 3px;
-             background: color-mix(in srgb, var(--accent) 16%, transparent); }
+           padding: 2px 6px; cursor: pointer; border-radius: 3px;
+           background-image:
+             linear-gradient(to right,
+                             color-mix(in srgb, var(--accent) 16%, transparent)
+                               calc(var(--p, 0) * 100%),
+                             transparent calc(var(--p, 0) * 100%));
+           /* A line of air above and below, so a column of them is a list of rows and not
+              one staircase. It is the inset the bar had when it was an element. */
+           background-repeat: no-repeat;
+           background-size: 100% calc(100% - 2px); background-position: 0 1px; }
+/* The colour and not the shorthand, which would take the bar off with it. */
+.rows li:hover { color: var(--ink); background-color: var(--panel); }
 /* How much room the token takes is the second axis: the order of the rows is the model's
    opinion of the position and this is what the reader grew from each of them, which is the
    downward family read across the siblings rather than down the page.
@@ -348,8 +362,11 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 .rows li.took { color: var(--ink); }
 .rows li.unrealised .spell { font-style: italic; }
 /* Nothing was grown from it, whether because nothing took it or because what did is hidden.
-   The floor of the size axis is the same place for both and the title is where they part. */
+   The floor of the size axis is the same place for both and the title is where they part.
+   Under the pointer it comes up anyway: the floor of the axis is a thing to read, and a row
+   that got quieter for being pointed at would be the one row a reader cannot check. */
 .rows li.bare .spell { color: var(--faint); }
+.rows li:hover.bare .spell { color: var(--dim); }
 /* A node exists for it, off the path -- so it is somewhere to go and not something to make. */
 .rows li.elsewhere::after { content: "\2197"; color: var(--accent); font-size: 11px; }
 

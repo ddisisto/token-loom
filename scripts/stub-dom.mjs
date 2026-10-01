@@ -17,6 +17,7 @@ export class El {
     this.children = [];
     this.parentElement = null;
     this.attrs = {};
+    this.dataset = {};
     this.style = { props: {}, setProperty: (k, v) => { this.style.props[k] = v; } };
     this._class = new Set();
     this.classList = {

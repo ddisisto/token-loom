@@ -1172,7 +1172,9 @@ following the pointer while they are shown. Each is marked by what taking it wou
 the path took is where the reader already is, one realised elsewhere is a selection and is the
 way back to an arm a draw parted from, and one nothing took is the only one that writes. A row
 shows its probability against a bar scaled to the top row of its source, which is one answer to
-*how* and not the settled one.
+*how* and not the settled one. **The bar is the row's own ground and not a thing drawn behind
+it**, so whatever is hung in a row later is drawn over the bar rather than in front of it and a
+list filling with text still reads as the distribution it is.
 
 **The rows carry the other axis too, and it is the downward family transposed.** How much room
 a token takes is what has been grown from it, over the heaviest row of its source, by whichever
@@ -1199,7 +1201,7 @@ which. The set of realised nodes crosses the wire as a plain boolean per node an
 kinds as a map beside the names, since who took a token has no domain and nothing to compare
 across positions.
 
-**A row shows the model's own continuation under the pointer, at once.** The reference arm
+**Pointing at a row reads the model's own continuation from it, at once.** The reference arm
 `docs/SPINE.md` names is read from the record rather than rolled: a greedy rollout merges onto
 what an earlier one wrote, so the descent that never leaves the top row is what asking again
 would produce, and it costs no inference and takes no lock. **What is already paid for is not
@@ -1219,9 +1221,13 @@ ran out of short of the length — so a row without one is free to look at and t
 is what a reader scans to find where spending begins. It follows the pointer and not the
 reading, appearing on arrival rather than when an answer comes back.
 
-**An arm stays drawn after the pointer leaves**, because what a reader does with two of them is
-compare them, and moving between neighbouring rows is that comparison. What is not here is the
-spending: a row the record has no arm for shows a price and nothing else.
+**The arm belongs to the row and the price belongs to the pointer**, and nothing else divides
+what the two do. An arm is drawn wherever its row is — when it lands, whether or not the hand
+stayed, and again in a list built later, which goes up already carrying what has been read from
+that position. What a reader does with two of them is compare them, and a comparison they can
+look away from and still have is the one worth drawing. So pointing at a row only ever says
+*there is more here*, and a row the record has no arm for says it by showing a price and
+nothing else. What is not here is paying it.
 
 **One list changes hands by moving the way the reader is moving, and nothing is spent while it
 does.** A list already answering for the position under the pointer is left alone rather than
