@@ -66,6 +66,17 @@ is a stub while nothing has been done to it**, and the first sample or authored 
 promotes it to a spine with no act spent on saying so. So this item writes no flag, and a
 rollout is an ordinary `generate` at temperature zero.
 
+**The one place the spend has to refuse.** An act at a node that is set aside is already
+refused — *an act begins at a live node*, every op and greedy among them — but the refusal is on
+where an act *begins* and not on what it merges onto. So a roll from a live node whose top-row
+child was set aside is allowed, merges onto the whole dead chain, and writes nothing:
+`_merge_node` reuses by the merge key and does not clear the flag. The reader pays for inference
+and nothing appears. Worse, it is offered: `reference` reports that arm as empty and as having
+run out, which is what the page prices as costly. **`spent` conflates the tree ending with the
+tree continuing out of sight**, and only the first is something to buy. The second says *set
+aside*, and the way back is the toggle or an `undelete` — never one the surface issues itself,
+which would resurrect what the reader pruned at the moment they are least watching.
+
 **The panel opens at a click on a token and is not a global toggle.** *What else was live here*
 is a question about a position, so a switch that is on for the whole path answers it everywhere
 and is asked for nowhere — which supersedes *open by default*, the answer this item carried
@@ -81,6 +92,19 @@ joining the overlay controls and the sampler's as tabs. What recommends it is th
 not need to be at a line and a continuation does. What is unsettled is whether a ranking read
 away from its position still reads, which is what the current placement was built to protect.
 **Settled by building the stub track first and seeing what the rankings are then left needing.**
+
+**The rows list every ranked child and not every child, so a position can continue where the
+panel says it does not.** They are anchored on `edges`, and a child carrying no covering edge is
+invisible: an authored one, since `create` records no ranking and its `user` source gives it a
+merge key of its own; one a backend declined to rank; one a stop condition left. Where every
+child is unranked the position reads *nothing was ranked at this position*, which is true and
+says nothing about the tree carrying on below it. Nothing else reaches them either — no
+continuation rule is obliged to pick one, so an authored fork beside a longer recorded one is
+reachable only by knowing its id. `branches` sees them, but reviving it as a surface reopens
+what the rows closed. **So the rows take them.** An unranked child costs a selection and no act,
+which is the `elsewhere` kind exactly; what it arrives without is a value, so no bar and no
+place in an order that is the model's opinion. Where it sits instead is the open part, and under
+its own source below the ranked rows is the guess, a `user` source already being its own heading.
 
 **What the panel still cannot do.** **A click takes as much of a row as it lands on**, token or
 continuation or all of it, so taking the first few tokens of an arm is a thing the reader can
