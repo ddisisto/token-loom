@@ -66,16 +66,31 @@ is a stub while nothing has been done to it**, and the first sample or authored 
 promotes it to a spine with no act spent on saying so. So this item writes no flag, and a
 rollout is an ordinary `generate` at temperature zero.
 
-**The one place the spend has to refuse.** An act at a node that is set aside is already
-refused — *an act begins at a live node*, every op and greedy among them — but the refusal is on
-where an act *begins* and not on what it merges onto. So a roll from a live node whose top-row
-child was set aside is allowed, merges onto the whole dead chain, and writes nothing:
-`_merge_node` reuses by the merge key and does not clear the flag. The reader pays for inference
-and nothing appears. Worse, it is offered: `reference` reports that arm as empty and as having
-run out, which is what the page prices as costly. **`spent` conflates the tree ending with the
-tree continuing out of sight**, and only the first is something to buy. The second says *set
-aside*, and the way back is the toggle or an `undelete` — never one the surface issues itself,
-which would resurrect what the reader pruned at the moment they are least watching.
+**An arm has to say why it stopped, because only one of the answers is a price.** An act at a
+node that is set aside is already refused — *an act begins at a live node*, every op and greedy
+among them — but the refusal is on where an act *begins* and not on what it merges onto, and
+`reference` reports every way of stopping as the one word `spent`. Six positions were tried and
+two of them cannot be bought at all. Where **the top-row child was set aside**, a roll from the
+live parent merges onto the dead chain and writes nothing — `_merge_node` reuses by the merge
+key and does not clear the flag. Where **two sources ranked the position**, the arm declines by
+the rule `docs/SURFACE.md` already sets and a roll merges onto what is there. The other four are
+worth the money, including the one that looks least like it: a position the backend declined to
+rank buys the ranking rather than a node, and the arm reads afterwards — so *what did it write*
+is the wrong test and *did the arm grow* is the right one. **So `spent` splits three ways**:
+*ends*, which is the only price; *closed*; and *declines*.
+
+**A closed path is marked where it closed, and the mark is the way back.** Nothing separates
+*no inference has run here* from *this was shut deliberately*: with the toggle off, both are
+where the text stops. A glyph at the tip a `delete` left says which, and carries the `undelete`
+— so returning to a path does not mean turning the whole view on first. It goes in the column
+and in the arm alike, and in the arm it visibly terminates the rollout, which is what keeps a
+stub cut short of its cap from reading as a broken one. **`.cut` is the same fact in the other
+view** — the boundary between live text and what is set aside, drawn when the toggle is on —
+so the glyph is that boundary with nothing after it and the two are one component, or there are
+two answers to *where did the live tree end*. The surface still issues no `undelete` of its own:
+reviving on a hover would resurrect what the reader pruned at the moment they are least
+watching. **The glyph cannot be drawn without the reason, so this and the split above are one
+piece of work, and they are the first piece of the spend.**
 
 **The panel opens at a click on a token and is not a global toggle.** *What else was live here*
 is a question about a position, so a switch that is on for the whole path answers it everywhere
