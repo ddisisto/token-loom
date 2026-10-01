@@ -127,6 +127,7 @@ async function refresh(current) {
   // An arm is what the tree holds on the top row, so an act can lengthen one or take it
   // off the top row entirely. Both make what is held wrong in the same way the rows are.
   stub.forget();
+  drawnAt = null;  // the rows said what became of each row, and an act has changed that
   const tree = await ask("/tree");
   drawRoots(tree, current);
   say(`${tree.path}  ${tree.vocabulary}  ` +
@@ -254,11 +255,62 @@ let drawn = [];
  */
 
 const SEEN = 90;  // ms of quiet before a hover counts, so crossing the page is not a request
+
+/* How long a list takes to replace the one before it, and the two are different gestures.
+ * **Scanning is quick because the reader is not reading it yet** -- the pointer is sweeping
+ * the text and the panel is keeping up, so what the movement has to do is say that the
+ * answer changed, not hold anyone's eye. **A settled arrival is slower** because the reader
+ * stopped, and a list that snapped into place under a resting pointer would be a list they
+ * have to re-find. */
+const SCAN = 130;   // ms, the panel following a pointer across the column
+const SETTLE_IN = 280;  // ms, the panel arriving where the reader came to rest
+
 let peeking = null;
 let showing = null;
 
+/* The node the list on screen belongs to, and when it stops moving. A list is left alone
+ * while it still answers for the node it was built for -- rebuilding an identical one under
+ * the pointer replaces every row with a copy of itself, which costs the reader's hand its
+ * place and costs anything in flight the element it was going to land in. */
+let drawnAt = null;
+let settled_at = 0;
+
+/** Put a list up in place of the one before it, moving in the direction the reader is.
+ *
+ *  Both are in the document while it happens, and the one leaving stops taking the pointer
+ *  so that *what is hovered* keeps meaning the live list. A transition that never runs --
+ *  a hidden tab, a reader who asked for no motion -- still has to end, so the removal is
+ *  also on a timer and not only on the event.
+ */
+function swap(box, pace) {
+  const column = $("column");
+  const old = column.querySelector(".rows:not(.leaving)");
+  const down = old === null
+    || parseFloat(box.style.top) >= parseFloat(old.style.top || "0");
+  box.style.setProperty("--pace", `${pace}ms`);
+  box.style.setProperty("--from", down ? "1" : "-1");
+  box.classList.add("arriving");
+  column.append(box);
+  if (old) {
+    old.style.setProperty("--pace", `${pace}ms`);
+    old.style.setProperty("--from", down ? "-1" : "1");
+    old.classList.add("leaving");
+    old.addEventListener("transitionend", () => old.remove(), { once: true });
+    setTimeout(() => old.remove(), pace + 200);
+  }
+  // Two frames, because a class set in the same frame as the append is the state the
+  // element is first painted in and there is nothing to transition from.
+  requestAnimationFrame(() => requestAnimationFrame(() => box.classList.remove("arriving")));
+  settled_at = performance.now() + pace;
+  setTimeout(() => {
+    // A row the pointer is already on was never entered, so the list asks who is under it
+    // once it has stopped moving. This is also the earliest a hover may spend anything.
+    box.querySelector("li:hover")?.onpointerenter?.();
+  }, pace);
+}
+
 /** Draw the rows at a node beside `anchor`, which is the span they are about. */
-async function opened(node, anchor) {
+async function opened(node, anchor, pace = SCAN) {
   if (!ranking.asked() || node === null || anchor === null) return shut();
   let payload = ranking.recall(node);
   if (payload === undefined) {
@@ -275,22 +327,22 @@ async function opened(node, anchor) {
   // The measure is read at the moment of drawing rather than being sent with the read: the
   // response carries every downward measure, so changing which one the rows are sized by
   // costs a redraw and never a request.
+  // Already answering for this node. Replacing it with a copy of itself would take the row
+  // out from under the reader's hand and strand whatever that row had asked for.
+  if (drawnAt === node && $("column").querySelector(".rows:not(.leaving)")) return;
   const box = ranking.list(payload, after ? after.id : null, took, weighed(), rolls);
   // Placed against the column rather than the window, so it scrolls with the text it is
   // about and nothing here listens for a scroll.
   const seat = $("column").getBoundingClientRect();
   box.style.top = `${anchor.getBoundingClientRect().top - seat.top}px`;
-  shut();
-  $("column").append(box);
-  // A row built under a stationary pointer gets no `pointerenter`, and the pointer crossing
-  // from the column into the panel is exactly that: leaving the text rebuilds the list at
-  // the caret, so the row the reader is already touching is a new element that was never
-  // entered. Asking the stylesheet who is hovered is how the page finds out what the event
-  // could not tell it.
-  box.querySelector("li:hover")?.onpointerenter?.();
+  drawnAt = node;
+  swap(box, pace);
 }
 
-const shut = () => $("column").querySelector(".rows")?.remove();
+function shut() {
+  drawnAt = null;
+  for (const box of $("column").querySelectorAll(".rows")) box.remove();
+}
 
 /** Taking a row. Two of the three kinds cost nothing: the one the path took is where the
  *  reader already is, and one realised elsewhere is a selection -- which is the way back to
@@ -421,6 +473,10 @@ function dress(out) {
  *  exactly that.
  */
 function rolls(row, where, on) {
+  // A list still coming into place is not somewhere to point at. The row under the hand is
+  // about to be somewhere else, and reading from it would be answering a question the
+  // reader has not finished asking. `swap` asks again once it has stopped.
+  if (on && performance.now() < settled_at) return;
   if (!on) {
     // Only if this row is still the one being read. A pointer crossing from one row to the
     // next produces a leave and an enter, and nothing guarantees which the page sees first
@@ -451,7 +507,7 @@ function settled() {
   showing = cursor.node();
   const mark = $("column").querySelector(".seg.at");
   if (!ranking.asked() || mark === null) return shut();
-  opened(showing, mark).catch(() => shut());
+  opened(showing, mark, SETTLE_IN).catch(() => shut());
 }
 
 function peek(i, el) {

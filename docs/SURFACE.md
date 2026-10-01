@@ -1223,6 +1223,18 @@ reading, appearing on arrival rather than when an answer comes back.
 compare them, and moving between neighbouring rows is that comparison. What is not here is the
 spending: a row the record has no arm for shows a price and nothing else.
 
+**One list changes hands by moving the way the reader is moving, and nothing is spent while it
+does.** A list already answering for the position under the pointer is left alone rather than
+rebuilt, which is what keeps a row from being replaced by a copy of itself under the reader's
+hand. When the position does change, the list arriving comes from the side the new one lies on
+and the list leaving goes the other way, crossing over rather than blinking, and the one
+leaving stops taking the pointer so that *what is hovered* keeps meaning the live one.
+**Following a pointer across the column and arriving where it stopped are paced differently** —
+the first is quick because the reader is not reading yet and the panel is only keeping up, the
+second is slower because they stopped and a list that snapped into place would have to be
+found again. A row may not be pointed at until the list has stopped, and the list asks who is
+under it once it has, so a hand already resting on a row is answered rather than ignored.
+
 What does not exist is everything past that: nothing shown beside a row unasked — what the
 reader already grew there is still only a size — no depth limit
 and so no view that presets one, and no way back to the boundary of an act to take one draw

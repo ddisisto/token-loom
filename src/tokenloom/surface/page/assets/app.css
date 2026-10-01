@@ -308,6 +308,9 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    nobody has set yet, and the bound would have cut the arms rather than the rows. */
 .rows { position: absolute; left: 50%; width: calc(50% - 34px);
         overflow: visible;
+        transition: top var(--pace, 130ms) ease,
+                    opacity var(--pace, 130ms) ease,
+                    transform var(--pace, 130ms) ease;
         padding: 1px 0 1px 14px; border-left: 1px solid var(--rule);
         background: var(--bg);
         font: 400 12px/1.5 var(--mono); color: var(--dim); }
@@ -349,6 +352,21 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 .rows li.bare .spell { color: var(--faint); }
 /* A node exists for it, off the path -- so it is somewhere to go and not something to make. */
 .rows li.elsewhere::after { content: "\2197"; color: var(--accent); font-size: 11px; }
+
+/* One list replaces another by moving the way the reader is moving: the one arriving comes
+   from the side the new position lies on and the one leaving goes the other way, so the
+   swap states the direction of travel rather than just blinking. The one leaving stops
+   taking the pointer, which is what keeps `:hover` meaning the live list while both are up.
+
+   `--from` is the direction and `--pace` is set per swap, because following a pointer across
+   the column and arriving where the reader stopped are different gestures. */
+.rows.arriving, .rows.leaving { opacity: 0; transform: translateY(calc(var(--from, 1) * 9px)); }
+.rows.leaving { pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rows { transition: none; }
+  .rows.arriving, .rows.leaving { transform: none; }
+}
 
 /* ---- the reference arm ----
 
