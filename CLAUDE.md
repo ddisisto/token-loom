@@ -170,7 +170,10 @@ about so that reading it first is where you already are.
   trouble, so the constraint is narrower than it once read. The shell is zsh, so quote globs
   (`--include='*.py'`).
 - Recurring commands go in `scripts/`, which is **committed**.
-- `data/` is disposable scratch and is gitignored.
+- `data/` is disposable scratch and is gitignored, **except `data/demo`, which is tracked**
+  and holds only deliberate, representative acts. It is what a first reader opens, so it is
+  not a place to grow a tree against, measure on, or try something in — those go in a scratch
+  tree, and the demo is rebuilt and re-stamped by hand when it should say something else.
 - Stage explicitly. Never `git add -A`.
 - The project is a `uv` one: `uv sync`, `uv run pytest`, `uv run tokenloom`, and
   `uv run ruff check src tests scripts` before every commit.

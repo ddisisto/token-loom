@@ -57,6 +57,14 @@ dull says the model is not pulling anywhere from here, and one that goes somewhe
 opposite. That is a different question from how far the draw fell, and it is a test the reader
 applies before spending anything rather than after.
 
+**A stub has to be separable from a branch the reader set aside, and liveness is no longer
+enough to do it.** `docs/SPINE.md` had the two told apart by the `delete` a stub is born under,
+which held while `delete` had one use; its *Evidence in hand* now counts thousands of set-aside
+nodes in trees that have never rolled one. So what a rollout records beyond the flag is a
+decision this item makes rather than inherits, and it is cheap to make here and expensive to
+reconstruct later — every measurement over a tree that rolled stubs wants the distinction, and
+nothing in the record carries it today.
+
 **The panel opens at a click on a token and is not a global toggle.** *What else was live here*
 is a question about a position, so a switch that is on for the whole path answers it everywhere
 and is asked for nowhere — which supersedes *open by default*, the answer this item carried

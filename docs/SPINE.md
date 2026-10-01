@@ -389,6 +389,44 @@ are the pessimistic case. `data/logozoa` is the steered document the earlier ver
 entry was waiting for, and the entries above are what it said: the gate's room transferred and
 its rate did not.
 
+**The top row is realised almost everywhere and the subtree below it is not the reader's.**
+`scripts/realisation-by-rank.py` takes the measurement *Deliberately open* asks for before a
+hover may roll stubs, over three trees. Realisation by rank is a cliff and not a curve:
+
+| tree | rank 1 | rank 2 | rank 3 | past 8 |
+|---|---|---|---|---|
+| `data/3` | 94.3% | 1.9% | 1.6% | 1.2% |
+| `data/logozoa` | 96.2% | 1.2% | 1.5% | 0.1% |
+| `data/continuations` | 80.6% | 5.8% | 5.5% | 1.4% |
+
+And it rises with visits, which is the hypothesis's own mechanism: on `data/3` the top row has a
+node at 94.2% of positions where one row was taken, 96.8% where two were, 98.6% at three or four
+and 100% above that. So **the greedy child is indeed the first row to acquire a node**, and a
+visited tree does hold the model's preference as readable text rather than as a number.
+
+**What it does not hold is greedy as a continuation.** Where two or more rows at one position
+were taken, the largest subtree belongs to the top row at 3.8% of positions on `data/3`, 6.6% on
+`data/logozoa` and 23.1% on `data/continuations` — so a rule that argmaxes an aggregate over the
+subtree converges on the reader and not on the model. That is the half of the question that was
+load-bearing, and the answer is no: the top row gets a node and is then abandoned, because the
+reason a reader opened the rankings at all was to take something else. **An aggregate over the
+subtree is a map of where attention went**, which `Fixed model, adaptive operator` wants and a
+reference arm cannot be built from.
+
+**Which also bounds what a hover could spoil.** The number the warning protects is already
+between 81% and 96%, so a pointer that rolls from the top row has at most four to nineteen
+points to move it by, and the reading that carries the information is about the reader and is
+the one a hover feeds rather than floods. The precondition is met and the ordering it imposed is
+discharged.
+
+**Liveness no longer separates a stub from a branch the reader set aside, and the exclusion
+needs a second signal.** *Deliberately open* has stubs excluded by liveness alone and no
+archaeology over act parameters needed, which held while `delete` had one use. It has two:
+`data/logozoa` carries 10,949 nodes under a `delete` and `data/demo` carries 4,373 of 4,756,
+none of them stubs. A tree that rolls stubs will hold both under one flag, and a measurement
+that wants one of them will have to read the act — so what the surface records when it rolls one
+is a decision that falls due with the hover and not after it.
+
 ## Deliberately open
 
 Each of these is left to be settled by use of the instrument, and each names what would settle it:
@@ -412,19 +450,6 @@ Each of these is left to be settled by use of the instrument, and each names wha
   open is whether a reader wants that ceiling lifted where a stub was going somewhere — settled by
   where readers actually stop reading stubs, and which ones they extend by hand.
 - **Which distribution measure best predicts the divergences that turn out to matter** — entropy, gap, head-mass, or something composite. *Evidence in hand* rules out the obvious answer for selection and leaves the question. Settled by the fork map: aggregate which positions produced lasting divergence, and score each measure as a predictor of them.
-- **Whether a well-sampled tree is its own reference arm.** Sampling one position many times
-  makes the arm most often taken the model's modal token, so any rule that argmaxes an aggregate
-  over the subtree converges on the greedy choice — which the ranking's top row already states
-  for free, so what sampling adds is not knowledge of greedy but its *realisation*: the greedy
-  child is the likeliest to be drawn, so it is the first row at each position to acquire a node,
-  and the greedy path gets built as readable text rather than looked up as a number. Where the
-  aggregate then disagrees with the top row is where the reader steered, which is a per-position
-  reading of intervention over every visit against deviation's per-draw one. Settled by measuring
-  how realisation falls with rank: what share of top rows at visited nodes have a child, against
-  rank one, rank two, rank *k*. Stubs must be excluded and can be, since `docs/SURFACE.md` has
-  one born set aside — so liveness separates them and no archaeology over act parameters is
-  needed. **Measure it before anything rolls stubs out on hover**, which would drive the top row's
-  share to one and leave the curve measuring a pointer.
 - **Whether automated inflation earns its place** — thresholds that spawn stubs unprompted, or
   policies that spend ahead of the reader. *Evidence in hand* now answers the part that was
   arithmetic: if stubs are spawned automatically, the gate is the gap and the density it yields is
