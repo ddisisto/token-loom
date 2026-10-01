@@ -419,13 +419,20 @@ points to move it by, and the reading that carries the information is about the 
 the one a hover feeds rather than floods. The precondition is met and the ordering it imposed is
 discharged.
 
-**Liveness no longer separates a stub from a branch the reader set aside, and the exclusion
-needs a second signal.** *Deliberately open* has stubs excluded by liveness alone and no
-archaeology over act parameters needed, which held while `delete` had one use. It has two:
-`data/logozoa` carries 10,949 nodes under a `delete` and `data/demo` carries 4,373 of 4,756,
-none of them stubs. A tree that rolls stubs will hold both under one flag, and a measurement
-that wants one of them will have to read the act — so what the surface records when it rolls one
-is a decision that falls due with the hover and not after it.
+**Liveness does not separate a stub from a branch the reader set aside, and what does is the
+act.** This question was left here as excluded by liveness alone, with no archaeology over act
+parameters needed, which held while `delete` had one use. It has two: `data/logozoa` carries
+10,949 nodes under a `delete` and `data/demo` carries 4,373 of 4,756, none of them stubs. The
+archaeology is the answer rather than the cost of avoiding it. `acts.params` carries the
+temperature and an act carries the span it wrote, so **a node is on the reference arm when
+every act that produced it was greedy** — which needs no flag, survives a merge, and excludes a
+cooling loop the operator ran on purpose for the same reason it excludes a hovered one. A flag
+would have excluded only the second and left the first inside the measurement.
+
+**It also makes promotion free.** *Continuation and recursion* has a stub promoted to a spine
+when the reader walks into the counterfactual, and under this reading the promotion is the
+first sampled or authored token on it rather than an act that announces one. A stub is a stub
+while nothing has been done to it.
 
 ## Deliberately open
 

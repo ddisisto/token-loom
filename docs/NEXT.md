@@ -57,13 +57,14 @@ dull says the model is not pulling anywhere from here, and one that goes somewhe
 opposite. That is a different question from how far the draw fell, and it is a test the reader
 applies before spending anything rather than after.
 
-**A stub has to be separable from a branch the reader set aside, and liveness is no longer
-enough to do it.** `docs/SPINE.md` had the two told apart by the `delete` a stub is born under,
-which held while `delete` had one use; its *Evidence in hand* now counts thousands of set-aside
-nodes in trees that have never rolled one. So what a rollout records beyond the flag is a
-decision this item makes rather than inherits, and it is cheap to make here and expensive to
-reconstruct later — every measurement over a tree that rolled stubs wants the distinction, and
-nothing in the record carries it today.
+**A stub is not marked and does not need to be: it is any node no act but a greedy one
+produced.** `docs/SPINE.md` had stubs told apart by the `delete` they are born under, which
+stopped working once `delete` had two uses. Nothing replaces it, because the record already
+answers the question — `acts.params` carries the temperature and an act carries the span it
+wrote, so *every act that produced this node was greedy* is a read and not a marker. **A stub
+is a stub while nothing has been done to it**, and the first sample or authored token on one
+promotes it to a spine with no act spent on saying so. So this item writes no flag, and a
+rollout is an ordinary `generate` at temperature zero.
 
 **The panel opens at a click on a token and is not a global toggle.** *What else was live here*
 is a question about a position, so a switch that is on for the whole path answers it everywhere
