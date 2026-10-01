@@ -32,6 +32,7 @@ CHECKS = [
     "check-mark.mjs",
     "check-overlay.mjs",
     "check-ranking.mjs",
+    "check-stub.mjs",
 ]
 
 

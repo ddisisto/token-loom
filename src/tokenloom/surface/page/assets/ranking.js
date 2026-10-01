@@ -151,8 +151,15 @@ const says = (w, weigh) => {
  *  is would be a second answer to a question the response has settled. `weigh` is the
  *  downward measure the rows are sized by, which arrives rather than being chosen here for
  *  the same reason the rule does -- the panel is where a way of looking is chosen.
+ *
+ *  `rolls` is handed a row, the element it was drawn as, and whether the pointer is on it.
+ *  What that costs and how long it waits are not decided here: a row is a place a question
+ *  can be asked from, and which question is the page's business. A row with no child is
+ *  offered like any other, because what it would take to answer from one is the caller's to
+ *  know -- this surface has no node to read an arm from and a later one may be willing to
+ *  make one.
  */
-export function list(payload, next, pick, weigh) {
+export function list(payload, next, pick, weigh, rolls) {
   const box = el("aside", "rows");
   const groups = sorted(payload.rows);
   if (!groups.length) {
@@ -188,6 +195,13 @@ export function list(payload, next, pick, weigh) {
         if (weights[i].state !== "value") li.classList.add("bare");
       }
       li.onclick = () => pick(row, payload);
+      if (rolls) {
+        // `pointerenter`/`pointerleave` and not `over`/`out`: an arm drawn inside the row is
+        // a descendant, so the bubbling pair would report the pointer leaving the row the
+        // moment the text it asked for arrived under it.
+        li.onpointerenter = () => rolls(row, li, true);
+        li.onpointerleave = () => rolls(row, li, false);
+      }
       out.append(li);
     }
     box.append(out);

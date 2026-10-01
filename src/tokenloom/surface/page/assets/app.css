@@ -35,7 +35,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink);
+body { margin: 0; overflow-x: clip; background: var(--bg); color: var(--ink);
        font-family: var(--serif); -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: var(--dim); background: none; cursor: pointer;
          border: 1px solid var(--rule); border-radius: 4px; padding: 3px 9px; }
@@ -303,8 +303,11 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    property substitutes its tokens rather than its value, so that `em` would resolve again
    against this element's own font and land the rows inside the text. Half the padding box is
    the same edge by construction, and it depends on nothing that a font-size can move. */
+/* Nothing clips here, so an arm drawn in a row can leave by the page's edge. The height it
+   was bounded at went with the overflow -- a list long enough to need it is a `record_rows`
+   nobody has set yet, and the bound would have cut the arms rather than the rows. */
 .rows { position: absolute; left: 50%; width: calc(50% - 34px);
-        max-height: 72vh; overflow-y: auto;
+        overflow: visible;
         padding: 1px 0 1px 14px; border-left: 1px solid var(--rule);
         background: var(--bg);
         font: 400 12px/1.5 var(--mono); color: var(--dim); }
@@ -346,6 +349,38 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 .rows li.bare .spell { color: var(--faint); }
 /* A node exists for it, off the path -- so it is somewhere to go and not something to make. */
 .rows li.elsewhere::after { content: "\2197"; color: var(--accent); font-size: 11px; }
+
+/* ---- the reference arm ----
+
+   An arm runs off the right edge rather than wrapping or scrolling, and that is the whole of
+   its layout. What a reader does with one is judge its shape -- a short-sequence repeater
+   stops being looked at about as fast as it arrives, and a rollout with somewhere to go is
+   conspicuous for exactly as long as it keeps going -- and a box that had to be scrolled to
+   be read would ask for a second decision about something they have not decided to care
+   about yet. `docs/NEXT.md` has the layout this is provisional against: the arm takes the
+   space beside the column and the rankings move to a corner. Until then it takes the row's
+   own line and leaves by the edge.
+
+   `clip` and not `hidden` on the page, because `hidden` would make the body a scroll
+   container and put the bar back on. */
+.rows li { flex-wrap: wrap; }
+.arm { flex: 0 0 100%; white-space: pre; margin: 1px 0 2px;
+       font-size: 12px; font-weight: 400; color: var(--faint);
+       border-left: 1px solid var(--rule); padding-left: 7px; }
+.rows li:hover .arm { color: var(--dim); }
+.arm .raw { color: var(--accent); }
+
+/* What has just arrived, settling into what is already there. The reader is watching the
+   tail, so what the motion has to say is *this is further than it was* -- a sweep from the
+   left would say it instead about text they have already read. */
+@keyframes lands { from { opacity: 0; } to { opacity: 1; } }
+.arm .lands { animation: lands .28s ease-out both; }
+
+/* The pulse is a promise of more and not a label saying stub, so it goes when the asking
+   does. It breathes over the wait rather than at its own rate, which is what makes holding
+   still feel like the thing that is working. */
+.more { margin-left: 4px; color: var(--accent);
+        animation: breathe var(--dwell, .5s) ease-in-out infinite; }
 
 /* ---- the composer ----
    A request appears where its result will, so this stands in the column at the position it

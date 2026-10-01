@@ -1199,7 +1199,20 @@ which. The set of realised nodes crosses the wire as a plain boolean per node an
 kinds as a map beside the names, since who took a token has no domain and nothing to compare
 across positions.
 
-What does not exist is everything past that: no continuation shown beside a row, no depth limit
+**A row grows the model's own continuation while the pointer rests on it.** The reference arm
+`docs/SPINE.md` names is read from the record rather than rolled: a greedy rollout merges onto
+what an earlier one wrote, so the descent that never leaves the top row is what asking again
+would produce, and it costs no inference and takes no lock. The gesture is a loop and not a
+request — half a second of rest buys ten tokens, and the pointer holding still buys ten more,
+to forty. A pulse at the tail says more is coming and goes when nothing is, which is the
+difference between an arm that filled its length and one the record has no more of. The arm
+runs off the right edge rather than wrapping or scrolling, because what a reader does with one
+is judge its shape, and it stays drawn after the pointer leaves so that two of them at one
+position can be read against each other. What is not here is the spending: a row the record
+has no arm for shows nothing, and paying to roll one is the increment after this.
+
+What does not exist is everything past that: nothing shown beside a row unasked — what the
+reader already grew there is still only a size — no depth limit
 and so no view that presets one, and no way back to the boundary of an act to take one draw
 again. **Writing at the caret is
 not offered either**, though `create` takes a position and the composer takes a node: it would
