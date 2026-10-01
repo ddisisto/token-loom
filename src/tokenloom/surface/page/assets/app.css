@@ -173,11 +173,11 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
         border-bottom-left-radius: 5px; }
 #read.open { width: 19.5rem; }
 
-#aside, #alts { display: flex; align-items: center; gap: 7px; padding: 10px 6px 10px 14px;
-                cursor: pointer; }
-#alts { padding-left: 6px; }
-#aside:hover, #alts:hover { color: var(--ink); }
-#aside input, #alts input { margin: 0; accent-color: var(--accent); }
+#aside, #alts, #whose { display: flex; align-items: center; gap: 7px;
+                        padding: 10px 6px 10px 14px; cursor: pointer; }
+#alts, #whose { padding-left: 6px; }
+#aside:hover, #alts:hover, #whose:hover { color: var(--ink); }
+#aside input, #alts input, #whose input { margin: 0; accent-color: var(--accent); }
 
 #read .head { font: inherit; color: inherit; letter-spacing: .06em;
               border: none; border-radius: 0; padding: 10px 14px 10px 8px; }

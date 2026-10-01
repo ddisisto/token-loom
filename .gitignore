@@ -1,4 +1,14 @@
-data/
+# `data/` is scratch and stays scratch. The one exception is `data/demo`, a reference object
+# that moves with the project and is replaced by hand when the model or the format changes.
+# A directory that is excluded outright cannot have anything re-included from it, which is
+# why this excludes contents and then names what comes back. The lock and the write-ahead
+# files belong to a running process and never to the record, so what is committed is a
+# checkpointed `bulk.sqlite` and the tree it describes.
+data/*
+!data/demo/
+data/demo/*
+!data/demo/bulk.sqlite
+!data/demo/tree.json
 .venv/
 __pycache__/
 *.pyc

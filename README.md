@@ -3,6 +3,14 @@
 **A machine output research tool: a trie over tokens, holding what else was ranked at every
 position a generation passed through.**
 
+![The draw, the marked path, and the rows at the caret](docs/images/banner.png)
+
+*One strip across the instrument.* **Left**, what the next draw will be. **Middle**, a path set
+as prose — each token underlined by who put it there, washed by a measure drawn over it.
+**Right**, what else the model ranked where the reader is pointing, and what each was worth.
+**It runs today**: [the whole page](docs/images/surface.png) is a screenshot away, and the tree
+in that picture ships with this repository.
+
 Givens go in, generations come out, and the surface exists to read *across* them. A generation
 is not an answer to be accepted or rerolled; it is one path among those the model made
 available, and several are held at once. That much is the interface this is named after —
@@ -43,11 +51,21 @@ format:
 Local only, and that is upstream of everything else: the record needs per-token ids, bytes and
 logprobs on a *raw continuation*, and no hosted provider returns those.
 
+**Reading needs nothing but the repository.** `data/demo` is a tree that ships with this,
+stamped, and reads take no lock and call no model — so the surface above is two commands from a
+clone. A model is needed to *grow* a tree and not to read one.
+
+```sh
+uv sync
+uv run tokenloom serve data/demo --port 8097     # the picture above, on your machine
+```
+
+Everything past that wants the model running:
+
 ```sh
 # a llama.cpp server with a base model, on 8081
 scripts/llama-server.sh
 
-uv sync
 uv run tokenloom init data/mine --vocab qwen2.5-7b-base
 uv run tokenloom create data/mine 'It is a truth universally acknowledged, that'
 uv run tokenloom generate data/mine --at 12 --length 80 --temperature 0.9
