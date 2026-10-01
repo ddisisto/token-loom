@@ -249,6 +249,87 @@ def _continue(tree: Subtree, node: int | None, rule: Rule) -> list[R.Node]:
     return out
 
 
+# ---- the reference arm ----------------------------------------------------------------
+
+#: Two logprobs within this of each other are one row, as everywhere a ranking is read: a
+#: backend does not present near-ties in a reproducible order, so an exact comparison would
+#: call about half of them a preference.
+TIE = 1e-9
+
+
+@dataclass(frozen=True, slots=True)
+class Reference:
+    """How far the model's own continuation from a node is already written down.
+
+    `docs/SPINE.md` has the reference arm as the model left alone from a position, and a
+    greedy rollout is how one is made. What is read here is the part of that rollout the
+    tree already holds -- the descent that never leaves the top row -- which costs no
+    inference and is the same nodes a rollout would merge onto.
+
+    `spent` is the record running out before the limit did, and it is what a caller checks
+    before spending: a stub that ends because the tree ends is extendable, and one that
+    ends because it filled the room it was given is what `docs/SPINE.md` calls full.
+    """
+
+    nodes: list[R.Node]
+    cells: list[Segment[R.Node]]
+    spent: bool
+
+
+def _onward(conn: sqlite3.Connection, node: int, hidden: bool) -> R.Node | None:
+    """The child on the top row at `node`, or None where the record does not have one.
+
+    Follows the refusals a ranking is read under elsewhere rather than re-deciding them: a
+    position two sources ranked has no single top row, and a position nothing ranked has
+    none at all. A tie at the top is several rows, and the child taken is the first of them
+    in insertion order -- the same tie-break the continuation rules use, and for the same
+    reason, that the record stores no order to prefer.
+    """
+    edges = R.ranking(conn, node)
+    sources = {e.source for e in edges}
+    values = [e.logprob for e in edges if e.logprob is not None]
+    if len(sources) != 1 or not values:
+        return None
+    source, top = sources.pop(), max(values)
+    best = {e.token_id for e in edges if e.logprob is not None and e.logprob >= top - TIE}
+    for kid in R.children(conn, node):
+        if kid.source == source and kid.token_id in best and (hidden or not kid.deleted):
+            return kid
+    return None
+
+
+def reference(
+    conn: sqlite3.Connection, node: int, limit: int, hidden: bool = False
+) -> Reference:
+    """The recorded reference arm below `node`, up to `limit` nodes.
+
+    **This is the continuation family's shape and is deliberately not one of its rules.** A
+    `Rule` is handed the candidates and must pick one of them; this one has to be able to
+    say that none of them is the model's, which is the whole of what it reports. Widening
+    the contract so a rule may decline would make every other rule answer a question it
+    does not have.
+
+    It is also the check that keeps a hover from spending twice. `docs/SPINE.md` has a row
+    that already carries a stub left unrolled, and a greedy rollout merges onto whatever a
+    previous one wrote -- so what is already here is what a second rollout would produce,
+    and reading it is how that is known without asking.
+    """
+    out: list[R.Node] = []
+    at = node
+    while len(out) < limit:
+        kid = _onward(conn, at, hidden)
+        if kid is None:
+            break
+        out.append(kid)
+        at = kid.id
+    spell = R.token_bytes(conn, (n.token_id for n in out))
+    return Reference(
+        nodes=out,
+        cells=segments(out, lambda n: spell[n.token_id]),
+        spent=len(out) < limit,
+    )
+
+
 # ---- 1. a path -----------------------------------------------------------------------
 
 

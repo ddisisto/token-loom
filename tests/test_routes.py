@@ -412,6 +412,31 @@ def test_a_line_hangs_where_it_parts_and_not_where_it_is_deep(client):
     assert (second[0], second[1]) == (" red", 0)
 
 
+def test_the_stub_read_is_the_arm_the_record_already_holds(client):
+    """Node 2's top row is the one the draw took, so the arm runs onto node 3 and stops --
+    node 4 was authored and there is no ranking above it to be the top of. `spent` is what
+    tells a client the tree ran out rather than the length, which is the whole of what it
+    checks before spending anything."""
+    body = client.get("/stub/2", params={"length": "40"}).json()
+    assert "".join(cell["text"] for cell in body["segments"]) == " is"
+    assert [cell["nodes"][0]["id"] for cell in body["segments"]] == [3]
+    assert body["spent"] is True
+    assert body["tip"] == 3
+
+
+def test_a_stub_that_fills_its_length_says_it_was_not_spent(client):
+    """The two endings are told apart at the wire and not by counting, because a client
+    that inferred one from the other would ask the model to extend an arm that had
+    nowhere to go."""
+    assert client.get("/stub/2", params={"length": "1"}).json()["spent"] is False
+
+
+def test_a_stub_below_a_node_that_is_not_there_is_not_an_empty_arm(client):
+    """The same refusal `/ranking` makes, and for the same reason: an empty arm is a real
+    answer about a real position, and a missing node has no position to answer about."""
+    assert client.get("/stub/9999").status_code == 404
+
+
 def test_a_branch_read_without_a_budget_is_a_bad_request(client):
     answer = client.get("/branches/1")
     assert answer.status_code == 400

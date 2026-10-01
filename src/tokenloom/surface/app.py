@@ -325,6 +325,31 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 "sources": wire.source_names(conn),
             })
 
+    def stub(request: Request) -> JSONResponse:
+        """How far the model's own continuation from a node is already written down.
+
+        It writes nothing and calls no model: a greedy rollout merges onto what an earlier
+        one wrote, so what the tree holds on the top row is what rolling again would
+        produce. `spent` says the record ran out before the length did, which is what a
+        client checks before spending -- `docs/SPINE.md` has a row that already carries a
+        stub left unrolled.
+        """
+        node = request.path_params["node"]
+        length = _int(request, "length") if "length" in request.query_params else 40
+        hidden = _flag(request, "hidden")
+        with reading(writer) as conn:
+            R.get_node(conn, node)  # an arm below a node that is not there is not an empty one
+            arm = S.reference(conn, node, length, hidden)
+            return JSONResponse({
+                "node": node,
+                "length": length,
+                "hidden": hidden,
+                "spent": arm.spent,
+                "tip": arm.nodes[-1].id if arm.nodes else node,
+                "segments": [wire.segment(cell, wire.node) for cell in arm.cells],
+                "sources": wire.source_names(conn),
+            })
+
     def branches(request: Request) -> JSONResponse:
         node = request.path_params["node"]
         budget = _int(request, "budget")
@@ -444,6 +469,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             Route("/path/{node:int}", path),
             Route("/ranking/{node:int}", ranking),
             Route("/branches/{node:int}", branches),
+            Route("/stub/{node:int}", stub),
             Route("/acts", acts),
             Route("/evaluable", evaluable),
             Route("/create", create, methods=["POST"]),
