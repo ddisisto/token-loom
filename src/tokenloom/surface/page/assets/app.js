@@ -638,12 +638,17 @@ async function roll(row, where, payload) {
       const out = stub.landed(node, await ask(
         `/stub/${node}?length=${stub.CAP}&hidden=${showHidden ? 1 : 0}`));
       const li = seat(node);
-      if (li === null) continue;  // the list was rebuilt; the arm is the node's, so carry on
-      paint(li, out);
-      // The price follows the pointer and not the reading, the same as everywhere else --
-      // and it is what goes out when the arm reaches the cap, which is the roll ending by
-      // having finished rather than by being left.
-      if (armed === node) pulse(li, stub.costly(node));
+      if (li !== null) {
+        paint(li, out);
+        // The price follows the pointer and not the reading, the same as everywhere else
+        // -- and it is what goes out when the arm reaches the cap, which is the roll
+        // ending by having finished rather than by being left.
+        if (armed === node) pulse(li, stub.costly(node));
+      }
+      // In step with the arm and not after it. Where the purchase is the end of the text,
+      // the arm and the column are the same tokens shown twice, and one of them arriving a
+      // second before the other reads as the page disagreeing with itself.
+      if (grows) await extend(last);
     }
   } catch (why) {
     // Said out loud, unlike a failed free read: the reader rested on a price and nothing
@@ -660,7 +665,9 @@ async function roll(row, where, payload) {
   ranking.forget();
   await counted();
   if (!grows) return;
-  await show(last);
+  // The last part may have landed after the pointer left, so the text is caught up once
+  // more at the end. A read that changed nothing redraws the same text.
+  await extend(last);
   // The text is longer than it was, so where the reader stands in it has moved under them.
   // Left stale, a reader who was at the end before the roll is recorded as still being
   // there, and the scroll that walks down to the new end reads as no gesture at all.
@@ -744,7 +751,14 @@ function peek(i, el) {
  *  standing at the new end is what that looks like. A reader who did not accept it moves the
  *  caret back, which is the same gesture as pointing at anything else.
  */
-async function show(node, where) {
+/** Read a path and say what the toggle makes of it, or null where the reader is standing
+ *  in text that is no longer drawn.
+ *
+ *  The read and what is drawn are separated because the column is rebuilt for two different
+ *  reasons. **Arriving somewhere is one and growing where you are is the other**, and only
+ *  the first is about where the reader is.
+ */
+async function reading(node) {
   // Each half of what the read can carry is asked for, and a read not asked for one carries
   // none of it. The rule is a parameter of the read and never of the page: what is drawn is
   // the path the server derived, so the page holds no opinion about where it went.
@@ -765,16 +779,17 @@ async function show(node, where) {
     // node that was set aside still reaches it. With the toggle off none of that is drawn,
     // and a reader left standing in it falls back to where the live tree ends.
     const stop = cells.findIndex(aside);
-    if (stop === 0) return land(null);
+    if (stop === 0) return null;
     if (stop > 0) { cells = cells.slice(0, stop); closed = true; }
   } else {
     closed = false;  // what was set aside is drawn, so `boundary` is already saying it
   }
-  drawn = cells;
-  // Where the reader has not pointed, the caret rests at the end of what is drawn -- so the
-  // gesture that asks for more of a path and the gesture that asks for a draw at a position
-  // are the same act at the same node, which is the ordinary case and not a coincidence.
-  cursor.place(where === undefined ? cursor.resting(cells) : where);
+  return { read, cells, closed };
+}
+
+/** The text itself, as an element. It is built apart from being hung so that growing a path
+ *  can replace it without the column around it being replaced too. */
+function laid({ read, cells, closed }) {
   const flow = document.createElement("div");
   flow.className = "flow";
   // Leaving the text puts the rows back where the reader is, so a peek never outlives the
@@ -784,14 +799,49 @@ async function show(node, where) {
   // range from the text in front of the reader.
   flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells, read.kinds)));
   if (closed) flow.append(closure());
-  $("column").replaceChildren(flow);
+  return flow;
+}
+
+async function show(node, where) {
+  const got = await reading(node);
+  if (got === null) return land(null);
+  drawn = got.cells;
+  // Where the reader has not pointed, the caret rests at the end of what is drawn -- so the
+  // gesture that asks for more of a path and the gesture that asks for a draw at a position
+  // are the same act at the same node, which is the ordinary case and not a coincidence.
+  cursor.place(where === undefined ? cursor.resting(got.cells) : where);
+  $("column").replaceChildren(laid(got));
   frontier();
   settled();
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
-  const root = cells[0].nodes[0].id;
+  const root = got.cells[0].nodes[0].id;
   for (const li of $("roots").querySelectorAll("li[data-node]"))
     li.setAttribute("aria-current", String(Number(li.dataset.node) === root));
+}
+
+/** Redraw the text where it grew under the reader, moving nothing else.
+ *
+ *  **Growing is not arriving, and the difference is everything the column does around the
+ *  text.** A reader watching an arm fill at the end of what they are reading has not gone
+ *  anywhere: the caret stays on the token they put it on, the rows they are pointing at
+ *  stay up and keep their place, and the root they are in has not changed. So this replaces
+ *  the text and nothing around it -- which is also what lets it run once per part, so the
+ *  column and the arm fill in step rather than the text arriving all at once at the end.
+ *
+ *  It is a whole re-read and not an append, because a path-relative scale takes its range
+ *  from the text in front of the reader: text added at the end can change what every
+ *  segment above it is drawn as. One costs 25 ms on an ordinary path and 119 ms on the
+ *  longest in a 24,750-node tree, against about 105 ms to generate the part it is drawing.
+ */
+async function extend(node) {
+  const got = await reading(node);
+  if (got === null) return;
+  drawn = got.cells;
+  const had = $("column").querySelector(".flow");
+  if (had === null) return;  // the column moved on under this; what replaced it is current
+  had.replaceWith(laid(got));
+  frontier();
 }
 
 // ---- setting aside, and bringing back ---------------------------------------------------

@@ -121,6 +121,13 @@ by living with it**, which now costs nothing to do.
 **What has no gesture yet is navigating to a purchase that was not an extension**, which is the
 same hole the unranked children leave and wants the same answer.
 
+**A click on a row nothing realised is now shadowed by the dwell**, since resting there for
+420 ms realises it first and a click after that navigates to what the hover made. The two end
+in nearly the same place -- the node exists either way -- and they differ in that the click
+arms the caret on it and the hover leaves the reader where they were. Whether the click path is
+still wanted is a question for use: it may be that *take this one* and *show me this one* were
+always two gestures, and the dwell has just separated them.
+
 **It closes more than it opens.** The band was an increment of its own once and is now the rows
 given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
 section is gone. *Whether looking may spend inference* is answered the same way, by use, and a

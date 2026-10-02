@@ -1285,6 +1285,17 @@ connect to anything they did. So what is drawn stays drawn, with one exception: 
 hangs at the very end of the column continues that same text, which is growth rather than a
 change of mind. Everything else is bought where it stands.
 
+**Growing is not arriving, and the caret does not move for it.** Where the column does continue,
+it continues under a reader who has not gone anywhere: the caret stays on the token they put it
+on, the rows they are pointing at stay up and keep their place, and only the text is redrawn.
+That is also what lets it keep up part by part rather than arriving whole at the end — the arm
+and the column are the same tokens shown twice where the purchase is the end of the text, and
+one of them lagging the other reads as the page disagreeing with itself. It is a whole re-read
+each time and not an append, because a path-relative scale takes its range from the text in
+front of the reader, so what is added at the end can change what every segment above it is
+drawn as; one costs 25 ms on an ordinary path against about 105 ms to generate the part it is
+drawing.
+
 **What the rule still decides is where a reader arrives**, and a tree that has been read over
 is a tree whose default path leans toward where the reading went. That is the rule doing its
 job rather than the page failing at its own — `docs/NEXT.md` has what would change it and why
