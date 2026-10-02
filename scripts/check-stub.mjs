@@ -245,5 +245,58 @@ is("a wholly closed arm is the mark alone rather than nothing",
   [bare === null, bare?.children.length, bare?.children[0].classList.contains("shut")],
   [false, 1, true]);
 
+// ---- what a burst buys, and where it hangs -----------------------------------------------
+
+/* The spend is where every one of these stops being a display decision. A burst that asked
+ * for a whole part at the end of an arm would buy past the cap the reader was promised; one
+ * that read *stopped* as *buyable* would pay for a merge that writes nothing; and a purchase
+ * hung at the wrong node would grow a branch nobody pointed at. None of the three fails
+ * loudly -- the first two look like a rollout working, and the third looks like the reader's
+ * own text rearranging itself.
+ */
+
+/** A payload that also says where the arm reached, which is what a purchase hangs off. */
+const reached = (n, why, tip) => ({ ...answer(n, why), tip });
+
+fresh();
+is("nothing is bought for an arm nothing has read", stub.burst(7), null);
+
+fresh();
+stub.landed(7, reached(10, stub.ENDS, 99));
+is("an arm that ran out short buys a whole burst", stub.burst(7), stub.BURST);
+is("  from where the record ran out and not from where the arm began", stub.tip(7), 99);
+
+fresh();
+stub.landed(7, reached(stub.CAP - 3, stub.ENDS, 99));
+is("an arm three short of the cap buys three and not a whole burst", stub.burst(7), 3);
+
+fresh();
+stub.landed(7, reached(stub.CAP, stub.ENDS, 99));
+is("an arm at the cap buys nothing, having been given what it was promised",
+  stub.burst(7), null);
+
+fresh();
+stub.landed(7, reached(3, stub.CLOSED, 99));
+is("an arm the reader closed buys nothing, because a roll there writes nothing",
+  stub.burst(7), null);
+
+fresh();
+stub.landed(7, reached(0, stub.DECLINES, 99));
+is("and neither does one with no single top row", stub.burst(7), null);
+
+/* A short answer landing after a long one is dropped, and the tip has to be dropped with
+ * it -- a tip from the shorter read points part-way up an arm the page is already showing,
+ * so the next burst would hang under text rather than at the end of it. */
+fresh();
+stub.landed(7, reached(10, stub.ENDS, 99));
+stub.landed(7, reached(4, stub.ENDS, 44));
+is("a stale short answer does not drag the tip back up the arm", stub.tip(7), 99);
+
+/* Whether the column moves. It is an identity against the last node of what is drawn, so
+ * an arm bought anywhere else is bought without the text rearranging itself. */
+is("a purchase at the end of what is drawn lengthens it", stub.lengthens(99, 99), true);
+is("one anywhere else does not", stub.lengthens(99, 100), false);
+is("and an arm with no tip read for it cannot", stub.lengthens(null, null), false);
+
 console.log(bad ? `\n${bad} failed` : "\nnothing failed");
 process.exit(bad ? 1 : 0);

@@ -19,6 +19,13 @@
  *  would settle a better one; this is that flat length. */
 export const CAP = 40;
 
+/** Tokens a paid burst asks for. **It is set by the measurement and not by taste.**
+ *  `docs/SPINE.md` has generation at 38 tok/s, so a forty-token arm is about 1.05 s even
+ *  fully warm -- too long to read as an arrival. A tenth of it is not, so an arm that has
+ *  to be bought arrives in ten parts and the loop is what gives the page streaming without
+ *  the adapter learning to stream. What the record already holds is not paced at all. */
+export const BURST = 4;
+
 /* What is held, by the node an arm descends from. An arm only grows, and a longer one
  * supersedes a shorter one entirely rather than being appended to -- so this keeps across
  * hovers and is dropped only when the record changes under it. */
@@ -27,7 +34,7 @@ const held = new Map();
 export const recall = node => held.get(node);
 export const forget = () => held.clear();
 
-const blank = () => ({ cells: [], grown: 0, why: null, asking: false });
+const blank = () => ({ cells: [], grown: 0, tip: null, why: null, asking: false });
 
 /** The four `surface/reads.py` names, kept in step with it. **Only `ENDS` is a price.** An
  *  arm that stopped is not an arm the model has no more of: a closed one continues under a
@@ -92,15 +99,22 @@ export function landed(node, payload) {
   have.asking = false;
   have.why = payload.why ?? ENDS;
   if (grown < have.grown) {
+    // The tip stays with the longer answer, which went further than this one did.
     held.set(node, have);
     return { cells: have.cells, fresh: have.cells.length, why: have.why };
   }
   const fresh = freshFrom(cells, have.grown);
   have.cells = cells;
   have.grown = grown;
+  have.tip = payload.tip ?? node;
   held.set(node, have);
   return { cells, fresh, why: have.why };
 }
+
+/** The node the arm reached, which is the one a purchase would hang off. It is where the
+ *  record ran out and not where the arm began: an arm with eleven tokens already written
+ *  is bought at the eleventh, and the ten before it are read. */
+export const tip = node => held.get(node)?.tip ?? null;
 
 export const full = (node, { cap = CAP } = {}) => (held.get(node)?.grown ?? 0) >= cap;
 
@@ -130,6 +144,38 @@ export function costly(node) {
   if (have === undefined) return false;
   return have.why === ENDS && have.grown < CAP;
 }
+
+/** How many tokens the next burst buys, or null where there is nothing to buy.
+ *
+ *  **It asks only what is left.** An arm nine tokens short of the cap buys nine and not a
+ *  whole burst, so the last part of a rollout is not a part of one the reader did not ask
+ *  for -- the cap is what they are owed and the burst is only how it arrives.
+ *
+ *  It is `costly` that decides whether anything may be bought at all, which keeps one
+ *  answer to *is this a price* rather than two that can drift: an arm nothing has read, one
+ *  the reader closed, one with two sources, and one already at the cap all return null
+ *  here for the reasons stated there.
+ */
+export function burst(node, { cap = CAP, size = BURST } = {}) {
+  if (!costly(node)) return null;
+  const have = held.get(node);
+  if (have === undefined) return null;  // certainly costly, but there is nothing to buy from
+  return Math.min(size, cap - have.grown);
+}
+
+/** Whether buying at `from` lengthens the path the column is showing.
+ *
+ *  **Rolling an arm is looking and it may not move the text.** The rule that picks what the
+ *  column shows is a parameter of the read, and a greedy rollout the reader merely pointed
+ *  at would otherwise win the branch point it hangs under -- `longest` measures height, and
+ *  a fresh forty-token descent is taller than a third of everything standing in the trees
+ *  here. So what is drawn stays drawn, with one exception: an arm bought at the very end of
+ *  what is shown continues that same text and nothing else, which is growth rather than a
+ *  change of mind. That is this, and it is an identity and not a search -- anything deeper
+ *  or off to one side hangs somewhere the column was not.
+ */
+export const lengthens = (from, leaf) =>
+  from !== null && from !== undefined && from === leaf;
 
 /** The mark a closed continuation ends with, in the arm and in the column alike. One
  *  character, because in a row it has to sit on a line that may not grow. */

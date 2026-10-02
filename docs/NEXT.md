@@ -33,16 +33,10 @@ for and what is drawn over it. This section is what comes after that.
 ### The increments, in order
 
 **1. The pointer rolls the reference arm, and the panel opens where it is pointed.**
-`docs/SPINE.md` has the stub as the reference arm — the model left alone from a position — and
-nothing on the page rolls one. What makes this one item rather than three is that the rankings,
-the stub and the gesture that summons both are one surface.
-
-**The reference arm at a path position needs no second gesture.** A hover on a row asks where
-that alternative would go — and the row the path itself took is one of the rows at its parent,
-so *where does the model go from here* is the parent's ranking opened and the taken row hovered.
-Two steps, both of which this item already builds, and no new origin. Hovering several rows at
-one node is nearly free after the first, which `docs/SPINE.md` measures and this does not
-restate. **So what is left to decide is not a gesture but a length.**
+`docs/SPINE.md` has the stub as the reference arm — the model left alone from a position. What
+makes this one item rather than three is that the rankings, the stub and the gesture that
+summons both are one surface. **The arm and its price are built**; what is below is what that
+left open.
 
 **Stub length goes to about a page, and a hovered one that outgrows the panel wraps into
 whatever whitespace is beside the column.** A rollout held inside a box has to be scrolled to be
@@ -50,21 +44,15 @@ judged, which is a second decision about something the reader has not decided to
 Spilled into the margin it is judged by its shape: **the selection is visual and nothing scores
 it**. A short-sequence repeater stops being looked at about as fast as it arrives, and a rollout
 with somewhere to go is conspicuous for exactly as long as it keeps going — so what has been
-explored, and what turned out to be worth exploring, are the same picture.
+explored, and what turned out to be worth exploring, are the same picture. The cap is a flat
+forty and the arm is one line, which is what the layout below has to lift.
 
-**What a stub at a path position answers is whether to stay.** A rollout that is immediately
-dull says the model is not pulling anywhere from here, and one that goes somewhere says the
-opposite. That is a different question from how far the draw fell, and it is a test the reader
-applies before spending anything rather than after.
-
-**A stub is not marked and does not need to be: it is any node no act but a greedy one
-produced.** `docs/SPINE.md` had stubs told apart by the `delete` they are born under, which
-stopped working once `delete` had two uses. Nothing replaces it, because the record already
-answers the question — `acts.params` carries the temperature and an act carries the span it
-wrote, so *every act that produced this node was greedy* is a read and not a marker. **A stub
-is a stub while nothing has been done to it**, and the first sample or authored token on one
-promotes it to a spine with no act spent on saying so. So this item writes no flag, and a
-rollout is an ordinary `generate` at temperature zero.
+**A row with nothing realised under it is not bought by pointing at it.** The spend there is a
+`realise` and then a rollout, and the first of them is what makes a fork real — so the pulse
+says what reaching would cost and the gesture waits. **It is wanted and it is not this item**:
+what settles its shape is whether the fork a hover makes reads as the reader's doing once there
+is one to look at, which is a question about a page that now exists. Until then the row that
+can be bought is the row something already stands under.
 
 **An arm that declines has no mark, and is the one of the four still drawn as nothing.** A
 position two sources ranked carries neither the price nor the closure mark, which is honest and
@@ -118,10 +106,32 @@ be *take this and carry on from it* ends somewhere else and the next act has to 
 It is held for this item because the panel is where the gesture starts and the two are one path
 through the code; fixing it with the panel shut would be fixing it twice.
 
+**What a rule picks is what a reader is shown and never what their looking did.** A bought arm
+lands live, because a stub born set aside would read as one the reader closed and the mark that
+says which would stop meaning anything. Live, it is taller than the standing descent at about a
+third of the positions in the trees here, so `longest` alone would hand it the branch point and
+the text would move at some later redraw. What holds the column still is that the page extends
+only what it is already showing — an identity against its own last node — and leaves every other
+purchase where it stands. **That is a page decision and the rule is untouched**, which is the
+right division while the rule is still the thing that picks a path on arrival; a rule that
+measured only what was drawn rather than what was rolled would be a second member of `RULES` and
+is worth having if the page's answer turns out to be the wrong shape. **What has no gesture yet
+is navigating to a purchase that was not an extension**, which is the same hole the unranked
+children leave and wants the same answer.
+
 **It closes more than it opens.** The band was an increment of its own once and is now the rows
 given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
 section is gone. *Whether looking may spend inference* is answered the same way, by use, and a
 hover that rolls from the path answers it twice over.
+
+**The dwell before a purchase is a first number and is settled by use.** It is 420 ms, against
+the 90 ms that keeps a pointer crossing the page from asking a free question — two thresholds
+because they guard two different things. What would settle it is reading with it: too short and
+a sweep across a list leaves a trail of acts nobody wanted, too long and the gesture stops
+feeling like pointing. **What it cannot fix is the jump.** `docs/SPINE.md` measures a warm
+prompt at 28 ms and a cold one at 7.4 s, and a reader who jumps up the path and rests pays the
+second — so the first part of a roll after a jump is dear however long the dwell is, and the
+only thing that would change it is more than one cache slot.
 
 **Idle spending is deferred entirely and is not part of this.** When it returns it is a pre-fill
 for one of the two hovers above and nothing else, and `docs/SPINE.md` holds what would settle

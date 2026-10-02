@@ -1215,7 +1215,7 @@ across positions.
 what an earlier one wrote, so the descent that never leaves the top row is what asking again
 would produce, and it costs no inference and takes no lock. **What is already paid for is not
 paced** — it unfurls in one gesture on arrival, because a wait before it would be charging the
-reader for looking. Pacing belongs to what has to be bought, and arrives with the buying.
+reader for looking. Pacing belongs to what has to be bought.
 
 **It is one line and nothing in the list moves.** The arm sits on the row's own line after the
 token, keeps the token beside it, and leaves by the right edge of the page rather than wrapping
@@ -1253,7 +1253,33 @@ stayed, and again in a list built later, which goes up already carrying what has
 that position. What a reader does with two of them is compare them, and a comparison they can
 look away from and still have is the one worth drawing. So pointing at a row only ever says
 *there is more here*, and a row the record has no arm for says it by showing a price and
-nothing else. What is not here is paying it.
+nothing else.
+
+**Resting on a price is what pays it.** Pointing and paying are one gesture held for different
+lengths of time, so a reader never has to decide what a row is before looking at it: they
+point, they read what the record had, and where it ran out under a pulse they can stay. What
+is bought is then proportional to what was looked at — crossing a row on the way elsewhere
+buys nothing, and moving on stops the spending at the part in flight. It buys only where a
+node already stands under the row. A row nothing realised is two acts and the first of them
+makes a fork real, which is not something a pointer should do, so the pulse there says what
+reaching would cost and waits to be asked properly.
+
+**It arrives in parts, and each part is an act.** A forty-token arm is about a second even
+with the prompt cache warm, which is too long to read as an arrival, so it is bought four
+tokens at a time and the page reads the record again between them — the same free read a
+hover makes, so an arm is drawn from the record whether the record or the model last answered
+and no bought token reaches the page by a second route. Only one arm is rolled at a time and a
+scroll during one is dropped: there is one writer, and `--parallel 1` is one prompt cache that
+a draw from elsewhere would truncate.
+
+**Looking does not rearrange what is being read.** The rule that picks the path is a parameter
+of the read, so a rollout the reader merely pointed at would otherwise win the branch point it
+hangs under — a fresh forty-token descent is taller than the standing one at about a third of
+the positions in the trees here, and the text would move at some later redraw for a reason the
+reader could not connect to anything they did. So what is drawn stays drawn, with one
+exception: an arm bought at the very end of the column continues that same text, which is
+growth rather than a change of mind. Everything else is bought where it stands and waits to be
+navigated to.
 
 **One list changes hands by moving the way the reader is moving, and nothing is spent while it
 does.** A list already answering for the position under the pointer is left alone rather than

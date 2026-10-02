@@ -59,6 +59,28 @@ export function draw() {
   return params;
 }
 
+/** What a draw keeps, with nothing of what it draws.
+ *
+ *  **It is the panel cut along the line `docs/NEXT.md` already draws through it**: what is
+ *  drawn is `length` and `temperature`, what is kept is the record's depth and mass, and
+ *  then the backend. A caller that decides the first pair for itself still owes the record
+ *  the second, and a rollout is that caller -- it fixes its length and its heat, and takes
+ *  how deep to record from wherever the reader set it.
+ *
+ *  The chain goes with the draw and not with the record. A rollout naming no sampler is
+ *  greedy in the act's own `params` rather than greedy by argument, which is what lets *a
+ *  stub is any node no act but a greedy one produced* be read off the record later.
+ */
+export function keep() {
+  const params = {};
+  for (const field of FIELDS) {
+    if (field.group === "the draw" || field.group === "the chain") continue;
+    const held = state.get(field.key);
+    if (held.on) params[field.key] = held.value;
+  }
+  return params;
+}
+
 /* `record_rows` must cover a `top_k` the request names, so one of the two gives way. The
  * value just moved is the one that was meant, and the other follows it -- both are on
  * screen, so neither moves out of sight.

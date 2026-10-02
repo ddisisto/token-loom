@@ -16,7 +16,7 @@
  */
 
 import * as cursor from "./cursor.js";
-import { draw, panel } from "./draw.js";
+import { draw, keep, panel } from "./draw.js";
 import * as mark from "./mark.js";
 import {
   panel as overlayPanel, read as overlays, rule as taken, wants, weighed,
@@ -130,10 +130,23 @@ async function refresh(current) {
   drawnAt = null;  // the rows said what became of each row, and an act has changed that
   const tree = await ask("/tree");
   drawRoots(tree, current);
-  say(`${tree.path}  ${tree.vocabulary}  ` +
-      `${tree.counts.nodes} nodes  ${tree.counts.edges} edges  ${tree.counts.acts} acts`);
+  tally(tree);
   return tree;
 }
+
+/** What the tree is, in the status line. */
+const tally = tree =>
+  say(`${tree.path}  ${tree.vocabulary}  ` +
+      `${tree.counts.nodes} nodes  ${tree.counts.edges} edges  ${tree.counts.acts} acts`);
+
+/** The counts again, and nothing else.
+ *
+ *  A roll writes, so the figures move -- but `refresh` drops every arm and every ranking,
+ *  which is right for an act the reader asked for out loud and wrong for one they are
+ *  watching arrive. What a burst invalidates is bounded and the caller says what to do
+ *  about it; this is only the part of `refresh` that is true after any write at all.
+ */
+const counted = async () => tally(await ask("/tree"));
 
 // ---- the reading column ---------------------------------------------------------------
 
@@ -429,10 +442,29 @@ async function realise(row, payload) {
  * whether or not the hand stayed -- because what it says is a fact about the position. The
  * pulse is drawn only under the pointer, because what it says is what the next thing would
  * cost the reader. So hovering only ever means *there is more here*, and a row the tree has
- * no arm for shows nothing at all; paying to roll one is the increment after this.
+ * no arm for shows nothing at all.
+ *
+ * **Resting on a price is what buys.** The free read and the paid roll are the same gesture
+ * held for different lengths of time, which is what keeps the reader from having to decide
+ * what a row is before looking at it: they point, they read what is there, and if what is
+ * there runs out under a pulse they can stay. `roll` is where that is paid for.
  */
 
 let armed = null;  // the node whose row the pointer is on, or null
+
+/* Milliseconds a pointer rests on a priced row before anything is bought. **It is a
+ * different threshold from `SEEN` because it guards a different thing**: that one keeps a
+ * pointer crossing the page from asking a question, and this one keeps it from spending.
+ * A reader sweeping a list passes over priced rows on the way to the one they want, and
+ * the pulse is already there to be read before the dwell elapses -- so what is bought is
+ * what was looked at. The number is a first one and is settled by use. */
+const DWELL = 420;
+
+let buying = null;    // the node being rolled, or null -- one roll at a time
+let dwelling = null;  // the timer a rested pointer is counting down
+
+/** The last node of what the column is showing, which is where a purchase may extend it. */
+const tail = () => drawn.at(-1)?.nodes.at(-1)?.id ?? null;
 
 /** The row a node's arm belongs to, in whichever list is the live one.
  *
@@ -507,7 +539,8 @@ function prefill(box) {
  *
  *  **No wait before it and no parts to it.** The record answers in full, so a reader who
  *  pointed at a row gets what is there at once -- a pause would be charging them for looking
- *  at what has already been paid for.
+ *  at what has already been paid for. `roll` is the other half, and it is paced because
+ *  what it reads has to be made first.
  *
  *  What comes back is drawn whether or not the pointer stayed. The arm is the row's and the
  *  reader asked for it; dropping it because they moved on would leave the record holding
@@ -532,6 +565,75 @@ async function grow(node) {
   }
 }
 
+/** Pay to roll the arm below a node, for as long as the pointer stays on its row.
+ *
+ *  **Hovering is the gesture and dwelling is the payment.** A reader scanning a list reads
+ *  the pulse, which says that reaching further here would cost inference; resting on it is
+ *  the asking, and moving on is the stopping. So what is spent is proportional to what was
+ *  looked at, and nothing is bought by crossing a row on the way somewhere else.
+ *
+ *  **It arrives in parts and each part is an act.** `stub.BURST` has why the record would
+ *  rather have one act of forty, and why the reader would rather have ten of four. What
+ *  the page does between them is read `/stub` again -- the free read, the same one a hover
+ *  makes -- so the arm is drawn from the record whether the record or the model last
+ *  answered, and there is no second path through which a bought token reaches the page.
+ *
+ *  **Where the purchase hangs decides whether the column moves**, and `stub.lengthens` is
+ *  that decision. The text the reader is reading is not rearranged by their looking.
+ */
+async function roll(node) {
+  // One at a time, against one writer and one cache slot. A second roll would not only
+  // queue behind this one, it would truncate the prompt cache this one is warm in --
+  // `docs/SPINE.md` measures that at 28 ms against 7.4 s.
+  if (buying !== null || working) return;
+  buying = node;
+  // Taken before anything is bought, because the first burst is what moves the tip: after
+  // it the arm hangs off its own new tokens and would never read as the end of the column.
+  const grows = stub.lengthens(stub.tip(node), tail());
+  let last = null;
+  try {
+    while (armed === node) {
+      const want = stub.burst(node);
+      if (want === null) break;
+      // The length and the heat are the rollout's own and the rest is the reader's, which
+      // is the cut `keep` is named for. Naming no sampler is what makes the act greedy in
+      // its own `params` rather than greedy by argument.
+      const act = await ask("/generate", {
+        at: stub.tip(node), params: { ...keep(), length: want, temperature: 0 },
+      });
+      last = act.tip;
+      const out = stub.landed(node, await ask(
+        `/stub/${node}?length=${stub.CAP}&hidden=${showHidden ? 1 : 0}`));
+      const li = seat(node);
+      if (li === null) continue;  // the list was rebuilt; the arm is the node's, so carry on
+      paint(li, out);
+      // The price follows the pointer and not the reading, the same as everywhere else --
+      // and it is what goes out when the arm reaches the cap, which is the roll ending by
+      // having finished rather than by being left.
+      if (armed === node) pulse(li, stub.costly(node));
+    }
+  } catch (why) {
+    // Said out loud, unlike a failed free read: the reader rested on a price and nothing
+    // came of it, which is a thing they did and are owed an answer about.
+    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  } finally {
+    buying = null;
+  }
+  if (last === null) return;
+  // What a burst wrote is below the arm's old tip, so no ranking on screen is stale -- but
+  // that tip now realises a child it did not, and the next reader of its list would be
+  // told otherwise. Dropping them costs a read apiece and only where one is opened again.
+  ranking.forget();
+  await counted();
+  if (!grows) return;
+  await show(last);
+  // The text is longer than it was, so where the reader stands in it has moved under them.
+  // Left stale, a reader who was at the end before the roll is recorded as still being
+  // there, and the scroll that walks down to the new end reads as no gesture at all.
+  wasAtEnd = atEnd();
+  wasAt = window.scrollY;
+}
+
 /** The pointer arriving at a row or leaving it.
  *
  *  **Only the price moves with it.** What is drawn in the row was put there by `prefill` or
@@ -543,6 +645,10 @@ function rolls(row, where, on) {
   // about to be somewhere else, and reading from it would be answering a question the
   // reader has not finished asking. `swap` asks again once it has stopped.
   if (on && performance.now() < settled_at) return;
+  // Whichever way the pointer moved, it is no longer resting where it was. A roll already
+  // under way is not cancelled here -- it reads `armed` after each part and stops itself,
+  // so the burst in flight is paid for and finishes, which is what was asked for.
+  clearTimeout(dwelling);
   if (!on) {
     // Only if this row is still the one being read. A pointer crossing from one row to the
     // next produces a leave and an enter, and nothing guarantees which the page sees first
@@ -558,10 +664,20 @@ function rolls(row, where, on) {
   // Set before anything is read, because the pulse follows the pointer and not the answer.
   // A row with no node under it is certainly costly and needs no read to say so.
   pulse(where, stub.costly(row.child));
-  // A row nothing realised has nothing to descend from. Making one is a `realise` and then a
-  // rollout, which is a spend and is not what pointing at something does yet.
+  // A row nothing realised has nothing to descend from. Making one is a `realise` and then
+  // a rollout -- two acts, the first of which is the one that makes a fork real, so it is
+  // not something a pointer does. The pulse still says what reaching here would cost.
   if (row.child === null) return;
-  grow(row.child).catch(() => {});
+  // The dwell is counted from the answer and not from the arrival: until the free read has
+  // landed there is no price to have rested on, and `burst` would decline anyway. An arm
+  // already held resolves at once, so returning to a row starts the clock immediately.
+  grow(row.child).then(() => {
+    if (armed !== row.child) return;
+    clearTimeout(dwelling);
+    dwelling = setTimeout(() => {
+      if (armed === row.child) roll(row.child).catch(() => {});
+    }, DWELL);
+  }).catch(() => {});
 }
 
 /** Show the rows the caret is at, which is where they sit when nothing is hovered. */
@@ -799,7 +915,10 @@ function failed(why) {
  *  read; the caret passes wherever the reader put it, and a draw there is what makes a fork
  *  -- the tokens either merge onto what already follows or part from it. */
 async function more(where = cursor.node()) {
-  if (working || where === null || where === undefined) return;
+  // A roll in flight is the other writer there is, and it holds a warm prompt cache a draw
+  // from somewhere else would truncate -- `docs/SPINE.md` measures that at 28 ms against
+  // 7.4 s. A scroll during one is dropped rather than queued, the same as during a draw.
+  if (working || buying !== null || where === null || where === undefined) return;
   working = true;
   waiting();
   try {
