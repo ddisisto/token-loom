@@ -448,9 +448,16 @@ async function realise(row, payload) {
  * held for different lengths of time, which is what keeps the reader from having to decide
  * what a row is before looking at it: they point, they read what is there, and if what is
  * there runs out under a pulse they can stay. `roll` is where that is paid for.
+ *
+ * **A row nothing realised is bought the same way, and the fork comes first.** It is two
+ * acts rather than one, and the `realise` is free -- so what rests on a row the record has
+ * never been down makes the node and then rolls from it, which is one gesture because it
+ * is one question: *what does the model say here*. The row changes kind under the pointer
+ * rather than the list being rebuilt around it.
  */
 
-let armed = null;  // the node whose row the pointer is on, or null
+let armed = null;    // the node whose row the pointer is on, or null
+let resting = null;  // the row the pointer is on, which has a node only once realised
 
 /* Milliseconds a pointer rests on a priced row before anything is bought. **It is a
  * different threshold from `SEEN` because it guards a different thing**: that one keeps a
@@ -565,12 +572,19 @@ async function grow(node) {
   }
 }
 
-/** Pay to roll the arm below a node, for as long as the pointer stays on its row.
+/** Make the node a row names if it has none, then roll its arm for as long as the pointer
+ *  stays on the row.
  *
  *  **Hovering is the gesture and dwelling is the payment.** A reader scanning a list reads
  *  the pulse, which says that reaching further here would cost inference; resting on it is
  *  the asking, and moving on is the stopping. So what is spent is proportional to what was
  *  looked at, and nothing is bought by crossing a row on the way somewhere else.
+ *
+ *  **The `realise` is part of the gesture and not a step before it.** It writes one node,
+ *  calls no model and merges, so what it costs is a selection -- and a reader comparing
+ *  several continuations at one position wants the fork made by looking at the row, not by
+ *  committing to it first. What makes the arm worth having is that it is the model's
+ *  answer at a place the record has never been, which is exactly the row that has no node.
  *
  *  **It arrives in parts and each part is an act.** `stub.BURST` has why the record would
  *  rather have one act of forty, and why the reader would rather have ten of four. What
@@ -581,18 +595,37 @@ async function grow(node) {
  *  **Where the purchase hangs decides whether the column moves**, and `stub.lengthens` is
  *  that decision. The text the reader is reading is not rearranged by their looking.
  */
-async function roll(node) {
+async function roll(row, where, payload) {
   // One at a time, against one writer and one cache slot. A second roll would not only
   // queue behind this one, it would truncate the prompt cache this one is warm in --
   // `docs/SPINE.md` measures that at 28 ms against 7.4 s.
   if (buying !== null || working) return;
-  buying = node;
-  // Taken before anything is bought, because the first burst is what moves the tip: after
-  // it the arm hangs off its own new tokens and would never read as the end of the column.
-  const grows = stub.lengthens(stub.tip(node), tail());
+  buying = row;
   let last = null;
+  let grows = false;
   try {
-    while (armed === node) {
+    if (row.child === null) {
+      // Measured against the node the rows belong to, which is where the fork hangs. The
+      // node it makes does not exist yet, and after it the arm hangs off the fork rather
+      // than off the end of the text.
+      grows = stub.lengthens(payload.node, tail());
+      // The source is named rather than inferred: a token alone names nothing at a node
+      // two models ranked, and the payload the row came from carries the names.
+      const act = await ask("/realise", {
+        at: payload.node, source: payload.sources[String(row.source)], token: row.token,
+      });
+      ranking.realised(where, row, act.tip);
+      armed = act.tip;  // the row has a node now and the pointer has not moved off it
+      last = act.tip;
+    }
+    const node = row.child;
+    // The free read first, even where the fork was just made: an arm is read from the
+    // record whatever put the record there, and until it has been there is no price.
+    await grow(node);
+    // Taken before anything is bought, because the first burst moves the tip -- after it
+    // the arm hangs off its own new tokens and would never read as the end of the column.
+    if (!grows) grows = stub.lengthens(stub.tip(node), tail());
+    while (resting === row) {
       const want = stub.burst(node);
       if (want === null) break;
       // The length and the heat are the rollout's own and the rest is the reader's, which
@@ -620,9 +653,10 @@ async function roll(node) {
     buying = null;
   }
   if (last === null) return;
-  // What a burst wrote is below the arm's old tip, so no ranking on screen is stale -- but
-  // that tip now realises a child it did not, and the next reader of its list would be
-  // told otherwise. Dropping them costs a read apiece and only where one is opened again.
+  // A `realise` changes what the rows at this position say became of one of them, and a
+  // burst gives the arm's old tip a child it did not have. The list on screen was told
+  // about the first as it happened and nothing on screen is about the second, so what is
+  // dropped is only what would be read again -- a read apiece, where one is opened again.
   ranking.forget();
   await counted();
   if (!grows) return;
@@ -640,42 +674,46 @@ async function roll(node) {
  *  by a read landing, and it stays -- so hovering says *there is more here* and never *here
  *  is what there is*.
  */
-function rolls(row, where, on) {
+function rolls(row, where, on, payload) {
   // A list still coming into place is not somewhere to point at. The row under the hand is
   // about to be somewhere else, and reading from it would be answering a question the
   // reader has not finished asking. `swap` asks again once it has stopped.
   if (on && performance.now() < settled_at) return;
-  // Whichever way the pointer moved, it is no longer resting where it was. A roll already
-  // under way is not cancelled here -- it reads `armed` after each part and stops itself,
-  // so the burst in flight is paid for and finishes, which is what was asked for.
-  clearTimeout(dwelling);
   if (!on) {
-    // Only if this row is still the one being read. A pointer crossing from one row to the
-    // next produces a leave and an enter, and nothing guarantees which the page sees first
-    // -- clearing unconditionally lets the row being left cancel the read its neighbour
-    // just started, which shows up as a hover that does nothing every other time.
-    if (armed === row.child) armed = null;
+    // Only if this row is still the one being rested on. A pointer crossing from one row
+    // to the next produces a leave and an enter, and nothing guarantees which the page
+    // sees first -- clearing unconditionally lets the row being left cancel what its
+    // neighbour just started, which shows up as a hover that does nothing every other
+    // time. **The row and not its node**, because two rows nothing realised both have
+    // none and would answer to each other's departure.
+    if (resting === row) {
+      clearTimeout(dwelling);
+      resting = null;
+      armed = null;
+    }
     // The price goes with the pointer. It is about where the reader is looking and not about
     // the row, so a list left behind holding half a dozen of them would be saying that six
-    // places are about to cost something.
+    // places are about to cost something. A roll already under way is not stopped here --
+    // it reads `resting` after each part and stops itself, so the part in flight is paid
+    // for and finishes, which is what was asked for.
     return pulse(where, false);
   }
+  clearTimeout(dwelling);  // this row supersedes whatever else was counting down
+  resting = row;
   armed = row.child;
   // Set before anything is read, because the pulse follows the pointer and not the answer.
   // A row with no node under it is certainly costly and needs no read to say so.
   pulse(where, stub.costly(row.child));
-  // A row nothing realised has nothing to descend from. Making one is a `realise` and then
-  // a rollout -- two acts, the first of which is the one that makes a fork real, so it is
-  // not something a pointer does. The pulse still says what reaching here would cost.
-  if (row.child === null) return;
-  // The dwell is counted from the answer and not from the arrival: until the free read has
+  // The dwell is counted from the free read, where there is one to make: until it has
   // landed there is no price to have rested on, and `burst` would decline anyway. An arm
-  // already held resolves at once, so returning to a row starts the clock immediately.
-  grow(row.child).then(() => {
-    if (armed !== row.child) return;
+  // already held resolves at once, so returning to a row starts the clock immediately --
+  // and a row with no node has nothing to read, so its clock starts on arrival.
+  const read = row.child === null ? Promise.resolve() : grow(row.child);
+  read.then(() => {
+    if (resting !== row) return;
     clearTimeout(dwelling);
     dwelling = setTimeout(() => {
-      if (armed === row.child) roll(row.child).catch(() => {});
+      if (resting === row) roll(row, where, payload).catch(() => {});
     }, DWELL);
   }).catch(() => {});
 }

@@ -41,6 +41,28 @@ export function sorted(rows) {
 export const kind = (row, next) =>
   row.child === null ? "unrealised" : row.child === next ? "took" : "elsewhere";
 
+/** A row that has just been realised, said in the row and in what the list is holding.
+ *
+ *  **The row changes kind without the list being rebuilt**, which is the whole of why this
+ *  is here rather than a redraw: the pointer is resting on this row and a list replaced
+ *  under it takes the reader's hand off the thing they are in the middle of. What changes
+ *  is one class and one node, both of them facts the row already carries.
+ *
+ *  `row` is mutated, and that is deliberate. It is the same object the held payload holds,
+ *  so the list and what is remembered of it cannot come apart -- and the node is what
+ *  everything hung on a row is addressed by, so a row that gained one has to say so before
+ *  anything can be drawn in it.
+ *
+ *  It is `elsewhere` and never `took`, because the path cannot already be taking a node
+ *  that did not exist until now.
+ */
+export function realised(li, row, child) {
+  row.child = child;
+  li.dataset.node = String(child);
+  li.classList.remove("unrealised");
+  li.classList.add("elsewhere");
+}
+
 /** How much of the distribution the rows hold between them.
  *
  *  They sum to less than one because the rest of the vocabulary was never recorded, not
@@ -208,8 +230,8 @@ export function list(payload, next, pick, weigh, rolls) {
         // `pointerenter`/`pointerleave` and not `over`/`out`: an arm drawn inside the row is
         // a descendant, so the bubbling pair would report the pointer leaving the row the
         // moment the text it asked for arrived under it.
-        li.onpointerenter = () => rolls(row, li, true);
-        li.onpointerleave = () => rolls(row, li, false);
+        li.onpointerenter = () => rolls(row, li, true, payload);
+        li.onpointerleave = () => rolls(row, li, false, payload);
       }
       out.append(li);
     }

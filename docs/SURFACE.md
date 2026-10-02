@@ -1259,10 +1259,15 @@ nothing else.
 lengths of time, so a reader never has to decide what a row is before looking at it: they
 point, they read what the record had, and where it ran out under a pulse they can stay. What
 is bought is then proportional to what was looked at — crossing a row on the way elsewhere
-buys nothing, and moving on stops the spending at the part in flight. It buys only where a
-node already stands under the row. A row nothing realised is two acts and the first of them
-makes a fork real, which is not something a pointer should do, so the pulse there says what
-reaching would cost and waits to be asked properly.
+buys nothing, and moving on stops the spending at the part in flight.
+
+**A row nothing realised is bought the same way, and the fork comes first.** It is two acts
+rather than one and the `realise` is free, so what rests on a row the record has never been
+down makes the node and then rolls from it. They are one gesture because they answer one
+question — *what does the model say here* — and a reader comparing several continuations at
+one position wants each fork made by looking at the row rather than by committing to it
+first. The row changes kind under the pointer rather than the list being rebuilt around it,
+so the hand keeps its place and what has already been read stays drawn.
 
 **It arrives in parts, and each part is an act.** A forty-token arm is about a second even
 with the prompt cache warm, which is too long to read as an arrival, so it is bought four
@@ -1275,11 +1280,15 @@ a draw from elsewhere would truncate.
 **Looking does not rearrange what is being read.** The rule that picks the path is a parameter
 of the read, so a rollout the reader merely pointed at would otherwise win the branch point it
 hangs under — a fresh forty-token descent is taller than the standing one at about a third of
-the positions in the trees here, and the text would move at some later redraw for a reason the
-reader could not connect to anything they did. So what is drawn stays drawn, with one
-exception: an arm bought at the very end of the column continues that same text, which is
-growth rather than a change of mind. Everything else is bought where it stands and waits to be
-navigated to.
+the positions in the trees here, and the text would move under them for a reason they could not
+connect to anything they did. So what is drawn stays drawn, with one exception: a purchase that
+hangs at the very end of the column continues that same text, which is growth rather than a
+change of mind. Everything else is bought where it stands.
+
+**What the rule still decides is where a reader arrives**, and a tree that has been read over
+is a tree whose default path leans toward where the reading went. That is the rule doing its
+job rather than the page failing at its own — `docs/NEXT.md` has what would change it and why
+nothing has.
 
 **One list changes hands by moving the way the reader is moving, and nothing is spent while it
 does.** A list already answering for the position under the pointer is left alone rather than

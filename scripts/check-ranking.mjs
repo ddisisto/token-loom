@@ -152,6 +152,22 @@ is("  along with the payload, which is what says where the row is and who ranked
 const bare = R.list({ node: 9, rows: [], sources: SOURCES }, null, () => {}, null);
 says("a position nothing ranked says so", words(bare), "nothing was ranked");
 
+/* A row realised under the pointer, which is a hover spending and not a list being rebuilt.
+ * It fails in two silent ways. The node is what anything hung on a row is addressed by, so a
+ * row that gained one and did not say so is a row an arm can never be drawn in -- the read
+ * lands and goes nowhere, and the reader sees a hover that did nothing. And the kind is what
+ * says a fork was made: left as `unrealised` the row still offers to write what it already
+ * wrote, and the reader is invited to make the node twice.
+ */
+const made = list.children[2];
+R.realised(made, payload.rows[0], 77);
+is("a row realised under the pointer carries the node it made",
+   made.dataset.node, "77");
+is("  and is no longer a row that would write", made.className, "elsewhere");
+/* The held payload and the drawn list are one object, so a read of this position later
+ * cannot disagree with what the reader is looking at. */
+is("  and what the list is holding says the same", R.kind(payload.rows[0], TOOK), "elsewhere");
+
 // ---- what the reader grew -----------------------------------------------------------------
 
 /* The other axis. The order of the rows is the model's opinion of the position, and this is

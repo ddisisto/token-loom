@@ -47,12 +47,6 @@ with somewhere to go is conspicuous for exactly as long as it keeps going — so
 explored, and what turned out to be worth exploring, are the same picture. The cap is a flat
 forty and the arm is one line, which is what the layout below has to lift.
 
-**A row with nothing realised under it is not bought by pointing at it.** The spend there is a
-`realise` and then a rollout, and the first of them is what makes a fork real — so the pulse
-says what reaching would cost and the gesture waits. **It is wanted and it is not this item**:
-what settles its shape is whether the fork a hover makes reads as the reader's doing once there
-is one to look at, which is a question about a page that now exists. Until then the row that
-can be bought is the row something already stands under.
 
 **An arm that declines has no mark, and is the one of the four still drawn as nothing.** A
 position two sources ranked carries neither the price nor the closure mark, which is honest and
@@ -106,18 +100,26 @@ be *take this and carry on from it* ends somewhere else and the next act has to 
 It is held for this item because the panel is where the gesture starts and the two are one path
 through the code; fixing it with the panel shut would be fixing it twice.
 
-**What a rule picks is what a reader is shown and never what their looking did.** A bought arm
-lands live, because a stub born set aside would read as one the reader closed and the mark that
-says which would stop meaning anything. Live, it is taller than the standing descent at about a
-third of the positions in the trees here, so `longest` alone would hand it the branch point and
-the text would move at some later redraw. What holds the column still is that the page extends
-only what it is already showing — an identity against its own last node — and leaves every other
-purchase where it stands. **That is a page decision and the rule is untouched**, which is the
-right division while the rule is still the thing that picks a path on arrival; a rule that
-measured only what was drawn rather than what was rolled would be a second member of `RULES` and
-is worth having if the page's answer turns out to be the wrong shape. **What has no gesture yet
-is navigating to a purchase that was not an extension**, which is the same hole the unranked
-children leave and wants the same answer.
+**A tree that has been read over leans toward where the reading went, and that is the open
+part.** A bought arm lands live, because a stub born set aside would read as one the reader
+closed and the mark that says which would stop meaning anything. Live, it is taller than the
+standing descent at about a third of the positions in the trees here, so `longest` hands it the
+branch point. Nothing moves while the reader is looking — the page extends only what it is
+already showing, an identity against its own last node, and leaves every other purchase where
+it stands — but **the next arrival is derived afresh**, and it can land on a stub nobody chose.
+Observed: a sweep across three rows at one position, then a reload, and the column came back
+down one of the three.
+
+**It is the rule doing its job and not the page failing at its own**, which is why nothing here
+is a fix yet. What would change it is a second member of `RULES` measuring height over what was
+drawn rather than over what was rolled — a stub is any node no act but a greedy one produced, so
+it is derivable, and `acts` is the table *A way back to where an act began* and section 2 both
+want opened. Whether it is wanted is a question about reading: a default path that follows the
+reading may be the right one, since what was explored is what was found interesting. **Settled
+by living with it**, which now costs nothing to do.
+
+**What has no gesture yet is navigating to a purchase that was not an extension**, which is the
+same hole the unranked children leave and wants the same answer.
 
 **It closes more than it opens.** The band was an increment of its own once and is now the rows
 given room — `docs/SURFACE.md`'s *whether the band is a second surface* is answered and its
