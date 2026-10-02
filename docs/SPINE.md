@@ -455,10 +455,11 @@ which is a different shape from a per-request cost and is what any pacing has to
 against.
 
 **Generation is 38 tok/s, and that sets the burst rather than taste.** A forty-token arm is
-about 1.05 s even fully warm, which is too long to read as an arrival; a tenth of it is 265 ms,
-which is not. So an arm that has to be paid for arrives in parts, and the part size is this
-number -- the loop is what gives the page streaming without the adapter learning to stream.
-Reading an arm the record already holds is not paced at all, since nothing is being waited for.
+about 1.05 s even fully warm, which is too long to read as an arrival; a tenth of it is four
+tokens in 105 ms, which is not. So an arm that has to be paid for arrives in ten parts, and
+the part size is this number -- the loop is what gives the page streaming without the adapter
+learning to stream. Reading an arm the record already holds is not paced at all, since nothing
+is being waited for.
 
 ## Deliberately open
 
