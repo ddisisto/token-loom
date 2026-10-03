@@ -439,6 +439,14 @@ Not in the ordering; each stands on its own.
   the server's own response is what it could not format. If it holds, the adapter is accusing
   the wrong half: the case is a generation that failed and should be recorded as one, the
   predicate is not wrong, and the assertion says it is.
+- **`docs/SURFACE.md` cites this document three times, and `CLAUDE.md` says nothing should.**
+  Each is a forward reference to work that is not built: the act that would price an authored
+  position, the layout an arm's one clipped line is provisional against, and the second member
+  of `RULES` that would stop an arrival leaning toward where the reading went. The hazard is the
+  one that makes the rule: an item here is deleted when it closes or falls out of scope, so a
+  citation of it dangles by design. Each is a judgement rather than a replacement — either the
+  cited thing has a home in `docs/SURFACE.md` and should be stated there, or the sentence should
+  say what is missing without naming where it is tracked.
 - **Whether the command line should keep verifying on every write.** Each invocation is its own
   writer, so each pays a whole-tree read — 330 ms at 20k nodes. The server pays it once for the
   life of the process, which is what a long-running session buys. Nothing forces the question
