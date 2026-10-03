@@ -7,9 +7,9 @@
  *
  * That node is the caret, which `cursor.js` holds. It sits after a token and is what every
  * act at a position takes, so pointing at a segment and asking for a draw are one node apart
- * and not two states. A path is drawn *through* it in both directions, so moving it along
- * what is already drawn returns the same text -- which is why it costs a read and needs no
- * second way of redrawing.
+ * and not two states. Moving it along what is already drawn is a mark and never a read: a
+ * path read re-chooses the continuation below the node it is given, so a read at the caret
+ * would rearrange the text the reader is pointing into.
  *
  * Nothing here is remembered between loads. Reader state lives in the session, and what is
  * live, what parts and what a ranking holds are read from the store every time.
@@ -249,8 +249,8 @@ function spans(segments, marks, takers) {
 /** Say where the caret stands, over what is already drawn.
  *
  *  Its own pass and not something a span is built with, because the caret moves without the
- *  text doing: a path through any node of the path already drawn is that same path, so
- *  putting the caret somewhere else along it is a mark to move and never a read.
+ *  text doing -- so putting it somewhere else along what is drawn is a mark to move, and the
+ *  text it is a mark on is never read again to place it.
  *
  *  Everything after it is drawn because the rule reaches it and not because the reader
  *  accepted it -- the caret is the frontier of what they have, and what lies past it is
@@ -267,18 +267,27 @@ function frontier() {
   }
 }
 
-/** Point at a segment, which moves the caret before it. It re-reads rather than redrawing
- *  what is in front of the reader: the path through the node the caret lands on is the path
- *  already drawn, so what comes back is the same text, and one path costs milliseconds. */
+/** Point at a segment, which moves the caret before it over text that does not move.
+ *
+ *  **It takes no read, and it may not take one.** A path read is an ancestry and a fresh
+ *  continuation below it, so reading at the caret re-chooses everything under the reader's
+ *  finger -- and where an arm has been rolled, what the rule picks there is the arm.
+ *  `docs/SURFACE.md`'s *Pointing is not arriving* has it. The node `chosen` lands on is the
+ *  last node of the segment before it and is already drawn, so the mark is all there is to
+ *  move.
+ */
 function point(i) {
   const to = cursor.chosen(drawn, i);
   if (to === null) return;
-  show(to, to).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+  cursor.place(to);
+  frontier();
+  settled();
 }
 
-/* What is drawn, kept so that pointing at a segment knows which one was chosen. It is the
- * last response and not a second opinion about the tree: nothing is decided from it that the
- * next read would decide differently. */
+/* What is drawn, which is the view the caret is a position within. It is the last response
+ * and not a second opinion about where the reader is -- the caret is only ever placed on a
+ * node of it, so the two cannot disagree. What it is not is a prediction of the next read:
+ * the rule chooses afresh on every arrival, and below the caret it may choose differently. */
 let drawn = [];
 
 // ---- what else was live -----------------------------------------------------------------
@@ -981,10 +990,56 @@ function pending(...what) {
   return box;
 }
 
+const breath = () => Object.assign(document.createElement("span"), {
+  className: "wait", textContent: "\u2026",
+});
+
 function waiting() {
-  pending(Object.assign(document.createElement("span"), {
-    className: "wait", textContent: "\u2026",
-  }));
+  pending(breath());
+}
+
+/** Take the text below the caret down while a variation is drawn at it, and put it back.
+ *
+ *  What stands below is what the draw is about to replace, and leaving it there shows the
+ *  reader one continuation and then exchanges it for another. Hidden and not re-read: the
+ *  segments below are part of what the text above is measured against, so a column rebuilt
+ *  short would move the wash on lines this act is not about. The caret's own mark is what the
+ *  stylesheet finds them by, every one of them being a sibling after it.
+ */
+function parting() {
+  const flow = $("column").querySelector(".flow");
+  if (flow === null) return waiting();
+  flow.classList.add("parting");
+  // At the end of the flow rather than after the caret's segment: what follows it is hidden
+  // and takes no room, so this lands where the text stops.
+  flow.append(breath());
+}
+
+function rejoin() {
+  const flow = $("column").querySelector(".flow");
+  if (flow === null) return;
+  flow.classList.remove("parting");
+  flow.querySelector(".wait")?.remove();
+}
+
+/** What a variation left, said once it has landed.
+ *
+ *  **A draw that samples what was already below the caret merges onto it and moves nothing.**
+ *  The tokens reach existing nodes through `(parent, token_id, source)` and the act records
+ *  them like any others, so nothing in the response distinguishes the case -- and at
+ *  temperature zero it is the ordinary one, the path below a node being a greedy descent
+ *  already. It is the one outcome the reader cannot see, so it is the one that is said.
+ *
+ *  Whether the text moved is a node that is on the screen and was not, which is the question
+ *  asked rather than a count of what the act wrote: an act writes the same nodes whether they
+ *  were there before or not.
+ */
+function parted(act, was) {
+  const moved = drawn.flatMap(cell => cell.nodes).some(n => !was.has(n.id));
+  const drew = `${act.nodes.length} token${act.nodes.length === 1 ? "" : "s"} drawn`;
+  say(moved
+    ? `${drew} \u00b7 enter again for another variation`
+    : `${drew} onto what was already here \u00b7 the text has not moved`);
 }
 
 /** A failure is dismissable and says which kind it was, because the record does. */
@@ -1001,14 +1056,26 @@ function failed(why) {
 
 /** Ask for more of the path, at a node. The scroll gesture passes the end of what is being
  *  read; the caret passes wherever the reader put it, and a draw there is what makes a fork
- *  -- the tokens either merge onto what already follows or part from it. */
-async function more(where = cursor.node()) {
+ *  -- the tokens either merge onto what already follows or part from it.
+ *
+ *  **`pin` keeps the caret where it is, which makes the act repeatable without aiming it
+ *  again.** The ordinary draw carries the caret to the tip, which is the batch discipline
+ *  `docs/SURFACE.md` names: asking for the next batch carries acceptance of the last. A
+ *  variation at a fixed position is the other thing a draw can be -- several continuations
+ *  from one node, read against each other -- and there the caret is the position being asked
+ *  about rather than the frontier of what has been read. The path drawn is the one that
+ *  landed and not the one the rule would pick, because the read is through the act's own tip.
+ */
+async function more(where = cursor.node(), { pin = false } = {}) {
   // A roll in flight is the other writer there is, and it holds a warm prompt cache a draw
   // from somewhere else would truncate -- `docs/SPINE.md` measures that at 28 ms against
   // 7.4 s. A scroll during one is dropped rather than queued, the same as during a draw.
   if (working || buying !== null || where === null || where === undefined) return;
   working = true;
-  waiting();
+  // Taken before the act, because what is drawn is replaced by it and the comparison is what
+  // says whether the draw parted from anything.
+  const was = pin ? new Set(drawn.flatMap(cell => cell.nodes).map(n => n.id)) : null;
+  if (pin) parting(); else waiting();
   try {
     // Ending mid-character is not the only reason a backend may decline a path, so the
     // predicate is asked at the position the act would use. Asking writes nothing, and the
@@ -1023,10 +1090,14 @@ async function more(where = cursor.node()) {
     // what the record keeps. Nothing here caches it.
     const act = await ask("/generate", { at: where, params: draw() });
     await refresh();
-    await show(act.tip);
+    await show(act.tip, pin ? where : undefined);
+    if (pin) parted(act, was);
   } catch (why) {
     failed(why);
   } finally {
+    // Every way out of here, including the refusal that returns without drawing. A path that
+    // landed has replaced the flow this was set on, so there is nothing left to put back.
+    if (pin) rejoin();
     working = false;
     quiet = Date.now() + REST;
     // What landed moved the end and may have moved the window: an arrival at the end is a
@@ -1052,8 +1123,8 @@ const ready = () => cursor.armed() || atEnd();
  *  of them, and the next downward scroll is the draw -- so there is no reading to keep up
  *  with, and drifting off it would both aim the act elsewhere and disarm it on the way.
  *
- *  It costs no read. A path through any node of the path already drawn is that same path, so
- *  this is a mark that moves over text that does not.
+ *  It costs no read, and `point` has why it may not take one: this is a mark that moves over
+ *  text that does not.
  */
 function dodge() {
   if (working || cursor.armed() || cursor.node() === null) return;
@@ -1115,6 +1186,20 @@ addEventListener("scroll", () => {
 addEventListener("wheel", event => { moved(event.deltaY > 0 && ready()); }, { passive: true });
 addEventListener("keydown", event => {
   if (event.target.closest("textarea, input")) return;
+  // A variation at the caret, which is the draw that does not move the reader. **It is a key
+  // and not a scroll because it has no place to be arrived at.** What makes the scroll
+  // deliberate is the end of the page, and what makes an armed caret deliberate is the click
+  // that armed it; a draw at a position in the middle of the text has neither, so the gesture
+  // itself is what has to be unmistakable. A modifier on it is some other gesture rather than
+  // a quieter version of this one, and a held key is one request because `quiet` says so.
+  if (event.key === "Enter") {
+    if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    if (event.target.closest("button, a")) return;  // Enter there is that control's own
+    event.preventDefault();
+    if (Date.now() < quiet) return;
+    more(cursor.node(), { pin: true }).catch(() => {});
+    return;
+  }
   if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))
     return;
   moved(["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready());

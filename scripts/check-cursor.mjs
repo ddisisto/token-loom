@@ -92,11 +92,27 @@ is("nothing acts under what is set aside, so pointing there stays put too",
    C.chosen(pruned, 2), null);
 
 /* A multi-token character is one segment and cannot be split, so the caret lands before the
- * whole of it rather than between its tokens. */
-const wide = { text: "⚕", decodes: true, nodes: [
-  { id: 800, parent: 42, live: true }, { id: 801, parent: 800, live: true }] };
+ * whole of it rather than between its tokens -- and a segment after one lands on its last
+ * token, which is the id the column addresses that segment by.
+ *
+ * **Pointing moves a mark and takes no read**, so every node it can land on has to be one the
+ * column already draws a mark for. A caret anywhere else is one nothing in the text marks,
+ * and the reader would be pointing at a position the page cannot show them.
+ */
+const seats = cells => new Set(cells.map(c => c.nodes.at(-1).id));
+const mixed = [
+  { text: "x", decodes: true, nodes: [{ id: 699, parent: null, live: true }] },
+  { text: "⚕", decodes: true, nodes: [
+    { id: 700, parent: 699, live: true }, { id: 701, parent: 700, live: true }] },
+  { text: "x", decodes: true, nodes: [{ id: 702, parent: 701, live: true }] },
+];
 is("a character spelled by several tokens takes the caret before all of them",
-   C.chosen([wide], 0), 42);
+   C.chosen(mixed, 1), 699);
+is("and pointing past one lands on the last of them",
+   C.chosen(mixed, 2), 701);
+is("  so no node pointing can land on is one the column has no mark for",
+   mixed.map((_, i) => C.chosen(mixed, i)).filter(to => to !== null)
+     .every(to => seats(mixed).has(to)), true);
 
 // ---- following the window ---------------------------------------------------------------------
 

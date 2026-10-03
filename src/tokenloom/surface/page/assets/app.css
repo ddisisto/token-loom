@@ -488,4 +488,12 @@ footer .fault { color: var(--accent); }
                  align-items: baseline; font: 400 13px/1.6 var(--mono); }
 .pending .grow { flex: 1; }
 @keyframes breathe { 50% { opacity: .35; } }
-.pending .wait { animation: breathe 1.6s ease-in-out infinite; }
+.wait { animation: breathe 1.6s ease-in-out infinite; }
+
+/* A variation being drawn at the caret, so what stands below it is what the draw is about to
+   replace. Hidden rather than taken out: the segments below are part of what a path-relative
+   measure reads the lines above against, and a column rebuilt short would move the wash on
+   text this act is not about. Nothing above the caret moves, which is the whole point of the
+   gesture -- the reader is asking what else goes here, not going anywhere. */
+.flow.parting .seg.at ~ *:not(.wait) { display: none; }
+.flow .wait { color: var(--accent); }

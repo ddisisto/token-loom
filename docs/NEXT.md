@@ -105,15 +105,16 @@ part.** A bought arm lands live, because a stub born set aside would read as one
 closed and the mark that says which would stop meaning anything. Live, it is taller than the
 standing descent at about a third of the positions in the trees here, so `longest` hands it the
 branch point. Nothing moves while the reader is looking — the page extends only what it is
-already showing, an identity against its own last node, and leaves every other purchase where
-it stands — but **the next arrival is derived afresh**, and it can land on a stub nobody chose.
-Observed: a sweep across three rows at one position, then a reload, and the column came back
-down one of the three.
+already showing, an identity against its own last node, leaves every other purchase where it
+stands, and takes no read to point at a token — but **an arrival is derived afresh**, and it can
+land on a stub nobody chose. Observed: a sweep across three rows at one position, then a reload,
+and the column came back down one of the three. A reload, a root taken from the list and a row
+taken from the panel are the arrivals left.
 
 **It is the rule doing its job and not the page failing at its own**, which is why nothing here
 is a fix yet. What would change it is a second member of `RULES` measuring height over what was
 drawn rather than over what was rolled — a stub is any node no act but a greedy one produced, so
-it is derivable, and `acts` is the table *A way back to where an act began* and section 2 both
+it is derivable, and `acts` is the table *The settings a draw was made under* and section 2 both
 want opened. Whether it is wanted is a question about reading: a default path that follows the
 reading may be the right one, since what was explored is what was found interesting. **Settled
 by living with it**, which now costs nothing to do.
@@ -200,19 +201,18 @@ also spends fifty positions on a linear range whose useful values cluster low �
 ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
 out. The axis wants a floor of 1 and a spacing that is not linear.
 
-**3. A way back to where an act began, and the settings it was made under.** A reader who wants a
-different continuation at a position should not have to find that position again: what they want
-is the boundary of the act they just read, to draw from it under different settings, at a higher
-sample resolution, or simply once more. It is the loop `docs/INTERFERENCE.md` is about, and the
-page cannot run it yet — the caret follows the tip of what lands, so taking one draw again means
-scrolling back and pointing, which is a search where it should be a gesture.
+**3. The settings a draw was made under.** Drawing again at a position costs no search: the caret
+stays where the draw was asked for and the gesture repeats there. What a reader cannot reach is
+what any of those draws were made *under* — to take the position again at a different temperature,
+at a higher sample resolution, or exactly as it stood. It is the loop `docs/INTERFERENCE.md` is
+about, and reading a setting back is the half of it that is missing.
 
-**Both halves are one read, which is why they are one item.** An act's range is `origin` exclusive
-to `tip` inclusive, so the boundary above a node and the settings a node was drawn under come out
-of the same direction `act_tokens` does not go — node to acts, which is the read *What a node was
-drawn at* wants under Loose ends. The same reason neither is free: acts overlap, so a node reached
-twice has two answers and whatever draws it must reduce them. Here the reduction has a reading of
-its own, since what a reader means by *this draw* is the one they just watched land.
+**It is one read, and it goes from node to acts.** An act's range is `origin` exclusive to `tip`
+inclusive, so the settings a node was drawn under come out of the direction `act_tokens` does not
+go — which is the read *What a node was drawn at* wants under Loose ends. It is not free: acts
+overlap, so a node reached twice has two answers and whatever draws it must reduce them. Here the
+reduction has a reading of its own, since what a reader means by *this draw* is the one they just
+watched land.
 
 What it does not need is a decision about the tree. Arms accumulate at the position and are
 consolidated, pruned or divided out later — the five acts already do all three, and nothing about
@@ -353,8 +353,8 @@ capability, and the bundle buys clarity.
 
 **It meets the page's acts work rather than competing with it.** The third colour of the taker mark
 is held back only because `node→act` is a lookup for `realise` and a walk for the other two, and the
-settings a node was drawn under want that same direction — so the condition, the adjacency and *A
-way back to where an act began* are one table opened once. How the three order against each other is
+settings a node was drawn under want that same direction — so the condition, the adjacency and *The
+settings a draw was made under* are one table opened once. How the three order against each other is
 open; opening `acts` twice is the thing to avoid.
 
 **What would sit on an edge, and what would not.** The condition gives every value an *a priori*

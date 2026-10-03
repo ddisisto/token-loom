@@ -156,26 +156,47 @@ node Rankings already names, arrived at from the other end. A root has nothing b
 nothing acts under what is set aside, so neither takes the caret.
 
 **It is the reader's one piece of state, and the path is drawn through it.** A path read answers
-from a node in both directions, so moving the caret along what is already drawn returns the same
-text; a second node held beside it would be a second thing that can disagree about where the
-reader is.
+from a node in both directions, so one node is enough to say what is drawn; a second held beside
+it would be a second thing that can disagree about where the reader is.
+
+**Pointing is not arriving, and only arriving derives.** A path read is an ancestry and a *fresh*
+continuation below the node it is given, so a read at the caret re-chooses what stands under the
+reader's finger — and where an arm has been rolled it chooses the arm, that descent being the
+taller one. So pointing moves the mark and reads nothing: the node it lands on is the last node
+of the segment before it, which is drawn and marked already. What the reader points at holds
+still, which is the rule a roll obeys when it leaves the text alone.
 
 **It is the frontier of what has been accepted.** Above it is read and taken; below it is
 whatever the tree still holds there, drawn subdued, because the reader has not stood at its end.
 Asking for more happens at the frontier rather than at the foot of the page, which is what makes
 the gesture work in the middle of something as well as at the end of it.
 
-**What is drawn below the caret is derived and never remembered.** The rule's continuation from
-the caret carries it where there is one, and from the caret's parent where there is not — which
-is the case a `realise` makes, the new node being one token long and the arm it was chosen
-against being what the reader was looking at a moment before. Holding the last view instead would
-be a second thing that can disagree about where the reader is.
+**What is drawn below the caret is derived on arrival and never remembered.** The rule's
+continuation from the caret carries it where there is one, and from the caret's parent where
+there is not — which is the case a `realise` makes, the new node being one token long and the arm
+it was chosen against being what the reader was looking at a moment before. What stands between
+arrivals is the view and not a second opinion about where the reader is: the caret is only ever
+placed on a node of it, so the two cannot disagree.
 
 **Left alone it follows the end, which is the batch discipline and not a convenience.** A draw at
 the end carries the caret along by as much as it drew, because asking for the next batch is a
 deliberate act taken after reading the last — `docs/INTERFERENCE.md` has it carrying acceptance
 of everything above it, or at least a wish to see past it. A reader who did not accept it moves
 the caret back, which is the same gesture as pointing anywhere else.
+
+**A draw at a fixed position leaves the caret on it, which is the other thing a draw can be.**
+The batch discipline is right where the reader is reading on. Where they are asking what else
+goes *here* — several continuations from one node, read against each other — the caret is the
+position being asked about rather than the frontier of what has been read, so it stays and the
+gesture repeats without being aimed again. What is drawn below it is the act's own path, read
+through that act's tip, and not what the rule would pick from the node. **The gesture is a key,
+because this draw has no place to be arrived at**: the scroll is deliberate by reaching the foot
+of the page and an armed caret by the click that armed it, and a draw in the middle of the text
+has neither, so the gesture itself is what has to be unmistakable. While it is in flight the text
+below the caret is taken down rather than left standing, that being what the draw is about to
+replace, and nothing above it moves. **A draw that samples what was already there merges onto it
+and moves nothing at all** — the ordinary case at temperature zero, the path below a node being a
+greedy descent already — so that outcome is said, being the one the reader cannot see.
 
 **It carries no control, and the reason is reflow.** A thing to press has to occupy room in the
 line, so the text moves as the reader points along it — and text that shifts under the eye is
@@ -191,7 +212,7 @@ does not move, because pointing somewhere is deliberate and a scroll is not a re
 A caret **at rest** does not move either: left alone it follows the end of the path, and the
 gesture that draws at it needs the foot of the page, where the end of the path is on the screen
 anyway — so a reader who has pointed at nothing scrolls without moving anything. And it costs no
-read, because the path through any node of the path already drawn is that same path.
+read, for the reason *Pointing is not arriving* gives.
 
 **Where it lands is the last segment the window leaves clear of its edges, and not the nearest
 one.** Clear and not merely whole: a caret hard against a border is one the reader has to hunt
@@ -1144,11 +1165,19 @@ a corridor and the size of the declined arm at every fork.
 
 **A caret says where the reader is pointing, and every act at a position lands on it.** Pointing
 at a segment puts it before that segment; what is drawn past it is subdued, being the rule's
-continuation rather than anything the reader accepted. It carries no control — a thing to press
-in the line moves the text as the reader points along it, so it is a rule on the segment's inside
+continuation rather than anything the reader accepted. Pointing takes no read: it moves the mark
+over text that holds still, which is what keeps a position the reader has rolled an arm at from
+rearranging itself under the click that selects it. It carries no control — a thing to press in
+the line moves the text as the reader points along it, so it is a rule on the segment's inside
 edge and the gesture that asks for a draw is the scroll, at the caret. That is the first act the
 page can make that produces a fork, the tokens either merging onto what already follows or
 parting from it.
+
+**A key draws at the caret without moving it**, which is the variation the scroll cannot ask for:
+several continuations from one position, each read through its own act's tip, the text below taken
+down while one is in flight and the gesture repeating with nothing to aim again. Where the draw
+reproduces what was already there it merges and the column does not move, and that is said rather
+than shown.
 
 **Clicking a row nothing realised makes it, and the next scroll down draws from there.** The act
 writes one node and calls no model, so the caret lands on the sibling with nothing below it and
