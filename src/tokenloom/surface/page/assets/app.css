@@ -139,7 +139,7 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    under about a thousand characters that is every path. The column takes what the path does
    not provide as room above it, so the last line arrives at the same place either way. */
 #column { --gutter: 24px; --col: min(34em, calc((100cqw - var(--gutter) * 2) / 2));
-          --space: 45vh; --runway: 20vh; --top: 72px;
+          --space: 85vh; --runway: 20vh; --top: 72px;
           position: relative;  /* the rows stand in the half the column leaves empty */
           box-sizing: content-box; width: calc(var(--col) * 2);
           min-height: calc(100vh + var(--runway) - var(--space) - var(--top));
