@@ -99,11 +99,7 @@ own token — which is the arm's first as well, so the row would read continuous
 of an arm is in the record already, a roll having written it, so a click there is a selection and
 no act, and the first *n* tokens arrive as the ancestry of the path through the *n*th. Arming needs
 nothing from it either, being the tip's: a row nothing realised makes a node that *is* the tip, one
-clicked inside an arm is not, and what draws there is the key at the caret. And **a pointer leaving
-the column sends the panel back to the caret**, which is right when the reader leaves the text and
-wrong when they are moving towards the rows they just opened: the hovered position's list cannot be
-reached without first clicking the token, so the one gesture that costs nothing is the one that has
-to be committed to.
+clicked inside an arm is not, and what draws there is the key at the caret.
 
 **A tree that has been read over leans toward where the reading went, and that is the open
 part.** A bought arm lands live, because a stub born set aside would read as one the reader

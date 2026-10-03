@@ -387,6 +387,22 @@ shows what pointing there would give — by the same rule, the ranking at the no
 the click that places the caret is what commits it. So a reader sweeping the column reads the
 alternatives along it without moving from where they are, and nothing new is named to allow it.
 
+**A hover's list cannot be reached, and the click is the way to it.** Leaving the segment takes the
+rows with it, so a reader moving towards rows they only hovered arrives after they have gone. That
+is what the preview being a preview costs rather than a fault in it: the rows that stay are the
+caret's, and a click on the token asks for exactly those. What it does not excuse is being
+illegible — a list that went away on the approach and a list that was never there look the same —
+so each list says which of the two gestures it is up by, and the provisional one says the click
+that would keep it. A click on the token a list was hovered from changes nothing in the rows, only
+the claim standing over them, which is all that click changed.
+
+**Which token a list is about is marked in the column.** The caret and the pointer each say where
+they are and neither says what the rows are alternatives to: a position sits before a token, so
+the list is rival to the segment *after* the caret, and nothing marked it. It is the same token the
+row drawn as *the one taken here* is, said at the other end of the list — one derivation, because a
+column and a list that disagreed about which token the position was choosing between would both
+look right.
+
 **A row can carry what follows it, and where that comes from is the realised line again.** A row
 some node realised has a continuation the store already holds, so showing it follows the same
 rule selecting it would and costs nothing, being a path the store already holds. A row
@@ -1217,7 +1233,8 @@ loopback socket, once per load.
 
 **What else was live is shown on demand, and all three of its rows can be taken.** The rows stand
 in the half the column leaves empty, at the line they are about, following the caret and softly
-following the pointer while they are shown. Each is marked by what taking it would cost: the one
+following the pointer while they are shown — each list saying which of the two it is up by, and
+marking the token in the column that it is the alternatives to. Each is marked by what taking it would cost: the one
 the path took is where the reader already is, one realised elsewhere is a selection and is the
 way back to an arm a draw parted from, and one nothing took is the only one that writes. A row
 draws its probability as a bar scaled to the top row of its source and as nothing else, which is

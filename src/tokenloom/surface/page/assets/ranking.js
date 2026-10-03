@@ -28,6 +28,35 @@ export function sorted(rows) {
   return [...by.entries()];
 }
 
+/** The segment the rows at `node` are alternatives to, and the node of it they are rival to.
+ *
+ *  A ranking answers *what else was live here*, and *here* is a position before a token -- so
+ *  what the list is deciding about is the segment the path takes **next**, and the row whose
+ *  child that is is the one taken. Both ends of the list want it: the row is marked by `kind`
+ *  and the segment is marked in the column, and deriving it twice would let the text and the
+ *  list disagree about which token the position is choosing between.
+ *
+ *  The cell and not only the node, because a character can be spelled across tokens: a
+ *  position inside one is about the whole character, there being no smaller thing the column
+ *  can mark.
+ *
+ *  Null where the path takes nothing from here -- the tip, or a node that is not on what is
+ *  drawn. Then no row is the one taken and nothing in the column is marked, which is what is
+ *  so: the reader is looking at a list of alternatives to nothing in front of them.
+ *
+ *  **And null at `null`**, which is not a position. A root hangs from no node, so a parent
+ *  match there would hand back the first segment of the path as the subject of a ranking
+ *  nobody asked for.
+ */
+export function subject(cells, node) {
+  if (node === null || node === undefined) return null;
+  for (const [i, cell] of cells.entries()) {
+    const next = cell.nodes.find(n => n.parent === node);
+    if (next !== undefined) return { cell: i, node: next.id };
+  }
+  return null;
+}
+
 /** Which of the three a row is, given the node the path takes next.
  *
  *  `took` costs nothing, being where the reader already is. `elsewhere` costs a selection and

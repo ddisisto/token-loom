@@ -68,6 +68,48 @@ is("each source keeps its own ranking", groups.map(([who, rs]) => [who, rs.lengt
 is("  in the order they first appear, and not merged", groups.map(([who]) => who),
    [OTHER, MODEL]);
 
+// ---- what the rows are alternatives to --------------------------------------------------
+
+/* A ranking answers *what else was live here*, and *here* is a position before a token -- so
+ * the list is deciding about the segment the path takes next. Both ends of it read this: the
+ * row marked as taken and the segment marked in the column. Derived twice, the text and the
+ * list could disagree about which token the position is choosing between, and neither would
+ * say so.
+ */
+const seg = (text, nodes) => ({ text, decodes: true, nodes });
+const path = [
+  seg("It", [{ id: 1, parent: null }]),
+  seg(" is", [{ id: 2, parent: 1 }]),
+  // One character spelled across two tokens, which is where a position can fall inside a cell.
+  seg("\u2695", [{ id: 3, parent: 2 }, { id: 4, parent: 3 }]),
+  seg(" so", [{ id: 5, parent: 4 }]),
+];
+
+is("the rows at a position are about the segment the path takes next",
+   R.subject(path, 2), { cell: 2, node: 3 });
+is("a position inside a character is about the whole character, there being nothing smaller",
+   R.subject(path, 3), { cell: 2, node: 4 });
+is("at the tip the path takes nothing, so the rows are alternatives to nothing drawn",
+   R.subject(path, 5), null);
+is("and a node that is not on what is drawn has no segment here either",
+   R.subject(path, 99), null);
+
+/* `null` is not a position. A root hangs from no node, so the parent match would be an
+ * accident and would hand back the first segment of the path. */
+is("nowhere is not a position, and the first segment is not its subject",
+   R.subject(path, null), null);
+
+/* The node it hands over is the one the list marks as taken. This is the invariant the mark
+ * in the column rests on: one answer, read at both ends. */
+const about = R.subject(path, 2);
+const both = R.list(
+  { node: 2, rows: [row(0.6, { child: about.node }), row(0.4, { child: 88 }), row(0.1)],
+    sources: SOURCES },
+  about.node, () => {}, null);
+is("the node it hands over is the one the list marks as taken",
+   both.children.find(k => k.classList.contains("list")).children.map(li => li.className),
+   ["took", "elsewhere", "unrealised"]);
+
 // ---- which of the three a row is -------------------------------------------------------------------
 
 /* What tells them apart is the record and not anything the page decided: a row carries the

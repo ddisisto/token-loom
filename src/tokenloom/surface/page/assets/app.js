@@ -373,8 +373,65 @@ function swap(box, pace) {
   }, pace);
 }
 
-/** Draw the rows at a node beside `anchor`, which is the span they are about. */
-async function opened(node, anchor, pace = SCAN) {
+/* Which gesture the rows are up by, and it is the only thing about them that is provisional.
+ * **The caret's list is reachable and a peek's is not**: leaving the token takes the rows with
+ * it, so a reader moving towards them commits first -- a click on the token they were peeking
+ * from, which is the gesture that was already there. Saying which is which is what makes that
+ * a step rather than a list that went away on the approach. */
+const CARET = "caret";
+const PEEK = "peek";
+
+/** What a list says about how it got there.
+ *
+ *  The peek's line says the gesture that would keep it, which is the one thing a transient
+ *  list knows and a permanent one does not. The caret's says what it is and no more, being
+ *  where the rows sit when nobody is pointing.
+ */
+const SAID = {
+  [CARET]: "at the caret",
+  [PEEK]: "hovering \u00b7 a click keeps these",
+};
+
+/** Label a list, whether it is being built or is already up.
+ *
+ *  Already up is the case this is for: a click on the token a peek was taken from asks for the
+ *  same rows at the same node, and rebuilding them would take the list out from under the hand
+ *  that was reaching for it. So nothing about the rows changes and the claim over them does,
+ *  which is exactly what the click changed.
+ */
+function labelled(box, why) {
+  box.classList.remove(CARET, PEEK);
+  box.classList.add(why);
+  const said = Object.assign(document.createElement("div"),
+    { className: "whence", textContent: SAID[why] });
+  const had = box.querySelector(".whence");
+  if (had) had.replaceWith(said); else box.prepend(said);
+}
+
+/** Mark the token the rows are alternatives to, and say which gesture the mark stands by.
+ *
+ *  **The caret and the pointer each already say where they are, and neither says what the
+ *  list is about.** A position sits before a token and the rows are rivals to the one after
+ *  it, which is a segment nothing marked -- so a reader could read a list without knowing
+ *  which token in front of them it was offering to replace. It is the same segment the row
+ *  marked `took` is, said at the other end.
+ *
+ *  `null` is no list up, and then nothing is marked.
+ */
+function about(found, why) {
+  const seg = found === null ? null : String(drawn[found.cell].nodes.at(-1).id);
+  for (const el of $("column").querySelectorAll(".flow .seg"))
+    el.classList.toggle("about", seg !== null && el.dataset.node === seg);
+  $("column").classList.toggle("peeking", why === PEEK);
+}
+
+/** Draw the rows at a node beside `anchor`, which is the span they are about.
+ *
+ *  `why` is the gesture they are up by, which the list says and the column's mark is drawn in.
+ *  It is passed and not read off `pace`: the pace is how fast a list moves, and a caret's list
+ *  drawn at a scan's pace is something a later gesture may want.
+ */
+async function opened(node, anchor, pace, why) {
   if (!ranking.asked() || node === null || anchor === null) return clear();
   let payload = ranking.recall(node);
   if (payload === undefined) {
@@ -387,17 +444,26 @@ async function opened(node, anchor, pace = SCAN) {
     ranking.remember(node, payload);
   }
   if (showing !== node) return;  // the pointer moved on while this was in the air
-  const after = drawn.flatMap(cell => cell.nodes).find(mark => mark.parent === node);
+  // What the rows are rival to. One derivation feeding both ends, so the row marked as taken
+  // and the segment marked in the column cannot come apart.
+  const found = ranking.subject(drawn, node);
+  about(found, why);
   // The measure is read at the moment of drawing rather than being sent with the read: the
   // response carries every downward measure, so changing which one the rows are sized by
   // costs a redraw and never a request.
   // Already answering for this node. Replacing it with a copy of itself would take the row
-  // out from under the reader's hand and strand whatever that row had asked for.
-  if (drawnAt === node && $("column").querySelector(".rows:not(.leaving)")) return;
-  const box = ranking.list(payload, after ? after.id : null, took, weighed(), rolls);
+  // out from under the reader's hand and strand whatever that row had asked for. Only the
+  // label is remade, which is the one thing a click on a peeked token actually changed.
+  const up = $("column").querySelector(".rows:not(.leaving)");
+  if (drawnAt === node && up !== null) return labelled(up, why);
+  const box = ranking.list(payload, found === null ? null : found.node, took, weighed(), rolls);
   // Before it goes up, so a list arrives carrying what the reader already read from it
   // rather than filling in once it has landed.
   prefill(box);
+  // The label is the box's own and not the column's state, because both lists are in the
+  // document while one replaces the other -- read from the column, the one leaving would
+  // claim to be the gesture that displaced it on the way out.
+  labelled(box, why);
   // Placed against the column rather than the window, so it scrolls with the text it is
   // about and nothing here listens for a scroll.
   const frame = $("column").getBoundingClientRect();
@@ -408,6 +474,7 @@ async function opened(node, anchor, pace = SCAN) {
 
 function clear() {
   drawnAt = null;
+  about(null, null);  // the mark belongs to the list and goes when it does
   for (const box of $("column").querySelectorAll(".rows")) box.remove();
 }
 
@@ -732,7 +799,7 @@ function settled() {
   showing = cursor.node();
   const mark = $("column").querySelector(".seg.at");
   if (!ranking.asked() || mark === null) return clear();
-  opened(showing, mark, SETTLE_IN).catch(() => clear());
+  opened(showing, mark, SETTLE_IN, CARET).catch(() => clear());
 }
 
 function peek(i, el) {
@@ -740,7 +807,8 @@ function peek(i, el) {
   clearTimeout(peeking);
   const to = cursor.chosen(drawn, i);
   if (to === null || to === showing) return;
-  peeking = setTimeout(() => { showing = to; opened(to, el).catch(() => clear()); }, SEEN);
+  peeking = setTimeout(
+    () => { showing = to; opened(to, el, SCAN, PEEK).catch(() => clear()); }, SEEN);
 }
 
 /** Draw the path through a node, and leave the caret at `where` -- or at the end of what is

@@ -244,6 +244,22 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 .flow .seg:hover { box-shadow: inset 2px 0 0 var(--faint); }
 .flow .seg.at:hover { box-shadow: inset -2px 0 0 var(--accent), inset 2px 0 0 var(--faint); }
 
+/* The token the rows are alternatives to, which is the segment after the caret and not the
+   caret's own. Neither mark above says it: both are rules on an inside edge, and an edge says
+   where a position is rather than what stands past it. **The outline is what was left free** --
+   both insets are spoken for by the caret and the pointer, the background by what is armed
+   and by an overlay, the underline by the taker -- and it is also the one that cannot move the
+   text, which pointing at anything may not do.
+
+   Solid and in the accent while the rows are the caret's: the panel is reachable, it stays
+   when the pointer leaves, and the mark says so by being drawn like the caret itself. */
+.flow .seg.about { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+/* A peek is the same question asked without committing to it, so it is drawn as a hairline
+   that does not close and in the colour of what is not the reader's. The panel says the same
+   at its own edge, and the one gesture that makes either permanent is in the label. */
+#column.peeking .flow .seg.about { outline: 1px dotted var(--dim); }
+
 /* Armed: the next scroll down draws here, wherever the page is standing. It is the one state
    in which reading on writes, so it is marked and not only remembered -- a wider rule and the
    ground behind it, which no amount of scrolling past will hide. */
@@ -326,6 +342,15 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
         background: var(--bg);
         font: 400 12px/1.5 var(--mono); color: var(--dim); }
 .rows .none { font: italic 400 13px/1.5 var(--serif); }
+/* Which gesture the rows are up by, said once above them. It is here and not in `ranking.js`
+   because it is a fact about the reader and not about the record -- the rows themselves are
+   marked by nothing the page decided. */
+.rows .whence { margin-bottom: 7px; font-size: 11px; letter-spacing: .05em; color: var(--dim); }
+/* Provisional, in the vocabulary the list already has for it: the italic a row nothing
+   realised is drawn in, and a spine that does not close. Both say *this is not kept* before
+   anything in it has been read. */
+.rows.peek .whence { font-style: italic; }
+.rows.peek { border-left-style: dashed; }
 .rows .who { display: flex; align-items: baseline; gap: 10px;
              padding: 0 0 5px; margin-bottom: 5px; letter-spacing: .05em;
              border-bottom: 1px solid var(--rule); }
