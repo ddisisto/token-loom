@@ -1323,29 +1323,28 @@ and no bought token reaches the page by a second route. Only one arm is rolled a
 scroll during one is dropped: there is one writer, and `--parallel 1` is one prompt cache that
 a draw from elsewhere would truncate.
 
-**Looking does not rearrange what is being read.** The rule that picks the path is a parameter
-of the read, so a rollout the reader merely pointed at would otherwise win the branch point it
-hangs under — a fresh forty-token descent is taller than the standing one at about a third of
-the positions in the trees here, and the text would move under them for a reason they could not
-connect to anything they did. So what is drawn stays drawn, with one exception: a purchase that
-hangs at the very end of the column continues that same text, which is growth rather than a
-change of mind. Everything else is bought where it stands.
+**Looking does not move the text, and there is no exception to it.** The rule that picks the path
+is a parameter of the read, so a rollout the reader merely pointed at would otherwise win the
+branch point it hangs under — a fresh forty-token descent is taller than the standing one at
+about a third of the positions in the trees here. Everything bought is bought where it stands,
+and a purchase reaches the page as the arm in its own row and by no other route.
 
-**Growing is not arriving, and the caret does not move for it.** Where the column does continue,
-it continues under a reader who has not gone anywhere: the caret stays on the token they put it
-on, the rows they are pointing at stay up and keep their place, and only the text is redrawn.
-That is also what lets it keep up part by part rather than arriving whole at the end — the arm
-and the column are the same tokens shown twice where the purchase is the end of the text, and
-one of them lagging the other reads as the page disagreeing with itself. It is a whole re-read
-each time and not an append, because a path-relative scale takes its range from the text in
-front of the reader, so what is added at the end can change what every segment above it is
-drawn as; one costs 25 ms on an ordinary path against about 105 ms to generate the part it is
-drawing.
+**What that protects is the comparison and not only the reader's place.** The rows at a position
+are alternatives to each other, and the row the path already takes is one of them — so letting
+*its* arm continue the column would read it in the column's measure while its rivals stay clipped
+to a line, which puts the incumbent ahead of them for a reason that is about the page and not
+about the model. An arm that would lengthen the text is the same arm either way; what differs is
+how much room it is read in, and a comparison where one side is set in prose and the others in a
+truncated line is not one. So every arm is read in the room a row gives it, and the room a row
+gives an arm is what has to grow.
 
-**What the rule still decides is where a reader arrives**, and a tree that has been read over
-is a tree whose default path leans toward where the reading went. That is the rule doing its
-job rather than the page failing at its own — `docs/NEXT.md` has what would change it and why
-nothing has.
+**What the rule still decides is where a reader arrives**, and a tree that has been read over is
+a tree whose default path leans toward where the reading went. So the column falls behind the
+record while a reader looks: a bought arm is live and in the tree, the column goes on showing the
+path that was read before the purchase, and the next arrival may descend an arm nobody chose.
+That is the rule doing its job rather than the page failing at its own, and the alternative was
+worse — a page that keeps up with every purchase keeps up by choosing one. `docs/NEXT.md` has
+what would change it and why nothing has.
 
 **One list changes hands by moving the way the reader is moving, and nothing is spent while it
 does.** A list already answering for the position under the pointer is left alone rather than

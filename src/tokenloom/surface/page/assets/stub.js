@@ -163,20 +163,6 @@ export function burst(node, { cap = CAP, size = BURST } = {}) {
   return Math.min(size, cap - have.grown);
 }
 
-/** Whether buying at `from` lengthens the path the column is showing.
- *
- *  **Rolling an arm is looking and it may not move the text.** The rule that picks what the
- *  column shows is a parameter of the read, and a greedy rollout the reader merely pointed
- *  at would otherwise win the branch point it hangs under -- `longest` measures height, and
- *  a fresh forty-token descent is taller than a third of everything standing in the trees
- *  here. So what is drawn stays drawn, with one exception: an arm bought at the very end of
- *  what is shown continues that same text and nothing else, which is growth rather than a
- *  change of mind. That is this, and it is an identity and not a search -- anything deeper
- *  or off to one side hangs somewhere the column was not.
- */
-export const lengthens = (from, leaf) =>
-  from !== null && from !== undefined && from === leaf;
-
 /** The mark a closed continuation ends with, in the arm and in the column alike. One
  *  character, because in a row it has to sit on a line that may not grow. */
 export const SHUT = "\u2298";

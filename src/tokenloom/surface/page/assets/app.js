@@ -495,9 +495,6 @@ const DWELL = 420;
 let buying = null;    // the node being rolled, or null -- one roll at a time
 let dwelling = null;  // the timer a rested pointer is counting down
 
-/** The last node of what the column is showing, which is where a purchase may extend it. */
-const tail = () => drawn.at(-1)?.nodes.at(-1)?.id ?? null;
-
 /** The row a node's arm belongs to, in whichever list is the live one.
  *
  *  **An arm belongs to the row and not to the pointer**, so it is drawn where its row is
@@ -617,8 +614,9 @@ async function grow(node) {
  *  makes -- so the arm is drawn from the record whether the record or the model last
  *  answered, and there is no second path through which a bought token reaches the page.
  *
- *  **Where the purchase hangs decides whether the column moves**, and `stub.lengthens` is
- *  that decision. The text the reader is reading is not rearranged by their looking.
+ *  **It never moves the column, whichever row it is.** What is bought reaches the page as the
+ *  arm in its row and by no other route, so looking leaves the text alone and the rows at a
+ *  position are read against each other on equal terms. `docs/SURFACE.md` has why.
  */
 async function roll(row, where, payload) {
   // One at a time, against one writer and one cache slot. A second roll would not only
@@ -627,13 +625,8 @@ async function roll(row, where, payload) {
   if (buying !== null || working) return;
   buying = row;
   let last = null;
-  let grows = false;
   try {
     if (row.child === null) {
-      // Measured against the node the rows belong to, which is where the fork hangs. The
-      // node it makes does not exist yet, and after it the arm hangs off the fork rather
-      // than off the end of the text.
-      grows = stub.lengthens(payload.node, tail());
       // The source is named rather than inferred: a token alone names nothing at a node
       // two models ranked, and the payload the row came from carries the names.
       const act = await ask("/realise", {
@@ -647,9 +640,6 @@ async function roll(row, where, payload) {
     // The free read first, even where the fork was just made: an arm is read from the
     // record whatever put the record there, and until it has been there is no price.
     await grow(node);
-    // Taken before anything is bought, because the first burst moves the tip -- after it
-    // the arm hangs off its own new tokens and would never read as the end of the column.
-    if (!grows) grows = stub.lengthens(stub.tip(node), tail());
     while (resting === row) {
       const want = stub.burst(node);
       if (want === null) break;
@@ -670,10 +660,6 @@ async function roll(row, where, payload) {
         // ending by having finished rather than by being left.
         if (armed === node) pulse(li, stub.costly(node));
       }
-      // In step with the arm and not after it. Where the purchase is the end of the text,
-      // the arm and the column are the same tokens shown twice, and one of them arriving a
-      // second before the other reads as the page disagreeing with itself.
-      if (grows) await extend(last);
     }
   } catch (why) {
     // Said out loud, unlike a failed free read: the reader rested on a price and nothing
@@ -689,15 +675,6 @@ async function roll(row, where, payload) {
   // dropped is only what would be read again -- a read apiece, where one is opened again.
   ranking.forget();
   await counted();
-  if (!grows) return;
-  // The last part may have landed after the pointer left, so the text is caught up once
-  // more at the end. A read that changed nothing redraws the same text.
-  await extend(last);
-  // The text is longer than it was, so where the reader stands in it has moved under them.
-  // Left stale, a reader who was at the end before the roll is recorded as still being
-  // there, and the scroll that walks down to the new end reads as no gesture at all.
-  wasAtEnd = atEnd();
-  wasAt = window.scrollY;
 }
 
 /** The pointer arriving at a row or leaving it.
@@ -779,9 +756,8 @@ function peek(i, el) {
 /** Read a path and say what the toggle makes of it, or null where the reader is standing
  *  in text that is no longer drawn.
  *
- *  The read and what is drawn are separated because the column is rebuilt for two different
- *  reasons. **Arriving somewhere is one and growing where you are is the other**, and only
- *  the first is about where the reader is.
+ *  Separated from what is drawn because the two answer different questions: this one is about
+ *  the record and the toggle, and `laid` is about the column.
  */
 async function reading(node) {
   // Each half of what the read can carry is asked for, and a read not asked for one carries
@@ -812,8 +788,7 @@ async function reading(node) {
   return { read, cells, closed };
 }
 
-/** The text itself, as an element. It is built apart from being hung so that growing a path
- *  can replace it without the column around it being replaced too. */
+/** The text itself, as an element, built apart from being hung. */
 function laid({ read, cells, closed }) {
   const flow = document.createElement("div");
   flow.className = "flow";
@@ -843,30 +818,6 @@ async function show(node, where) {
   const root = got.cells[0].nodes[0].id;
   for (const li of $("roots").querySelectorAll("li[data-node]"))
     li.setAttribute("aria-current", String(Number(li.dataset.node) === root));
-}
-
-/** Redraw the text where it grew under the reader, moving nothing else.
- *
- *  **Growing is not arriving, and the difference is everything the column does around the
- *  text.** A reader watching an arm fill at the end of what they are reading has not gone
- *  anywhere: the caret stays on the token they put it on, the rows they are pointing at
- *  stay up and keep their place, and the root they are in has not changed. So this replaces
- *  the text and nothing around it -- which is also what lets it run once per part, so the
- *  column and the arm fill in step rather than the text arriving all at once at the end.
- *
- *  It is a whole re-read and not an append, because a path-relative scale takes its range
- *  from the text in front of the reader: text added at the end can change what every
- *  segment above it is drawn as. One costs 25 ms on an ordinary path and 119 ms on the
- *  longest in a 24,750-node tree, against about 105 ms to generate the part it is drawing.
- */
-async function extend(node) {
-  const got = await reading(node);
-  if (got === null) return;
-  drawn = got.cells;
-  const had = $("column").querySelector(".flow");
-  if (had === null) return;  // the column moved on under this; what replaced it is current
-  had.replaceWith(laid(got));
-  frontier();
 }
 
 // ---- setting aside, and bringing back ---------------------------------------------------

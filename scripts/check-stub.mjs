@@ -292,11 +292,5 @@ stub.landed(7, reached(10, stub.ENDS, 99));
 stub.landed(7, reached(4, stub.ENDS, 44));
 is("a stale short answer does not drag the tip back up the arm", stub.tip(7), 99);
 
-/* Whether the column moves. It is an identity against the last node of what is drawn, so
- * an arm bought anywhere else is bought without the text rearranging itself. */
-is("a purchase at the end of what is drawn lengthens it", stub.lengthens(99, 99), true);
-is("one anywhere else does not", stub.lengthens(99, 100), false);
-is("and an arm with no tip read for it cannot", stub.lengthens(null, null), false);
-
 console.log(bad ? `\n${bad} failed` : "\nnothing failed");
 process.exit(bad ? 1 : 0);

@@ -47,6 +47,13 @@ with somewhere to go is conspicuous for exactly as long as it keeps going — so
 explored, and what turned out to be worth exploring, are the same picture. The cap is a flat
 forty and the arm is one line, which is what the layout below has to lift.
 
+**It is the only room an arm has.** Nothing lends one the column's measure: a purchase never moves
+the text, whichever row it is, so every arm is read in its own line however far it runs. That is
+what keeps the rows at a position comparable — the one the path already takes is an alternative
+like the rest, and reading *it* in prose while its rivals stay clipped would favour the incumbent
+for a reason about the page rather than the model. So the room is what has to grow, which makes
+this load-bearing rather than an improvement on a readable thing.
+
 
 **An arm that declines has no mark, and is the one of the four still drawn as nothing.** A
 position two sources ranked carries neither the price nor the closure mark, which is honest and
@@ -102,12 +109,11 @@ to be committed to.
 part.** A bought arm lands live, because a stub born set aside would read as one the reader
 closed and the mark that says which would stop meaning anything. Live, it is taller than the
 standing descent at about a third of the positions in the trees here, so `longest` hands it the
-branch point. Nothing moves while the reader is looking — the page extends only what it is
-already showing, an identity against its own last node, leaves every other purchase where it
-stands, and takes no read to point at a token — but **an arrival is derived afresh**, and it can
-land on a stub nobody chose. Observed: a sweep across three rows at one position, then a reload,
-and the column came back down one of the three. A reload, a root taken from the list and a row
-taken from the panel are the arrivals left.
+branch point. Nothing moves while the reader is looking — a purchase is bought where it stands,
+whichever row it is, and pointing at a token takes no read — but **an arrival is derived afresh**,
+and it can land on a stub nobody chose. Observed: a sweep across three rows at one position, then
+a reload, and the column came back down one of the three. A reload, a root taken from the list and
+a row taken from the panel are the arrivals left.
 
 **It is the rule doing its job and not the page failing at its own**, which is why nothing here
 is a fix yet. What would change it is a second member of `RULES` measuring height over what was
