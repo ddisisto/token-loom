@@ -1066,11 +1066,12 @@ when it is settled.
 
 - **How composition is summoned at a position.** Starting a root is answered: a row where the
   root will appear, staging a composer in the column that a submit turns into the act, so the
-  gesture that offers a place to write is not the write. Whether continuing at a leaf and
-  branching at a node several segments back want that same gesture is not answered — they are
-  the same act and may not read the same, and the surface may hold one composer that moves or
-  one at each position. What settles it is writing into a tree at both, and finding which of the
-  two the other's gesture reads wrong at.
+  gesture that offers a place to write is not the write. **One composer that moves is what is
+  built** — it opens at the caret, which is where every other act already lands, so there is no
+  second anchor to keep in step. What that leaves open is whether continuing at a leaf and
+  branching at a node several segments back read the same under it: they are the same act, and
+  the second has a continuation standing below it that the first does not. What settles it is
+  writing into a tree at both and finding which one the gesture reads wrong at.
 - **Whether a branch with no ranking behind it is marked.** A `create` at a node that already has
   a live child makes a fork the model had no part in, and the record holds the source that says
   so. Marking it puts a second kind of mark in a column *Between forks, nothing is drawn* keeps
@@ -1217,6 +1218,15 @@ several continuations from one position, each read through its own act's tip, th
 down while one is in flight and the gesture repeating with nothing to aim again. Where the draw
 reproduces what was already there it merges and the column does not move, and that is said rather
 than shown.
+
+**The same key under a modifier opens a composer at the caret, which is how a token the model
+never ranked is reached.** It stands in the column where the text stops, with what is below taken
+down the way a draw at the caret takes it down, and it carries the token after the caret
+pre-filled and selected — the one the rows are alternatives to and the column outlines — so the
+first keystroke is the replacement. It is in the prose's own face and measure and wraps where any
+other sentence would, since what is being written is the text. The act is `create` at a live node,
+which the command line has always made and the surface could not: a sibling of what stood there,
+with the old branch and everything below it untouched.
 
 **Clicking a row nothing realised makes it, and the next scroll down draws from there.** The act
 writes one node and calls no model, so the caret lands on the sibling with nothing below it and

@@ -232,6 +232,10 @@ function spans(segments, marks, takers) {
     // same selection: the rows it would show are the rows at the node the caret lands on.
     // The one gesture that changes the tree from here asks for a modifier and says so.
     el.onclick = event => {
+      // An open composer is aimed at the position it was opened at, so the caret may not leave
+      // it: the two would then say different things about where the text is going, and only
+      // one of them is on screen. The status line has the way out of it.
+      if (composing()) return;
       if (!event.altKey) return point(i);
       if (hidden) restore(cell);
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
@@ -293,6 +297,7 @@ function point(i) {
  *  way back to the scroll gesture at all. It takes no read, for the reason `point` gives.
  */
 function release() {
+  if (composing()) return;
   const to = cursor.resting(drawn);
   if (to === null || to === cursor.node()) return;
   cursor.place(to);
@@ -483,6 +488,7 @@ function clear() {
  *  reader already is, and one realised elsewhere is a selection -- which is the way back to
  *  an arm a draw parted from. The third is an act. */
 function took(row, payload) {
+  if (composing()) return;  // the same reason a click on a token does nothing
   if (row.child === null) return realise(row, payload);
   show(row.child, row.child).catch(
     why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
@@ -988,6 +994,105 @@ function stage(at) {
   $("column").querySelector("textarea").focus();
 }
 
+/* **A token the model never ranked is one the surface cannot reach, and nothing past it is
+ * reachable either.** The rows are what the record ranked, so a word the model did not
+ * consider is a branch no gesture arrives at -- and the reader who wants to steer through one
+ * has no way to say so. The act for it is already here: `create` takes the position it hangs
+ * under, `/create` forwards it, and `compose` has been written for both cases from the start.
+ * What was missing is a place to type that is not the whole column.
+ *
+ * So this is that component's other half rather than a second composer. A root replaces the
+ * column because there is nothing to read yet; this one stands *in* the column at the caret,
+ * with what is below taken down the way a variation at the caret takes it down -- the reader
+ * is writing a continuation, and the one that was there is not beside it while they do.
+ */
+
+/** Whether a composer is open in the column. It holds the gestures that write, because they
+ *  all land at the caret and the caret is where the typing is going. */
+const composing = () => $("column").querySelector(".author") !== null;
+
+/** Open a composer at the caret, carrying the token it would stand instead of.
+ *
+ *  **Pre-filled and selected, so the first keystroke is the replacement.** The token after the
+ *  caret is the one being reconsidered -- the one the rows are alternatives to and the one the
+ *  column outlines -- so it is read with the same derivation that marks it, and the box starts
+ *  on exactly what is marked. At the tip there is no such token and the box starts empty, which
+ *  is the same gesture with nothing to say about it.
+ *
+ *  **What it writes is a sibling and never a change.** The text hangs under the caret, so the
+ *  token that stood there still stands, on its own branch, with everything below it: authoring
+ *  takes nothing away and the act is as reversible as any other. What is drawn afterwards is
+ *  the path through what was made, which is `show` doing what it does for every act.
+ */
+function author() {
+  if (working || composing()) return;
+  const flow = $("column").querySelector(".flow");
+  const at = cursor.node();
+  if (flow === null || at === null) return;
+  const standing = ranking.subject(drawn, at);
+
+  const box = document.createElement("span");
+  box.className = "author";
+  box.spellcheck = false;
+  // `plaintext-only` is what keeps a paste from bringing markup in with it, and setting it
+  // where it is not understood throws rather than being ignored. Falling back leaves the box
+  // editable and loses nothing that matters: what is sent is `textContent` either way.
+  const editable = yes => {
+    const want = yes ? "plaintext-only" : "false";
+    try { box.contentEditable = want; } catch { box.contentEditable = yes ? "true" : "false"; }
+  };
+  editable(true);
+  box.textContent = standing === null ? "" : drawn[standing.cell].text;
+
+  let sending = false;
+
+  const send = async () => {
+    const text = box.textContent;
+    if (sending || !text) return;
+    sending = true;
+    working = true;
+    editable(false);
+    try {
+      const act = await ask("/create", { at, text });
+      await refresh();
+      // Which replaces the column, and the composer with it.
+      await show(act.tip);
+      say(`${act.nodes.length} token${act.nodes.length === 1 ? "" : "s"} authored`);
+    } catch (why) {
+      // A rejection left no trace in the record, so what it offers is an edit and not a
+      // dismissal -- the same answer the root composer gives, in the one place there is.
+      say(`${why.kind || "unreachable"}: ${why.message}`, true);
+      editable(true);
+      box.focus();
+      sending = false;
+    } finally {
+      working = false;
+      wasAtEnd = atEnd();
+      wasAt = window.scrollY;
+    }
+  };
+
+  box.onkeydown = event => {
+    if (event.key === "Escape") { event.preventDefault(); rejoin(); say(""); return; }
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      send().catch(() => {});
+    }
+  };
+
+  parting(box);
+  box.focus();
+  // The whole of it, so typing replaces rather than appends. A caret left at one end would
+  // make the pre-fill something to delete, which is the opposite of what putting it there
+  // was for.
+  const all = document.createRange();
+  all.selectNodeContents(box);
+  const where = window.getSelection();
+  where.removeAllRanges();
+  where.addRange(all);
+  say("typing replaces it \u00b7 ctrl\u23ce writes it, esc leaves");
+}
+
 // ---- continuing ------------------------------------------------------------------------
 
 /* The gesture is the scroll: reaching the end of what there is to read asks for more of it,
@@ -1042,20 +1147,20 @@ function waiting() {
  *  short would move the wash on lines this act is not about. The caret's own mark is what the
  *  stylesheet finds them by, every one of them being a sibling after it.
  */
-function parting() {
+function parting(stands = breath()) {
   const flow = $("column").querySelector(".flow");
   if (flow === null) return waiting();
   flow.classList.add("parting");
   // At the end of the flow rather than after the caret's segment: what follows it is hidden
   // and takes no room, so this lands where the text stops.
-  flow.append(breath());
+  flow.append(stands);
 }
 
 function rejoin() {
   const flow = $("column").querySelector(".flow");
   if (flow === null) return;
   flow.classList.remove("parting");
-  flow.querySelector(".wait")?.remove();
+  for (const stood of flow.querySelectorAll(".wait, .author")) stood.remove();
 }
 
 /** What a variation left, said once it has landed.
@@ -1106,7 +1211,10 @@ async function more(where = cursor.node(), { pin = false } = {}) {
   // A roll in flight is the other writer there is, and it holds a warm prompt cache a draw
   // from somewhere else would truncate -- `docs/SPINE.md` measures that at 28 ms against
   // 7.4 s. A scroll during one is dropped rather than queued, the same as during a draw.
-  if (working || buying !== null || where === null || where === undefined) return;
+  //
+  // An open composer holds it too. The reader is writing the continuation at this position by
+  // hand, and a draw landing under them would answer the question they are in the middle of.
+  if (working || composing() || buying !== null || where === null || where === undefined) return;
   working = true;
   // Taken before the act, because what is drawn is replaced by it and the comparison is what
   // says whether the draw parted from anything.
@@ -1221,7 +1329,19 @@ addEventListener("scroll", () => {
 // of these.
 addEventListener("wheel", event => { moved(event.deltaY > 0 && ready()); }, { passive: true });
 addEventListener("keydown", event => {
-  if (event.target.closest("textarea, input")) return;
+  // A composer is an editable that is not a form control, so this is wider than the two tags.
+  if (event.target.closest("textarea, input, [contenteditable]")) return;
+  // Typing at the caret. **A modifier on the draw key and not a key of its own**: both write
+  // at the caret, and the pair reads as *draw here* and *write here* rather than as two
+  // unrelated keys. It is also what the composer sends with, so the gesture that opens one is
+  // the gesture that finishes it.
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)
+      && !event.altKey && !event.shiftKey) {
+    if (event.repeat) return;
+    event.preventDefault();
+    author();
+    return;
+  }
   // A variation at the caret, which is the draw that does not move the reader. **It is a key
   // and not a scroll because it has no place to be arrived at.** What makes the scroll
   // deliberate is the end of the page, and what makes an armed caret deliberate is the click

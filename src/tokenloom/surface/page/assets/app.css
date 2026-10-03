@@ -532,5 +532,21 @@ footer .fault { color: var(--accent); }
    measure reads the lines above against, and a column rebuilt short would move the wash on
    text this act is not about. Nothing above the caret moves, which is the whole point of the
    gesture -- the reader is asking what else goes here, not going anywhere. */
-.flow.parting .seg.at ~ *:not(.wait) { display: none; }
+.flow.parting .seg.at ~ *:not(.wait):not(.author) { display: none; }
 .flow .wait { color: var(--accent); }
+
+/* A composer standing at the caret, in the flow and in the prose's own face. **What is being
+   written is the text and not a form about it**, so it takes the column's measure and wraps
+   where any other sentence would: it starts as wide as what it holds, grows along the line it
+   was opened on, and runs onto lines of its own once it reaches the column. Nothing had to
+   decide when it stops being inline, because the measure already does.
+
+   `min-width` is for the empty one at a tip, which would otherwise be a mark with no room in
+   it. `max-width` is what keeps a long entry inside the column rather than past its edge --
+   an inline-block wraps its own content and will not break across a line by itself. */
+.flow .author { display: inline-block; vertical-align: baseline;
+                min-width: 2ch; max-width: 100%; white-space: pre-wrap;
+                border-radius: 2px; background: var(--accent-bg);
+                outline: 1px solid var(--accent); outline-offset: 2px;
+                caret-color: var(--accent); }
+.flow .author:focus { outline-width: 2px; }
