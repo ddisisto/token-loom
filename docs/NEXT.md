@@ -85,20 +85,19 @@ place in an order that is the model's opinion. Where it sits instead is the open
 its own source below the ranked rows is the guess, a `user` source already being its own heading.
 
 **What the panel still cannot do.** **A click takes as much of a row as it lands on**, token or
-continuation or all of it, so taking the first few tokens of an arm is a thing the reader can
-see and not a thing they can ask for. **A click on nothing releases the caret** back to the end
-of the path, which is currently reachable only by reloading. And **a pointer leaving the column
-sends the panel back to the caret**, which is right when the reader leaves the text and wrong
-when they are moving towards the rows they just opened: the hovered position's list cannot be
-reached without first clicking the token, so the one gesture that costs nothing is the one that
-has to be committed to.
-
-**A `realise` does not leave the caret where it put the token**, which is the same plumbing and
-is why it is here rather than on its own. The act lands and the column redraws, but where the
-reader is pointing afterwards is not the node they just took — so the gesture that is supposed to
-be *take this and carry on from it* ends somewhere else and the next act has to be aimed again.
-It is held for this item because the panel is where the gesture starts and the two are one path
-through the code; fixing it with the panel shut would be fixing it twice.
+continuation or all of it, so taking the first few tokens of an arm is a thing the reader can see
+and not a thing they can ask for. **What it wants is addressable nodes and not a new rule**: a
+click already puts the caret on the node it landed on, and the only node a row addresses is its
+own token — which is the arm's first as well, so the row would read continuously across. The rest
+of an arm is in the record already, a roll having written it, so a click there is a selection and
+no act, and the first *n* tokens arrive as the ancestry of the path through the *n*th. Arming
+stays what it is, the node taken having nothing below it: true of a row nothing realised, false
+inside an arm, where what draws is the key at the caret. **A click on nothing releases the caret**
+back to the end of the path, which is currently reachable only by reloading. And **a pointer
+leaving the column sends the panel back to the caret**, which is right when the reader leaves the
+text and wrong when they are moving towards the rows they just opened: the hovered position's
+list cannot be reached without first clicking the token, so the one gesture that costs nothing is
+the one that has to be committed to.
 
 **A tree that has been read over leans toward where the reading went, and that is the open
 part.** A bought arm lands live, because a stub born set aside would read as one the reader
