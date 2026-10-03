@@ -255,10 +255,16 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    when the pointer leaves, and the mark says so by being drawn like the caret itself. */
 .flow .seg.about { outline: 1px solid var(--accent); outline-offset: 1px; }
 
-/* A peek is the same question asked without committing to it, so it is drawn as a hairline
-   that does not close and in the colour of what is not the reader's. The panel says the same
-   at its own edge, and the one gesture that makes either permanent is in the label. */
-#column.peeking .flow .seg.about { outline: 1px dotted var(--dim); }
+/* A peek is the same question asked without committing to it: a hairline that does not close,
+   and no accent, which belongs to what the reader settled on. The panel it opened is drawn the
+   same way at its own edge. */
+.flow .seg.peeked { outline: 1px dotted var(--dim); outline-offset: 1px; }
+
+/* And the caret's own mark stays under it, stepped back rather than put out. Its near edge is
+   where the caret stands, which is a more exact sighting of the boundary than the rule on the
+   edge is -- and a reader following a peek across the page is further from the caret than at
+   any other time, which is the worst moment to stop saying where it is. */
+#column.peeking .flow .seg.about { outline-color: var(--dim); }
 
 /* Armed: the next scroll down draws here, wherever the page is standing. It is the one state
    in which reading on writes, so it is marked and not only remembered -- a wider rule and the
@@ -338,19 +344,25 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
         transition: top var(--pace, 130ms) ease,
                     opacity var(--pace, 130ms) ease,
                     transform var(--pace, 130ms) ease;
-        padding: 1px 0 1px 14px; border-left: 1px solid var(--rule);
+        padding: 1px 0 1px 14px; border-left: 2px solid var(--rule);
         background: var(--bg);
         font: 400 12px/1.5 var(--mono); color: var(--dim); }
 .rows .none { font: italic 400 13px/1.5 var(--serif); }
-/* Which gesture the rows are up by, said once above them. It is here and not in `ranking.js`
-   because it is a fact about the reader and not about the record -- the rows themselves are
-   marked by nothing the page decided. */
-.rows .whence { margin-bottom: 7px; font-size: 11px; letter-spacing: .05em; color: var(--dim); }
-/* Provisional, in the vocabulary the list already has for it: the italic a row nothing
-   realised is drawn in, and a spine that does not close. Both say *this is not kept* before
-   anything in it has been read. */
-.rows.peek .whence { font-style: italic; }
-.rows.peek { border-left-style: dashed; }
+
+/* Which gesture a list is up by, said in the spine it hangs from and not in a line of words
+   above it. A reader who has to be told in a sentence has to read that sentence on every list
+   they open.
+
+   The caret's carries the accent the caret itself is marked with, so the token in the column
+   and the rows beside it read as one object, and it is solid because it is what stays. **It is
+   also the mark this page already has for the one that is current** -- the root the reader is
+   in carries the same 2px of accent down its own left edge -- so nothing new is being spelled
+   here. A peek's is dashed and has no accent: the same question asked without committing to
+   it, going when the pointer does. The width is the same for both, because a list that moved
+   sideways as the claim over it changed would be the text moving to say something about
+   looking. */
+.rows.caret { border-left-color: var(--accent); }
+.rows.peek { border-left-style: dashed; border-left-color: var(--faint); }
 .rows .who { display: flex; align-items: baseline; gap: 10px;
              padding: 0 0 5px; margin-bottom: 5px; letter-spacing: .05em;
              border-bottom: 1px solid var(--rule); }

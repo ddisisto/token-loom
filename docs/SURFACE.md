@@ -392,9 +392,12 @@ rows with it, so a reader moving towards rows they only hovered arrives after th
 is what the preview being a preview costs rather than a fault in it: the rows that stay are the
 caret's, and a click on the token asks for exactly those. What it does not excuse is being
 illegible — a list that went away on the approach and a list that was never there look the same —
-so each list says which of the two gestures it is up by, and the provisional one says the click
-that would keep it. A click on the token a list was hovered from changes nothing in the rows, only
-the claim standing over them, which is all that click changed.
+so each list is drawn as what it is. The caret's is solid and carries the accent the caret itself
+is marked with, which is also what this surface already draws the root the reader is in with; a
+hovered one is dashed and has none. **Said in how it is drawn and not in a line of words**, which
+would be read on every list opened and wanted on none of them after the first. A click on the
+token a list was hovered from changes nothing in the rows, only the claim standing over them,
+which is all that click changed.
 
 **Which token a list is about is marked in the column.** The caret and the pointer each say where
 they are and neither says what the rows are alternatives to: a position sits before a token, so
@@ -402,6 +405,11 @@ the list is rival to the segment *after* the caret, and nothing marked it. It is
 row drawn as *the one taken here* is, said at the other end of the list — one derivation, because a
 column and a list that disagreed about which token the position was choosing between would both
 look right.
+
+**The caret's own mark stays under a hover, drawn back rather than put out.** A mark around the
+segment after the caret says where that boundary stands more exactly than a rule on an edge does,
+and a reader following a hover across the page is further from the caret than at any other time —
+which is the worst moment to stop saying where it is.
 
 **A row can carry what follows it, and where that comes from is the realised line again.** A row
 some node realised has a continuation the store already holds, so showing it follows the same

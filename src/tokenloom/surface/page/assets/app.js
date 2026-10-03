@@ -381,18 +381,11 @@ function swap(box, pace) {
 const CARET = "caret";
 const PEEK = "peek";
 
-/** What a list says about how it got there.
+/** Say which of the two a list is, whether it is being built or is already up.
  *
- *  The peek's line says the gesture that would keep it, which is the one thing a transient
- *  list knows and a permanent one does not. The caret's says what it is and no more, being
- *  where the rows sit when nobody is pointing.
- */
-const SAID = {
-  [CARET]: "at the caret",
-  [PEEK]: "hovering \u00b7 a click keeps these",
-};
-
-/** Label a list, whether it is being built or is already up.
+ *  **It is a word to the stylesheet and never one to the reader.** What a hovered list is and
+ *  what would keep it are both said in how it is drawn, because a line of instruction in a
+ *  list is read on every list and wanted on none of them after the first.
  *
  *  Already up is the case this is for: a click on the token a peek was taken from asks for the
  *  same rows at the same node, and rebuilding them would take the list out from under the hand
@@ -402,13 +395,9 @@ const SAID = {
 function labelled(box, why) {
   box.classList.remove(CARET, PEEK);
   box.classList.add(why);
-  const said = Object.assign(document.createElement("div"),
-    { className: "whence", textContent: SAID[why] });
-  const had = box.querySelector(".whence");
-  if (had) had.replaceWith(said); else box.prepend(said);
 }
 
-/** Mark the token the rows are alternatives to, and say which gesture the mark stands by.
+/** Mark the token the rows are alternatives to, and the caret's own while a peek is up.
  *
  *  **The caret and the pointer each already say where they are, and neither says what the
  *  list is about.** A position sits before a token and the rows are rivals to the one after
@@ -416,12 +405,24 @@ function labelled(box, why) {
  *  which token in front of them it was offering to replace. It is the same segment the row
  *  marked `took` is, said at the other end.
  *
+ *  **The caret's mark stays while a peek shows somewhere else**, drawn back rather than taken
+ *  away. The caret is the one boundary on the page a reader has to be able to return to, and
+ *  a mark around the segment after it says where it stands more exactly than a rule on an
+ *  edge does -- so a peek that put it out would take the better of the two sightings of it
+ *  away at the moment the reader is furthest from it.
+ *
  *  `null` is no list up, and then nothing is marked.
  */
 function about(found, why) {
-  const seg = found === null ? null : String(drawn[found.cell].nodes.at(-1).id);
-  for (const el of $("column").querySelectorAll(".flow .seg"))
-    el.classList.toggle("about", seg !== null && el.dataset.node === seg);
+  const seat = at => (at === null ? null : String(drawn[at.cell].nodes.at(-1).id));
+  // Read from the caret and not from the list, because that is the rule: the caret's token is
+  // marked whenever a list is up, whichever position the list is answering for.
+  const held = why === null ? null : seat(ranking.subject(drawn, cursor.node()));
+  const peeked = why === PEEK ? seat(found) : null;
+  for (const el of $("column").querySelectorAll(".flow .seg")) {
+    el.classList.toggle("about", held !== null && el.dataset.node === held);
+    el.classList.toggle("peeked", peeked !== null && el.dataset.node === peeked);
+  }
   $("column").classList.toggle("peeking", why === PEEK);
 }
 
