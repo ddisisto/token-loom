@@ -198,6 +198,21 @@ replace, and nothing above it moves. **A draw that samples what was already ther
 and moves nothing at all** — the ordinary case at temperature zero, the path below a node being a
 greedy descent already — so that outcome is said, being the one the reader cannot see.
 
+**Arming belongs to the tip and nowhere else, which is what keeps one meaning for each gesture.**
+A scroll down says *more of this*, and that can be asked where there is nothing below; at a
+position with a path already under it the same gesture would fork mid-text without announcing it,
+and the key is what asks there. So an act may arm the caret only where it stands at the tip — the
+last position an act can be taken at, which is not the last node drawn: a path ending
+mid-character, or carrying on into what was set aside, has no tip to arm. It is the resting
+position under another name, so the two cannot disagree about where the scroll gesture is live.
+
+**And the tip has to be reachable, or pointing anywhere is a trap.** Every segment is somewhere
+to point and the tip is a segment like the rest, so a reader who pointed somewhere would otherwise
+have no way back to the gesture that continues what they are reading. `Esc` releases the caret to
+the tip, as does a click on the empty part of the column — the same thing spelled where the hand
+already is, and the one place a click there can mean nothing else. Releasing does not arm: it is a
+navigation, and a reader standing at the tip has the foot of the page for the rest.
+
 **It carries no control, and the reason is reflow.** A thing to press has to occupy room in the
 line, so the text moves as the reader points along it — and text that shifts under the eye is
 friction in the one thing the surface is for. So the caret is a rule on the inside edge of the
@@ -1182,8 +1197,10 @@ than shown.
 **Clicking a row nothing realised makes it, and the next scroll down draws from there.** The act
 writes one node and calls no model, so the caret lands on the sibling with nothing below it and
 armed: the arrival at the end of the page that makes an ordinary scroll deliberate is spent
-instead on the click, on a row drawn in front of the reader. Only that act arms it, only a
-downward move fires it, and anything that moves what a draw would land on clears it.
+instead on the click, on a row drawn in front of the reader. Only that act arms it, only at the
+tip, only a downward move fires it, and anything that moves what a draw would land on clears it.
+`Esc` and a click on the empty part of the column release the caret back to the tip, which is what
+keeps the restriction from being a trap.
 
 **A caret the reader placed follows the window, to the last segment it shows clear of its
 edges** — a line and a half in, so there is context around it rather than a mark on the border.

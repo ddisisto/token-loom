@@ -37,10 +37,14 @@ export const place = id => { at = id; waiting = false; };
  *  it is only ever set by a click on something in view -- `realise` is the act that sets it,
  *  and the row clicked to make it was drawn where the reader was looking.
  *
+ *  **It is refused anywhere but the tip**, which `docs/SURFACE.md` has as what keeps one
+ *  meaning for each gesture. The tip is `resting` and not the last node drawn, so a path
+ *  ending mid-character or carrying on into what was set aside has none to arm.
+ *
  *  It survives exactly until something happens: the draw, or the caret moving, or any read
  *  that places the caret again. So a page left alone is never a page that will write.
  */
-export const arm = () => { waiting = at !== null; };
+export const arm = cells => { waiting = at !== null && at === resting(cells); };
 
 export const armed = () => waiting;
 

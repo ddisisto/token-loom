@@ -190,23 +190,48 @@ is("putting it nowhere is a place too", C.node(), null);
  * moves what a draw would land on has to clear it -- an arming made against the old position
  * is a write at the new one that the reader never asked for.
  */
+const arming = path(4);
+const tip = arming.at(-1).nodes[0].id;
+
 is("a caret is not armed until something arms it", C.armed(), false);
-C.place(17);
-C.arm();
+C.place(tip);
+C.arm(arming);
 is("and the act that earns it is what does", C.armed(), true);
-C.place(18);
+C.place(arming[1].nodes[0].id);
 is("moving it disarms, because what a draw would land on has moved", C.armed(), false);
 
 /* A read places the caret every time, so a page that redraws itself is a page that has
  * disarmed -- which is what keeps the state from outliving the act it came from. */
-C.arm();
-C.place(18);
+C.place(tip);
+C.arm(arming);
+C.place(tip);
 is("and placing it where it already was disarms just the same", C.armed(), false);
 
 /* Nowhere is not somewhere to draw from, so arming there is not a thing that can be true. */
 C.place(null);
-C.arm();
+C.arm(arming);
 is("a caret that is nowhere cannot be armed", C.armed(), false);
+
+/* **Only the tip arms.** A scroll down says *more of this*, which can be asked where there is
+ * nothing below; at a position with a path already under it the same gesture would fork
+ * mid-text without announcing it, and the key at the caret is what asks there. */
+C.place(arming[2].nodes[0].id);
+C.arm(arming);
+is("a caret short of the tip cannot be armed at all", C.armed(), false);
+
+/* The tip is the last position an act can be taken at and not the last node drawn, which is
+ * the same rule the resting position follows -- so the two cannot disagree about where the
+ * scroll gesture is live. */
+C.place(ragged.at(-1).nodes[0].id);
+C.arm(ragged);
+is("trailing bytes waiting for their character are not a tip, so nothing arms there",
+   C.armed(), false);
+C.place(C.resting(ragged));
+C.arm(ragged);
+is("  and the position short of them is the tip, which arms", C.armed(), true);
+C.place(pruned.at(-1).nodes[0].id);
+C.arm(pruned);
+is("nothing arms inside what is set aside either", C.armed(), false);
 
 console.log(bad ? `\n${bad} failed` : "\nnothing failed");
 process.exit(bad ? 1 : 0);

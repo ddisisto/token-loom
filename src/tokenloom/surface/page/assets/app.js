@@ -284,6 +284,22 @@ function point(i) {
   settled();
 }
 
+/** Put the caret back at the tip of what is drawn, which is where a reader who has pointed at
+ *  nothing stands.
+ *
+ *  **Pointing has no other way out.** Every segment is somewhere to point and the tip is a
+ *  segment like the rest, so without this the resting position is reachable only by reloading
+ *  -- and since nothing arms away from the tip, a reader who pointed somewhere would have no
+ *  way back to the scroll gesture at all. It takes no read, for the reason `point` gives.
+ */
+function release() {
+  const to = cursor.resting(drawn);
+  if (to === null || to === cursor.node()) return;
+  cursor.place(to);
+  frontier();
+  settled();
+}
+
 /* What is drawn, which is the view the caret is a position within. It is the last response
  * and not a second opinion about where the reader is -- the caret is only ever placed on a
  * node of it, so the two cannot disagree. What it is not is a prediction of the next read:
@@ -427,7 +443,7 @@ async function realise(row, payload) {
     });
     await refresh();
     await show(act.tip, act.tip);
-    cursor.arm();
+    cursor.arm(drawn);  // placed by `show` above, so the tip is the one just drawn
     frontier();  // placed by `show` and armed after it, so the mark is remade and not patched
     say("realised \u00b7 scroll down to draw from here");
   } catch (why) {
@@ -1200,6 +1216,9 @@ addEventListener("keydown", event => {
     more(cursor.node(), { pin: true }).catch(() => {});
     return;
   }
+  // The way back to the tip, which is what makes the scroll gesture reachable again. It writes
+  // nothing and arms nothing: a reader standing at the tip has the foot of the page for that.
+  if (event.key === "Escape") { release(); return; }
   if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))
     return;
   moved(["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready());
@@ -1268,6 +1287,15 @@ $("taker").onchange = async () => {
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   }
+};
+
+/* The same release, spelled where the reader's hand already is. **Two boxes and not a rule about
+ * what to ignore**: the column's own and the text's, which are where there is nothing. Everything
+ * else in here -- a segment, a row, a boundary's control, the composer -- is a click that already
+ * means something, and naming those instead would be a list that goes stale as they are added. */
+$("column").onclick = event => {
+  const on = event.target;
+  if (on === $("column") || on.classList?.contains("flow")) release();
 };
 
 $("rows").onchange = () => {

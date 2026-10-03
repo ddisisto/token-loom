@@ -90,14 +90,13 @@ and not a thing they can ask for. **What it wants is addressable nodes and not a
 click already puts the caret on the node it landed on, and the only node a row addresses is its
 own token — which is the arm's first as well, so the row would read continuously across. The rest
 of an arm is in the record already, a roll having written it, so a click there is a selection and
-no act, and the first *n* tokens arrive as the ancestry of the path through the *n*th. Arming
-stays what it is, the node taken having nothing below it: true of a row nothing realised, false
-inside an arm, where what draws is the key at the caret. **A click on nothing releases the caret**
-back to the end of the path, which is currently reachable only by reloading. And **a pointer
-leaving the column sends the panel back to the caret**, which is right when the reader leaves the
-text and wrong when they are moving towards the rows they just opened: the hovered position's
-list cannot be reached without first clicking the token, so the one gesture that costs nothing is
-the one that has to be committed to.
+no act, and the first *n* tokens arrive as the ancestry of the path through the *n*th. Arming needs
+nothing from it either, being the tip's: a row nothing realised makes a node that *is* the tip, one
+clicked inside an arm is not, and what draws there is the key at the caret. And **a pointer leaving
+the column sends the panel back to the caret**, which is right when the reader leaves the text and
+wrong when they are moving towards the rows they just opened: the hovered position's list cannot be
+reached without first clicking the token, so the one gesture that costs nothing is the one that has
+to be committed to.
 
 **A tree that has been read over leans toward where the reading went, and that is the open
 part.** A bought arm lands live, because a stub born set aside would read as one the reader
