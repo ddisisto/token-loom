@@ -532,7 +532,7 @@ footer .fault { color: var(--accent); }
    measure reads the lines above against, and a column rebuilt short would move the wash on
    text this act is not about. Nothing above the caret moves, which is the whole point of the
    gesture -- the reader is asking what else goes here, not going anywhere. */
-.flow.parting .seg.at ~ *:not(.wait):not(.author) { display: none; }
+.flow.parting .seg.at ~ *:not(.wait) { display: none; }
 .flow .wait { color: var(--accent); }
 
 /* A composer standing at the caret, in the flow and in the prose's own face. **What is being
@@ -543,10 +543,17 @@ footer .fault { color: var(--accent); }
 
    `min-width` is for the empty one at a tip, which would otherwise be a mark with no room in
    it. `max-width` is what keeps a long entry inside the column rather than past its edge --
-   an inline-block wraps its own content and will not break across a line by itself. */
-.flow .author { display: inline-block; vertical-align: baseline;
+   an inline-block wraps its own content and will not break across a line by itself.
+
+   **It is aligned to the top of its line and not to its baseline**, so a box that takes a
+   second line takes it downwards. Aligned by the baseline it is the last line that sits on
+   the text's, which grows the box up through what has already been read.
+
+   The rule is drawn inside the box's own edge and square, which is the caret's mark again: a
+   rule that sits hard against what it is about rather than a frame set off around it. `inset`
+   proper is a bevel, which is the one thing it should not read as. */
+.flow .author { display: inline-block; vertical-align: top;
                 min-width: 2ch; max-width: 100%; white-space: pre-wrap;
-                border-radius: 2px; background: var(--accent-bg);
-                outline: 1px solid var(--accent); outline-offset: 2px;
+                padding: 0 1px; background: var(--accent-bg);
+                outline: 2px solid var(--accent); outline-offset: -2px;
                 caret-color: var(--accent); }
-.flow .author:focus { outline-width: 2px; }

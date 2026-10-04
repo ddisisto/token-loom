@@ -104,9 +104,13 @@ against the ones it did. The record does not distinguish it from any other `crea
 the surface should is in What is not decided here.
 
 **A composition affordance belongs at the position it will write into**, for the reason Writing
-gives for the placeholder: a request appears where its result will. What summons it, what it
-looks like, and whether the surface holds one that moves or one at each position are settled by
-use and not by prose, and are in What is not decided here.
+gives for the placeholder: a request appears where its result will. **One composer that moves is
+what that comes to**, opening at the caret — which is where every other act already lands, so
+there is no second anchor to keep in step. Writing at a leaf and writing several segments back
+were expected to read differently under it and do not: a reader learns quickly that anything done
+at the caret stands instead of everything below it and hangs off what was there, and taking a
+ranked branch they did not sample has exactly that shape already. The question was about the
+gesture and the answer was about the position.
 
 **A complete request leaves the surface, and what completes it is in the record.**
 `docs/ADAPTER.md` requires every parameter that something other than the caller would otherwise
@@ -1064,14 +1068,6 @@ when it is settled.
   that fills with lines — which makes the sampler's half the one that would want a switch of its
   own, if either does.
 
-- **How composition is summoned at a position.** Starting a root is answered: a row where the
-  root will appear, staging a composer in the column that a submit turns into the act, so the
-  gesture that offers a place to write is not the write. **One composer that moves is what is
-  built** — it opens at the caret, which is where every other act already lands, so there is no
-  second anchor to keep in step. What that leaves open is whether continuing at a leaf and
-  branching at a node several segments back read the same under it: they are the same act, and
-  the second has a continuation standing below it that the first does not. What settles it is
-  writing into a tree at both and finding which one the gesture reads wrong at.
 - **Whether a branch with no ranking behind it is marked.** A `create` at a node that already has
   a live child makes a fork the model had no part in, and the record holds the source that says
   so. Marking it puts a second kind of mark in a column *Between forks, nothing is drawn* keeps
@@ -1220,11 +1216,12 @@ reproduces what was already there it merges and the column does not move, and th
 than shown.
 
 **The same key under a modifier opens a composer at the caret, which is how a token the model
-never ranked is reached.** It stands in the column where the text stops, with what is below taken
-down the way a draw at the caret takes it down, and it carries the token after the caret
-pre-filled and selected — the one the rows are alternatives to and the column outlines — so the
-first keystroke is the replacement. It is in the prose's own face and measure and wraps where any
-other sentence would, since what is being written is the text. The act is `create` at a live node,
+never ranked is reached.** It stands in the text at the caret and what is below stays where it is,
+moving along to make room: that is what the new text will stand instead of, and it is what the
+reader is reading while they write. It carries the token after the caret pre-filled and selected —
+the one the rows are alternatives to and the column outlines — so the first keystroke is the
+replacement. It is in the prose's own face and measure and wraps where any other sentence would,
+since what is being written is the text. The act is `create` at a live node,
 which the command line has always made and the surface could not: a sibling of what stood there,
 with the old branch and everything below it untouched.
 
@@ -1252,9 +1249,10 @@ loopback socket, once per load.
 **What else was live is shown on demand, and all three of its rows can be taken.** The rows stand
 in the half the column leaves empty, at the line they are about, following the caret and softly
 following the pointer while they are shown — each list saying which of the two it is up by, and
-marking the token in the column that it is the alternatives to. Each is marked by what taking it would cost: the one
-the path took is where the reader already is, one realised elsewhere is a selection and is the
-way back to an arm a draw parted from, and one nothing took is the only one that writes. A row
+marking the token in the column that it is the alternatives to. Each row is marked by what taking
+it would cost: the one the path took is where the reader already is, one realised elsewhere is a
+selection and is the way back to an arm a draw parted from, and one nothing took is the only one
+that writes. A row
 draws its probability as a bar scaled to the top row of its source and as nothing else, which is
 one answer to *how* and not the settled one. **The bar is the row's own ground and not a thing
 drawn behind it**, so whatever is hung in a row later is drawn over the bar rather than in front

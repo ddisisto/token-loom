@@ -395,12 +395,6 @@ Not in the ordering; each stands on its own.
   68 at the cap. Both are readable and neither has been chosen against a real tree at the new
   measure. **The nav is the cheaper of the two dials**: `--nav` is 15.5rem for a list of one-line
   names, and what it gives back is split between the two measures rather than spent on one.
-- **The composer cannot open at the caret, so writing at a position is not offered.** `create`
-  takes a node and `compose` takes one, so the act is there; what is missing is somewhere to put
-  the box. Staging one replaces the column, which is right for a root and wrong in the middle of
-  something being read — *a request appears where its result will*, and a reader who backed out
-  of one would have lost their place. It wants an inline composer at the caret, which is the
-  same shape a ranking opened there will want, so the two are worth doing together.
 - **A worked sample, which is a different thing from a picture and which nothing produces.**
   What it would show is a path read against an alternative it parted from, which is the thing
   the format is for and the thing prose about the format cannot do. `README.md` now carries the

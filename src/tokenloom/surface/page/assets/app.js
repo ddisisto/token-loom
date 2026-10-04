@@ -1002,14 +1002,28 @@ function stage(at) {
  * What was missing is a place to type that is not the whole column.
  *
  * So this is that component's other half rather than a second composer. A root replaces the
- * column because there is nothing to read yet; this one stands *in* the column at the caret,
- * with what is below taken down the way a variation at the caret takes it down -- the reader
- * is writing a continuation, and the one that was there is not beside it while they do.
+ * column because there is nothing to read yet; this one stands *in* the text at the caret, and
+ * what is below it stays. **A draw at the caret takes that text down and this does not**, which
+ * looks like the same gesture wanting two answers and is not: a draw replaces what is below with
+ * something the reader has not seen, and the old text standing under it would be read as part of
+ * the new one. Here the reader is writing the replacement themselves, and what they are replacing
+ * is the thing they want in front of them while they do.
  */
 
 /** Whether a composer is open in the column. It holds the gestures that write, because they
  *  all land at the caret and the caret is where the typing is going. */
 const composing = () => $("column").querySelector(".author") !== null;
+
+/** Take an open composer away, from wherever the reader is when they ask.
+ *
+ *  **The key that leaves it is the page's and not the box's.** A reader who clicked somewhere
+ *  else has a composer that is still open and no longer has the focus, and the way out of it
+ *  cannot be a key only the thing they just left would hear.
+ */
+function unauthor() {
+  $("column").querySelector(".author")?.remove();
+  say("");
+}
 
 /** Open a composer at the caret, carrying the token it would stand instead of.
  *
@@ -1073,14 +1087,19 @@ function author() {
   };
 
   box.onkeydown = event => {
-    if (event.key === "Escape") { event.preventDefault(); rejoin(); say(""); return; }
+    if (event.key === "Escape") { event.preventDefault(); unauthor(); return; }
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       send().catch(() => {});
     }
   };
 
-  parting(box);
+  // In the text at the caret, and not instead of it. **What stands below is what the reader is
+  // writing an alternative to**, so it is theirs to look at while they do -- taking it down
+  // would hide the one thing the new text is being measured against. It moves along and down to
+  // make room, which is what text does for text.
+  const mark = flow.querySelector(".seg.at");
+  if (mark === null) flow.append(box); else mark.insertAdjacentElement("afterend", box);
   box.focus();
   // The whole of it, so typing replaces rather than appends. A caret left at one end would
   // make the pre-fill something to delete, which is the opposite of what putting it there
@@ -1147,20 +1166,20 @@ function waiting() {
  *  short would move the wash on lines this act is not about. The caret's own mark is what the
  *  stylesheet finds them by, every one of them being a sibling after it.
  */
-function parting(stands = breath()) {
+function parting() {
   const flow = $("column").querySelector(".flow");
   if (flow === null) return waiting();
   flow.classList.add("parting");
   // At the end of the flow rather than after the caret's segment: what follows it is hidden
   // and takes no room, so this lands where the text stops.
-  flow.append(stands);
+  flow.append(breath());
 }
 
 function rejoin() {
   const flow = $("column").querySelector(".flow");
   if (flow === null) return;
   flow.classList.remove("parting");
-  for (const stood of flow.querySelectorAll(".wait, .author")) stood.remove();
+  flow.querySelector(".wait")?.remove();
 }
 
 /** What a variation left, said once it has landed.
@@ -1358,7 +1377,15 @@ addEventListener("keydown", event => {
   }
   // The way back to the tip, which is what makes the scroll gesture reachable again. It writes
   // nothing and arms nothing: a reader standing at the tip has the foot of the page for that.
-  if (event.key === "Escape") { release(); return; }
+  //
+  // An open composer takes it first, and this is where that has to be heard: a reader who
+  // clicked away from the box still has one open, and the key that leaves it cannot be one only
+  // the box hears. The caret has not moved while it was open, so the release that would have
+  // happened here is still there on the next press.
+  if (event.key === "Escape") {
+    if (composing()) unauthor(); else release();
+    return;
+  }
   if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))
     return;
   moved(["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready());
