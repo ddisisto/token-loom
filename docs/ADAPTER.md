@@ -334,3 +334,13 @@ one always could; a reader who wants to *select* on it now can, in the common ca
   model at different context lengths are one source to this format. If this is picked up, the
   cheap form is an adapter recording its capacity in `params`, which the core does not read; the
   fuller one is a nullable reason on the act.
+- **Whether a penalty sampler contaminates a recorded ranking on llama.cpp.**
+  `src/tokenloom/adapters/llamacpp/README.md` establishes that the recorded values are
+  pre-temperature and pre-truncation. Penalties sit at the front of that backend's chain and
+  nothing measured reaches them. If one moves the reported probabilities, a request naming it
+  writes rankings that are not a function of the model and the path, keyed on a node they are not
+  a function of — quietly wrong rather than an error. The probe is to sweep the penalty and see
+  whether the recorded values move; until it is run, the adapter does not accept one.
+- **How often the top two rows sit within the disagreement *Determinism* records.** Where they do,
+  a cache state or a chunk boundary is enough to change a greedy document rather than only a
+  recorded value. It is a count over a tree that already exists.

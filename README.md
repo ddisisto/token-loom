@@ -105,10 +105,9 @@ test.
   implement a reader from it alone.
 - **[`docs/ADAPTER.md`](docs/ADAPTER.md)** — what a backend must do to produce that record, and
   what to do when an obligation cannot be met.
-- **[`docs/INTERFERENCE.md`](docs/INTERFERENCE.md)** — the method: a person standing in the
-  sampler's slot, and a document grown by interference between two sources that meet on a
-  vocabulary. *A sampler is a prosthesis for absent intent*, and greedy is the zero of a dial
-  rather than a rule.
+- **[`docs/INTERFERENCE.md`](docs/INTERFERENCE.md)** — the method: a person reading what a
+  sampler proposes and deciding what stands. A base model's mode is nobody's voice, so greedy is a
+  reference and a setting rather than a goal, and heat is usable under a bound that holds.
 - **[`docs/SPINE.md`](docs/SPINE.md)** — the analysis the surface is built toward. The two arms
   and the conditions the reference arm is exact under, the measures, the failure mode where an
   operator closes the loop by hand, and what would count as this working. Its measurements are

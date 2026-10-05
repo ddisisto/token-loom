@@ -92,22 +92,10 @@ trying not to produce.
 
 ### Salad begins in the tail
 
-**Coherence at high temperature followed truncation more closely than temperature.** The probe's
-eight Austen draws at T=1.4 with `top_k` 20 each took 12–29 of 150 tokens from ranks 10–19 and
-all read as prose for their full length. Later walks from the same seed without `top_k` drew
-mostly from beyond the recorded rows, and degenerated:
-
-| act | T | top_k | draws beyond the recorded rows |
-|---|---|---|---|
-| probe, each of eight | 1.4 | 20 | 0 of 150 |
-| walk | 1.4 | — | 67 of 90 |
-| walk | 1.1 | — | 20 of 80, still prose |
-| walk | 1.1 | — | 70 of 80, salad from its second token |
-| walk | 1.3 | — | 28 of 32 |
-
-The walks recorded 10 rows against the probe's 20, which flatters the probe, though not by that
-margin. Once a tail token lands, the context is off-distribution, the next ranking is flatter, and
-more tail is drawn; the logozoa branches sampled without truncation show the same.
+**Coherence at high temperature follows truncation, and it ends at a tail token.** Once one lands,
+the context is off-distribution, the next ranking is flatter, and more tail is drawn.
+`docs/SPINE.md`'s *Evidence in hand* has the measurements, from `data/continuations`' Austen
+seed and from a probe of bounds at temperature 2.0.
 
 ---
 
@@ -128,9 +116,8 @@ floor" is the second, and would be a cheap flag for `docs/SPINE.md`'s kind of re
 **Sampling only above the floor is a truncation rule with a reason.** It would be greedy at
 locked positions and broad in open slots with no fixed `k`, anchored to a structural event where
 min-p anchors to the top token. It also names a class of deviation: a draw below the floor is
-one the model itself ranked below ending the document, which is a candidate for the unread
-deviation `docs/INTERFERENCE.md` refuses — and an operator's pick above the floor is a different
-act from one below it.
+one the model itself ranked below ending the document — and an operator's pick above the floor is
+a different act from one below it.
 
 **Floors co-exist, one per unit the model believes it is inside, and their movement is a
 readout of that belief.** A turn inside a transcript inside a file would carry nested floors. EOS

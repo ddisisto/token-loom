@@ -3,484 +3,288 @@
 **How the instrument is used.** The loop, what it asks of an instrument, and what it refuses.
 
 **The test it is written against: can a reader run the loop from this alone, and tell what the
-method requires from what it merely prefers?** A method fails by arguing for itself — argument is
-`docs/PREMISE.md`'s and constrains nothing — and by writing down as a rule what only use can
-settle.
+method requires from what it merely prefers?** A method fails by arguing for itself and by
+writing down as a rule what only use can settle.
 
 Sections are cited by name. What the record is, is `docs/CORE.md`; what a backend must do to
-produce it is `docs/ADAPTER.md`; the surface that offers it is `docs/SURFACE.md`. Nothing here
-constrains the core, and nothing here is a fact about a backend.
+produce it is `docs/ADAPTER.md`; the surface that offers it is `docs/SURFACE.md`; what has been
+measured is `docs/SPINE.md`'s *Evidence in hand*. Nothing here constrains the core, and nothing
+here is a fact about a backend.
 
 ---
 
-## Noise is a prosthesis for absent intent
+## The mode is nobody's voice
 
-The decode loop has exactly one place where something other than the model's preference decides
-what comes next. In ordinary inference that place holds a random number generator. Temperature,
-top-p, min-p and the elaborate ones are shapes of the noise, not alternatives to it.
+**A base model's distribution is a mixture over everyone who might have written the text so far,
+and its most probable continuation is not a typical one from any of them.** The argmax at a
+position is what the writers the context still admits most nearly agree on, so a greedy path is
+the common denominator of a crowd: fluent, generic, and prone to looping once it runs out of
+things they would all say. *Evidence in hand* has loops in a quarter of near-greedy paths, several
+from the first drawn token, and none at the highest temperature.
 
-**The slot exists because nobody is home.** A sampler's whole job is to stand in for a
-decision-maker at a position where there is none, which is what makes it defensible in unattended
-inference. This method puts a person in the slot, and what the noise then stops being is what
-decides.
+**A draw off the mode is a commitment, and the model builds on it.** A token the crowd would not
+all have chosen narrows who could be writing, and every later position is conditioned on that.
+This is what a sampler supplies and the mode cannot: not noise laid over a voice, but the choice of
+one. A hot draw under a bound reads as more specific than a greedy one from the same position for
+that reason, and stays coherent because the model follows its own cues.
 
-**A seed does not rescue it.** Reproducible noise is still noise, because nothing in it
-corresponds to anything anyone meant. Determinism makes a draw replayable; it does not make it a
-decision.
+**So greedy is a setting and a reference, not a goal.** It is the right setting where the context
+has already narrowed the crowd to one writer — code, a fixed form, a fact — so that the mode and a
+typical draw coincide. It is the reference wherever a difference has to be attributed to one
+change, which is *Interference*. Elsewhere, steering a context until its argmax says what was
+wanted is steering toward the blandest version of it, and `docs/SPINE.md`'s *The failure mode is a
+loop the operator built* is where that ends.
 
-**The elaborate samplers are optimisations of a process this does not run.** Every one of them was
-selected against the question *does this read well unattended*, which is the only question
-available when no one is watching. That is a real question and this is not it. What they can do
-here is shape which proposals come back under drive, which is a use — it is simply not the one
-they were tuned for, and nothing about their tuning transfers to it.
+**The sampler proposes and the reader decides what stands.** A draw supplies a commitment nobody
+had to think of; the reader keeps it, takes another row, writes a token, or draws again. What the
+method excludes is not sampling but losing what a choice displaced — *What the method refuses*.
 
-**Noise as a decision procedure is the prosthesis. Noise as a stimulus is not.** The claim above
-is about who decides, and not about whether a distribution is ever sampled. A draw that stands
-because nobody looked at it was decided by a die. The same draw, read afterwards against what it
-displaced and then kept or overridden, is a proposal the reader adjudicated — and a reader
-deciding late is still the reader deciding. **What the method excludes is the unread deviation,
-and not the sampler.**
+## A bound makes heat usable
 
-**It cuts both ways, and the second edge is sharper.** Absent intent on the reader's side is
-filled by a sampler. Absent intent on the model's side is where a sampled deviation gets read as a
-choice — as voice, as the thing having decided something — when it was a die roll. This is the
-first arrangement in which that attribution is checkable: `docs/SPINE.md`'s deviation says the
-dice moved it, and how far.
+**What may be drawn and how evenly it is drawn are two settings.** A truncation bound applied
+before temperature is computed on the model's own distribution, and temperature then only flattens
+what survived it. So a hot draw is a width and a heat together, and neither says much alone. The
+llama.cpp adapter orders its chain this way, `top_k`, `top_p`, `min_p`, then temperature.
 
-**The act that puts the person in the slot is `realise`, and it is a replacement at a mapped
-point.** It takes a row the model ranked and the draw did not take, at the position the draw
-would have stood — not an edit of the text afterwards. That is what keeps the substitution
-legible rather than merely equivalent: the record holds which row was taken, out of what, and at
-what price, so the reader's selection is expressed in the same terms the sampler's would have
-been. `docs/SPINE.md` has who that price is charged to and how `realise` moves it.
+**`min_p` holds under heat and `top_p` does not.** Unbounded, temperature 2.0 is salad from the
+first token. Under `top_p` alone it lasts tens of tokens: a tail token flattens the next ranking, a
+flatter ranking admits more tail, and the path runs away. `min_p` admits only tokens within a fixed
+share of the top one however flat the ranking gets, so it has no such loop, and at 0.02 it keeps a
+draw at 2.0 prose for as long as it runs. *Evidence in hand* has the measurement.
 
-**The operator samples the way a sampler does, from the head.** They read the top row, or the
-rows covering most of the mass where there are few of them, or a spread they judge
-representative — and they do not enumerate. Consulting a distribution at its head and choosing
-one thing is what makes this a sampler rather than a search, and it is why the gesture stays
-cheap. What makes it a better sampler than noise is only that the choice is about the text.
-
-**Attention is the scarce thing, and learning where to spend it is the skill.** A reader working
-a document quickly finds which stretches need looking at and which can be let run, and that
-judgement is the adaptive half of *Fixed model, adaptive operator*. It is also why nothing here
-wants exhaustive rollout: a position the reader passed over is one they judged not worth the
-cost, and a machine spending inference there is buying back an assessment already made.
-
-**What the record keeps of that is what was rolled out.** A row hovered into a stub is a
-`generate` and is in the record; a row the eye passed over leaves nothing, there being no verb
-for a hover and the five acts being the whole of what can be written. So the trace is of
-attention *spent* and not of attention paid, and the positions carrying several stubs are the
-ones the reader thought were worth the question. That is a finer record of method than anything
-here asked for, and it accumulates as a side effect of working.
+**The two trade against each other.** At 2.0 under `min_p` 0.02 a path costs about what an
+unbounded draw at 1.0 costs per token, with half as many tokens from deep in the tail, and raising
+the floor pulls a hot draw back toward the head. **The share `min_p` thresholds on is
+`docs/SPINE.md`'s share exactly**, so the floor is also a ceiling on the deviation axis: under
+`min_p` 0.02 no draw deviates by more than −ln 0.02, 3.9 nats.
 
 ## Interference
 
-**Two sources, and a document that is the pattern between them.** The model produces a preference
-over continuations at every position; the reader has an intent; what gets written is where the two
-meet. Neither is the author and neither is the instrument's subject.
+**Two arms, and what is read is the difference between them.** The measurement arm is the path as
+it went, under whatever draw and with whatever the reader took or wrote. The reference arm is the
+model from the same position. What is read is where the two part, at what price, and whether the
+parting lasted.
 
-**Coherence is the precondition, not a flourish.** Two wave sources produce a stable pattern only
-if they are coherent; otherwise they produce noise that averages to nothing. Here the coherence
-condition is that both ends operate in the same vocabulary — the model's tokens are the currency
-the reader's intent has to be spelled in, and where a reader cannot say what they mean in terms
-the model computes over, there is no pattern to read. This is why the method is worth running on a
-context that has been built up and is nearly worthless on one that has not.
+**The reference is a single arm or a spread, and they answer different questions.** A greedy stub
+is exact: nothing random entered it, so a difference from it is attributable to the one change.
+Several draws from one position are the other kind of reference. They say what the model does from
+here when it is allowed to commit, and the path is read against that population rather than
+against its mode. Where the draws agree the position was a basin; where they part, it was a fork.
 
-**The apparatus is an interferometer and the analogy is mechanical.** A phase shift in one arm is
-tiny; the fringes it produces are large and readable, because everything else is held still. One
-token changed, and the continuation carries that one change out into a different document — and
-the difference is attributable to the change precisely because nothing else moved. Greedy is what
-holds the rest still.
+**Which arm is the reference is a setting and not a fact.** Hold the model still and the reader's
+interventions are what is measured. Hold the interventions still — the same lead-in and the same
+acts, run across models, quantisations or context depths — and the model is the specimen.
+`docs/CORE.md` puts `source` in the merge key, so one tree ranked by several models is a shape the
+record already admits and nothing has yet produced.
 
-**Which arm is the reference is a setting and not a fact.** Greedy holds the model still, so the
-model is the reference and the reader's intent is what is being measured. Hold the intent still
-instead — the same lead-in and the same interventions, run across models, quantisations or
-context depths — and the arms swap: the reader becomes the reference and the machine is the
-specimen. `docs/CORE.md` puts `source` in the merge key, so one tree ranked by several models is a
-shape the record already admits and nothing has yet produced.
-
-**An arm can also be driven rather than held, and that is the third configuration.** Temperature
-is displacement applied on purpose — it pushes the path off the model's preference by an amount
-the record then measures, position by position, as `docs/SPINE.md`'s deviation. Drive
-it and read what answers, and what answers is not the position but **the context**: how far this
-context lets a path be pushed before it goes somewhere the reader will not follow. That is a
-reading taken from any point, looking back at everything before it, and it is the one reading here
-that cannot be taken at the zero of the dial.
-
-**What it measures is the trajectory and not the distributions.** `docs/SPINE.md` establishes that
-a hotter draw does not widen a ranking — the recorded values are pre-temperature — so driving the
-dial does not change what is measured at a position. It changes which positions the path arrives
-at. The response curve is therefore *where this context lets a path go under drive*, which is a
-real quantity and not the one it would be mistaken for.
+**Heat asks a question of the context.** Drive it and read what comes back: how far this context
+lets a path be pushed before it goes somewhere the reader will not follow. The recorded values are
+pre-temperature, so heat does not change what is measured at a position. It changes which
+positions the path reaches.
 
 ## The loop
 
-**Write a lead-in. Generate a small batch. Read it. Where it went somewhere you did not want,
-change the one token — or change the lead-in. Continue.**
+**Write a lead-in. Draw a short run. Read it. Where it went somewhere you did not want, take
+another row, write a token or draw again — or change the lead-in. Continue.**
 
-That is the whole of it, and everything below is what each step costs. The one setting it does not
-name is how hard the draw was pushed, which is the next three paragraphs and is the only thing
-that differs between composing and surveying.
+**The operator reads from the head, as `min_p` does.** They read the top rows, or a spread they
+judge representative, and they do not enumerate. What is close enough to the top is admitted, and
+something other than rank chooses among it — for the bound, heat; for the reader, what the text is
+for.
 
-**Greedy is the zero of the dial and the place to start from, not the only place to be.** At zero
-the model draws its own preferred token at every position, so the only departure from what it
-would have written unaided is one a person made, and a path's accumulated deviation is not a
-mixture to be decomposed: it is the price, in the model's own units, of this document being this
-one.
+**Attention is the scarce thing, and learning where to spend it is the skill.** A reader working a
+document quickly finds which stretches need looking at and which can be let run, which is the
+adaptive half of `docs/SPINE.md`'s *Fixed model, adaptive operator*. It is also why nothing here
+wants exhaustive rollout: a position the reader passed over is one they judged not worth the cost.
 
-**Off zero, the loop runs backwards and is the same loop.** Generate ahead under drive, read what
-came back, and return to the divergences — each one a position where the sampler went somewhere
-the model would not have, and each carrying its price. At each, the reader does what they would have done
-forward: take a different row, write a token, or let the draw stand. This is the mode for
-brainstorming against the model rather than composing with it, and the two are settings of one
-instrument rather than two methods.
+**The record keeps attention spent, not attention paid.** A row hovered into a stub is a `generate`
+and is in the record; a row the eye passed over leaves nothing, there being no verb for a look. So
+the positions carrying several stubs are the ones the reader thought worth the question, and that
+accumulates as a side effect of working.
 
-**A divergence is a debt, and that is the whole of the discipline.** Driving opens one at every
-position where the draw left the model's preference; reading it closes it, whichever way the
-reader decides. Greedy simply opens none, which is why it is the place to start and not a rule.
-**A passage carrying unread divergences carries deviation nobody owns**, and the method's claim on
-it is
-exactly as strong as the reading it has had — which is a thing the reader can know about their own
-document rather than a prohibition on how it was made.
-
-**Which is why the balance is a reading decision and not a policy.** Drive is cheap where the
-reader means to survey and expensive where they mean to commit, and the same document can be built
-both ways in different passages. What is not free is leaving the debt: a stretch generated under
-drive and never returned to is a stretch the model and the dice wrote together.
-
-**There are three moves at a position and they are not alike.**
+**There are four moves at a position.**
 
 | move | act | what it costs |
 | --- | --- | --- |
-| take a token the model ranked and did not take | `realise`, then continue | the log-ratio against the token it displaced |
-| write a token the model never offered | `create` | nothing the record can price |
-| let a drawn token stand, having read it | none of its own | nothing, and *Continuing is the acceptance signal* is why |
+| take a row the model ranked | `realise`, then continue | the log-ratio against the top row |
+| write a token | `create` | nothing the record can price |
+| draw again from here | `generate` | the new path's own prices; the old path stays beside it |
+| let a draw stand | none of its own | nothing |
 
-**The third only arises off zero**, which is why the zero loop never had to answer it. Under drive
-the reader meets divergences they agree with, and leaving one alone writes nothing.
-
-**Continuing is the acceptance signal, and the record already holds it.** Asking for the next
-batch is a deliberate act taken after reading the last one, so it carries acceptance of everything
-above it without a gesture of its own. Under the standard convention there is nothing like this —
-*generate until EOS* is one act over the whole output, and an operator who took it has signalled
-nothing about any part of it. Small batches are what give the next `generate` something to mean.
-
+**Continuing is the acceptance signal, and the record already holds it.** Asking for the next run
+is a deliberate act taken after reading the last, so it carries acceptance of everything above it
+without a gesture of its own. *Generate until EOS* is one act over the whole output and signals
+nothing about any part of it, so short runs are what give the next `generate` something to mean.
 **What it accepts is that the reader passed, and not that they read closely.** Skimming and
-studying are one signal here and the instrument does not try to tell them apart. A reader can
-always scroll back and reconsider; how carefully they went the first time is theirs.
+studying are one signal and the instrument does not try to tell them apart.
 
-**Of the two that write, only one has a price.** A `realise` is scored against what the model
-thought of the choice. A `create` writes a token with no row in the ranking it stands in — which
-`docs/SURFACE.md` has as the ordinary case rather than a fault, since a reader writes at a
-position a model ranked — so it is off the scale rather than at its end. It follows
-that a document's measured deviation covers the part of the reader's intent the model had
-anticipated, and the rest is unpriced. That is honest rather than defective, and it is worth
-knowing which kind of intervention a passage was built from.
+**Of the moves that write, `create` alone has no price.** It writes a token with no row in the
+ranking it stands in, so it is off the scale rather than at its end, and a document's measured
+deviation covers only the part of the reader's intent the model had offered. It is worth knowing
+which kind of intervention a passage was built from.
 
-**And one move is not at a position at all: adjusting the lead-in.** Where a continuation is wrong
-in a way one token will not fix — and where the model loops from its first drawn token, which
-*Degeneration* covers — the fault is upstream of every position being read. Changing what comes
-before is the cheapest correction there is, and it is the same act at a different place.
-
-**Rerolling is unavailable at either end of the dial, for two different reasons.** At zero it
-cannot happen: the same node, the same parameters and a backend that reproduces its own requests
+**Drawing again discards nothing.** At zero it produces nothing new: the same node and parameters
 give the same tokens, every node merges, and only the act is written — `docs/CORE.md`'s worked
-example is exactly this at stage 4, so the instrument's answer to *give me another one* is a
-recorded act that produced nothing. Under drive it happens and discards nothing: the path the
-reader turned away from stays in the tree as a sibling, to be read against its replacement. What
-the instrument has no gesture for is the one that matters — *another one, and forget that one* —
-and the record is what refuses it.
+example at stage 4. Under heat it produces a sibling, and the path turned from stays to be read
+against its replacement. What has no gesture is *another one, and forget that one*, and the record
+is what refuses it.
 
-**Small batches, because reading is the work.** The generation is cheap and the attention is not.
-A batch is as much as the reader will actually read before deciding whether anything needs
-changing, and it is set by that and by nothing about the model.
+**Adjusting the lead-in is a move upstream of every position.** Where a continuation is wrong in a
+way no single token will fix, what comes before is the cheapest thing to change, and it is the same
+act at a different place.
 
-**Templates are what the method accumulates.** A lead-in that reliably gets the model to where the
-reader wants to start is a reusable artefact, and it is selected for by use rather than designed.
-The store already holds them: a lead-in is a root, and starting from one again is a `create` with
-the same text. Whether the surface should help with this is in *Deliberately open*.
+**Short runs, because reading is the work.** A run is as much as the reader will actually read
+before deciding whether anything needs changing, and it is set by that and by nothing about the
+model.
 
-**It gets cheaper quickly, and the reason matters.** The expensive part is reading, the cost of
-reading is proportional to how much the reader cares about what comes out, and a reader who cares
-is already paying it — in re-reading rerolls, in discarding whole outputs for one wrong clause.
-The method does not add that cost. It moves it to where one token's worth of correction is enough.
+**Lead-ins are what the method accumulates.** One that reliably gets the model to where the reader
+wants to start is selected for by use rather than designed. A lead-in is a root, and starting from
+one again is a `create` with the same text.
 
-## What each end of the dial buys
+### Loops
 
-**At zero, attributability.** Only one thing moved, so the difference between the document and the
-model's own continuation is the reader, position by position.
+**A loop is what the mode does when the crowd has nothing left to agree on.** Greedy reaches one
+easily; a draw under heat and a bound rarely does, because each commitment gives the model
+something to build on. A loop from the first drawn token says the lead-in is wrong, and one further
+down says the context has run out of what it needed.
 
-**At zero, the counterfactual arrives first, free, and in the right order.** A sampled loop spends
-inference to find out where the model wanted to go — `docs/SPINE.md` calls that a stub. At zero
-the rejected continuation was generated *before* the intervention, by the reading pass, and stays
-in the tree as the sibling the reader branched away from. Nothing is spent to see it, and it is
-there while the decision is being made rather than after.
+**Running cold into a basin on purpose is a probe.** Staying in one well past the point the loop is
+established tends to distil something specific — the framing problem, or the piece the context is
+missing, as the model's own view of it has that. The place to act on it is usually earlier, where
+the context could still have been shaped, so a basin run out with no intention of keeping it is a
+way of learning where to steer next time. **This is anecdotal**, from many deliberate pushes rather
+than anything counted.
 
-**At zero the deviation is zero, and the moment it is not, it is the reader's.** The token taken
-is the top-ranked one at every position, so a path the model produced alone diverges nowhere.
-Where `docs/SPINE.md` reads a divergence as the sampler having acted in the reader's name, here
-every one is the reader's own. Same overlay, inverted population.
-
-**Under drive, reach — and the counterfactual inverts with it.** The model proposes where the
-reader had none, which is the whole of the brainstorming mode, and the divergences are the index of
-where it did so. What was free at zero now costs: the greedy continuation is the road not taken,
-so seeing it means spending a stub. That is precisely the machinery `docs/SPINE.md` specifies, and
-this is the mode that needs it — at zero it has nothing to do.
-
-**So the two ends want different overlays.** At zero deviation marks the reader's own interventions,
-which they already know about, and what earns its place is a measure read off the rankings —
-where the model was torn, where it was not. Under drive deviation is the working index and the
-first thing the column should draw.
-
-### Degeneration
-
-**The case for the noise is real and it was measured here.** `docs/SPINE.md`'s *Evidence in hand*
-found loops in a quarter of near-greedy paths, several from the first generated token, and none at
-all at the highest temperature. Greedy decoding falls into attractors, and temperature walks it
-out. That is the field's argument for sampling and it is not wrong.
-
-**The answer is that the sampler does not cure the attractor, it conceals it.** It rolls the model
-out of the loop, and the reader never learns there was one. Under this method a loop is the single
-most informative thing the model can do: it is the model reporting that it has nothing here, and
-it arrives in plain sight at exactly the position where the reader was going to intervene anyway.
-The same document already says as much about a stub that cycles — not a failure but a diagnosis.
-Running greedy makes the whole path that diagnostic.
-
-**A loop is therefore a place to act, and raising the dial is one of the acts.** A loop from the
-first drawn token says the lead-in is wrong. A loop further down says the context has run out of
-what it needed, which is a finding about the context. Drive is a legitimate answer to both — the
-difference from unattended inference is not that the noise is absent but that **the loop was seen
-first**, so what the drive is answering is known, and the divergences it opens are read. Concealment is
-what happens when greedy was never run. Whether there are contexts on which zero is unusable
-throughout is in *Deliberately open*.
-
-**Pushed further, a basin often names the lack rather than only reporting one.** Running cold
-into one deliberately and staying there, well past the point the loop is established, tends to
-distil something specific — the framing problem, or the piece the context is missing, as the
-model's own view of it has that. That is more than *nothing here*, and it costs only letting a
-greedy run continue past the point it stopped being useful as text.
-
-**What it is good for is retrospective, which is why it is worth running noncommittally.** The
-place to act on what a basin says is usually not the position it was found at but somewhere
-earlier, where the context could still have been shaped — so running one out with no intention
-of keeping it is a way of learning where to steer next time rather than a way of recovering
-this one. That makes it cheap in the way that matters: nothing is riding on the output, so the
-reader is free to read it as a report. **This is anecdotal**, from many deliberate pushes rather
-than from anything counted, and nothing here measures it.
-
-**And a loop is not always a fault.** Refrain, anaphora, liturgy, mantra and a chorus are
-repetition doing work, and the reader is the only thing here qualified to tell one from a
-collapse. The instrument reports that a passage repeats; it never reports that it is broken.
-
-**Which is the sharper case against a penalty sampler.** Repetition penalties and their relatives
-compile that judgement into the decode loop, where it applies at every position whether the
-repetition was wanted or not, and the reader never sees the choice being made. *Determinism stops
-being a diagnostic* has the mechanical objection to them — that they may reshape what gets
-recorded. This is the one that would stand even if they left the record untouched.
+**A loop is not always a fault.** Refrain, anaphora, liturgy and a chorus are repetition doing
+work, and the reader is the only thing here qualified to tell one from a collapse. The instrument
+reports that a passage repeats and never that it is broken — which is the case against a
+repetition penalty that stands even if it left the record untouched: it compiles that judgement
+into every position, where the reader never sees it made.
 
 ## Cost is a rate, not a total
 
-**A total says less the longer the document runs.** Accumulated deviation over a whole path grows
-without bound and stops discriminating between passages. Over a window it is a rate, and a rate is
-something a reader can hold. This is the decision the recording bounds already made on the other
-axis — depth is bounded forward because unbounded depth buys nothing anyone reaches — taken again
-for cost.
+**A total says less the longer the document runs.** Accumulated deviation grows without bound and
+stops discriminating between passages. Over a window it is a rate, and a rate is something a reader
+can hold.
 
-**An operator runs this accounting whether or not the instrument offers it.** The pattern where a
-ten-word prompt and one click return ten thousand words that go out unread is a cost calculation
-with its answer already in it: near-zero spend, maximum output. What is unavailable to that
-operator is any reading of what the document cost per passage, because nothing measured it. Here
-it is measured, and windowing is what makes it legible instead of a total nobody can use.
+**Deviation per unit of text, drawn along the column, is a map built by scrolling.** Attention
+returns to expensive regions when something is to be changed and passes over cheap ones, where the
+draw and the model's preference mostly agreed.
 
-**Deviation per unit of text is the window's readable form.** Drawn along the column it is a map
-the reader builds by scrolling rather than by asking for it. Attention returns to expensive
-regions when something meaningful is to be changed and passes over cheap ones, where the draw and
-the model's preference mostly agreed.
+**Under heat the count stops discriminating and the price does not.** Above 0.9 most positions
+diverge, so a mark per divergence marks nearly everything. Counting and summing rank a run's
+windows alike near zero and come apart as heat rises — *Evidence in hand* has both — so the summed
+price is the one to draw and the count is what it degenerates to when the prices are all alike.
+What separates passages under heat is what the divergences cost and whether the model was sure
+where they happened, which is the gap `docs/SPINE.md` gates a stub on.
 
-**Counting divergences is the cheaper map and it is only sometimes the same one.** Over windows of
-one run, how many divergences a window holds and what they cost together rank the run's windows
-alike at near-greedy and come apart as the drive rises — a median Spearman of 0.98 at 0.05–0.35,
-0.81 at 0.4–0.8 and 0.67 at 0.9 and above, over `data/continuations`. So a count is serviceable
-exactly where divergences are too rare to index anything, and it is weakest where this section
-says the index is needed. `scripts/takers.py` is the measurement. The summed price is the one to
-draw, and the count is what it degenerates to when the prices are all alike.
+**The map reads the draw and not the text.** Sparse says the draw and the model's preference
+agreed, and never that what they agreed on was worth keeping. Neither family of measure locates a
+loop, which `docs/SPINE.md` has under *Two families of measure, not one*. That costs nothing
+while someone is reading, since a loop is the least camouflaged thing a text can do, and costs
+something only where measures are read without the prose.
 
-**Density says nothing about a loop, in either direction.** `docs/SPINE.md` has this as a
-property of both measure families rather than a fault in either: they read confidence, and
-confidence does not locate a degenerate region — some run below the path around them and some
-above. So a loop may sit in a dense stretch or a sparse one and the map cannot be asked. The kind
-of measure that can mark one reads what the tokens are rather than what the distribution was.
-**More generally the map reads the sampler and not the text**: sparse says the draw and the
-model's preference agreed, and never that what they agreed on was worth keeping.
-
-**The prose is not silent, though, and that is most of the answer.** A loop is the least
-camouflaged thing a text can do, and a reader who is reading — which is the whole of this method —
-has seen it before any margin could say so. So the map's blindness costs nothing while someone is
-looking at the text, and costs something only where measures are read without it: an aggregate
-over many paths, a scan across trees, anything unattended. There a detector is cheap and needs no
-distribution at all, since a repeat is a match over token ids.
-
-**Uniform high density is the dial gone too far.** A path that diverges everywhere is one where the
-drive is buying scrambles rather than decisions, and the instrument gets harder to use in exact
-proportion: everything is marked, so nothing is. That gives the dial a working range the reader
-finds by feel, and no rule has to state it.
-
-**A divergence stays a divergence.** It is objective — the draw went where the model would not
-have, at a recorded price — and nothing a reader does changes that. Making it something a reader
-can discharge would put the measure under the reader's hand and cost the map its meaning.
-
-**Prominence is what varies, and the record decides it.** The origin of the most recent act on a
-path is a watermark: everything above it was continued past, because asking for what is below it
-is the acceptance signal. So the newest stretch draws most prominently and the rest
-subdue once, and the boundary is derived from the acts and the ancestry rather than from anything
-the surface remembers. **This needs no reader state.** `docs/SURFACE.md` keeps such state in the
-session and out of the record deliberately; here the question that looked like it would need some
-turns out to be answerable from the store.
+**A divergence stays a divergence.** The draw went where the model would not have, at a recorded
+price, and nothing a reader does changes that. Letting a reader discharge one would put the measure
+under the reader's hand and cost the map its meaning.
 
 ## What the method asks of an instrument
 
 **Required — the loop does not run without these.**
 
-- **The ranking at any position, reached with no ceremony.** It is the hot path and not a
-  secondary gesture: every intervention of the priced kind starts by asking what else was live
-  here.
-- **Taking a row as one gesture.** `docs/SURFACE.md` already has the reader meaning one thing
-  where the record keeps two acts. That is the most frequent gesture in the instrument, so the
-  cost of the second act belongs entirely below the surface.
-- **A continuation rule that does not throw the reader back onto what they just rejected.**
-  Branching at an early token of a long run and then being returned to that run is the method's
-  most common shape, not an edge case. Which member of the family that implies is that document's
-  open question; what the method contributes to it is that the rule must follow what the reader
-  most recently took.
-- **The recording bounds under the reader's hand.** They are the aperture and they decide what can
-  be reached at all.
-- **A way to find the divergences, once the dial is off zero.** They are the debts, and a mode that
-  opens them without showing where they are is a mode that cannot be worked. At zero this is not
-  needed, which is the only thing that makes it conditional rather than first.
-- **Their density legible while scrolling, and the newest stretch told from what was passed.**
-  *Cost is a rate, not a total* is why both: the map is built by moving over the text rather than
-  by querying it, and the watermark that separates new from seen is read off the acts.
+- **The ranking at any position, reached with no ceremony.** Every priced intervention starts by
+  asking what else was live here.
+- **Taking a row as one gesture.** `docs/SURFACE.md` has the reader meaning one thing where the
+  record keeps two acts, and it is the most frequent gesture in the instrument.
+- **A continuation rule that does not throw the reader back onto what they just turned from.**
+  Branching early in a long run and being returned to that run is the method's most common shape.
+  Which rule follows is `docs/SURFACE.md`'s open question; what the method contributes is that the
+  rule must follow what the reader most recently took.
+- **The draw's settings under the reader's hand, the bound beside the heat.** They are what the
+  reader moves between runs, and heat without its bound is a setting that means nothing.
+- **The recording bounds within reach.** They are the aperture and decide what can be reached.
+- **Divergences findable, and their cost legible while scrolling.** Under heat they are the index
+  of where the path committed.
 
 **The parameters, and what each is for here.**
 
 | parameter | what it does under this method |
 | --- | --- |
-| `record_rows`, `record_mass` | the aperture — how many alternatives a position can offer |
-| `temperature` and the samplers under it | the drive — how far the path is pushed off the model's preference, and how many debts come back |
 | `length` | how much is read before the next decision |
-| `cache_prompt` | `false` near zero; *Determinism stops being a diagnostic* is why, and why it matters less under drive |
-| `seed` | nothing to seed at zero; under drive it is what makes a driven path replayable |
+| `temperature` | how evenly the admitted set is drawn from |
+| `min_p`, `top_p`, `top_k` | how wide the admitted set is; `min_p` is the one that holds under heat |
+| `record_rows`, `record_mass` | the aperture — how many alternatives a position can offer |
+| `cache_prompt` | *Determinism* |
+| `seed` | nothing to seed at zero; under heat, what makes a path replayable |
 
-**The aperture still wants to open with the dial, and what it costs to leave it shut has
-changed.** Driving harder lands the draw further down the ranking, and a record sized for a colder
-draw once left that draw unpriced: the row it took fell past what was written, so the price came
-back as a bound rather than a reading. `docs/SPINE.md` measures it — every such position in
-`data/continuations` came from one hot draw recorded to a depth that earlier, equally hot draws
-had exceeded, so a draw went unpriced not by being hot but by being recorded for something colder.
-`docs/ADAPTER.md`'s obligation 7 closed that, and a source now reports what its own draw was worth
-whatever the rows reached. What a shallow record still costs under drive is the company the draw
-kept — the alternatives there are to branch into, and what any quantity over a ranking is read
-against. So the two dials still move together, and the failure is now one a reader can see rather
-than one the record swallowed.
+**The aperture opens with the heat.** A hotter draw lands further down the ranking, and a record
+sized for a colder one leaves it with fewer alternatives around it to branch into and to read any
+quantity against. Its own value is recorded either way, which is `docs/ADAPTER.md`'s obligation 7.
 
-**Preferred, and not required.** The band answers *what lies below this fork*, which is reading
-across branches and a different activity from composing along one.
+## What the method refuses
 
-**Refused — and it is one thing, not a list.** A deviation that is never read. Everything the
-method refuses reduces to that: a draw left standing because nobody looked, a stretch generated
-under drive and never returned to, and any gesture that would let a reader replace a passage
-without the displaced one remaining to be read against it.
+**One thing: a choice whose displaced alternative does not remain to be read against it.** A draw
+that is replaced leaves its path in the tree, a row taken leaves the ranking it was taken from, and
+no gesture may let a reader overwrite a passage so that what stood there is gone.
 
-**And one thing the record refuses on its own account.** A sampler that reshapes what gets
-*recorded* rather than only where the path goes is not drive, it is contamination of the
-measurement — see *Determinism stops being a diagnostic*.
+**And one the record refuses on its own account: a sampler that reshapes what is *recorded* rather
+than only where the path goes.** That is not drive but contamination of the measurement.
+`docs/ADAPTER.md`'s obligation 5 requires a ranking to be a function of the model and the path
+alone. A repetition penalty acts on logits, and whether it reaches the values a backend reports is
+a question about that backend.
 
-## Determinism stops being a diagnostic
+## Determinism
 
-**Under greedy the argmax is the output, so anything that reorders the top two rows writes a
-different document.** `docs/ADAPTER.md`'s *Determinism* records a chunk boundary moving logprobs
-by up to 0.057 and a partial cache hit by 0.58 across eighty rows, both reordering ranks. It files
-them as diagnostics because the format absorbs them: rows are recorded in the order presented and
-nothing is rewritten. That absorption is about the *record*. It does not reach the text, and under
-this method the text is what the reader is choosing.
+**Where a greedy path is the document, anything that reorders the top two rows writes a different
+one.** `docs/ADAPTER.md`'s *Determinism* records a chunk boundary moving logprobs by up to 0.057 and
+a partial cache hit by 0.58, both reordering ranks. The format absorbs that, since rows are recorded
+as presented, but the text does not: under greedy the argmax is the output. So a greedy path meant
+to stand is drawn with the cache off, which is what the command line sends.
 
-**So the configuration near zero is the cache off**, which is what the command line already sends
-for correctness. What it costs is latency on every batch, against a method that wants short
-batches and a fast turn — and that is a real tension rather than a settled trade.
+**A reference arm tolerates it.** A stub is read and not kept, and `docs/SPINE.md`'s *Stubs* has it
+as exact cold and advisory warm — the trade that keeps a hover to tens of milliseconds.
 
-**Under drive the same disagreement stops threatening the text and starts threatening replay.** A
-driven draw is stochastic by construction, so a perturbation that occasionally moves which token
-comes back is not corrupting a correct answer — there was no single answer to corrupt. What it
-does break is a named seed's claim to reproduce a path, since the same seed over shifted
-probabilities is a different draw. So the dial moves what `cache_prompt` is being traded against:
-correctness of the text at one end, reproducibility of a particular exploration at the other.
-
-**Chunk length is carried in the record and needs nothing.** `length` is in every act's `params`,
-so where a call started and how far it ran is already readable.
-
-**A sampler that reshapes the recorded distribution is worse than useless here, and may be
-forbidden outright.** `docs/ADAPTER.md`'s obligation 5 requires a ranking to be the model's own
-distribution and a function of the model and the path alone. Repetition penalty and its relatives
-act on logits, and whether they reach the values a backend reports is a question about that
-backend. *Status* has what is not known.
+**Under heat the disagreement threatens replay and not the text.** A hot draw had no single answer
+to corrupt. What a perturbation breaks is a seed's claim to reproduce a path, since the same seed
+over shifted probabilities is a different draw.
 
 ## Deliberately open
 
 Each of these is left to use, and each names what would settle it.
 
-- **What a batch length should be.** Fixed, or chosen per passage, or falling as a document
-  tightens. Settled by where readers actually stop and intervene.
-- **Whether templates want anything from the store.** A lead-in is a root and reusing one is a
-  `create`, so nothing is missing; what is untested is whether a reader wants to find the
-  lead-ins that produced documents they kept, across trees. Settled by reusing them by hand until
-  it is tedious or turns out not to be.
-- **Whether the pattern of density says more than the level.** *Cost is a rate, not a total* has
-  uniform high density as the dial gone too far. What it does not say is whether density that
-  *clusters* — thick where the text turns, thin where it runs — is a different object from the
-  same rate spread evenly, and whether the difference is the drive having found something rather
-  than merely having been applied. It is the question of where the cost was well spent rather than
-  how much of it there was. Settled by reading driven paths whose densities match and whose
-  distributions do not.
-- **Whether a repeat detector earns a place, and where.** It is cheap, needs no distribution, and
-  a reader sees a loop unaided — so its value is wherever the text is not being read: an
-  aggregate, a scan across trees, a selection made before anyone looks. What it must not do is
+- **Where greedy is the right setting.** *The mode is nobody's voice* predicts that the more a
+  context has narrowed who could be writing, the less greedy loops and the closer it reads to a
+  draw. Settled by greedy runs over contexts of differing constraint, read for loops against the
+  entropy along them.
+- **Whether commitment is what heat buys.** If a hot path stays coherent because each draw narrows
+  the writer, a greedy stub cast from deep in a hot path should loop less and read more
+  specifically than one cast from the lead-in the path began at. Settled by pairs of stubs over hot
+  paths that already exist.
+- **Which bound holds best under heat.** `min_p` is measured against `top_p`, and `top_k` at 20 held
+  at 1.4 for 150 tokens; `top_n_sigma` and a bound anchored to a floor (`docs/future/FLOORS.md`) are
+  untried. Settled by the same comparison at the same positions.
+- **Where to set the pair, and chosen by what.** Per passage, per intent, or tightening as a
+  document does — and whether the reader sets them deliberately or reaches for them when a stretch
+  goes flat. Settled by which way the hand moves in practice.
+- **What a run's length should be.** Fixed, chosen per passage, or falling as a document tightens.
+  Settled by where readers actually stop and intervene.
+- **What window.** A rate needs one, and a fixed span, a paragraph, a single act and a decaying one
+  all read differently over the same path. Settled by which one makes the map usable while
+  scrolling.
+- **Whether the pattern of cost says more than the level.** Cost that clusters — thick where the
+  text turns, thin where it runs — may be a different object from the same rate spread evenly, and
+  the difference may be the draw having found something rather than merely having been hot.
+  Settled by reading hot paths whose rates match and whose distributions do not.
+- **Whether a repeat detector earns a place, and where.** A reader sees a loop unaided, so its value
+  is wherever the text is not being read: an aggregate, a scan across trees. What it must not do is
   call a refrain a fault. Settled by whether anything here is ever read without prose.
-- **What window.** A rate needs one, and a fixed span of text, a paragraph, a single act and a
-  decaying one all read differently over the same path. Settled by which one makes the map usable
-  while scrolling.
-- **Where on the dial, and chosen by what.** Per passage, per intent, or falling as a document
-  tightens — and whether the reader sets it deliberately or reaches for it when a stretch goes
-  flat. Settled by which way the hand moves in practice.
-- **Whether the response curve is a reading worth taking.** *Interference* has drive as a way of
-  asking a question of the context rather than of a position, and nothing has asked one. Settled
-  by sweeping the dial over one context and seeing whether divergence density and the distribution of
-  prices say anything a single draw did not.
-- **Whether there are contexts on which zero is unusable throughout.** *Degeneration* argues a
-  loop is a finding and a place to act. A context where every lead-in loops, or where
-  interventions do not hold, would say zero has a range rather than a universal claim. Settled by
-  running it widely enough to find one or fail to.
-- **Whether the reference-arm swap is worth running.** Holding the reader's interventions still
-  and varying the model is the other experiment the apparatus admits. Settled by a tree several
-  models have ranked, which nothing has yet produced.
+- **Whether lead-ins want anything from the store.** Reusing one is a `create`, so nothing is
+  missing; what is untested is whether a reader wants to find the lead-ins behind documents they
+  kept, across trees. Settled by reusing them by hand until it is tedious or turns out not to be.
+- **Whether the response curve is a reading worth taking.** Sweeping heat and bound over one context
+  asks the question *Interference* puts to heat directly, and nothing has asked it. Settled by
+  whether the divergences and their prices across the sweep say anything a single draw did not.
+- **Whether the reference-arm swap is worth running.** Settled by a tree several models have
+  ranked, which nothing has yet produced.
 - **How much of a document a reader can hold while composing it.** The method assumes the reader
-  is reading everything; a long document may defeat that, and what happens to intervention quality
-  when it does is unknown. Settled by building something long.
-
----
-
-## Status
-
-**What has no home yet.**
-
-- **Whether a penalty sampler contaminates a recorded ranking on llama.cpp.**
-  `src/tokenloom/adapters/llamacpp/README.md` establishes that the recorded values are
-  pre-temperature and bit-identical across a sweep of it. Temperature sits at the end of that
-  backend's sampler chain and the penalties sit at the front, so what is measured says nothing
-  about them. If a penalty reaches the reported probabilities, a request naming one writes
-  rankings that are not a function of the model and the path, keyed on a node they are not a
-  function of, merging with rows that are — quietly wrong rather than an error, which is the class
-  that README exists for. The probe is cheap: sweep the penalty and see whether the recorded
-  values move. This is the adapter's to settle and leaves here when it does.
-- **How often the top two rows sit within the disagreement.** *Determinism stops being a
-  diagnostic* turns a reordering into a different document, and nothing has measured how often the
-  gap is small enough for one. It is a count over a tree that already exists.
+  reads everything, and a long document may defeat that. Settled by building something long.

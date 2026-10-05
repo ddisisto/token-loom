@@ -149,24 +149,26 @@ whether it is wanted. The one thing decided in advance: a position that grows so
 may say so without moving, or may move only outside the band the caret reserves — motion where
 the reader is looking is a demand and not an offer.
 
-**2. Length and temperature, out of the panel and always on the page.** They are the two an
-operator moves per draw, because they are the two that change what *kind* of act it is —
-sampling the model, or running the greedy path out where that is cheap to read. Everything else
-in the panel is set once a session. The cut is along what each thing governs: **what is drawn**
-is `length` and `temperature`, **what is kept** is `record_rows` and `record_mass`, then the
-chain and the backend. Only the first pair leaves.
+**2. Length, temperature and the floor, out of the panel and always on the page.** They are what
+an operator moves per draw, because they change what *kind* of act it is — sampling the model, or
+running the greedy path out where that is cheap to read. Everything else in the panel is set once
+a session. The cut is along what each thing governs: **what is drawn** is `length`, `temperature`
+and `min_p`, **what is kept** is `record_rows` and `record_mass`, then the rest of the chain and
+the backend. Only the first three leave.
 
 **It is the one the operator asked for, and it is cheaper before the strip that lands beside
-it.** The recents strip in the item below sits in the same footer and is what a chip applies
-*to*, so the axes exist first.
+it.** The recents strip in *The settings a draw was made under* sits in the same footer and is
+what a chip applies *to*, so the axes exist first.
 
-**`docs/INTERFERENCE.md` already argues the shape.** Greedy is the zero of a dial there and not a
-rule, and the panel makes it a slider value indistinguishable in kind from 0.35. A control whose
-end *is* greedy — a place to slam into rather than a number to find — is that claim built rather
-than described.
+**The floor goes with the heat because neither means much alone.** `docs/INTERFERENCE.md`'s *A
+bound makes heat usable* has why: unbounded, a draw at 2.0 is salad from its first token, and
+under `min_p` 0.02 it is prose. The panel names `min_p` at 0.02 by default for that reason, and a
+temperature on the page with its floor behind a fold is how a reader draws salad without seeing
+why. Whether the two become one control — a heat whose floor follows it — is what living with
+them settles.
 
-**Two axes and not one pad.** Both carry a load-bearing value at an end: temperature zero is
-deterministic and merges, which is a different thing from 0.05 rather than a bit less of it, and
+**Two axes and not one pad.** Length and heat both carry a load-bearing value at an end:
+temperature zero is deterministic and merges, which is a different thing from 0.05 rather than a bit less of it, and
 a length-1 `generate` is how *Rankings* says a ranking is deepened. A pad reaches corners and
 fumbles edges. It also shows a position where what is needed is a number: the gesture that draws
 is a scroll, so there is no submit to disable and no moment to object in, and what a draw will
@@ -201,7 +203,38 @@ also spends fifty positions on a linear range whose useful values cluster low �
 ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
 out. The axis wants a floor of 1 and a spacing that is not linear.
 
-**3. The settings a draw was made under.** Drawing again at a position costs no search: the caret
+**3. Arms drawn as the draw is, and stacked.** A stub is greedy, which makes it the exact
+reference and only that. Drawn under the settings on the page instead — heat and floor included —
+a dwell buys several draws from the row rather than one, and they stack in the room item 1 opens.
+When the settings are greedy nothing changes; when they are not, a greedy arm still heads the
+stack, being the mode the draws spread around.
+
+**The stack is laid out as a trie and not as a list.** Draws from one node share prefixes by
+construction, since `(parent, token_id, source)` merges, so agreement is a shared run printed once
+and divergence is where it splits. That is the reading `docs/INTERFERENCE.md`'s *Interference* has
+for a spread — a basin where the draws agree, a fork where they part — and the record already holds
+it; what is new is only the layout.
+
+**How long the pointer rests is how many draws are bought.** At about 38 tok/s warm, half a minute
+is some fifteen arms of forty tokens. Whether they should be shorter and more numerous where the
+position is flat is open, and the entropy that would decide it is in the ranking before anything is
+spent — read off the distribution the draws come from, after the floor and the heat, and not the
+raw one. **Throughput is one slot**: `--parallel` above one would draw several at once and split
+the cache, which is the jump's cost in another form, and a probe decides whether it pays.
+
+**What the trie cannot see is agreement that did not share a first token.** Two draws saying the
+same thing from different openings share nothing in it. N-gram overlap and embeddings are what
+read that, which is the re-convergence item under Loose ends, and this is what would first produce
+enough arms to need it.
+
+**Three things it meets first.** Stacked stubs overlap each other and the path as a matter of
+course, so *what a draw does when it merges onto a stub* under Loose ends becomes the ordinary case,
+and it is decided and unchecked. A hot arm is not on the reference arm, by `docs/SPINE.md`'s rule
+that a node is only when every act producing it was greedy — which is right, and means a measure
+reading the arm must not take a stacked draw for one. And a further draw adds to a stack and
+replaces nothing, which is what *Stubs* asks of a stub that disappoints.
+
+**4. The settings a draw was made under.** Drawing again at a position costs no search: the caret
 stays where the draw was asked for and the gesture repeats there. What a reader cannot reach is
 what any of those draws were made *under* — to take the position again at a different temperature,
 at a higher sample resolution, or exactly as it stood. It is the loop `docs/INTERFERENCE.md` is
@@ -244,7 +277,7 @@ the record and cannot be derived; it is a constant the page offers. A recent is 
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**4. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+**5. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
 answers *how much, absolutely* and pins more than half a greedy path to one end, and a
 path-relative one over a long path is nearly as global. A domain built from the segments
 currently on screen answers *how much, compared to here*, which is the question a reader scanning
@@ -263,7 +296,7 @@ those measures without bounding the descent, and what would remain below is the 
 the name for what branching counts. It is also much the cheaper of the two, so knowing which
 answer was needed costs little.
 
-**5. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
+**6. A depth limit on the measures that look down.** The family is drawn and the rule is chosen
 from the same list, so what is left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
 gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
@@ -416,19 +449,17 @@ Not in the ordering; each stands on its own.
   a rewrite — but only one has been tried, against one palette, in two themes. What would settle
   which are worth keeping is reading the same path under several, since a scale is judged by what
   it lets a reader see and not by anything the code can check.
-- **A 500 the adapter blames on the predicate, at a position the predicate was right about.**
-  A `generate` of 256 tokens at temperature 2.0 or 1.65 against `data/logozoa` fails repeatedly
-  with `the server refused a path 'will_evaluate' accepted`, and the same position at
-  temperature 0 succeeds. The predicate cannot be what moved, since the path it was asked about
-  is the same one at both settings, so the prompt is not what the server is objecting to.
-  `src/tokenloom/adapters/llamacpp/README.md` records that error for a prompt ending inside a
-  character, which is where it was first met — but **the message says the model produced the
-  output**, and a hot draw is exactly what ends a completion on an under-filled multi-byte
-  sequence. That is a hypothesis and not a finding. What would settle it is one request at a
-  position known to decode, at a length and temperature that reproduce it, read against whether
-  the server's own response is what it could not format. If it holds, the adapter is accusing
-  the wrong half: the case is a generation that failed and should be recorded as one, the
-  predicate is not wrong, and the assertion says it is.
+- **A 500 the adapter blames on the predicate, when the model produced the output.** At a
+  position the predicate accepted, a hot draw with no bound fails with `the server refused a path
+  'will_evaluate' accepted`, and the server's own message says *the model produced output that
+  does not match the expected Content-only format*. It is common: half of 36 unbounded requests at
+  2.0 across four positions of `data/daniel`, each position serving every bounded draw without
+  complaint, and the same failure at 1.65 against `data/logozoa`. So the prompt is not what the
+  server objects to. What is open is what it does object to — a completion ending inside a
+  character, or invalid bytes mid-stream — and that is one request at a reproducing position, read
+  against the raw response. Either way the adapter is accusing the wrong half: the case is a
+  generation that failed, recorded as one, and the assertion saying the predicate is wrong is what
+  changes.
 - **`docs/SURFACE.md` cites this document three times, and `CLAUDE.md` says nothing should.**
   Each is a forward reference to work that is not built: the act that would price an authored
   position, the layout an arm's one clipped line is provisional against, and the second member

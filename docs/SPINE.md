@@ -88,7 +88,7 @@ Stubs answer the question a price alone cannot: **did the divergence last?** Mos
 
 Whether a stub has re-converged is left to the reader's judgement, deliberately. It is not obvious the question has a closed form, and the chain presented plainly — this token, that token, this continuation — is enough for a reader to decide how and whether to continue. Formalising re-convergence (n-gram overlap over a window, embedding distance, anything else) is analysis performed later over recorded chains, not a gate built into the loop. **The tree will not hand that analysis its answer.** A trie merges shared prefixes, so two continuations that part at a position and then say the same thing stay two branches the whole way down; re-convergence is a comparison over token sequences and is never a merge.
 
-**The greed is what earns the name, and it is a condition rather than a decoration.** An interferometer splits a signal, sends one part down a reference arm and the other down a measurement arm, and reads what differs when they recombine. The spine is the measurement arm — the path as it actually went, under whatever sampling and whatever interventions. The stub is the reference: the model left alone from the same position. A difference between them is attributable to the intervention **only because no sampling noise entered the reference**, which is what a temperature of zero buys and the only thing it is bought for. A stub drawn with any width to it would make the comparison a comparison of two draws, and there would be nothing to read off it.
+**The greed is what earns the name, and it is a condition rather than a decoration.** An interferometer splits a signal, sends one part down a reference arm and the other down a measurement arm, and reads what differs when they recombine. The spine is the measurement arm — the path as it actually went, under whatever sampling and whatever interventions. The stub is the reference: the model left alone from the same position. A difference between them is attributable to the intervention **only because no sampling noise entered the reference**, which is what a temperature of zero buys and the only thing it is bought for. One stub drawn with any width to it is a comparison of two draws, with nothing to attribute; several are a different reference, a spread rather than a mode, and `docs/INTERFERENCE.md`'s *Interference* has what each answers.
 
 **So the arm is exact only under conditions, and they are worth naming where the claim is made.** `src/tokenloom/adapters/llamacpp/README.md` measures them: cold, a rollout reproduces bit for bit; warm, the prompt cache is a second variable, and a *partial* hit moves logprobs by up to 0.58 and has moved a greedy path off its cold course. Hardware and batch-level nondeterminism are not controlled for either, and a seed does not reach the cache. What follows is not that the reference is useless but that it is a reference *on this machine, in this cache state* — exact where it is read against a spine drawn under the same conditions, and advisory across them.
 
@@ -298,9 +298,42 @@ contributes as many again. Readability is the binding constraint, not inference 
 Over the 298 generated runs of `data/continuations`, the share of positions that diverge runs
 1 in 7030 at temperature 0, 3.0% at 0.05–0.35, 27.4% at 0.4–0.8, and 58.7% above 0.9. So the
 rarity of a divergence is a property of how a batch was asked for and not of what it says, and a
-document drawn greedily carries none at all — which is the mode this method spends most of its
-time in. The texture that reads off a page as alternating dense and empty regions is a record of
-method, which is a real thing to be able to see, and it is not the text speaking.
+document drawn greedily carries none at all. The texture that reads off a page as alternating
+dense and empty regions is a record of method, which is a real thing to be able to see, and it is
+not the text speaking.
+
+**Counting divergences and summing their prices agree near greedy and part under heat.** Over
+windows of one run in `data/continuations`, the two rank the run's windows with a median Spearman
+of 0.98 at 0.05–0.35, 0.81 at 0.4–0.8 and 0.67 at 0.9 and above. So a count is serviceable exactly
+where divergences are too rare to index anything. `scripts/takers.py` is the measurement.
+
+**Truncation and not temperature decides whether a hot draw stays prose, and the bound that holds
+is `min_p`.** Four positions of one worked tree, `data/daniel`, whose paths at temperature 2.0
+read as prose — three drawn under `top_p` 0.95 and `min_p` 0.02, one under `top_k` 20 — with five
+draws a condition from each, one position drawn to both 48 and 200 tokens, on a scratch copy on
+2026-10-04. `scripts/truncation-probe.py` is the measurement.
+
+| at 2.0, bounded by | what came back |
+|---|---|
+| nothing | salad from the first token; drawn tokens near −12 nats, 14–21% of them non-Latin; llama.cpp failed half the requests, 18 of 36, on output it could not format |
+| `top_p` 0.95 | prose that ran away over tens of tokens; 14 of 15 draws at 200 tokens reached windows near −10 nats |
+| `min_p` 0.02 | what the original chain drew, at every position: mean drawn logprob −1.5 to −2.6 against −1.5 to −3.1 |
+| `min_p` 0.05, 0.10 | steadily nearer the head as the floor rose |
+
+`top_p` fails by feedback: a tail token flattens the next ranking, and a flatter ranking admits
+more tail. Under `min_p` 0.02 a draw at 2.0 costs about what an unbounded one at 1.0 does per
+token, with half as many tokens from deep in the tail. The kept paths were mostly first draws, a
+median of one `generate` per origin, so this is not a reader keeping the good ones. **The first two
+rows are not in doubt** — about ten nats, and visible in the first line of every sample. That
+`min_p` alone matches the original rests on crude proxies and one reading of the text, five draws a
+cell, at positions from one tree on one subject, with seeds unpaired across conditions.
+
+**An earlier pass from `data/continuations` points the same way.** Eight draws from its Austen seed
+at 1.4 under `top_k` 20 each took 12 to 29 of 150 tokens from ranks 10 to 19 and read as prose for
+their full length. Later walks from the same seed with no bound drew mostly past the recorded rows
+— 67 of 90 at 1.4, 28 of 32 at 1.3, and at 1.1 once 20 of 80, still prose, and once 70 of 80, salad
+from its second token. The walks recorded ten rows against the probe's twenty, which flatters the
+probe, though not by that margin.
 
 **At a divergence the deviation is never less than the gap, which makes the gap the only dial.** A draw
 that left the argmax took something at or below the second row, so `top₁ − taken ≥ top₁ − top₂` by

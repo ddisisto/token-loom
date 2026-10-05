@@ -700,8 +700,8 @@ than the spending one. The top left is what a cold path is made of and has no ot
 
 **What this does not carry is how far past the second row the taker went.** That is a real
 quantity and the column has no channel left for it: the wash holds a measure, the mark holds who,
-and weight is claimed — `docs/INTERFERENCE.md` gives prominence to the watermark at the most
-recent act's origin. Whether the four readings above suffice is in What is not decided here.
+and weight is claimed, for telling the newest stretch from what was continued past — the most
+recent act's origin marks that boundary, read off the acts and with no reader state. Whether the four readings above suffice is in What is not decided here.
 
 **A node two sources ranked has no single value, and the surface refuses rather than choosing
 one.** Picking a source silently would make an overlay mean different things at different

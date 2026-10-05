@@ -155,13 +155,12 @@ makes, and an instrument that scored it would be answering a question nobody has
 enough to score. What can be measured is something else — whether that reader is still in a
 position to make the call.
 
-**The judgement is exercised as rejection, which is why it survives having no criterion.** A
-reader does not need to know what a good continuation would be in order to know they do not want
-more of this one. Rejection is local, it is negative, and it needs no target, which is what makes
-it available at every position rather than only at the end of something. What a sampler does
-blindly and by policy — walking away from a degenerate region — becomes a thing chosen once,
-here, on its merits. `docs/INTERFERENCE.md`'s *a sampler is a prosthesis for absent intent* is the
-general form, and a repetition loop is only where the prosthesis is most visibly one.
+**The judgement is exercised by letting stand or not, which is why it survives having no
+criterion.** A reader does not need to know what a good continuation would be in order to know
+they do not want more of this one, or that this one will do. Either is local and needs no target,
+which is what makes it available at every position rather than only at the end of something. The
+sampler supplies what is judged: a commitment the model's mode would not have made, which the
+model then builds on.
 
 **The instrument need not know the goal, and the rejections still carry it.** These are not the
 same statement and the difference is the whole of what makes the logs worth reading. A reader
@@ -171,11 +170,9 @@ order for the filtering to work. What they declined is evidence about the purpos
 and `docs/SPINE.md`'s questions about how an operator learns a model are questions about exactly
 that residue.
 
-**The path on screen is the operator's argmax, and only the model's has a number beside it.** At
-each position the reader takes what best fits whatever they are after in that moment — an
-objective that is theirs, that moves, and that nothing asks them to state. Naming it an argmax
-changes nothing about how it is exercised; it is still arrived at by declining, which is what the
-paragraphs above are about. What it makes visible is the shape of the asymmetry: **the model
+**The path on screen is what the reader let stand, and only the model's side has a number
+beside it.** At each position it is what best fitted whatever the reader was after in that moment
+— an objective that is theirs, that moves, and that nothing asks them to state. **The model
 supplies a field and the operator supplies a point.** A ranking is a number at every token; a
 choice is one token, with no distribution behind it to read off. Nothing recovers what the reader
 would have assigned to the row they passed over, and an instrument that asked them would be
@@ -191,7 +188,10 @@ tractable one, which is worth saying because it looks like a simplification.
 
 **So the failure to watch for is not a bad context but a reader with nothing left to decline.** A
 context can be driven so far that every continuation is the one that was wanted, and from the
-inside that is indistinguishable from having learned the model. `docs/SPINE.md` carries the
+inside that is indistinguishable from having learned the model. Steering until the model's argmax
+says what was wanted is the direct route there: the mode of a base model is what every writer the
+context admits would agree on, and narrowing that to the reader's own wish closes the loop by
+hand. `docs/SPINE.md` carries the
 checks against it. None of them scores the work; each asks whether choices are still arriving to
 be refused. **They are measurements of a process and not of a context**, which is how they stand
 beside the refusal above rather than against it.
@@ -212,11 +212,11 @@ one place it is easiest to see.
 An argument that names nothing that would unseat it is decoration. These are not a programme of
 work and carry no order; what has been measured is `docs/SPINE.md` under *Evidence in hand*.
 
-- **Crystallisation should be visible, and cheaply.** If a term acquires operational meaning
-  through use, the same term should cost fewer nats late in a context than early — one token,
-  measured at two depths, in a tree this instrument already builds. If it costs the same, either
-  nothing crystallised or the effect is not where this says it is. **This one needs no machinery
-  that does not exist.**
+- **Crystallisation should be visible, and cheaply — against a control.** If a term acquires
+  operational meaning through use, the same term should cost fewer nats late in a context than
+  early. But any repeated token gets cheaper, because a model copies what is already in its
+  context, so the reading is the difference against a term repeated as often that did no work. If
+  the two fall alike, what was seen was copying. **This needs no machinery that does not exist.**
 - **A basis that closes the divide should show up as the model being pinned down.** What a path
   costs per unit of text reads how hard a context holds a model to its preferences, so if a basis
   is doing the work claimed for it, that rate against context depth is where it would appear —
@@ -237,13 +237,15 @@ work and carry no order; what has been measured is `docs/SPINE.md` under *Eviden
   the other way round, and unlike that one it wants something the store cannot yet do — nothing
   prices a sequence the model did not draw.
 - **The measures should survive leaving the conditions they were found in.** They are developed
-  where a divergence is cheap and easy to see — low temperature, short contexts, a seven-billion
-  parameter base model — and the bet is that what they read scales into long and complex ones.
+  where a divergence is cheap and easy to see — short contexts and a seven-billion parameter base
+  model — and the bet is that what they read scales into long and complex ones. The sessions this
+  essay opens with are not among what the instrument can observe: no hosted model returns the
+  record, so they are the motivation and never the data.
   The counter is specific and worth stating as such: further into a context, and with a more
   capable model, degeneracy is rarer and what divergence remains is subtler and more semantic, so
   a reading built on the distance between a ranking's top two rows may find nothing there at all.
   If the measures go quiet where the work gets hard, they were instruments for the easy case.
-- **Compaction should preserve the load-bearing and not the frequent.** The claim is that what
-  survives is what was structural. A term that occupied a great deal of the window and did no
-  work, surviving; a rule that did all the work, lost — either would say the mechanism is
-  something other than what is described here.
+- **Compaction should preserve the load-bearing and not the frequent.** A term that occupied a
+  great deal of the window and did no work, surviving; a rule that did all the work, lost —
+  either would say the mechanism is something other than what is described here. This one is not
+  the instrument's to run, and it reads the summarising model's priors as much as the basis.
