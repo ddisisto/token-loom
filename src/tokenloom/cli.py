@@ -124,10 +124,11 @@ def cmd_generate(args) -> int:
         "temperature": args.temperature,
         "cache_prompt": args.cache_prompt,
     }
-    if args.top_k is not None:
-        # Naming a sampler is what puts it in the chain, so an unnamed `top_k` is a draw
-        # with no such bound rather than a draw at whatever the backend would pick.
-        params["top_k"] = args.top_k
+    for sampler in ("top_k", "top_p", "min_p"):
+        # Naming a sampler is what puts it in the chain, so an unnamed one is a draw with
+        # no such bound rather than a draw at whatever the backend would pick.
+        if getattr(args, sampler) is not None:
+            params[sampler] = getattr(args, sampler)
     if args.seed is not None:
         params["seed"] = args.seed
     elif args.temperature > 0:
@@ -435,6 +436,12 @@ def build_parser() -> argparse.ArgumentParser:
                    help="confine the draw to the k most probable tokens. Omit and no such "
                         "bound joins the sampler chain, which is what lets a draw land "
                         "outside the alternatives recorded for its position.")
+    p.add_argument("--top-p", type=float, dest="top_p",
+                   help="confine the draw to the most probable tokens covering this much "
+                        "probability. Omit and it is not in the chain.")
+    p.add_argument("--min-p", type=float, dest="min_p",
+                   help="confine the draw to tokens at least this fraction as probable as "
+                        "the top one. Omit and it is not in the chain.")
     p.add_argument("--record-rows", type=int, default=80, dest="record_rows",
                    help="at most this many alternatives recorded per position. Must be at "
                         "least a top_k this draw names.")
@@ -442,7 +449,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="stop recording alternatives once their probabilities reach this. "
                         "1.0 records every row --record-rows allows.")
     p.add_argument("--temperature", type=float, default=0.0,
-                   help="0 draws the most probable token at every position")
+                   help="0 draws the most probable token at every position. Applied after "
+                        "the bounds above, so it flattens only what they kept.")
     p.add_argument("--seed", type=int,
                    help="omit and a stochastic draw gets one drawn for it; a greedy draw "
                         "records none")

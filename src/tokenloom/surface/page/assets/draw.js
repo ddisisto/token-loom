@@ -34,7 +34,7 @@ const FIELDS = [
   { key: "temperature", group: "the chain", kind: "real", min: 0, max: 2, step: 0.05, value: 0 },
   { key: "top_k", group: "the chain", kind: "int", min: 1, max: COVER, step: 1, value: 10, off: true },
   { key: "top_p", group: "the chain", kind: "real", min: 0.05, max: 1, step: 0.05, value: 0.95, off: true },
-  { key: "min_p", group: "the chain", kind: "real", min: 0, max: 0.5, step: 0.01, value: 0.05, off: true },
+  { key: "min_p", group: "the chain", kind: "real", min: 0, max: 0.5, step: 0.01, value: 0.02 },
 
   { key: "record_rows", group: "the record", kind: "int", min: 2, max: COVER, step: 1, value: 10 },
   { key: "record_mass", group: "the record", kind: "real", min: 0.1, max: 1, step: 0.05, value: 0.9 },
@@ -62,7 +62,7 @@ export function draw() {
 /** What a draw keeps, with nothing of what it draws.
  *
  *  **It is the panel cut along the line `docs/NEXT.md` already draws through it**: what is
- *  drawn is `length` and `temperature`, what is kept is the record's depth and mass, and
+ *  drawn is `length` and the chain, what is kept is the record's depth and mass, and
  *  then the backend. A caller that decides the first pair for itself still owes the record
  *  the second, and a rollout is that caller -- it fixes its length and its heat, and takes
  *  how deep to record from wherever the reader set it.

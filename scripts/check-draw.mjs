@@ -12,7 +12,7 @@
 
 import { El } from "./stub-dom.mjs";
 
-const { draw, panel } = await import(
+const { draw, keep, panel } = await import(
   new URL("../src/tokenloom/surface/page/assets/draw.js", import.meta.url));
 
 const frag = panel();
@@ -41,8 +41,10 @@ const check = (key, on) => { const t = rows.get(key).toggle; t.checked = on; t.o
 const move = (key, value) => { const c = rows.get(key).control; c.value = String(value); c.oninput(); };
 const covered = () => !("top_k" in draw()) || draw().record_rows >= draw().top_k;
 
-is("the defaults are the required five and nothing else", draw(),
-   { length: 80, temperature: 0, record_rows: 10, record_mass: 0.9, cache_prompt: true });
+is("the defaults are the required five and the floor heat needs", draw(),
+   { length: 80, temperature: 0, min_p: 0.02,
+     record_rows: 10, record_mass: 0.9, cache_prompt: true });
+is("  and a draw keeps none of the chain", "min_p" in keep(), false);
 
 check("top_k", true);
 is("naming top_k at the rows already kept moves neither", [draw().top_k, draw().record_rows], [10, 10]);
