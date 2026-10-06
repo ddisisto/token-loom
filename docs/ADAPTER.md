@@ -344,3 +344,8 @@ one always could; a reader who wants to *select* on it now can, in the common ca
 - **How often the top two rows sit within the disagreement *Determinism* records.** Where they do,
   a cache state or a chunk boundary is enough to change a greedy document rather than only a
   recorded value. It is a count over a tree that already exists.
+- **What the server objects to in a hot draw's output.** The adapter's notes have a draw at high
+  temperature failing on the 500 that answers a prompt ending inside a character, and the adapter
+  records it as `failed`. Whether the output ends inside a character or carries invalid bytes
+  mid-stream is not settled, and neither is whether what was drawn before the failure could be
+  recovered rather than lost. One request at a reproducing position, read raw, settles the first.
