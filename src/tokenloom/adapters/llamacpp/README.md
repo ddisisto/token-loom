@@ -186,6 +186,11 @@ so the native one is chosen for what it adds: `stop_type` separating `eos` from 
   a stray continuation byte in last position. So the predicate asks whether the bytes end
   with an *under-filled* multi-byte sequence, which is narrower than asking whether they
   decode end to end, and a path that does not decode is not thereby unreachable.
+
+  **The same 500 answers a draw whose output the server cannot send.** At temperature 2.0 with
+  no truncation, half of 36 requests across four positions failed with it, at prompts that
+  served every bounded draw, and fewer at 48 tokens than at 200. The prompt has passed the
+  refusal above by then, so it is the drawn bytes, and the adapter raises it as the output's.
 - **An empty prompt is accepted and generates nothing.** HTTP 200, empty content, no tokens,
   no `completion_probabilities`, `tokens_evaluated: 0`, `stop_type: "none"` — beside counters
   that never entered a generation loop. An empty *string* is not the model's empty context:

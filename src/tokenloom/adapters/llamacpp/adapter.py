@@ -83,6 +83,11 @@ class Refused(Exception):
     """Carried out of the checks and turned into a `refused` act by `generate`."""
 
 
+class Unreturnable(Exception):
+    """The model drew and the server could not send it back. The call happened, so the act
+    it belongs to is `failed` and not `refused`."""
+
+
 class LlamaCppAdapter:
     """One vocabulary, one server, one model."""
 
@@ -150,10 +155,11 @@ class LlamaCppAdapter:
             answer = self.client.completion(ids, payload)
         except ServerError as exc:
             if exc.status == 500 and "Content-only" in exc.body:
-                # The path predicate should have caught this. If it did not, the predicate
-                # is wrong, and saying so is more useful than recording a `failed`.
-                raise AssertionError(
-                    f"the server refused a path `will_evaluate` accepted: {exc}"
+                # `_request` refused a prompt ending mid-character, so the bytes the server
+                # could not return are the model's own.
+                raise Unreturnable(
+                    "the model drew output the server could not return, most likely ending "
+                    f"inside a character; a shorter or more bounded draw meets it less: {exc}"
                 ) from exc
             raise
 

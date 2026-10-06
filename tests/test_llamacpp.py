@@ -17,6 +17,7 @@ from tokenloom.adapters.llamacpp.adapter import (
     MISSING,
     LlamaCppAdapter,
     Refused,
+    Unreturnable,
     bound,
     ends_mid_character,
     reaches,
@@ -24,7 +25,7 @@ from tokenloom.adapters.llamacpp.adapter import (
     terminator_for,
     walk,
 )
-from tokenloom.adapters.llamacpp.client import Props
+from tokenloom.adapters.llamacpp.client import Props, ServerError
 from tokenloom.core import Position, Ranked, Source
 
 #: Real bytes off `tokenizer.ggml.tokens`, for the ids the measured response below carries.
@@ -266,6 +267,23 @@ def offline() -> LlamaCppAdapter:
 
 
 PROMPT = [3555, 374]  # " What is" -- spelled by SPELL and not ending mid-character
+
+
+class Unformatted(FakeClient):
+    """The server's answer when the bytes it would send end inside a character."""
+
+    def completion(self, ids, payload):
+        raise ServerError(500, '{"error": {"message": "The model produced output that does '
+                               'not match the expected Content-only format"}}')
+
+
+def test_output_the_server_cannot_return_is_blamed_on_the_output():
+    """The prompt passed the mid-character refusal before the call, so a 500 about the
+    format is about what was drawn -- and it is an error, which the store records as
+    `failed`, and not a fault in the predicate."""
+    adapter = LlamaCppAdapter(Source("model", "fake"), Spelling(), Unformatted())
+    with pytest.raises(Unreturnable, match="the model drew output"):
+        adapter.generate(PROMPT, ASK)
 
 ASK = {"length": 2, "record_rows": 4, "record_mass": 1.0,
        "temperature": 0.8, "cache_prompt": False}
