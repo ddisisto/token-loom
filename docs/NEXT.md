@@ -95,6 +95,10 @@ how the two come apart without anything saying so. It is still not a threshold, 
 depth depends on the draw it records, so the surface shows the pair rather than inventing a line
 between them.
 
+**`README.md`'s picture is chosen again once this lands.** What it should show is the draw's
+controls at the edge and in the footer, worked into the reading, where the current banner gives a
+third of its width to a panel. Its caption goes with it.
+
 **2. Arms drawn as the draw is, and stacked.** A stub is greedy, which makes it the exact
 reference and only that. Drawn under the settings on the page instead — heat and floor included —
 a dwell buys several draws from the row rather than one, and they stack beside the row.
