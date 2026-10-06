@@ -32,59 +32,68 @@ for and what is drawn over it. This section is what comes after that.
 
 ### The increments, in order
 
-**1. Length, temperature and the floor, out of the panel and always on the page.** They are what
-an operator moves per draw, because they change what *kind* of act it is — sampling the model, or
+**1. The draw's settings on the page: length at the edge, heat in the footer.** They are what an
+operator moves per draw, because they change what *kind* of act it is — sampling the model, or
 running the greedy path out where that is cheap to read. Everything else in the panel is set once
 a session. The cut is along what each thing governs: **what is drawn** is `length`, `temperature`
 and `min_p`, **what is kept** is `record_rows` and `record_mass`, then the rest of the chain and
-the backend. Only the first three leave.
+the backend. The recents strip in *The settings a draw was made under* is what a chip applies
+*to*, so these exist first.
 
-**It is the one the operator asked for, and it is cheaper before the strip that lands beside
-it.** The recents strip in *The settings a draw was made under* sits in the same footer and is
-what a chip applies *to*, so the axes exist first.
+**Length is the room below the text, and its control is the page's edge.** The space under the
+last line is where the next draw lands, and it is also how far past the text a reader scrolls
+before the gesture fires — so it reads as a promise of how much is coming. Used at 45vh and at
+85vh, the shorter room invited shorter draws and the longer one longer, and neither was better:
+each put the reader somewhere different on the page. So one full-height slider sets the room,
+and its handle's line is where the last line stands when the draw fires.
+
+**Its ends park, and the band between them draws.** At or below 30vh and at or above 85vh a scroll
+to the foot draws nothing, which leaves two ways to read with no gesture writing anything — near
+the foot of the screen, or with the tail high on it. Between them the handle's position is a
+length, **fixed and not derived from the text beside it**: log-spaced with detents at 8, 16, 32,
+64, 128 and 256, about one every eleventh of the screen, so a position is learned once and says
+the same number every time. A length that matched the room exactly would need tokens per line,
+which varies with what is being drawn, and would move under the hand. Whether 400 earns a seventh
+detent is for use.
+
+**Parking wins over everything that scrolls.** A caret armed by `realise` does not draw from a
+parked page, and what the page says after a realise names the gesture that will. The key that
+draws at a fixed position uses the slider's length parked or not, since parking stops scrolling
+from writing and does not take the length away. **The readout beside the handle is the length,
+or *parked*,** which keeps the next draw legible in both states — the gesture is a scroll, so
+there is no submit to disable and no moment to object in.
+
+**Length 1 leaves the slider.** It is how *Rankings* says a ranking is deepened, which is not a
+decision about how much to read, and no room on a screen maps to one token. It wants a gesture of
+its own at a position, and until it has one the command line makes it.
+
+**Heat is a horizontal slider in the footer, linear from 0 to 2.5.** The footer is already always
+there, *what this is* on the left and *what a draw will be* on the right, and what makes these
+inaccessible now is the nav's fold, not the panel. Zero is an end to slam into rather than a value
+to find, which is what makes greedy a place on the dial; steps of 0.05 or 0.1 are for use. Above
+2.0 is untried, and under a floor it should hold.
 
 **The floor goes with the heat because neither means much alone.** `docs/INTERFERENCE.md`'s *A
 bound makes heat usable* has why: unbounded, a draw at 2.0 is salad from its first token, and
-under `min_p` 0.02 it is prose. The panel names `min_p` at 0.02 by default for that reason, and a
-temperature on the page with its floor behind a fold is how a reader draws salad without seeing
-why. Whether the two become one control — a heat whose floor follows it — is what living with
-them settles.
+under `min_p` 0.02 it is prose. So the floor is read out beside the heat whenever it is in the
+chain, and a heat on the page with its floor behind a fold is how a reader draws salad without
+seeing why. Whether the two become one control — a heat whose floor follows it — is what living
+with them settles.
 
-**Two axes and not one pad.** Length and heat both carry a load-bearing value at an end:
-temperature zero is deterministic and merges, which is a different thing from 0.05 rather than a
-bit less of it, and a length-1 `generate` is how *Rankings* says a ranking is deepened. A pad
-reaches corners and fumbles edges. It also shows a position where what is needed is a number: the gesture that draws
-is a scroll, so there is no submit to disable and no moment to object in, and what a draw will
-cost has to be legible before it is spent. The two modes named above are attractors and not a
-plane to roam, which is what a pad would be for. If the strip reads as two controls rather than
-one, the pad is what to try next.
+**The footer is a drawer, and the rest of the draw panel is what it holds.** Pulled up into the
+content it reveals the chain, the record and the backend, so the draw's settings are one
+component with its most used control always showing. That takes the draw panel out of the nav,
+and out of the tabs item 3 proposes, which keep the rankings and the overlay controls.
 
-**It belongs in the footer.** What makes these inaccessible now is not the panel but the nav: the
-panel sits inside it, the fold takes them together, and the fold is what the overflow below
-forces. The footer is already always there — *what this is* on the left, *what a draw will be* on
-the right.
-
-**It does not compete with the tabs item 3 proposes, and the two are one cut read from
-each side.** Only the pair leaves; what is kept and what is chained stay a panel, and a panel is
-what becomes a tab. So this empties the draw panel of the two controls used most, which makes
-whatever it is folded into smaller — and the order holds either way, since a footer is a
-different region from a corner.
-
-**`record_rows` goes with them as a readout and not as a dial.** `docs/SPINE.md` measured the
+**`record_rows` is read out in the strip and not dialled there.** `docs/SPINE.md` measured the
 coupling on `data/logozoa`, recorded at ten rows throughout its early work: two thirds of every
 divergence in the tree sits at a depth of two. Obligation 7 took the sharp edge off this — a draw
-is valued whatever the rows reached, so a low count no longer costs the record a value — and what
-is left is still not nothing. The row count is how many alternatives a reader has to branch into
-and what every quantity over a ranking is read against, and making temperature the easiest thing
-on the page to move while it stays behind a fold is how the two come apart without anything
-saying so. What it is still not is a threshold — the right depth depends on the draw it is
-recording, which is not known when it is chosen — so the surface shows the pair rather than
-inventing a line between them.
-
-**`length` starts at 8 and steps by 8, which forbids the length-1 draw the design names.** It
-also spends fifty positions on a linear range whose useful values cluster low — one to deepen a
-ranking, eight to sixteen for a phrase, eighty for a paragraph, two hundred and more to run it
-out. The axis wants a floor of 1 and a spacing that is not linear.
+is valued whatever the rows reached — and what is left is still not nothing. The row count is how
+many alternatives a reader has to branch into and what every quantity over a ranking is read
+against, and making heat the easiest thing on the page to move while the rows stay in a drawer is
+how the two come apart without anything saying so. It is still not a threshold, since the right
+depth depends on the draw it records, so the surface shows the pair rather than inventing a line
+between them.
 
 **2. Arms drawn as the draw is, and stacked.** A stub is greedy, which makes it the exact
 reference and only that. Drawn under the settings on the page instead — heat and floor included —
@@ -308,6 +317,12 @@ coded**: what setting them is like for a reader may answer all three at once rat
 parameters, and that would change what the server is asked for. A branching limit is the new one —
 stacked arms make a position as wide as the reader's patience. What is below is the depth half,
 and it is material for that discussion rather than a plan.
+
+**The first of the three has an answer, and it is the screen's room.** Item 1 makes a draw's
+length the space below the text, set by where the reader wants to read rather than as a count.
+Whether depth goes the same way — what a measure looks down being what is in view, which is item
+5's question from the other side — and branching too, as the room the margin has for a stack, is
+the shape the discussion starts from: the page set up, and the parameters following from it.
 
 **The depth limit.** The family is drawn and the rule is chosen from the same list, so what is
 left of this is the bound. It is not a parameter on the end of the
