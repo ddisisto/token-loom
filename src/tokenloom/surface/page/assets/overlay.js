@@ -1,6 +1,6 @@
 /* What is drawn along the path, and the panel that chooses it.
  *
- * `docs/SURFACE.md` has an overlay as three separable things, and they are separate here: a
+ * `docs/LAYERS.md` has an overlay as three separable things, and they are separate here: a
  * MEASURE is a per-position quantity that may be absent, a SCALE maps it into [0,1], and the
  * UNIT is what a value is addressed to. Keeping them apart is what lets a quantity some later
  * analysis computes arrive through this same machinery and be read the same way.
@@ -47,7 +47,7 @@
  *  thousands legible beside a corridor of a dozen.
  *
  *  Neither carries a fixed domain. Subtree size runs from one to the size of the tree and the
- *  tree grows, so a colour could not mean the same thing twice; `docs/SURFACE.md` has a depth
+ *  tree grows, so a colour could not mean the same thing twice; `docs/LAYERS.md` has a depth
  *  limit as what supplies a ceiling, and until there is one these are path-relative and the
  *  panel says so.
  */
@@ -150,7 +150,7 @@ const MEASURES = [
    * Three of the four only fall as a path descends, so unbounded they draw as a gradient from
    * the root and say nothing but where the steps are. Over the 266-node path of
    * `data/continuations` the run to the next fork is the only one that rises, and it rises ten
-   * times. `docs/SURFACE.md` has the depth limit as what makes the other three local.
+   * times. `docs/LAYERS.md` has the depth limit as what makes the other three local.
    */
   {
     key: "height",
@@ -433,7 +433,7 @@ const settle = () => { for (const again of sync) again(); };
 let note = null;
 
 /** What the path held, once it was read. The count is how much of the path the measure
- *  reached, and the depths are what `docs/SURFACE.md` has a depth-bound overlay carry: values
+ *  reached, and the depths are what `docs/LAYERS.md` has a depth-bound overlay carry: values
  *  gathered at different depths are not comparable, and a uniform wash would not say so. */
 function survey(m, values, deep, total) {
   if (!note) return null;

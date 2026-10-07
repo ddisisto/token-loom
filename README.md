@@ -110,6 +110,8 @@ test.
   them so far.
 - **[`docs/SURFACE.md`](docs/SURFACE.md)**: the reading page's design. Drafted, and each open
   question says what would settle it.
+- **[`docs/LAYERS.md`](docs/LAYERS.md)**: what the page draws over the text: the measures, the
+  scales they are read on, and the mark saying who put each token there.
 - **[`docs/NEXT.md`](docs/NEXT.md)**: what gets built next and in what order. Items are deleted
   once they close.
 

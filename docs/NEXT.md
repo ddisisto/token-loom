@@ -229,7 +229,7 @@ the record and cannot be derived; it is a constant the page offers. A recent is 
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**4. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+**4. A third scale, taken from what is in view.** `docs/LAYERS.md` has the case: a fixed domain
 answers *how much, absolutely* and pins more than half a greedy path to one end, and a
 path-relative one over a long path is nearly as global. A domain built from the segments
 currently on screen answers *how much, compared to here*, which is the question a reader scanning
@@ -239,7 +239,7 @@ for a position that stands out among its neighbours is actually asking.
 the domain over their values is arithmetic, so the scale takes the values as an argument and stays
 checkable under `scripts/stub-dom.mjs` — `CLAUDE.md` separates the two and this is the case that
 makes it bite. Zoom is the widening gesture and needs no work; whether it suffices is an open
-question in `docs/SURFACE.md` rather than a thing to build against.
+question in `docs/LAYERS.md` rather than a thing to build against.
 
 **It is before the depth limit because it may change what that item is for.** The limit exists
 because three of the downward measures only fall as a path descends, which makes them a gradient.
@@ -265,7 +265,7 @@ following from it.
 **The depth limit.** The family is drawn and the rule is chosen from the same list, so what is
 left of this is the bound. It is not a parameter on the end of the
 increment: three of the five measures can only fall as a path descends, which makes them a
-gradient, and `docs/SURFACE.md` has why a gradient is the wrong thing to spend the column on.
+gradient, and `docs/LAYERS.md` has why a gradient is the wrong thing to spend the column on.
 **It is less urgent than it was**: *what the rule passed over* is the same family drawn as
 transitions rather than as a ramp, it already exists, and it answers the question use turned
 out to be asking. So the limit is now wanted for the fixed domain and for branching, and not to
@@ -283,7 +283,7 @@ page ever wants two depths at once.
 
 Views follow it rather than accompany it, since a view is a rule, an overlay and a limit set
 together and two of the three exist. Branching waits on what it counts and vocabulary on whether
-a scale with a middle earns its place; both are open questions in `docs/SURFACE.md`, and neither
+a scale with a middle earns its place; both are open questions in `docs/LAYERS.md`, and neither
 blocks anything here.
 
 ### What holds across them
@@ -418,14 +418,14 @@ Not in the ordering; each stands on its own.
   a rewrite — but only one has been tried, against one palette, in two themes. What would settle
   which are worth keeping is reading the same path under several, since a scale is judged by what
   it lets a reader see and not by anything the code can check.
-- **`docs/SURFACE.md` cites this document three times, and `CLAUDE.md` says nothing should.**
-  Each is a forward reference to work that is not built: the act that would price an authored
-  position, the layout an arm's one clipped line is provisional against, and the second member
-  of `RULES` that would stop an arrival leaning toward where the reading went. The hazard is the
-  one that makes the rule: an item here is deleted when it closes or falls out of scope, so a
-  citation of it dangles by design. Each is a judgement rather than a replacement — either the
-  cited thing has a home in `docs/SURFACE.md` and should be stated there, or the sentence should
-  say what is missing without naming where it is tracked.
+- **`docs/SURFACE.md` and `docs/LAYERS.md` cite this document three times, and `CLAUDE.md`
+  says nothing should.** Each is a forward reference to work that is not built: the act that
+  would price an authored position, the layout an arm's one clipped line is provisional against,
+  and the second member of `RULES` that would stop an arrival leaning toward where the reading
+  went. The hazard is the one that makes the rule: an item here is deleted when it closes or
+  falls out of scope, so a citation of it dangles by design. Each is a judgement rather than a
+  replacement — either the cited thing has a home in the document citing it and should be stated
+  there, or the sentence should say what is missing without naming where it is tracked.
 - **Whether the command line should keep verifying on every write.** Each invocation is its own
   writer, so each pays a whole-tree read — 330 ms at 20k nodes. The server pays it once for the
   life of the process, which is what a long-running session buys. Nothing forces the question
@@ -495,7 +495,7 @@ Not in the ordering; each stands on its own.
   the mark over it is a placeholder — one flat block of the reader's hue over the part of a
   document that is most theirs, carrying nothing but *a person wrote this*. Ranked, the block
   resolves into where the reader's own writing stopped being distinguishable from the model's,
-  which `docs/SURFACE.md` has as the edge of a voice and the one thing the hue cannot supply.
+  which `docs/LAYERS.md` has as the edge of a voice and the one thing the hue cannot supply.
   Three things narrow it. **A seed's positions are wanted branchable on the same footing as any
   others**, the unit being a position in a context and not a token of a particular origin, so the
   generalisation test is one caller and not the reason. **The operation stands on its own whatever
