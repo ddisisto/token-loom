@@ -118,11 +118,11 @@ test.
 ## Where it is
 
 **Working:** the store and every write to it from the command line; a reading page that sets a
-path as prose, shows what was ranked at any token, continues or branches from there, and draws a
-measure along the path. It is used daily, by one person.
+path as prose, shows what was ranked at any token, continues or branches from there, draws a
+measure along the path, and puts the draw's length, heat and sampler settings beside the text. It
+is used daily, by one person.
 
-**Next:** the draw's settings as controls at the edge of the page, and several draws at a
-position shown side by side so you can see where they agree. `docs/NEXT.md` has the order, and
+**Next:** several draws at a position shown side by side, so you can see where they agree. `docs/NEXT.md` has the order, and
 `docs/ADAPTER.md`'s Status has what the backend leaves open.
 
 **By design:** one tree, one writer, one person reading, one local model. The documents say why.

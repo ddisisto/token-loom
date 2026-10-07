@@ -257,6 +257,57 @@ caret does not follow the window either — it is the one the reader chose, the 
 scroll is the draw, and drifting off it would both aim the act elsewhere and disarm it on the
 way.
 
+## The draw
+
+**Two settings change what kind of act a draw is, and they are on the page; the rest are set once
+a session and are under it.** Length and heat are what is moved per draw — sampling the model, or
+running the greedy path out where that is cheap to read. The recording bounds, the rest of the
+chain and the backend are in a drawer beneath the footer.
+
+**Length is the room below the text.** The space under the last line is where the next draw lands
+and how far past the text a reader scrolls before the gesture fires, so it reads as a promise of
+how much is coming: read with a shallow room and a deep one, the shallow one invited shorter draws
+and the deep one longer, and neither was better. A faint line left of the column sets it, and its
+point's height is where the last line will stand when a scroll draws. The room is a share of the
+height above the footer, so whatever the footer takes, every position keeps its place on the line.
+
+**Its ends park and the band between them draws, at fixed lengths.** At or below 30% and at or
+above 85% a scroll draws nothing, which leaves two ways to read with no gesture writing: near the
+foot of the screen, or with the tail high on it. Between them are six log-spaced lengths from 8
+to 256 tokens, and they are not derived from the text beside them — a length matching the room
+exactly would need tokens per line, which varies with what is drawn and would move under the hand.
+Parking wins over an armed caret, and the key that draws at the caret uses the length parked or
+not. Length 1 has no place on the line, being how *Rankings* deepens a ranking rather than a
+decision about how much to read, and the command line makes it.
+
+**How near a scroll is to drawing is drawn on the same line.** A counter-point stands at the last
+line's height and meets the point where a scroll at the end draws. Within a fifth of the room the
+two pulse in opposite phase, faster as they close, and within 8% the point grows as it does under
+the pointer. The pulse follows the reader's movement and dies away in a second and a half, so a
+page left at its end shows the two met and still rather than pulsing while it is read. An armed
+caret shows them met, the next scroll down drawing from anywhere; a parked page shows the point
+alone.
+
+**Heat is the line between the text and what governs the draw.** It runs across the column at the
+footer's top, greedy at the left and 2.5 at the right in steps of 0.05, with its point drawn along
+a scale from deep blue through white at 1 to deep red at 2. Zero is an end to slam into rather
+than a value to find, which makes greedy a place on the dial — and the only one: `top_k` starts at
+2, one candidate being greedy at any heat. The text fades out behind the line so it stands clear
+of what scrolls under.
+
+**The drawer lifts on a look and holds on a pull.** Hovering the footer lifts it over the text
+after a beat and it falls after another, so passing over does neither and a look at a setting
+moves nothing. Dragging the heat's line, or the grip at its right end, more than 80px up holds the
+drawer where it is let go — shut or full within 80px of either end, scrolling between — and only a
+held drawer takes room from the text. A drag inside that distance is the heat's alone, and a click
+on the grip opens or shuts it.
+
+**Each parameter is a line with a point, on a scale that spends the line where the value is
+sensitive**: log for `min_p`, `top_k` and `record_rows`, and a log of what is left below 1 for the
+two masses. **Off is the end where a sampler does nothing, and there it is left out of the
+request** rather than named at a value that does nothing, so an act's `params` say what was asked.
+A required bound is sent at its inert value instead, which for `record_mass` is 1.
+
 ## Hidden
 
 **Deleted is the surface's *hidden*, and whether it is shown is one toggle.** `docs/CORE.md` has
@@ -1074,15 +1125,11 @@ when it is settled.
   bare; not marking it leaves a reader to open the ranking to find out. What settles it is a
   tree with both kinds of fork in it, read for whether the difference is wanted at the fork or
   only inside the rows.
-- **Which `generate` parameters come under the reader's hand, and when.** A complete request
-  leaves the surface whatever the reader does, so this is a question about what is exposed and
-  never about what is sent. The first pass puts all of them under it at once — `length`, the
-  recording bounds, and the samplers a draw names, in a panel that holds them for as long as the
-  page is open — because that is the arrangement that shows which ones a reader actually reaches
-  for. What it does not settle is whether they survive a reload, whether the ones nobody touches
-  should be on the page at all, and whether a refusal is better met by editing them in place
-  than in a panel elsewhere. What settles those is running the loop and watching which get
-  touched.
+- **Whether the length stays at the edge.** *The draw* has it as the room below the text, and
+  that has not been lived with long. What would move it is the edge's line turning out to be
+  hunted for, or the parked ends going unused.
+- **Whether the draw's settings survive a reload.** None do, every act carrying its own. Settled
+  by whether a reader finds themselves setting the same ones again after every load.
 - **Which continuation rule.** Longest, first, last, most-recently-used, cumulative open time —
   each is defensible and they are comparable only by use. `longest` is the first implementation
   because it is the one member that needs nothing but the tree; ties bite only for it, and are
@@ -1177,8 +1224,8 @@ over HTTP, each act under its own verb, with the page mounted at the root so tha
 and the page itself arrive from one origin. The page lists the tree's roots and names each by
 what it opens with, starts new ones through a composer that a submit turns into a `create`, sets
 one path as prose, and continues it at the end — reaching the end of what there is to read is
-how more of it is asked for, and what the draw asks for is set in a panel at the foot of the
-side. A root or a tail can be set aside and brought back, and one toggle says whether what has
+how more of it is asked for, and what the draw asks for is set at the page's edge, along the
+footer and in a drawer beneath it. A root or a tail can be set aside and brought back, and one toggle says whether what has
 been is drawn.
 
 **An overlay is drawn over that column and is chosen in a panel beside the toggle**, which holds

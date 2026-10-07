@@ -27,79 +27,12 @@ read against a tree the page could not yet have made.
 **What exists is `docs/SURFACE.md`'s Status and is not restated here.** What the page has arrived
 at is a composer that starts a root, a column that sets one path as prose, a caret that says
 where the reader is pointing and is where every act at a position lands, the rows at that
-position on demand, a scroll that asks for more there, and two panels saying what the draw asks
-for and what is drawn over it. This section is what comes after that.
+position on demand, a scroll that asks for more there, the draw's settings at the page's edge,
+along the footer and in a drawer beneath it, and a panel saying what is drawn over the text. This section is what comes after that.
 
 ### The increments, in order
 
-**1. The draw's settings on the page: length at the edge, heat in the footer.** They are what an
-operator moves per draw, because they change what *kind* of act it is — sampling the model, or
-running the greedy path out where that is cheap to read. Everything else in the panel is set once
-a session. The cut is along what each thing governs: **what is drawn** is `length`, `temperature`
-and `min_p`, **what is kept** is `record_rows` and `record_mass`, then the rest of the chain and
-the backend. The recents strip in *The settings a draw was made under* is what a chip applies
-*to*, so these exist first.
-
-**Length is the room below the text, and its control is the page's edge.** The space under the
-last line is where the next draw lands, and it is also how far past the text a reader scrolls
-before the gesture fires — so it reads as a promise of how much is coming. Used at 45vh and at
-85vh, the shorter room invited shorter draws and the longer one longer, and neither was better:
-each put the reader somewhere different on the page. So one full-height slider sets the room,
-and its handle's line is where the last line stands when the draw fires.
-
-**Its ends park, and the band between them draws.** At or below 30vh and at or above 85vh a scroll
-to the foot draws nothing, which leaves two ways to read with no gesture writing anything — near
-the foot of the screen, or with the tail high on it. Between them the handle's position is a
-length, **fixed and not derived from the text beside it**: log-spaced with detents at 8, 16, 32,
-64, 128 and 256, about one every eleventh of the screen, so a position is learned once and says
-the same number every time. A length that matched the room exactly would need tokens per line,
-which varies with what is being drawn, and would move under the hand. Whether 400 earns a seventh
-detent is for use.
-
-**Parking wins over everything that scrolls.** A caret armed by `realise` does not draw from a
-parked page, and what the page says after a realise names the gesture that will. The key that
-draws at a fixed position uses the slider's length parked or not, since parking stops scrolling
-from writing and does not take the length away. **The readout beside the handle is the length,
-or *parked*,** which keeps the next draw legible in both states — the gesture is a scroll, so
-there is no submit to disable and no moment to object in.
-
-**Length 1 leaves the slider.** It is how *Rankings* says a ranking is deepened, which is not a
-decision about how much to read, and no room on a screen maps to one token. It wants a gesture of
-its own at a position, and until it has one the command line makes it.
-
-**Heat is a horizontal slider in the footer, linear from 0 to 2.5.** The footer is already always
-there, *what this is* on the left and *what a draw will be* on the right, and what makes these
-inaccessible now is the nav's fold, not the panel. Zero is an end to slam into rather than a value
-to find, which is what makes greedy a place on the dial; steps of 0.05 or 0.1 are for use. Above
-2.0 is untried, and under a floor it should hold.
-
-**The floor goes with the heat because neither means much alone.** `docs/INTERFERENCE.md`'s *A
-bound makes heat usable* has why: unbounded, a draw at 2.0 is salad from its first token, and
-under `min_p` 0.02 it is prose. So the floor is read out beside the heat whenever it is in the
-chain, and a heat on the page with its floor behind a fold is how a reader draws salad without
-seeing why. Whether the two become one control — a heat whose floor follows it — is what living
-with them settles.
-
-**The footer is a drawer, and the rest of the draw panel is what it holds.** Pulled up into the
-content it reveals the chain, the record and the backend, so the draw's settings are one
-component with its most used control always showing. That takes the draw panel out of the nav,
-and out of the tabs item 3 proposes, which keep the rankings and the overlay controls.
-
-**`record_rows` is read out in the strip and not dialled there.** `docs/SPINE.md` measured the
-coupling on `data/logozoa`, recorded at ten rows throughout its early work: two thirds of every
-divergence in the tree sits at a depth of two. Obligation 7 took the sharp edge off this — a draw
-is valued whatever the rows reached — and what is left is still not nothing. The row count is how
-many alternatives a reader has to branch into and what every quantity over a ranking is read
-against, and making heat the easiest thing on the page to move while the rows stay in a drawer is
-how the two come apart without anything saying so. It is still not a threshold, since the right
-depth depends on the draw it records, so the surface shows the pair rather than inventing a line
-between them.
-
-**`README.md`'s picture is chosen again once this lands.** What it should show is the draw's
-controls at the edge and in the footer, worked into the reading, where the current banner gives a
-third of its width to a panel. Its caption goes with it.
-
-**2. Arms drawn as the draw is, and stacked.** A stub is greedy, which makes it the exact
+**1. Arms drawn as the draw is, and stacked.** A stub is greedy, which makes it the exact
 reference and only that. Drawn under the settings on the page instead — heat and floor included —
 a dwell buys several draws from the row rather than one, and they stack beside the row.
 When the settings are greedy nothing changes; when they are not, a greedy arm still heads the
@@ -108,7 +41,7 @@ stack, being the mode the draws spread around.
 **The first cut needs no new layout, and is built before the one that would.** Each draw is a
 line beside the row it was bought from, as an arm is now, default on and with a switch. What the
 stack then turns out to need — how many lines, how long, whether the trie below earns its place —
-is what item 3's room is built for, and a layout built ahead of that is chosen without anything
+is what item 2's room is built for, and a layout built ahead of that is chosen without anything
 to compare.
 
 **The stack is laid out as a trie and not as a list.** Draws from one node share prefixes by
@@ -136,7 +69,7 @@ that a node is only when every act producing it was greedy — which is right, a
 reading the arm must not take a stacked draw for one. And a further draw adds to a stack and
 replaces nothing, which is what *Stubs* asks of a stub that disappoints.
 
-**3. The pointer rolls the reference arm, and the panel opens where it is pointed.**
+**2. The pointer rolls the reference arm, and the panel opens where it is pointed.**
 `docs/SPINE.md` has the stub as the reference arm — the model left alone from a position. What
 makes this one item rather than three is that the rankings, the stub and the gesture that
 summons both are one surface. **The arm and its price are built**; what is below is what that
@@ -177,7 +110,7 @@ looking and asking are one motion.
 line they belong to now, so the connection between a position and its alternatives is seen
 rather than remembered. The proposal is that the **stub** takes that space, being the thing with
 a position — it continues from *here* — and the rankings move to a fixed panel at the top right,
-joining the overlay controls and the sampler's as tabs. What recommends it is that a menu does
+joining the overlay controls as tabs. What recommends it is that a menu does
 not need to be at a line and a continuation does. What is unsettled is whether a ranking read
 away from its position still reads, which is what the current placement was built to protect.
 **Settled by building the stub track first and seeing what the rankings are then left needing.**
@@ -253,7 +186,7 @@ whether it is wanted. The one thing decided in advance: a position that grows so
 may say so without moving, or may move only outside the band the caret reserves — motion where
 the reader is looking is a demand and not an offer.
 
-**4. The settings a draw was made under.** Drawing again at a position costs no search: the caret
+**3. The settings a draw was made under.** Drawing again at a position costs no search: the caret
 stays where the draw was asked for and the gesture repeats there. What a reader cannot reach is
 what any of those draws were made *under* — to take the position again at a different temperature,
 at a higher sample resolution, or exactly as it stood. It is the loop `docs/INTERFERENCE.md` is
@@ -288,15 +221,15 @@ Four things the strip has to settle. **A chip applies and does not draw**, becau
 produced nodes count**, since a refusal records its params too and re-applying a rejected pair is
 not a shortcut. **Identity is the whole `params` blob**, which is what makes adjacency mean
 anything, and whether incidental nudges fragment the list is a question for use. **A chip can
-carry what the readout cannot show** — a chain sampler switched on is invisible in
-`80 tok · 1.10° · 10 rows` — so it is marked, and the blob is in its title.
+carry what the two rules cannot show** — a chain sampler switched on is invisible while the drawer
+is down — so it is marked, and the blob is in its title.
 
 **Seeds are a different kind of thing from recents and should look like one.** A seed is not in
 the record and cannot be derived; it is a constant the page offers. A recent is what the tree
 remembers. Pinning the first and letting the second flow past keeps the page from writing
 anything to fake a history it does not have.
 
-**5. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
+**4. A third scale, taken from what is in view.** `docs/SURFACE.md` has the case: a fixed domain
 answers *how much, absolutely* and pins more than half a greedy path to one end, and a
 path-relative one over a long path is nearly as global. A domain built from the segments
 currently on screen answers *how much, compared to here*, which is the question a reader scanning
@@ -315,18 +248,19 @@ those measures without bounding the descent, and what would remain below is the 
 the name for what branching counts. It is also much the cheaper of the two, so knowing which
 answer was needed costs little.
 
-**6. How far a draw runs, how deep a measure looks, and how wide a position branches.** Three
+**5. How far a draw runs, how deep a measure looks, and how wide a position branches.** Three
 bounds on what one gesture reaches, and **designed together, in discussion, before any of them is
 coded**: what setting them is like for a reader may answer all three at once rather than as three
 parameters, and that would change what the server is asked for. A branching limit is the new one —
 stacked arms make a position as wide as the reader's patience. What is below is the depth half,
 and it is material for that discussion rather than a plan.
 
-**The first of the three has an answer, and it is the screen's room.** Item 1 makes a draw's
-length the space below the text, set by where the reader wants to read rather than as a count.
-Whether depth goes the same way — what a measure looks down being what is in view, which is item
-5's question from the other side — and branching too, as the room the margin has for a stack, is
-the shape the discussion starts from: the page set up, and the parameters following from it.
+**The first of the three has an answer, and it is the screen's room.** A draw's length is the
+space below the text, set by where the reader wants to read rather than as a count — *The draw*
+in `docs/SURFACE.md`. Whether depth goes the same way — what a measure looks down being what is in
+view, which is item 4's question from the other side — and branching too, as the room the margin
+has for a stack, is the shape the discussion starts from: the page set up, and the parameters
+following from it.
 
 **The depth limit.** The family is drawn and the rule is chosen from the same list, so what is
 left of this is the bound. It is not a parameter on the end of the
@@ -446,6 +380,9 @@ quoted from a tree is a figure against a state of it, which is the item below.
 
 Not in the ordering; each stands on its own.
 
+- **`README.md`'s picture is chosen again.** What it should show is the draw's controls worked
+  into the reading — the edge, the heat and the drawer — where the current banner gives a third
+  of its width to a panel the page no longer has.
 - **Every title on the page is a browser tooltip, and none of them was designed.** They carry
   real content — what a row's two axes are worth, what a measure read at a segment, which of
   the ways of having no value this one is — and the browser draws all of it the same, late,
