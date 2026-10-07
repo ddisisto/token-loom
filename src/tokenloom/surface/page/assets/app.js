@@ -1602,9 +1602,13 @@ foot.addEventListener("pointerleave", depart);
 /* The heat of a draw, set along a line across the column at the footer's top. Its range and
  * steps are the draw panel's, read through `along` and `share`. */
 const heat = Object.assign(document.createElement("div"), { id: "heat" });
+const track = Object.assign(document.createElement("div"), { className: "track" });
 const warmth = Object.assign(document.createElement("div"), { className: "point" });
 const heatSays = Object.assign(document.createElement("span"), { className: "says" });
-heat.append(warmth, heatSays);
+const gripper = Object.assign(document.createElement("div"), {
+  className: "grip", title: "drag up for the rest of the draw, or click" });
+track.append(warmth, heatSays);
+heat.append(track, gripper);
 document.querySelector("main").append(heat);
 
 /** Where along the heat each of the stylesheet's colours stands. */
@@ -1630,10 +1634,11 @@ function heated() {
 
 /* A drag on the heat sets the heat, until it has gone far enough up or down to be the
  * drawer's -- and then the heat goes back to where the drag found it, since a hand reaching
- * for the drawer was not setting it. */
-let grip = null;  // { y, from, heat, drawer }
+ * for the drawer was not setting it. A drag from the grip is only ever the drawer's, and a
+ * grip let go without moving it opens the drawer, or shuts one that is open. */
+let grip = null;  // { y, from, heat, drawer, bare }
 const toward = event => {
-  const box = heat.getBoundingClientRect();
+  const box = track.getBoundingClientRect();
   place("temperature", (event.clientX - box.left) / box.width);
   heated();
 };
@@ -1643,14 +1648,15 @@ heat.addEventListener("pointerdown", event => {
   heat.setPointerCapture(event.pointerId);
   // A drawer lifted by hovering is the height it shows, so a drag starts from there.
   const from = held > 0 ? held : foot.classList.contains("peek") ? drawer.offsetHeight : 0;
-  grip = { y: event.clientY, from, heat: draw().temperature, drawer: false };
-  heat.classList.add("moving");
-  toward(event);
+  const bare = event.target === gripper;
+  grip = { y: event.clientY, from, heat: draw().temperature, drawer: false, bare };
+  heat.classList.add(bare ? "lifting" : "moving");
+  if (!bare) toward(event);
 });
 heat.addEventListener("pointermove", event => {
   if (grip === null) return;
   const to = room.pulled(grip.from, grip.y - event.clientY, full());
-  if (to === null && !grip.drawer) return toward(event);
+  if (to === null && !grip.drawer) return grip.bare ? undefined : toward(event);
   if (!grip.drawer) {
     grip.drawer = true;
     set("temperature", grip.heat);
@@ -1663,8 +1669,9 @@ heat.addEventListener("pointerleave", depart);
 for (const end of ["pointerup", "pointercancel"]) {
   heat.addEventListener(end, () => {
     if (grip?.drawer) hold(room.rests(held, full()));
+    else if (grip?.bare) hold(held > 0 ? 0 : full());
     grip = null;
-    heat.classList.remove("moving");
+    heat.classList.remove("moving", "lifting");
   });
 }
 heated();

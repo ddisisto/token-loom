@@ -40,7 +40,8 @@ const FIELDS = [
 
   { key: "temperature", group: "the chain", scale: "line", min: 0, max: 2.5, step: 0.05,
     value: 0, edge: true },
-  { key: "top_k", group: "the chain", scale: "log", int: true, min: 1, max: COVER, value: 10,
+  // From 2: one candidate is greedy whatever follows it, and greedy is the heat's to say.
+  { key: "top_k", group: "the chain", scale: "log", int: true, min: 2, max: COVER, value: 10,
     idle: "high", on: false },
   { key: "top_p", group: "the chain", scale: "tail", min: 0.1, max: 0.995, value: 0.95,
     idle: "high", on: false },

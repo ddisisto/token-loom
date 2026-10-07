@@ -591,27 +591,40 @@ footer .fault { color: var(--accent); }
    text from what governs the draw, which is where it stays when the footer becomes a drawer.
    Greedy at the left and 2.5 at the right, along a scale from deep blue through white at 1
    to deep red at 2, darker past it. The text fades out behind it so it stands clear of what
-   scrolls under. Hovered or moved, the point grows and says the heat; the floor is the
-   panel's, which can be left open beside it. `--x` is
-   how far along the point stands, from 0 to 1, and `app.js` sets `--glow` and `--scale`. */
-#heat { position: fixed; bottom: calc(var(--lid) - 8px); height: 16px; z-index: 27;
+   scrolls under. Hovered or moved, the point grows and says the heat. `--x` is how far along
+   the point stands, from 0 to 1, and `app.js` sets `--glow` and `--scale`.
+
+   The line ends short of the column, and the grip in what is left is the drawer's: drag it
+   or the line up to open it, or click it to open or shut it. */
+#heat { --grip: 22px;
+        position: fixed; bottom: calc(var(--lid) - 8px); height: 16px; z-index: 27;
         left: var(--start); width: var(--col);
-        transition: left .14s ease; cursor: ew-resize; touch-action: none; }
+        transition: left .14s ease; touch-action: none; }
+#heat .track { position: absolute; left: 0; right: var(--grip); top: 0; bottom: 0;
+               cursor: ew-resize; }
+#heat .grip { position: absolute; right: 0; top: 0; bottom: 0; width: var(--grip);
+              cursor: ns-resize; }
+#heat .grip::before, #heat .grip::after {
+  content: ""; position: absolute; right: 2px; width: 12px; height: 1px; background: var(--dim); }
+#heat .grip::before { top: 6px; }
+#heat .grip::after { top: 9px; }
+#heat .grip:hover::before, #heat .grip:hover::after,
+#heat.lifting .grip::before, #heat.lifting .grip::after { background: var(--ink); }
 #heat::after { content: ""; position: absolute; z-index: -1; pointer-events: none;
                left: calc(var(--gutter) * -1); right: calc(var(--gutter) * -1); bottom: 8px;
                height: 2.2em; background: linear-gradient(to bottom, transparent, var(--bg)); }
-#heat::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px;
+#heat .track::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px;
                 border-radius: 1px; background: var(--scale); opacity: .6;
                 box-shadow: 0 0 0 .5px var(--rule); }
 #heat .point { position: absolute; top: 8px; left: calc(var(--x) * 100%); width: 10px;
                height: 10px; transform: translate(-50%, -50%); border-radius: 50%;
                background: var(--glow); box-shadow: 0 0 0 1px var(--dim);
                transition: width .1s ease, height .1s ease; }
-#heat:hover .point, #heat.moving .point { width: 15px; height: 15px; }
+#heat .track:hover .point, #heat.moving .point { width: 15px; height: 15px; }
 #heat .says { display: none; position: absolute; bottom: 14px; left: calc(var(--x) * 100%);
               transform: translateX(-50%); white-space: nowrap; pointer-events: none;
               font: 400 11.5px/1.4 var(--mono); color: var(--dim); }
-#heat:hover .says, #heat.moving .says { display: block; }
+#heat .track:hover .says, #heat.moving .says { display: block; }
 
 /* What either rule says stands over text, so it carries a halo of the page behind it. */
 #edge .says, #heat .says {

@@ -68,6 +68,8 @@ is("the idle ends are where nothing is done",
 is("  and just inside them is the line's own end",
    [along("min_p", IDLE), along("top_p", 1 - IDLE), along("top_k", 1 - IDLE),
     along("record_mass", 1 - IDLE)], [0.005, 0.995, 50, 0.995]);
+is("top_k never offers one candidate, which is greedy at any heat",
+   Math.min(...grid.map(s => along("top_k", s)).filter(v => v !== null)), 2);
 is("lines without an idle end reach both ends",
    [along("temperature", 0), along("temperature", 1), along("record_rows", 0),
     along("record_rows", 1)], [0, 2.5, 2, 50]);
