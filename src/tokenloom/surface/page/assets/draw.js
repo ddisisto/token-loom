@@ -29,7 +29,8 @@ const COVER = 50;
  *  what something other than the caller would otherwise decide.
  */
 const FIELDS = [
-  { key: "length", group: "the draw", kind: "int", min: 8, max: 400, step: 8, value: 80 },
+  // Set at the page's edge and not in the panel, by `room.js`; its value is one of the detents.
+  { key: "length", group: "the draw", kind: "int", min: 8, max: 400, step: 8, value: 64, edge: true },
 
   { key: "temperature", group: "the chain", kind: "real", min: 0, max: 2, step: 0.05, value: 0 },
   { key: "top_k", group: "the chain", kind: "int", min: 1, max: COVER, step: 1, value: 10, off: true },
@@ -79,6 +80,15 @@ export function keep() {
     if (held.on) params[field.key] = held.value;
   }
   return params;
+}
+
+/** Set one parameter from somewhere other than the panel, within its range. */
+export function set(key, value) {
+  const field = FIELDS.find(f => f.key === key);
+  if (field === undefined) throw new RangeError(`no parameter ${key}`);
+  state.get(key).value = Math.min(field.max, Math.max(field.min, value));
+  cover(key);
+  settle();
 }
 
 /* `record_rows` must cover a `top_k` the request names, so one of the two gives way. The
@@ -166,6 +176,7 @@ export function panel() {
   const body = el("div", "body");
   let group = null;
   for (const field of FIELDS) {
+    if (field.edge) continue;
     if (field.group !== group) body.append(el("div", "group", (group = field.group)));
     body.append(row(field));
   }

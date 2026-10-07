@@ -12,7 +12,7 @@
 
 import { El } from "./stub-dom.mjs";
 
-const { draw, keep, panel } = await import(
+const { draw, keep, panel, set } = await import(
   new URL("../src/tokenloom/surface/page/assets/draw.js", import.meta.url));
 
 const frag = panel();
@@ -42,7 +42,7 @@ const move = (key, value) => { const c = rows.get(key).control; c.value = String
 const covered = () => !("top_k" in draw()) || draw().record_rows >= draw().top_k;
 
 is("the defaults are the required five and the floor heat needs", draw(),
-   { length: 80, temperature: 0, min_p: 0.02,
+   { length: 64, temperature: 0, min_p: 0.02,
      record_rows: 10, record_mass: 0.9, cache_prompt: true });
 is("  and a draw keeps none of the chain", "min_p" in keep(), false);
 
@@ -71,6 +71,11 @@ check("cache_prompt", false);
 is("a required flag is sent false rather than dropped", draw().cache_prompt, false);
 
 is("no reader asks for a seed, so no control offers one", rows.has("seed"), false);
+is("the length is set at the edge and not in the panel", rows.has("length"), false);
+set("length", 128);
+is("  and what the edge sets is what is drawn", draw().length, 128);
+set("length", 4);
+is("  within its range", draw().length, 8);
 
 move("temperature", 1.2);
 is("temperature is real and not rounded", draw().temperature, 1.2);

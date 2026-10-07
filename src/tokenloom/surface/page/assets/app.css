@@ -138,8 +138,10 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    length: a path shorter than the window would otherwise leave nowhere to scroll to, and
    under about a thousand characters that is every path. The column takes what the path does
    not provide as room above it, so the last line arrives at the same place either way. */
-#column { --gutter: 24px; --col: min(34em, calc((100cqw - var(--gutter) * 2) / 2));
-          --space: 85vh; --runway: 20vh; --top: 72px;
+/* The measure, shared with the edge so the two agree on where the text starts. Both are
+   inside `main`, which is what `100cqw` is read against. */
+#column, #edge { --gutter: 24px; --col: min(34em, calc((100cqw - var(--gutter) * 2) / 2)); }
+#column { --space: 85vh; --runway: 20vh; --top: 72px;
           position: relative;  /* the rows stand in the half the column leaves empty */
           box-sizing: content-box; width: calc(var(--col) * 2);
           min-height: calc(100vh + var(--runway) - var(--space) - var(--top));
@@ -557,3 +559,34 @@ footer .fault { color: var(--accent); }
                 padding: 0 1px; background: var(--accent-bg);
                 outline: 2px solid var(--accent); outline-offset: -2px;
                 caret-color: var(--accent); }
+
+/* ---- the room below the text ----
+   The length of a draw, set as where the last line stands when a scroll at the end draws.
+   A faint line just left of the text with a point on it, found once and otherwise out of the
+   way; hovered or moved, the point draws its line across the text and says what it stands
+   for. `--y` is the point's height from the top, in `vh`. It is fixed and placed from the
+   measure, since the column is centred in what the nav leaves. */
+#edge { --off: var(--nav); --by: 30px;
+        position: fixed; top: 0; bottom: 0; width: 16px; z-index: 25;
+        /* The gutter is narrower than `--by`, so a window too narrow for the margin keeps it
+           off the nav and lets it stand nearer the text. */
+        left: max(var(--off), calc(var(--off) + 50cqw - var(--col) - var(--by)));
+        transition: left .14s ease; cursor: ns-resize; touch-action: none; }
+body.folded #edge { --off: var(--fold); }
+#edge::before { content: ""; position: absolute; top: 0; bottom: 0; left: 7.5px; width: 1px;
+                background: var(--rule); }
+#edge .point { position: absolute; left: 8px; top: var(--y); width: 8px; height: 8px;
+               transform: translate(-50%, -50%); border-radius: 50%;
+               background: var(--faint); transition: width .1s ease, height .1s ease; }
+#edge:hover .point, #edge.moving .point { width: 13px; height: 13px; background: var(--dim); }
+#edge.parked .point { background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--faint); }
+#edge.parked:hover .point, #edge.parked.moving .point {
+  background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--dim); }
+#edge .across, #edge .says { display: none; position: absolute; top: var(--y);
+                             pointer-events: none; }
+#edge .across { left: 16px; width: calc(var(--col) + var(--by) - 16px);
+                border-top: 1px dashed var(--faint); }
+#edge .says { left: calc(var(--col) + var(--by)); transform: translate(-100%, -130%);
+              font: 400 11.5px/1.4 var(--mono); color: var(--dim); white-space: nowrap; }
+#edge:hover .across, #edge.moving .across,
+#edge:hover .says, #edge.moving .says { display: block; }

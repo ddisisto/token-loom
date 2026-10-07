@@ -16,7 +16,8 @@
  */
 
 import * as cursor from "./cursor.js";
-import { draw, keep, panel } from "./draw.js";
+import { draw, keep, panel, set } from "./draw.js";
+import * as room from "./room.js";
 import * as mark from "./mark.js";
 import {
   panel as overlayPanel, read as overlays, rule as taken, wants, weighed,
@@ -519,7 +520,8 @@ async function realise(row, payload) {
     await show(act.tip, act.tip);
     cursor.arm(drawn);  // placed by `show` above, so the tip is the one just drawn
     frontier();  // placed by `show` and armed after it, so the mark is remade and not patched
-    say("realised \u00b7 scroll down to draw from here");
+    say(parked ? "realised \u00b7 the page is parked, enter draws from here"
+               : "realised \u00b7 scroll down to draw from here");
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   } finally {
@@ -1271,8 +1273,9 @@ async function more(where = cursor.node(), { pin = false } = {}) {
 }
 
 /** Whether a downward move counts as a request: at the end of the page, or anywhere at all
- *  once the caret has been armed. */
-const ready = () => cursor.armed() || atEnd();
+ *  once the caret has been armed -- and never while the room is parked, which is what parking
+ *  is for. */
+const ready = () => !parked && (cursor.armed() || atEnd());
 
 /** Put the caret back in the window, if scrolling has carried it out.
  *
@@ -1336,7 +1339,9 @@ addEventListener("scroll", () => {
   // so an arrival there is the gesture; an armed caret has no such place, so the direction is
   // all there is -- and what lands after an act can shorten the page and move the window on
   // its own, which would otherwise read as a reader asking for the next one.
-  const asks = (cursor.armed() && window.scrollY > wasAt) || (now && !wasAtEnd);
+  // A room being moved shifts the end of the page under a reader who has not scrolled.
+  const asks = !shifting
+    && ((cursor.armed() && window.scrollY > wasAt) || (now && !wasAtEnd));
   wasAtEnd = now;
   wasAt = window.scrollY;
   // Every scroll settles, because the caret follows the window whichever way it went. Only
@@ -1412,6 +1417,54 @@ function say(text, bad) {
 }
 
 $("draw").replaceChildren(panel());
+
+/* The length of a draw is set at the page's edge, as the room below the last line, and
+ * `room.js` has what each position means. Parked, a scroll draws nothing and the length is
+ * left where it was, so the key that draws at the caret still has one. */
+
+let parked = false;
+let shifting = false;  // the point in the hand
+
+const edge = Object.assign(document.createElement("div"), { id: "edge" });
+const says = Object.assign(document.createElement("span"), { className: "says" });
+edge.append(Object.assign(document.createElement("div"), { className: "point" }),
+            Object.assign(document.createElement("div"), { className: "across" }), says);
+// In `main`, so the measure it is placed by is read against what the column is.
+document.querySelector("main").append(edge);
+
+function stand(asked) {
+  const at = room.place(asked);
+  parked = at.length === null;
+  if (!parked) set("length", at.length);
+  $("column").style.setProperty("--space", `${at.room}vh`);
+  edge.style.setProperty("--y", `${100 - at.room}vh`);
+  edge.classList.toggle("parked", parked);
+  says.textContent = parked ? "parked" : `${at.length} tokens`;
+}
+
+const asked = event => 100 - (event.clientY / window.innerHeight) * 100;
+
+edge.addEventListener("pointerdown", event => {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  edge.setPointerCapture(event.pointerId);
+  shifting = true;
+  edge.classList.add("moving");
+  stand(asked(event));
+});
+edge.addEventListener("pointermove", event => { if (shifting) stand(asked(event)); });
+function letGo() {
+  if (!shifting) return;
+  shifting = false;
+  edge.classList.remove("moving");
+  // Where the page's end went is not somewhere the reader scrolled to, so it is taken as the
+  // place to start from once the scroll the move caused has been heard.
+  requestAnimationFrame(() => { wasAtEnd = atEnd(); wasAt = window.scrollY; });
+}
+edge.addEventListener("pointerup", letGo);
+edge.addEventListener("pointercancel", letGo);
+
+stand(room.roomFor(draw().length));
 
 /* The overlay, the continuation rule and what is set aside are all ways of looking, and they
  * share a panel because they are one question asked three times: what of the record is in
