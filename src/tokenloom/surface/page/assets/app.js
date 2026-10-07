@@ -16,7 +16,7 @@
  */
 
 import * as cursor from "./cursor.js";
-import { draw, keep, panel, set } from "./draw.js";
+import { along, draw, keep, panel, set, share } from "./draw.js";
 import * as room from "./room.js";
 import * as mark from "./mark.js";
 import {
@@ -1446,7 +1446,7 @@ function stand(asked) {
   parked = at.length === null;
   if (!parked) set("length", at.length);
   $("column").style.setProperty("--space", `${at.room}vh`);
-  edge.style.setProperty("--y", `${100 - at.room}vh`);
+  edge.style.setProperty("--room", `${at.room}vh`);
   edge.classList.toggle("parked", parked);
   says.textContent = parked ? "parked" : `${at.length} tokens`;
   stir();
@@ -1508,7 +1508,9 @@ function stir(moving = false) {
 edge.addEventListener("pointerenter", () => { hovering = true; stir(); });
 edge.addEventListener("pointerleave", () => { hovering = false; stir(); });
 
-const asked = event => 100 - (event.clientY / window.innerHeight) * 100;
+// Above the edge's foot and not the window's, which is the footer's top.
+const asked = event =>
+  (edge.getBoundingClientRect().bottom - event.clientY) / window.innerHeight * 100;
 
 edge.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
@@ -1531,6 +1533,62 @@ edge.addEventListener("pointerup", letGo);
 edge.addEventListener("pointercancel", letGo);
 
 stand(room.roomFor(draw().length));
+
+/* The footer's height, which the room below the text is reckoned above: the column pads by
+ * it and the edge stops at it, so what the footer comes to hold does not move the text. */
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty(
+    "--foot", `${document.querySelector("footer").offsetHeight}px`);
+}).observe(document.querySelector("footer"));
+
+/* The heat of a draw, set along a line across the column at the footer's top. Its range and
+ * steps are the draw panel's, read through `along` and `share`. */
+const heat = Object.assign(document.createElement("div"), { id: "heat" });
+const warmth = Object.assign(document.createElement("div"), { className: "point" });
+const heatSays = Object.assign(document.createElement("span"), { className: "says" });
+heat.append(warmth, heatSays);
+document.querySelector("main").append(heat);
+
+/** Where along the heat each of the stylesheet's colours stands. */
+const GLOW = [[0, "--heat-0"], [1, "--heat-1"], [2, "--heat-2"], [along("temperature", 1), "--heat-3"]];
+
+/** The colour a heat is drawn in: mixed between the two stops either side of it. */
+function glow(t) {
+  const i = Math.max(0, GLOW.findLastIndex(([at]) => at <= t));
+  const [a, from] = GLOW[Math.min(i, GLOW.length - 2)];
+  const [b, to] = GLOW[Math.min(i + 1, GLOW.length - 1)];
+  const p = Math.min(1, Math.max(0, (t - a) / (b - a)));
+  return `color-mix(in oklab, var(${from}), var(${to}) ${(p * 100).toFixed(1)}%)`;
+}
+heat.style.setProperty("--scale", `linear-gradient(to right, ${GLOW.map(([t, c]) =>
+  `var(${c}) ${(t / GLOW.at(-1)[0] * 100).toFixed(1)}%`).join(", ")})`);
+
+function heated() {
+  heat.style.setProperty("--x", String(share("temperature")));
+  const { temperature } = draw();
+  heat.style.setProperty("--glow", glow(temperature));
+  heatSays.textContent = temperature === 0 ? "greedy" : `heat ${temperature.toFixed(2)}`;
+}
+
+let warming = false;
+const toward = event => {
+  const box = heat.getBoundingClientRect();
+  set("temperature", along("temperature", (event.clientX - box.left) / box.width));
+  heated();
+};
+heat.addEventListener("pointerdown", event => {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  heat.setPointerCapture(event.pointerId);
+  warming = true;
+  heat.classList.add("moving");
+  toward(event);
+});
+heat.addEventListener("pointermove", event => { if (warming) toward(event); });
+for (const end of ["pointerup", "pointercancel"]) {
+  heat.addEventListener(end, () => { warming = false; heat.classList.remove("moving"); });
+}
+heated();
 
 /* The overlay, the continuation rule and what is set aside are all ways of looking, and they
  * share a panel because they are one question asked three times: what of the record is in

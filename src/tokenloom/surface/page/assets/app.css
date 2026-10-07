@@ -22,6 +22,10 @@
      displacement of zero draws at, which is where a flat colour would have been. */
   --took-near: #c08a63; --took-far: #8a3408;
   --drew-near: #93a6b5; --drew-far: #1f5b85;
+  /* The heat's colours at 0, 1, 2 and the top of its range, which `app.js` places along it. */
+  --heat-0: #123a8c; --heat-1: #ffffff; --heat-2: #b0141f; --heat-3: #3a0407;
+  /* The footer's height, measured, which the room below the text is reckoned above. */
+  --foot: 0px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -138,17 +142,19 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    length: a path shorter than the window would otherwise leave nowhere to scroll to, and
    under about a thousand characters that is every path. The column takes what the path does
    not provide as room above it, so the last line arrives at the same place either way. */
-/* The measure, shared with the edge so the two agree on where the text starts. Both are
-   inside `main`, which is what `100cqw` is read against. */
-#column, #edge { --gutter: 24px; --col: min(34em, calc((100cqw - var(--gutter) * 2) / 2)); }
+/* The measure, shared with the edge and the heat so all three agree on where the text is.
+   All are inside `main`, which is what `100cqw` is read against, and the cap is in the
+   column's type size and not in `em`, which would be read in whichever face used it. */
+#column, #edge, #heat { --gutter: 24px; --type: 21px;
+                        --col: min(calc(var(--type) * 34), calc((100cqw - var(--gutter) * 2) / 2)); }
 #column { --space: 85vh; --runway: 20vh; --top: 72px;
           position: relative;  /* the rows stand in the half the column leaves empty */
           box-sizing: content-box; width: calc(var(--col) * 2);
-          min-height: calc(100vh + var(--runway) - var(--space) - var(--top));
-          margin: 0 auto; padding: var(--top) var(--gutter) var(--space);
+          min-height: calc(100vh + var(--runway) - var(--space) - var(--foot) - var(--top));
+          margin: 0 auto; padding: var(--top) var(--gutter) calc(var(--space) + var(--foot));
           display: flex; flex-direction: column; justify-content: flex-end;
           align-items: flex-start;
-          font-size: 21px; line-height: 1.75; letter-spacing: .002em; }
+          font-size: var(--type); line-height: 1.75; letter-spacing: .002em; }
 .flow { width: var(--col); white-space: pre-wrap; overflow-wrap: break-word; }
 /* Bytes that do not decode. Marked rather than hidden, as everywhere else. */
 .seg.raw { color: var(--accent); background: var(--accent-bg); border-radius: 2px; }
@@ -513,7 +519,7 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 footer { position: fixed; left: var(--nav); right: 0; bottom: 0; z-index: 10;
          padding: 7px 20px; font: 400 11.5px/1.4 var(--mono); color: var(--dim);
          background: color-mix(in srgb, var(--bg) 88%, transparent);
-         backdrop-filter: blur(8px); border-top: 1px solid var(--rule);
+         backdrop-filter: blur(8px);
          transition: left .14s ease; }
 footer .fault { color: var(--accent); }
 
@@ -564,10 +570,11 @@ footer .fault { color: var(--accent); }
    The length of a draw, set as where the last line stands when a scroll at the end draws.
    A faint line just left of the text with a point on it, found once and otherwise out of the
    way; hovered or moved, the point draws its line across the text and says what it stands
-   for. `--y` is the point's height from the top, in `vh`. It is fixed and placed from the
-   measure, since the column is centred in what the nav leaves. */
+   for. `--room` is the point's height above the footer, in `vh`, and the footer's top is what
+   it is reckoned from -- so whatever the footer holds, the text keeps the same screen. It is
+   fixed and placed from the measure, since the column is centred in what the nav leaves. */
 #edge { --off: var(--nav); --by: 30px;
-        position: fixed; top: 0; bottom: 0; width: 16px; z-index: 25;
+        position: fixed; top: 0; bottom: var(--foot); width: 16px; z-index: 25;
         /* The gutter is narrower than `--by`, so a window too narrow for the margin keeps it
            off the nav and lets it stand nearer the text. */
         left: max(var(--off), calc(var(--off) + 50cqw - var(--col) - var(--by)));
@@ -575,8 +582,8 @@ footer .fault { color: var(--accent); }
 body.folded #edge { --off: var(--fold); }
 #edge::before { content: ""; position: absolute; top: 0; bottom: 0; left: 7.5px; width: 1px;
                 background: var(--rule); }
-#edge .point { position: absolute; left: 8px; top: var(--y); width: 8px; height: 8px;
-               transform: translate(-50%, -50%); border-radius: 50%;
+#edge .point { position: absolute; left: 8px; top: calc(100% - var(--room)); width: 8px;
+               height: 8px; transform: translate(-50%, -50%); border-radius: 50%;
                background: var(--faint); transition: width .1s ease, height .1s ease; }
 #edge:hover .point, #edge.moving .point, #edge.close .point {
   width: 13px; height: 13px; background: var(--dim); }
@@ -588,13 +595,13 @@ body.folded #edge { --off: var(--fold); }
    the two read as one where they meet and the point is still the one to take hold of. Faint
    until the pulse's window, like the point. */
 #edge .counter { position: absolute; left: 8px; width: 8px; height: 8px; opacity: 0;
-                 top: min(calc(var(--y) + var(--gap, 0vh)), calc(100vh - 6px));
+                 top: min(calc(100% - var(--room) + var(--gap, 0vh)), calc(100% - 6px));
                  transform: translate(-50%, -50%); border-radius: 50%;
                  background: var(--faint); box-shadow: 0 0 4px var(--faint);
                  pointer-events: none; }
 #edge.cued .point { background: var(--dim); }
 #edge.cued .counter { background: var(--dim); box-shadow: 0 0 4px var(--dim); }
-#edge .across, #edge .says { display: none; position: absolute; top: var(--y);
+#edge .across, #edge .says { display: none; position: absolute; top: calc(100% - var(--room));
                              pointer-events: none; }
 #edge .across { left: 16px; width: calc(var(--col) + var(--by) - 16px);
                 border-top: 1px dashed var(--faint); }
@@ -602,3 +609,37 @@ body.folded #edge { --off: var(--fold); }
               font: 400 11.5px/1.4 var(--mono); color: var(--dim); white-space: nowrap; }
 #edge:hover .across, #edge.moving .across,
 #edge:hover .says, #edge.moving .says { display: block; }
+
+
+/* ---- the heat ----
+   The draw's heat, on a line across the column at the footer's top: the line that parts the
+   text from what governs the draw, which is where it stays when the footer becomes a drawer.
+   Greedy at the left and 2.5 at the right, along a scale from deep blue through white at 1
+   to deep red at 2, darker past it. The text fades out behind it so it stands clear of what
+   scrolls under. Hovered or moved, the point grows and says the heat; the floor is the
+   panel's, which can be left open beside it. `--x` is
+   how far along the point stands, from 0 to 1, and `app.js` sets `--glow` and `--scale`. */
+#heat { --off: var(--nav);
+        position: fixed; bottom: calc(var(--foot) - 8px); height: 16px; z-index: 25;
+        left: calc(var(--off) + 50cqw - var(--col)); width: var(--col);
+        transition: left .14s ease; cursor: ew-resize; touch-action: none; }
+body.folded #heat { --off: var(--fold); }
+#heat::after { content: ""; position: absolute; z-index: -1; pointer-events: none;
+               left: calc(var(--gutter) * -1); right: calc(var(--gutter) * -1); bottom: 8px;
+               height: 2.2em; background: linear-gradient(to bottom, transparent, var(--bg)); }
+#heat::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px;
+                border-radius: 1px; background: var(--scale); opacity: .6;
+                box-shadow: 0 0 0 .5px var(--rule); }
+#heat .point { position: absolute; top: 8px; left: calc(var(--x) * 100%); width: 10px;
+               height: 10px; transform: translate(-50%, -50%); border-radius: 50%;
+               background: var(--glow); box-shadow: 0 0 0 1px var(--dim);
+               transition: width .1s ease, height .1s ease; }
+#heat:hover .point, #heat.moving .point { width: 15px; height: 15px; }
+#heat .says { display: none; position: absolute; bottom: 14px; left: calc(var(--x) * 100%);
+              transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+              font: 400 11.5px/1.4 var(--mono); color: var(--dim); }
+#heat:hover .says, #heat.moving .says { display: block; }
+
+/* What either rule says stands over text, so it carries a halo of the page behind it. */
+#edge .says, #heat .says {
+  text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg), 0 0 8px var(--bg), 0 0 12px var(--bg); }

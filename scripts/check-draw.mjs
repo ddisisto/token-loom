@@ -12,7 +12,7 @@
 
 import { El } from "./stub-dom.mjs";
 
-const { draw, keep, panel, set } = await import(
+const { draw, keep, panel, set, share, along } = await import(
   new URL("../src/tokenloom/surface/page/assets/draw.js", import.meta.url));
 
 const frag = panel();
@@ -77,8 +77,20 @@ is("  and what the edge sets is what is drawn", draw().length, 128);
 set("length", 4);
 is("  within its range", draw().length, 8);
 
-move("temperature", 1.2);
+is("heat is set in the footer and not in the panel", rows.has("temperature"), false);
+is("  from greedy at one end to 2.5 at the other",
+   [along("temperature", 0), along("temperature", 1)], [0, 2.5]);
+const heats = [...Array(1001).keys()].map(i => along("temperature", i / 1000));
+is("  on steps of 0.05 and nothing between",
+   heats.every(t => Math.abs(t * 20 - Math.round(t * 20)) < 1e-9 && String(t).length <= 4), true);
+is("  never cooler further along",
+   heats.every((t, i) => i === 0 || t >= heats[i - 1]), true);
+is("  and past either end is that end",
+   [along("temperature", -1), along("temperature", 2)], [0, 2.5]);
+set("temperature", 1.2);
 is("temperature is real and not rounded", draw().temperature, 1.2);
+is("  and stands where along the track says it does",
+   along("temperature", share("temperature")), 1.2);
 
 // Every reachable pair, driven from both sides.
 for (const k of [1, 5, 10, 25, 50]) {

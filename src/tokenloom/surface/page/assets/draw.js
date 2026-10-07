@@ -32,7 +32,9 @@ const FIELDS = [
   // Set at the page's edge and not in the panel, by `room.js`; its value is one of the detents.
   { key: "length", group: "the draw", kind: "int", min: 8, max: 400, step: 8, value: 64, edge: true },
 
-  { key: "temperature", group: "the chain", kind: "real", min: 0, max: 2, step: 0.05, value: 0 },
+  // Set along the footer's top edge, and not in the panel.
+  { key: "temperature", group: "the chain", kind: "real", min: 0, max: 2.5, step: 0.05, value: 0,
+    edge: true },
   { key: "top_k", group: "the chain", kind: "int", min: 1, max: COVER, step: 1, value: 10, off: true },
   { key: "top_p", group: "the chain", kind: "real", min: 0.05, max: 1, step: 0.05, value: 0.95, off: true },
   { key: "min_p", group: "the chain", kind: "real", min: 0, max: 0.5, step: 0.01, value: 0.02 },
@@ -89,6 +91,21 @@ export function set(key, value) {
   state.get(key).value = Math.min(field.max, Math.max(field.min, value));
   cover(key);
   settle();
+}
+
+/** How far along its range a parameter stands, from 0 to 1. */
+export function share(key) {
+  const field = FIELDS.find(f => f.key === key);
+  return (state.get(key).value - field.min) / (field.max - field.min);
+}
+
+/** The value `share` of the way along a parameter's range, on one of its steps. A slider that
+ *  is not the panel's own takes its range from here, so the two cannot disagree about it. */
+export function along(key, at) {
+  const field = FIELDS.find(f => f.key === key);
+  const steps = Math.round(Math.min(1, Math.max(0, at)) * (field.max - field.min) / field.step);
+  // Rounded past the step's own precision, so 0.05 times seven is 0.35 and not 0.35000000000000003.
+  return Number((field.min + steps * field.step).toFixed(6));
 }
 
 /* `record_rows` must cover a `top_k` the request names, so one of the two gives way. The
