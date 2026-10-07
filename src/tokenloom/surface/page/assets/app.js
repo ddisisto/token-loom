@@ -520,6 +520,7 @@ async function realise(row, payload) {
     await show(act.tip, act.tip);
     cursor.arm(drawn);  // placed by `show` above, so the tip is the one just drawn
     frontier();  // placed by `show` and armed after it, so the mark is remade and not patched
+    stir();
     say(parked ? "realised \u00b7 the page is parked, enter draws from here"
                : "realised \u00b7 scroll down to draw from here");
   } catch (why) {
@@ -1269,6 +1270,7 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     // fresh one, and where the page now stands is not somewhere the reader scrolled to.
     wasAtEnd = atEnd();
     wasAt = window.scrollY;
+    stir();  // a draw disarms the caret and moves the end
   }
 }
 
@@ -1339,6 +1341,7 @@ addEventListener("scroll", () => {
   // so an arrival there is the gesture; an armed caret has no such place, so the direction is
   // all there is -- and what lands after an act can shorten the page and move the window on
   // its own, which would otherwise read as a reader asking for the next one.
+  stir(true);
   // A room being moved shifts the end of the page under a reader who has not scrolled.
   const asks = !shifting
     && ((cursor.armed() && window.scrollY > wasAt) || (now && !wasAtEnd));
@@ -1351,7 +1354,10 @@ addEventListener("scroll", () => {
 
 // Already somewhere that counts, and still going down. Every way of moving the page is one
 // of these.
-addEventListener("wheel", event => { moved(event.deltaY > 0 && ready()); }, { passive: true });
+addEventListener("wheel", event => {
+  stir(true);
+  moved(event.deltaY > 0 && ready());
+}, { passive: true });
 addEventListener("keydown", event => {
   // A composer is an editable that is not a form control, so this is wider than the two tags.
   if (event.target.closest("textarea, input, [contenteditable]")) return;
@@ -1389,6 +1395,7 @@ addEventListener("keydown", event => {
   // happened here is still there on the next press.
   if (event.key === "Escape") {
     if (composing()) unauthor(); else release();
+    stir();
     return;
   }
   if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))
@@ -1427,7 +1434,9 @@ let shifting = false;  // the point in the hand
 
 const edge = Object.assign(document.createElement("div"), { id: "edge" });
 const says = Object.assign(document.createElement("span"), { className: "says" });
-edge.append(Object.assign(document.createElement("div"), { className: "point" }),
+const handle = Object.assign(document.createElement("div"), { className: "point" });
+const counter = Object.assign(document.createElement("div"), { className: "counter" });
+edge.append(counter, handle,
             Object.assign(document.createElement("div"), { className: "across" }), says);
 // In `main`, so the measure it is placed by is read against what the column is.
 document.querySelector("main").append(edge);
@@ -1440,7 +1449,64 @@ function stand(asked) {
   edge.style.setProperty("--y", `${100 - at.room}vh`);
   edge.classList.toggle("parked", parked);
   says.textContent = parked ? "parked" : `${at.length} tokens`;
+  stir();
 }
+
+/* The cue: how near the next scroll is to drawing, drawn as a counter-point at the last
+ * line's height that pulses against the point and meets it at the mark. `room.cue` decides what
+ * is shown; this only paints it, and runs a frame loop only while something is moving. */
+
+let stirred = -Infinity;  // when the page last moved
+let hovering = false;
+let phase = 0;
+let frame = null;
+let then = 0;
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+
+/** How far below the mark the last line stands, in `vh`: what is left to scroll. */
+const gap = () => Math.max(0,
+  (document.documentElement.scrollHeight - window.scrollY - window.innerHeight)
+  / window.innerHeight * 100);
+
+function beat(now) {
+  const c = room.cue({ gap: gap(), since: now - stirred, hover: hovering,
+                       armed: cursor.armed(), parked });
+  edge.classList.toggle("cued", c !== null && (c.near || hovering));
+  edge.classList.toggle("close", c !== null && c.close);
+  if (c === null) {
+    counter.style.opacity = "0";
+    handle.style.opacity = "";
+    return false;
+  }
+  phase = (phase + c.rate * (now - then) / 1000) % 1;
+  // Solid while a draw is in flight: the gesture has been made and there is nothing to warn of.
+  const depth = still.matches || working ? 0 : c.pulse;
+  // The two in opposite phase, so one is brightest where the other is faintest.
+  const wave = 0.5 - 0.5 * Math.cos(2 * Math.PI * phase);
+  edge.style.setProperty("--gap", `${c.gap}vh`);
+  handle.style.opacity = String(1 - 0.65 * depth * wave);
+  counter.style.opacity = String(1 - 0.65 * depth * (1 - wave));
+  // A frame is wanted while there is a pulse to run or a fade still under way.
+  return depth > 0 || hovering || now - stirred < room.FADE;
+}
+
+function tick(now) {
+  const going = beat(now);
+  then = now;
+  frame = going ? requestAnimationFrame(tick) : null;
+}
+
+/** Something moved: start the loop if it is not running. */
+function stir(moving = false) {
+  if (moving) stirred = performance.now();
+  if (frame === null) {
+    then = performance.now();
+    frame = requestAnimationFrame(tick);
+  }
+}
+
+edge.addEventListener("pointerenter", () => { hovering = true; stir(); });
+edge.addEventListener("pointerleave", () => { hovering = false; stir(); });
 
 const asked = event => 100 - (event.clientY / window.innerHeight) * 100;
 
