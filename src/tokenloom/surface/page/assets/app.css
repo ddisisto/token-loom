@@ -24,8 +24,9 @@
   --drew-near: #93a6b5; --drew-far: #1f5b85;
   /* The heat's colours at 0, 1, 2 and the top of its range, which `app.js` places along it. */
   --heat-0: #123a8c; --heat-1: #ffffff; --heat-2: #b0141f; --heat-3: #3a0407;
-  /* The footer's height, measured, which the room below the text is reckoned above. */
-  --foot: 0px;
+  /* The footer's height, measured, which the room below the text is reckoned above; and how
+     high it reaches, which is more while the drawer is up and not held. */
+  --foot: 0px; --lid: 0px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -91,40 +92,11 @@ button:hover { color: var(--ink); border-color: var(--dim); }
                      padding: 9px 12px; font: 400 13px/1.45 var(--mono); }
 #roots .new button:hover { color: var(--ink); background: var(--bg); }
 
-/* ---- the draw ----
-   What a continuation is asked for, at the foot of the side and out of the roots' way. It is
-   where the values are set and not where they live: closed, the summary is enough to read
-   them off, and folding the side away does not change what a draw asks for. */
-
-#draw { border-top: 1px solid var(--rule); font: 400 11.5px/1.45 var(--mono); }
-#draw .head { display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
-              font: inherit; border: none; border-radius: 0; padding: 10px 12px; }
-#draw .head:hover { background: var(--bg); }
-#draw .head .name { letter-spacing: .06em; }
-#draw .head .sum { flex: 1; text-align: right; }
-#draw .body { display: none; max-height: 44vh; overflow-y: auto; padding: 0 12px 12px; }
-#draw.open .body { display: block; }
-
-#draw .group { margin: 11px 0 5px; font: italic 400 12px/1.4 var(--serif); color: var(--dim); }
-#draw .row { margin: 7px 0; }
-#draw .row .top { display: flex; align-items: baseline; gap: 7px; }
-#draw .row .name { display: flex; align-items: center; gap: 6px; color: var(--dim); }
-#draw .row.opt .name { cursor: pointer; }
-#draw .row .val { flex: 1; text-align: right; color: var(--ink); }
-#draw .row.off .val { color: var(--faint); }
-#draw input { accent-color: var(--accent); }
-#draw input[type="checkbox"] { margin: 0; }
-#draw input[type="range"] { display: block; width: 100%; height: 15px; margin: 2px 0 0; }
-#draw input[type="number"] { width: 100%; margin-top: 3px; padding: 3px 6px; font: inherit;
-                             color: var(--ink); background: var(--bg);
-                             border: 1px solid var(--rule); border-radius: 3px; }
-#draw .row.off input:disabled { opacity: .35; }
-
 body.folded #side { width: var(--fold); }
 body.folded #side .head { grid-template-columns: 1fr; }
 body.folded #side .head b { display: none; }
 body.folded #fold { grid-column: 1; justify-self: center; transform: rotate(180deg); }
-body.folded #roots, body.folded #draw { display: none; }
+body.folded #roots { display: none; }
 body.folded main { margin-left: var(--fold); }
 body.folded footer { left: var(--fold); }  /* it is placed, not inset */
 
@@ -142,11 +114,15 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    length: a path shorter than the window would otherwise leave nowhere to scroll to, and
    under about a thousand characters that is every path. The column takes what the path does
    not provide as room above it, so the last line arrives at the same place either way. */
-/* The measure, shared with the edge and the heat so all three agree on where the text is.
+/* The measure, shared by everything placed against the text so they agree on where it is.
    All are inside `main`, which is what `100cqw` is read against, and the cap is in the
-   column's type size and not in `em`, which would be read in whichever face used it. */
-#column, #edge, #heat { --gutter: 24px; --type: 21px;
-                        --col: min(calc(var(--type) * 34), calc((100cqw - var(--gutter) * 2) / 2)); }
+   column's type size and not in `em`, which would be read in whichever face used it.
+   `--start` is where the text begins, for what is fixed and so placed from the window. */
+#column, #edge, #heat, footer {
+  --gutter: 24px; --type: 21px;
+  --col: min(calc(var(--type) * 34), calc((100cqw - var(--gutter) * 2) / 2));
+  --off: var(--nav); --start: calc(var(--off) + 50cqw - var(--col)); --by: 30px; }
+body.folded :is(#edge, #heat) { --off: var(--fold); }
 #column { --space: 85vh; --runway: 20vh; --top: 72px;
           position: relative;  /* the rows stand in the half the column leaves empty */
           box-sizing: content-box; width: calc(var(--col) * 2);
@@ -517,11 +493,12 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
 .compose .fault { color: var(--accent); white-space: pre-wrap; }
 
 footer { position: fixed; left: var(--nav); right: 0; bottom: 0; z-index: 10;
-         padding: 7px 20px; font: 400 11.5px/1.4 var(--mono); color: var(--dim);
+         font: 400 11.5px/1.4 var(--mono); color: var(--dim);
          background: color-mix(in srgb, var(--bg) 88%, transparent);
          backdrop-filter: blur(8px);
          transition: left .14s ease; }
 footer .fault { color: var(--accent); }
+#status { padding: 7px 20px; }
 
 /* ---- what is on its way ----
    A request appears where its result will, so this stands at the end of the path, in the
@@ -573,13 +550,11 @@ footer .fault { color: var(--accent); }
    for. `--room` is the point's height above the footer, in `vh`, and the footer's top is what
    it is reckoned from -- so whatever the footer holds, the text keeps the same screen. It is
    fixed and placed from the measure, since the column is centred in what the nav leaves. */
-#edge { --off: var(--nav); --by: 30px;
-        position: fixed; top: 0; bottom: var(--foot); width: 16px; z-index: 25;
+#edge { position: fixed; top: 0; bottom: var(--foot); width: 16px; z-index: 25;
         /* The gutter is narrower than `--by`, so a window too narrow for the margin keeps it
            off the nav and lets it stand nearer the text. */
-        left: max(var(--off), calc(var(--off) + 50cqw - var(--col) - var(--by)));
+        left: max(var(--off), calc(var(--start) - var(--by)));
         transition: left .14s ease; cursor: ns-resize; touch-action: none; }
-body.folded #edge { --off: var(--fold); }
 #edge::before { content: ""; position: absolute; top: 0; bottom: 0; left: 7.5px; width: 1px;
                 background: var(--rule); }
 #edge .point { position: absolute; left: 8px; top: calc(100% - var(--room)); width: 8px;
@@ -619,11 +594,9 @@ body.folded #edge { --off: var(--fold); }
    scrolls under. Hovered or moved, the point grows and says the heat; the floor is the
    panel's, which can be left open beside it. `--x` is
    how far along the point stands, from 0 to 1, and `app.js` sets `--glow` and `--scale`. */
-#heat { --off: var(--nav);
-        position: fixed; bottom: calc(var(--foot) - 8px); height: 16px; z-index: 25;
-        left: calc(var(--off) + 50cqw - var(--col)); width: var(--col);
+#heat { position: fixed; bottom: calc(var(--lid) - 8px); height: 16px; z-index: 27;
+        left: var(--start); width: var(--col);
         transition: left .14s ease; cursor: ew-resize; touch-action: none; }
-body.folded #heat { --off: var(--fold); }
 #heat::after { content: ""; position: absolute; z-index: -1; pointer-events: none;
                left: calc(var(--gutter) * -1); right: calc(var(--gutter) * -1); bottom: 8px;
                height: 2.2em; background: linear-gradient(to bottom, transparent, var(--bg)); }
@@ -643,3 +616,38 @@ body.folded #heat { --off: var(--fold); }
 /* What either rule says stands over text, so it carries a halo of the page behind it. */
 #edge .says, #heat .says {
   text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg), 0 0 8px var(--bg), 0 0 12px var(--bg); }
+
+/* ---- the drawer ----
+   The rest of the draw, under the heat. Hovering the footer lifts it over the text and leaving
+   lets it fall; dragging the heat up holds it open at whatever height it is let go, and only
+   then does it take room from the text -- so a look at a setting moves nothing. Held part-way
+   it scrolls. Each parameter is a line with a point on it like the two rules, and one at the
+   end where it does nothing is a ring: left out of the request, or for the record's mass,
+   sent at what keeps everything. It sits over text, so what it says carries a halo. */
+#drawer { height: 0; overflow: hidden;
+          background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(14px);
+          text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg), 0 0 8px var(--bg); }
+footer.peek:not(.held) #drawer { position: absolute; left: 0; right: 0; bottom: 100%;
+                                 height: auto; }
+footer.held #drawer { height: var(--held); overflow-y: auto; scrollbar-width: thin; }
+footer.peek, footer.held { z-index: 26; }
+#drawer .panel { margin-left: calc(50cqw - var(--col)); width: var(--col); padding: 16px 0 6px;
+                 display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+                 gap: 6px 32px; }
+#drawer .head { margin-bottom: 2px; font: italic 400 12px/1.4 var(--serif); color: var(--dim); }
+#drawer .row { display: grid; grid-template-columns: 6.8rem 1fr 3.2rem; align-items: center;
+               gap: 10px; height: 22px; }
+#drawer .row .val { text-align: right; color: var(--ink); }
+#drawer .row.off .val { color: var(--faint); }
+#drawer .row.flag { cursor: pointer; }
+#drawer .row.flag:hover .name { color: var(--ink); }
+#drawer .line { position: relative; height: 16px; cursor: ew-resize; touch-action: none; }
+#drawer .row.flag .line { cursor: inherit; }
+#drawer .line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%;
+                        height: 1px; background: var(--rule); }
+#drawer .row.flag .line::before { display: none; }
+#drawer .line .point { position: absolute; top: 50%; left: calc(var(--x) * 100%); width: 8px;
+                       height: 8px; transform: translate(-50%, -50%); border-radius: 50%;
+                       background: var(--dim); transition: width .1s ease, height .1s ease; }
+#drawer .line:hover .point, #drawer .line.moving .point { width: 13px; height: 13px; }
+#drawer .row.off .line .point { background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--dim); }

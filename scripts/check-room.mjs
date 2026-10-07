@@ -6,7 +6,8 @@
  * a different size than the readout said.
  */
 
-const { PARK, REACH, DETENTS, roomFor, place, NEAR, CLOSE, CALM, CAP, FADE, rate, cue } =
+const { PARK, REACH, DETENTS, roomFor, place, NEAR, CLOSE, CALM, CAP, FADE, rate, cue,
+        SNAP, pulled, rests } =
   await import(new URL("../src/tokenloom/surface/page/assets/room.js", import.meta.url));
 const { draw } = await import(
   new URL("../src/tokenloom/surface/page/assets/draw.js", import.meta.url));
@@ -29,7 +30,7 @@ const gaps = rooms.slice(1).map((r, i) => r - rooms[i]);
 is("  evenly spaced",
    gaps.every(g => Math.abs(g - gaps[0]) < 1e-9), true);
 
-// Every room the hand can ask for, a tenth of a vh apart.
+// Every room the hand can ask for, a tenth of a percent apart.
 const asked = [];
 for (let r = 0; r <= 100; r += 0.1) asked.push(place(r));
 is("a handle anywhere rests on a detent or parks",
@@ -81,5 +82,19 @@ is("  and no moment of stillness brings it back",
    fading.every((p, i) => i === 0 || p <= fading[i - 1]), true);
 is("the point grows only within CLOSE",
    [at(CLOSE, 0).close, at(CLOSE + 0.1, 0).close], [true, false]);
+
+// ---- the drawer
+
+const full = 300;
+is("a drag inside the dead zone is the heat's, either way",
+   [pulled(0, SNAP, full), pulled(0, -SNAP, full), pulled(150, SNAP / 2, full)], [null, null, null]);
+is("  and past it the drawer's top follows the pointer",
+   [pulled(0, SNAP + 1, full), pulled(150, -(SNAP + 10), full)], [SNAP + 1, 150 - SNAP - 10]);
+is("  never below shut or above full", [pulled(0, -500, full), pulled(0, 500, full)], [0, full]);
+is("let go near either end, it snaps there",
+   [rests(SNAP - 1, full), rests(full - SNAP + 1, full)], [0, full]);
+is("  and between them it stays where it was let go", rests(150, full), 150);
+is("  and a drawer shorter than both snaps still closes or opens",
+   [rests(10, 100), rests(90, 100)], [0, 100]);
 
 process.exit(bad ? 1 : 0);

@@ -1,8 +1,9 @@
 /* The room below the text, and the length of draw it stands for.
  *
- * Room is in `vh` and is the space under the last line when the page is scrolled to its end,
- * which is also where the line stands when a scroll there draws. The handle at the page's edge
- * sits at `100 - room` from the top, so its line is the line the text will end on.
+ * Room is the space under the last line when the page is scrolled to its end, as a percentage
+ * of the height above the footer -- which is also where the line stands when a scroll there
+ * draws. The handle at the page's edge sits `room` up from the footer's top, so its line is
+ * the line the text will end on, however much of the screen the footer has taken.
  *
  * At either end it parks: a scroll draws nothing, and the length is left where it was. Between
  * them the room is one of a few positions, each a fixed length -- log-spaced and not derived
@@ -45,7 +46,7 @@ export function place(room) {
  * pulse follows the reader's movement and dies away once they stop, so a page left near its
  * end shows the two solid rather than pulsing while it is read. */
 
-/** How far below the mark, in `vh`, the pulse begins, and the point grows. */
+/** How far below the mark, in the room's units, the pulse begins, and the point grows. */
 export const NEAR = 20;
 export const CLOSE = 8;
 
@@ -79,4 +80,28 @@ export function cue({ gap, since, hover = false, armed = false, parked = false }
   const near = g <= NEAR;
   const left = Math.max(0, 1 - since / FADE);
   return { gap: g, rate: rate(g), pulse: hover ? 1 : near ? left : 0, near, close: g <= CLOSE };
+}
+
+// ---- the drawer ---------------------------------------------------------------------------
+
+/* The heat's line is also the drawer's top edge, and dragging it up opens the drawer to
+ * wherever it is let go. A drag is the heat's until it has gone `SNAP` px up or down, so a
+ * hand that wanders while setting the heat moves only the heat; past that it is the drawer's,
+ * whose top follows the pointer. Let go within `SNAP` of either end, it closes or opens fully. */
+
+/** px. */
+export const SNAP = 80;
+
+/** How high the drawer stands while its edge is dragged `dy` px up from where it stood at
+ *  `from`, or null while the drag is still the heat's. */
+export function pulled(from, dy, full) {
+  if (Math.abs(dy) <= SNAP) return null;
+  return Math.min(full, Math.max(0, from + dy));
+}
+
+/** Where the drawer comes to rest when let go at `height`. */
+export function rests(height, full) {
+  if (height < SNAP) return 0;
+  if (full - height < SNAP) return full;
+  return height;
 }

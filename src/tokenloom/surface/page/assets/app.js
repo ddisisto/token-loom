@@ -16,7 +16,7 @@
  */
 
 import * as cursor from "./cursor.js";
-import { along, draw, keep, panel, set, share } from "./draw.js";
+import { along, draw, keep, panel, place, set, share } from "./draw.js";
 import * as room from "./room.js";
 import * as mark from "./mark.js";
 import {
@@ -1355,6 +1355,8 @@ addEventListener("scroll", () => {
 // Already somewhere that counts, and still going down. Every way of moving the page is one
 // of these.
 addEventListener("wheel", event => {
+  // The drawer scrolls itself, and a wheel there is not the page being read further.
+  if (event.target instanceof Element && event.target.closest("footer")) return;
   stir(true);
   moved(event.deltaY > 0 && ready());
 }, { passive: true });
@@ -1423,10 +1425,11 @@ function say(text, bad) {
   $("status").className = bad ? "fault" : "";
 }
 
-$("draw").replaceChildren(panel());
+$("drawer").append(panel());
 
 /* The length of a draw is set at the page's edge, as the room below the last line, and
- * `room.js` has what each position means. Parked, a scroll draws nothing and the length is
+ * `room.js` has what each position means. Room is a share of the height above the footer, so
+ * a drawer held up shortens the edge and keeps every position where it was learned. Parked, a scroll draws nothing and the length is
  * left where it was, so the key that draws at the caret still has one. */
 
 let parked = false;
@@ -1445,8 +1448,8 @@ function stand(asked) {
   const at = room.place(asked);
   parked = at.length === null;
   if (!parked) set("length", at.length);
-  $("column").style.setProperty("--space", `${at.room}vh`);
-  edge.style.setProperty("--room", `${at.room}vh`);
+  $("column").style.setProperty("--space", `calc((100vh - var(--foot)) * ${at.room / 100})`);
+  edge.style.setProperty("--room", `${at.room}%`);
   edge.classList.toggle("parked", parked);
   says.textContent = parked ? "parked" : `${at.length} tokens`;
   stir();
@@ -1463,10 +1466,10 @@ let frame = null;
 let then = 0;
 const still = matchMedia("(prefers-reduced-motion: reduce)");
 
-/** How far below the mark the last line stands, in `vh`: what is left to scroll. */
+/** How far below the mark the last line stands, in the room's units: what is left to scroll. */
 const gap = () => Math.max(0,
   (document.documentElement.scrollHeight - window.scrollY - window.innerHeight)
-  / window.innerHeight * 100);
+  / Math.max(1, window.innerHeight - foot.offsetHeight) * 100);
 
 function beat(now) {
   const c = room.cue({ gap: gap(), since: now - stirred, hover: hovering,
@@ -1483,7 +1486,7 @@ function beat(now) {
   const depth = still.matches || working ? 0 : c.pulse;
   // The two in opposite phase, so one is brightest where the other is faintest.
   const wave = 0.5 - 0.5 * Math.cos(2 * Math.PI * phase);
-  edge.style.setProperty("--gap", `${c.gap}vh`);
+  edge.style.setProperty("--gap", `${c.gap}%`);
   handle.style.opacity = String(1 - 0.65 * depth * wave);
   counter.style.opacity = String(1 - 0.65 * depth * (1 - wave));
   // A frame is wanted while there is a pulse to run or a fade still under way.
@@ -1508,9 +1511,11 @@ function stir(moving = false) {
 edge.addEventListener("pointerenter", () => { hovering = true; stir(); });
 edge.addEventListener("pointerleave", () => { hovering = false; stir(); });
 
-// Above the edge's foot and not the window's, which is the footer's top.
-const asked = event =>
-  (edge.getBoundingClientRect().bottom - event.clientY) / window.innerHeight * 100;
+// A share of the edge's own height, above its foot, which is the footer's top.
+const asked = event => {
+  const box = edge.getBoundingClientRect();
+  return (box.bottom - event.clientY) / box.height * 100;
+};
 
 edge.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
@@ -1534,12 +1539,65 @@ edge.addEventListener("pointercancel", letGo);
 
 stand(room.roomFor(draw().length));
 
-/* The footer's height, which the room below the text is reckoned above: the column pads by
- * it and the edge stops at it, so what the footer comes to hold does not move the text. */
-new ResizeObserver(() => {
-  document.documentElement.style.setProperty(
-    "--foot", `${document.querySelector("footer").offsetHeight}px`);
-}).observe(document.querySelector("footer"));
+/* The footer, and the drawer in it. Hovering it lifts the drawer over the text after a beat,
+ * and leaving lets it fall after another, so passing over it does neither; the heat rides its
+ * top edge, and a pointer on it keeps the drawer up without lifting it. Dragged up by the heat,
+ * the drawer is held at whatever height it was let go and takes that room from the text, which
+ * is `--foot`; how high the footer reaches either way is `--lid`. `room.js` has where it rests.
+ */
+const foot = document.querySelector("footer");
+const drawer = $("drawer");
+const LIFT = 120, FALL = 300;  // ms
+let over = 0;   // how many of the footer and the heat the pointer is on
+let lifting = null;
+let held = 0;   // px the drawer is held open at; 0 is shut
+
+/** How tall the drawer is with everything in it showing, held to most of the screen. */
+const full = () => Math.min(drawer.scrollHeight, window.innerHeight * 0.6);
+
+function measure() {
+  const root = document.documentElement.style;
+  root.setProperty("--foot", `${foot.offsetHeight}px`);
+  const floating = foot.classList.contains("peek") && held === 0;
+  root.setProperty("--lid", `${foot.offsetHeight + (floating ? drawer.offsetHeight : 0)}px`);
+}
+new ResizeObserver(measure).observe(foot);
+new ResizeObserver(measure).observe(drawer);
+
+function hold(px) {
+  held = Math.round(px);
+  foot.classList.toggle("held", held > 0);
+  if (held > 0) foot.classList.remove("peek");
+  foot.style.setProperty("--held", `${held}px`);
+  measure();
+}
+
+function lift(up) {
+  clearTimeout(lifting);
+  // A line in the hand keeps it up, wherever the pointer has wandered while holding it.
+  if (!up && drawer.querySelector(".moving")) {
+    lifting = setTimeout(() => lift(false), FALL);
+    return;
+  }
+  foot.classList.toggle("peek", up && held === 0);
+  measure();
+}
+
+/** The pointer arrived on something that keeps the drawer up; `lifts` if it may raise it. A
+ *  drawer held open is already up, so nothing lifts it further. */
+function arrive(lifts) {
+  over++;
+  clearTimeout(lifting);
+  if (lifts && held === 0 && !foot.classList.contains("peek"))
+    lifting = setTimeout(() => lift(true), LIFT);
+}
+function depart() {
+  over = Math.max(0, over - 1);
+  clearTimeout(lifting);
+  if (over === 0 && foot.classList.contains("peek")) lifting = setTimeout(() => lift(false), FALL);
+}
+foot.addEventListener("pointerenter", () => arrive(true));
+foot.addEventListener("pointerleave", depart);
 
 /* The heat of a draw, set along a line across the column at the footer's top. Its range and
  * steps are the draw panel's, read through `along` and `share`. */
@@ -1570,23 +1628,44 @@ function heated() {
   heatSays.textContent = temperature === 0 ? "greedy" : `heat ${temperature.toFixed(2)}`;
 }
 
-let warming = false;
+/* A drag on the heat sets the heat, until it has gone far enough up or down to be the
+ * drawer's -- and then the heat goes back to where the drag found it, since a hand reaching
+ * for the drawer was not setting it. */
+let grip = null;  // { y, from, heat, drawer }
 const toward = event => {
   const box = heat.getBoundingClientRect();
-  set("temperature", along("temperature", (event.clientX - box.left) / box.width));
+  place("temperature", (event.clientX - box.left) / box.width);
   heated();
 };
 heat.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
   event.preventDefault();
   heat.setPointerCapture(event.pointerId);
-  warming = true;
+  // A drawer lifted by hovering is the height it shows, so a drag starts from there.
+  const from = held > 0 ? held : foot.classList.contains("peek") ? drawer.offsetHeight : 0;
+  grip = { y: event.clientY, from, heat: draw().temperature, drawer: false };
   heat.classList.add("moving");
   toward(event);
 });
-heat.addEventListener("pointermove", event => { if (warming) toward(event); });
+heat.addEventListener("pointermove", event => {
+  if (grip === null) return;
+  const to = room.pulled(grip.from, grip.y - event.clientY, full());
+  if (to === null && !grip.drawer) return toward(event);
+  if (!grip.drawer) {
+    grip.drawer = true;
+    set("temperature", grip.heat);
+    heated();
+  }
+  hold(to ?? grip.from);
+});
+heat.addEventListener("pointerenter", () => arrive(false));
+heat.addEventListener("pointerleave", depart);
 for (const end of ["pointerup", "pointercancel"]) {
-  heat.addEventListener(end, () => { warming = false; heat.classList.remove("moving"); });
+  heat.addEventListener(end, () => {
+    if (grip?.drawer) hold(room.rests(held, full()));
+    grip = null;
+    heat.classList.remove("moving");
+  });
 }
 heated();
 
