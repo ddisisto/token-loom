@@ -578,6 +578,7 @@ async function realise(row, payload) {
 
 let armed = null;    // the node whose row the pointer is on, or null
 let resting = null;  // the row the pointer is on, which has a node only once realised
+let restingOn = null;  // where that row is drawn and the payload it came from
 
 /* Milliseconds a pointer rests on a priced row before anything is bought. **It is a
  * different threshold from `SEEN` because it guards a different thing**: that one keeps a
@@ -728,7 +729,8 @@ async function roll(row, where, payload) {
         at: payload.node, source: payload.sources[String(row.source)], token: row.token,
       });
       ranking.realised(where, row, act.tip);
-      armed = act.tip;  // the row has a node now and the pointer has not moved off it
+      // The row has a node now, and the price follows it only if the pointer is still there.
+      if (resting === row) armed = act.tip;
       last = act.tip;
     }
     const node = row.child;
@@ -768,6 +770,10 @@ async function roll(row, where, payload) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   } finally {
     buying = null;
+    // A row the pointer moved on to while this one was buying had its dwell run out against
+    // a roll in flight, and nothing would ask for it again until the pointer left and came
+    // back. Its clock starts now instead.
+    if (resting !== null && resting !== row) dwell(resting, restingOn.where, restingOn.payload);
   }
   if (last === null) return;
   // A `realise` changes what the rows at this position say became of one of them, and a
@@ -799,6 +805,7 @@ function rolls(row, where, on, payload) {
     if (resting === row) {
       clearTimeout(dwelling);
       resting = null;
+      restingOn = null;
       armed = null;
     }
     // The price goes with the pointer. It is about where the reader is looking and not about
@@ -810,6 +817,7 @@ function rolls(row, where, on, payload) {
   }
   clearTimeout(dwelling);  // this row supersedes whatever else was counting down
   resting = row;
+  restingOn = { where, payload };
   armed = row.child;
   // Set before anything is read, because the pulse follows the pointer and not the answer.
   // A row with no node under it is certainly costly and needs no read to say so.
@@ -818,6 +826,12 @@ function rolls(row, where, on, payload) {
   // landed there is no price to have rested on, and `burst` would decline anyway. An arm
   // already held resolves at once, so returning to a row starts the clock immediately --
   // and a row with no node has nothing to read, so its clock starts on arrival.
+  dwell(row, where, payload);
+}
+
+/** Count the dwell down on a row, from its free read where it has one, and roll it if the
+ *  pointer is still there when it runs out. */
+function dwell(row, where, payload) {
   const read = row.child === null ? Promise.resolve() : grow(row.child);
   read.then(() => {
     if (resting !== row) return;
