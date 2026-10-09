@@ -59,6 +59,23 @@ async function ask(path, body) {
   return shape;
 }
 
+/** Ask for a draw, and treat one that broke as the fault it is.
+ *
+ *  **A `generate` that failed is an act, and it comes back as one.** The record keeps it with
+ *  terminator `failed` and no nodes, so the route answers it as made -- and a caller reading
+ *  only that something was made would ask again, at the same place, for the same thing. Only
+ *  a refusal is turned into a fault on the server, being an answer about the request; the rest
+ *  of the ways a draw writes nothing are turned into one here. An `eos` with nothing before it
+ *  is an answer and not a fault, and comes back as made.
+ */
+async function generated(body) {
+  const act = await ask("/generate", body);
+  if (["failed", "cancelled", "aborted"].includes(act.terminator)) {
+    throw new Fault(act.terminator, `act ${act.id} wrote nothing: the draw ${act.terminator}`);
+  }
+  return act;
+}
+
 // ---- the list of roots ----------------------------------------------------------------
 
 /** A label is one line and the column cuts it, so a newline is shown rather than obeyed. */
@@ -724,10 +741,13 @@ async function roll(row, where, payload) {
       // The length and the heat are the rollout's own and the rest is the reader's, which
       // is the cut `keep` is named for. Naming no sampler is what makes the act greedy in
       // its own `params` rather than greedy by argument.
-      const act = await ask("/generate", {
+      // A greedy draw that failed fails the same way every time it is asked, so one is the end
+      // of the roll and is said, which `generated` sees to.
+      const act = await generated({
         at: stub.tip(node), params: { ...keep(), length: want, temperature: 0 },
       });
-      last = act.tip;
+      last = act.tip ?? last;
+      const had = stub.recall(node)?.grown ?? 0;
       const out = stub.landed(node, await ask(
         `/stub/${node}?length=${stub.CAP}&hidden=${showHidden ? 1 : 0}`));
       const li = seat(node);
@@ -738,6 +758,9 @@ async function roll(row, where, payload) {
         // ending by having finished rather than by being left.
         if (armed === node) pulse(li, stub.costly(node));
       }
+      // And a burst that brought nothing ends it too, whatever the reason: asking again from
+      // the same tip under the same settings is asking the same question.
+      if ((stub.recall(node)?.grown ?? 0) <= had) break;
     }
   } catch (why) {
     // Said out loud, unlike a failed free read: the reader rested on a price and nothing
@@ -1368,10 +1391,11 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     // Asked for at the moment of the act, so what the panel holds now is what is sent and
     // what the record keeps. Nothing here caches it.
     const params = draw();
-    const act = await ask("/generate", { at: where, params });
+    const act = await generated({ at: where, params });
     landing = { ids: new Set(act.nodes.map(n => n.id)), length: params.length };
     await refresh();
-    await show(act.tip, pin ? where : undefined);
+    // An `eos` before anything was drawn names no tip, and the path is where it was.
+    await show(act.tip ?? where, pin ? where : undefined);
     if (pin) parted(act, was);
   } catch (why) {
     failed(why);

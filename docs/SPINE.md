@@ -511,6 +511,15 @@ Each of these is left to be settled by use of the instrument, and each names wha
   perturbation can act far from its origin after seemingly doing nothing is unsettled and is the
   thing worth settling. It needs recorded pairs and no new act, so it waits on the surface rather
   than on the format.
+- **Whether a stub follows a position the backend cannot rank.** A stub takes the child on the top
+  row, so it stops where there is no ranking — and llama.cpp ranks only the last token of a
+  character written as several, which the vocabulary does for rarer CJK and much else outside
+  Latin text. So a stub stops inside the first such character it meets, and since a roll there
+  merges onto the same nodes and ranks
+  nothing, it can never be bought past it. Following the drawn child through such a position would
+  fix that, at the cost of a stub holding a step the record cannot show was the top row; stopping
+  and saying why keeps the claim and leaves those stubs short. Practicality argues for the first,
+  and what settles it is reading stubs through non-Latin text.
 - **Whether re-convergence has a workable formal measure.** Settled by comparing candidate measures against reader judgements over recorded chains — no generation required.
 - **Stub depth beyond the room it is given.** *Stubs* sets depth from the distance to the next
   stub, which makes the policy a consequence of the gate rather than a number of its own. What is
