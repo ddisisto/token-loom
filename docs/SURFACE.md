@@ -288,7 +288,8 @@ two pulse in opposite phase, faster as they close, and within 8% the point grows
 the pointer. The pulse follows the reader's movement and dies away in a second and a half, so a
 page left at its end shows the two met and still rather than pulsing while it is read. An armed
 caret shows them met, the next scroll down drawing from anywhere; a parked page shows the point
-alone.
+alone. The pulse stops the moment a draw is asked, which is when the placeholders *Writing*
+describes take over at the caret.
 
 **Heat is the line between the text and what governs the draw.** It runs across the column at the
 footer's top, greedy at the left and 2.5 at the right in steps of 0.05, with its point drawn along
@@ -653,14 +654,26 @@ advisory**: a request that goes anyway is refused by the adapter and recorded, a
 shows that refusal rather than suppressing one it predicted. `create` and `realise` call no model
 and are never gated by it.
 
-**A request appears where its result will.** An inline placeholder at the position the act will
-occupy, replaced by the nodes when they land — not a spinner elsewhere on the page, and not
-optimistic text.
+**A request appears where its result will.** A row of placeholders stands straight after the
+caret, one for each token of the draw's length — not a spinner elsewhere on the page, and not
+optimistic text. A longer draw is a longer row and a longer wait, so the row is where a reader
+learns what length costs.
+
+**What lands is marked as what landed.** Its segments take the placeholders over one after
+another, pushing what is left of the row ahead of them, and a draw cut short leaves some over,
+which go when its last segment is in. The run they make glows as one band along each line, with
+nothing between one token and the next, holds a beat past the last arrival, sinks to a remnant and
+goes out — so draws in quick succession leave a trail. It is shadow and not ground, which is left
+to the layers that use it. **The pace is the page's and not the model's**: an act arrives whole,
+so spreading it out invents a timing the record does not hold, and it is capped so that a long
+draw is no slower to read than a short one. What it is for is a reader who looked away finding
+their place, and a draw makes *where was I* and *what is new* the same question; the mark answers
+the second.
 
 **The placeholder is read rather than remembered.** `docs/CORE.md` commits a `generate` act before
 the model is called, and an act with no terminator is a generation in flight, so what the
-placeholder stands for is in the record. A page opened while one is running draws it, and a page
-reloaded mid-generation does not lose it.
+placeholder stands for — its length included — is in the record. A page opened while one is
+running draws it, and a page reloaded mid-generation does not lose it.
 
 **Reading goes on while a write is in flight.** A generation is seconds of waiting, and the reader
 is not held at the page they asked from: the store's journal mode lets a read take no lock, and
@@ -798,10 +811,12 @@ when it is settled.
   and shows everything set aside, where this asks for a mark at one position while the rest stays
   out of sight. What settles it is using `delete` in earnest and seeing whether a tree becomes
   unreadable without the mark.
-- **Cadence.** Text arrives in whole acts. Whether the surface reveals a block at once or paces it
-  out — which invents a timing the record does not hold — is a choice, and no measurement has been
-  taken. Nothing is lost by waiting: chunk length *is* `length` in `params`, recorded per act, so
-  the question stays answerable whenever it is asked.
+- **What the glow marks besides a draw.** *Writing* has it on what a draw brought. Taking a row,
+  switching branches and showing what was set aside also put text in front of the reader that was
+  not there a moment before, and none of them has placeholders or a pace to go with it. Marking
+  whatever is new to the view would cover them all and makes a long re-derived path light up
+  whole after a shallow row is taken, which is either noise or the point. What settles it is
+  marking them and reading a tree with them marked.
 - **Everything past the first gesture.** Comparison across branches, and what the instrument does
   that a reader could not get from reading one path at a time. Nothing settles this but use.
 

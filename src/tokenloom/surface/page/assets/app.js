@@ -1529,7 +1529,8 @@ async function resume() {
   const { acts } = await ask("/acts?in_flight=1");
   if (!acts.length) return false;
   working = true;
-  waiting();
+  // As long as the act asked for, which the record holds and the page's setting may not.
+  waiting(acts[0].params?.length);
   while ((await ask("/acts?in_flight=1")).acts.length)
     await new Promise(again => setTimeout(again, 700));
   working = false;
