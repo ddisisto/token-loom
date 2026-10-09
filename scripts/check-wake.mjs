@@ -5,7 +5,7 @@
  * their span however long the draw, and that a trace resumed later is the same trace further on.
  */
 
-const { STEP, SPAN, RISE, LINGER, lag, arrived, delay, trail } =
+const { STEP, SPAN, RISE, AFTER, DECAY, WINK, lag, arrived, shown, tail, hold, delay, trail } =
   await import(new URL("../src/tokenloom/surface/page/assets/wake.js", import.meta.url));
 
 let bad = 0;
@@ -31,14 +31,31 @@ is("  and all of it is in by the span and one rise",
 is("  and a longer draw never arrives sooner",
    counts.every((n, i) => i === 0 || arrived(n) >= arrived(counts[i - 1])), true);
 
+// Every millisecond of a reveal, against counting the arrivals that have started by it.
+const counted = (since, n) => [...Array(n).keys()].filter(i => lag(i, n) <= since).length;
+is("what has started by any moment is the arrivals so far",
+   counts.every(n => [...Array(SPAN + 50).keys()].every(t => shown(t, n) === counted(t, n))), true);
+is("  nothing before landing, the first at it, and never more than there are",
+   [shown(-1, 8), shown(0, 8), shown(1e6, 8), shown(0, 1), shown(5, 0)], [0, 1, 8, 1, 0]);
+
+is("the placeholders are what is still to come of the length",
+   [tail(64, 0), tail(64, 40), tail(64, 64)], [64, 24, 0]);
+is("  and a draw that brings more than it was asked leaves none, not fewer than none",
+   tail(8, 9), 0);
+
+is("a run stays lit through its arrival and a beat beyond",
+   [hold(8), hold(400)], [arrived(8) + AFTER, arrived(400) + AFTER]);
+is("  and arriving at once, only the beat", hold(400, true), AFTER);
+
 const t = { node: 7, born: 1000, hold: 500 };
 is("a trace just left holds for the whole of its hold", delay(t, 1000), 500);
 is("  and resumed later is the same trace further on",
    [delay(t, 1300), delay(t, 1500), delay(t, 3000)], [200, 0, -1500]);
-is("  and is kept while it fades and not after",
-   [trail([t], 1000 + 500 + LINGER - 1).length, trail([t], 1000 + 500 + LINGER).length], [1, 0]);
+const gone = 1000 + 500 + DECAY + WINK;
+is("  and is kept while it sinks and goes out, and not after",
+   [trail([t], gone - 1).length, trail([t], gone).length], [1, 0]);
 const old = { node: 1, born: 0, hold: 0 }, mid = { node: 2, born: 2000, hold: 300 };
-is("a trail drops only what has faded, in the order it was left",
-   trail([old, mid, t], LINGER + 100).map(x => x.node), [2, 7]);
+is("a trail drops only what has gone out, in the order it was left",
+   trail([old, mid, t], DECAY + WINK + 100).map(x => x.node), [2, 7]);
 
 process.exit(bad ? 1 : 0);

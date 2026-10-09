@@ -1155,17 +1155,39 @@ function pending(...what) {
   return box;
 }
 
-/* What a draw leaves behind it, which `wake.js` times. While it is asked for, the wait stands
- * straight after the caret and glows there; once it lands, what it brought comes in token by
- * token in the wait's place and keeps the glow until the last is in, then fades. So the mark
- * answers *what just landed*, and draws in quick succession leave a trail of them, each
- * fainter than the last. The wait is where the length line's pulse hands over to -- that one
- * stops as the draw is asked, which is when this one starts. */
-let landing = null;  // a draw that has landed and is not drawn yet: the ids it brought
-let traces = [];     // { ids, born, count, hold }: what each draw brought, while it fades
+/* What a draw leaves behind it, which `wake.js` times. While it is asked for, a row of
+ * placeholders stands straight after the caret, one for each token it may bring, and glows;
+ * once it lands, what it brought takes them over segment by segment, and the run it makes
+ * keeps the glow a while and then lets it go. So the mark answers *what just landed*, and
+ * draws in quick succession leave a trail. The row is where the length line's pulse hands
+ * over to -- that one stops as the draw is asked, which is when this one starts.
+ *
+ * A run is one element around its segments, so its glow is one box broken only where the line
+ * breaks: a tunnel the text runs through, with no edge between one token and the next. */
+let landing = null;  // a draw that has landed and is not drawn yet: { ids, length }
+let traces = [];     // { ids, length, born, count, hold }: what each draw brought, while it shows
+let revealing = [];  // { trace, segs, sizes, run }: what is still taking its placeholders over,
+                     // and the last run of it, where what is left of the row stands
 
-$("column").style.setProperty("--rise", `${wake.RISE}ms`);
-$("column").style.setProperty("--linger", `${wake.LINGER}ms`);
+const column = $("column");
+column.style.setProperty("--rise", `${wake.RISE}ms`);
+column.style.setProperty("--decay", `${wake.DECAY}ms`);
+column.style.setProperty("--wink-for", `${wake.WINK}ms`);
+column.style.setProperty("--dimmed",
+                         `color-mix(in srgb, var(--accent) ${wake.DIM * 100}%, transparent)`);
+
+const slots = n => Array.from({ length: n }, () => [
+  Object.assign(document.createElement("span"), { className: "slot" }), " ",
+]).flat();
+
+/** A run around `els`, which stand next to each other in the flow. */
+function enclose(els) {
+  const run = document.createElement("span");
+  run.className = "run";
+  els[0].before(run);
+  run.append(...els);
+  return run;
+}
 
 /** Mark what is drawn with whatever is still under way, resumed where it had got to: the
  *  column is rebuilt by every read, and a rebuild is not the draw landing again. */
@@ -1173,48 +1195,86 @@ function wakes() {
   const now = performance.now();
   const brought = (ids, cell) => cell.nodes.some(n => ids.has(n.id));
   if (landing !== null) {
-    const ids = landing;
+    const { ids, length } = landing;
     const count = drawn.filter(cell => brought(ids, cell)).length;
-    traces.push({ ids, born: now, count, hold: still.matches ? 0 : wake.arrived(count) });
+    traces.push({ ids, length, born: now, count, hold: wake.hold(count, still.matches) });
     landing = null;
   }
   traces = wake.trail(traces, now);
-  const segs = $("column").querySelectorAll(".flow .seg");
+  revealing = [];
+  const segs = [...column.querySelectorAll(".flow .seg")];
   if (segs.length !== drawn.length) return;
-  const nth = new Map(traces.map(t => [t, 0]));
-  for (const [i, cell] of drawn.entries()) {
-    // The newest first, since a variation that merged brings nodes an older draw did.
-    const trace = traces.findLast(t => brought(t.ids, cell));
-    if (trace === undefined) continue;
-    const el = segs[i];
-    const since = now - trace.born;
-    const k = nth.get(trace);
-    nth.set(trace, k + 1);
-    // Under reduced motion they are simply there, and hold the glow for none of it.
-    if (!still.matches && since < wake.arrived(trace.count)) {
-      el.classList.add("arrives");
-      el.style.setProperty("--lag", `${wake.lag(k, trace.count) - since}ms`);
+  for (const trace of traces) {
+    // The newest claims a segment first, since a variation that merged brings nodes an older
+    // draw did.
+    const at = drawn.flatMap((cell, i) =>
+      traces.findLast(t => brought(t.ids, cell)) === trace ? [i] : []);
+    if (!at.length) continue;
+    const mine = at.map(i => segs[i]);
+    // One run for each stretch that stands together, so wrapping never reorders the text.
+    const stretches = at.reduce((out, i, k) => {
+      if (k > 0 && i === at[k - 1] + 1) out.at(-1).push(segs[i]); else out.push([segs[i]]);
+      return out;
+    }, []);
+    let run = null;
+    for (const stretch of stretches) {
+      run = enclose(stretch);
+      run.style.setProperty("--hold", `${wake.delay(trace, now)}ms`);
+      run.style.setProperty("--wink", `${wake.delay(trace, now) + wake.DECAY}ms`);
+      const done = run;
+      done.onanimationend = event => {
+        if (event.target === done && event.animationName === "wink")
+          done.replaceWith(...done.childNodes);
+      };
     }
-    el.classList.add("trace");
-    el.classList.toggle("first", k === 0);
-    el.style.setProperty("--hold", `${wake.delay(trace, now)}ms`);
-    // Each ends as its own class, so the plain marks under it come back when it is done.
-    el.onanimationend = event => {
-      if (event.animationName === "arrive") el.classList.remove("arrives");
-      else if (event.animationName === "trace") el.classList.remove("trace", "first");
-    };
+    // Under reduced motion it is simply there.
+    if (!still.matches && now - trace.born < wake.arrived(trace.count)) {
+      for (const el of mine) el.classList.add("due");
+      revealing.push({ trace, segs: mine, sizes: at.map(i => drawn[i].nodes.length), run });
+    }
   }
+  if (revealing.length) requestAnimationFrame(unveil);
 }
 
-const breath = () => Object.assign(document.createElement("span"), {
-  className: "wait", textContent: "\u2026",
-});
+/** One frame of the runs taking their placeholders over: each segment due by now comes in,
+ *  and what is left of the row stands after it, until the last is in and the row goes. */
+function unveil(now) {
+  for (const r of revealing) {
+    const n = wake.shown(now - r.trace.born, r.trace.count);
+    let tokens = 0;
+    for (const [k, el] of r.segs.entries()) {
+      if (k >= n) break;
+      tokens += r.sizes[k];
+      if (el.classList.contains("due")) el.classList.replace("due", "arrives");
+    }
+    const want = n >= r.trace.count ? 0 : wake.tail(r.trace.length, tokens);
+    const have = r.run.querySelectorAll(".slot");
+    if (have.length > want) {
+      for (const slot of [...have].slice(want)) { slot.nextSibling?.remove(); slot.remove(); }
+    } else if (have.length < want) {
+      r.run.append(...slots(want - have.length));
+    }
+  }
+  revealing = revealing.filter(r =>
+    r.segs.some(el => el.classList.contains("due")) || r.run.querySelector(".slot") !== null);
+  if (revealing.length) requestAnimationFrame(unveil);
+}
 
-/** The wait, straight after the caret, which is where what is asked for will start. */
-function waiting() {
-  const at = $("column").querySelector(".flow .seg.at");
-  if (at === null) return pending(breath());
-  at.after(breath());
+/** The row of placeholders, straight after the caret, which is where what is asked for will
+ *  start. A caret that ends a run still glowing stands the row after the run; one inside a run
+ *  takes the run apart, since what follows it there is about to be replaced. */
+function waiting(length = draw().length) {
+  const at = column.querySelector(".flow .seg.at");
+  const row = Object.assign(document.createElement("span"), { className: "run waiting" });
+  row.append(...slots(length));
+  if (at === null) return pending(row);
+  const run = at.closest(".run");
+  if (run === null) at.after(row);
+  else if ([...run.querySelectorAll(".seg")].at(-1) === at) run.after(row);
+  else {
+    run.replaceWith(...run.childNodes);
+    at.after(row);
+  }
 }
 
 /** Take the text below the caret down while a variation is drawn at it, and put it back.
@@ -1223,22 +1283,19 @@ function waiting() {
  *  reader one continuation and then exchanges it for another. Hidden and not re-read: the
  *  segments below are part of what the text above is measured against, so a column rebuilt
  *  short would move the wash on lines this act is not about. The caret's own mark is what the
- *  stylesheet finds them by, every one of them being a sibling after it.
+ *  stylesheet finds them by, every one of them being a sibling after it or after its run.
  */
 function parting() {
-  const flow = $("column").querySelector(".flow");
+  const flow = column.querySelector(".flow");
   if (flow === null) return waiting();
   flow.classList.add("parting");
-  // At the end of the flow rather than after the caret's segment: what follows it is hidden
-  // and takes no room, so this lands where the text stops.
-  flow.append(breath());
+  waiting();
 }
 
 function rejoin() {
-  const flow = $("column").querySelector(".flow");
+  const flow = column.querySelector(".flow");
   if (flow === null) return;
   flow.classList.remove("parting");
-  flow.querySelector(".wait")?.remove();
 }
 
 /** What a variation left, said once it has landed.
@@ -1310,8 +1367,9 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     }
     // Asked for at the moment of the act, so what the panel holds now is what is sent and
     // what the record keeps. Nothing here caches it.
-    const act = await ask("/generate", { at: where, params: draw() });
-    landing = new Set(act.nodes.map(n => n.id));
+    const params = draw();
+    const act = await ask("/generate", { at: where, params });
+    landing = { ids: new Set(act.nodes.map(n => n.id)), length: params.length };
     await refresh();
     await show(act.tip, pin ? where : undefined);
     if (pin) parted(act, was);
@@ -1321,8 +1379,8 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     // Every way out of here, including the refusal that returns without drawing. A path that
     // landed has replaced the flow this was set on, so there is nothing left to put back.
     if (pin) rejoin();
-    // A draw that failed leaves the flow it was asked in, wait and all.
-    $("column").querySelector(".flow .wait")?.remove();
+    // A draw that failed leaves the flow it was asked in, placeholders and all.
+    column.querySelector(".flow .waiting")?.remove();
     landing = null;
     working = false;
     quiet = Date.now() + REST;

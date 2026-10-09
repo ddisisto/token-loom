@@ -258,36 +258,38 @@ body.folded :is(#edge, #heat) { --off: var(--fold); }
 
 /* ---- what a draw leaves behind it ----
    `wake.js` has the timing and `app.js` resumes each of these across a rebuild, so every one
-   is an animation with its delay handed over. All of them are shadows and opacity: nothing
-   here moves the text, and the ground behind it is left for the layers that use it.
+   is an animation with its delay handed over. The glow is shadow and the arrival opacity, so
+   the ground behind the text is left for the layers that use it.
 
-   The wait glows straight after the caret, where the length line's pulse has just stopped.
-   What lands comes in in its place and takes the glow over, holding it until the last token
-   is in and then fading -- so the mark is on what is new, and a run of draws leaves a trail.
+   While a draw is asked for, a row of placeholders stands after the caret, one for each token
+   it may bring, where the length line's pulse has just stopped. What lands takes them over a
+   segment at a time and pushes the rest of the row ahead of it, so the text does move here,
+   but only what stands after what has arrived. The run it makes holds the glow, sinks to a
+   remnant of it, and goes out -- so the mark is on what is new, and a run of draws leaves a
+   trail.
 
-   The glow is a box open on its right: the first token takes the left side and every token
-   the top and bottom, so a run reads as one piece however many tokens it is, and the caret at
-   its end is what closes it. The wait is a run of one. `--glow` is the colour, registered so
-   it can be faded on its own without the shape moving. Each token's top and bottom are drawn
-   only 2px in from its ends, so neighbours' glows overlap to nearly one, with a dip at each
-   join that is there if looked for. */
+   **A run is one element and its glow is one box**, broken only where the line breaks: open
+   at its right, where the caret's own rule closes it, and with nothing between one token and
+   the next. `--glow` is its colour, registered so it can be faded without the shape moving. */
 @property --glow { syntax: "<color>"; inherits: true; initial-value: transparent; }
-/* Declared where they are drawn and not on the flow: a `var()` in a custom property is filled in
-   where it is declared, so on the flow it would be the flow's glow, which is none. */
-.flow :is(.wait, .seg.trace) { --sides: 0 -2px 8px -2px var(--glow), 0 2px 8px -2px var(--glow);
-                               --open: -4px 0 8px -4px var(--glow), var(--sides); }
-.flow .wait { color: var(--accent); --glow: var(--accent); box-shadow: var(--open); }
+.flow .run { --glow: var(--accent);
+             box-shadow: -4px 0 8px -4px var(--glow),
+                         0 -2px 8px -2px var(--glow), 0 2px 8px -2px var(--glow);
+             animation: sink var(--decay) ease-in-out var(--hold) both,
+                        wink var(--wink-for) linear var(--wink) forwards; }
+.flow .run.waiting { animation: none; }
+@keyframes sink { from { --glow: var(--accent); } to { --glow: var(--dimmed); } }
+@keyframes wink { from { --glow: var(--dimmed); } to { --glow: transparent; } }
 
+/* A token not yet arrived, and one arriving. */
+.flow .seg.due { display: none; }
 @keyframes arrive { from { opacity: 0; } }
-@keyframes trace { from { --glow: var(--accent); } to { --glow: transparent; } }
-.flow .seg.trace { box-shadow: var(--sides); }
-.flow .seg.trace.first { box-shadow: var(--open); }
-.flow .seg.at.trace { box-shadow: inset -2px 0 0 var(--accent), var(--sides); }
-.flow .seg.at.trace.first { box-shadow: inset -2px 0 0 var(--accent), var(--open); }
-.flow .seg.arrives { animation: arrive var(--rise) ease-out var(--lag) both; }
-.flow .seg.trace { animation: trace var(--linger) ease-in-out var(--hold) both; }
-.flow .seg.arrives.trace { animation: arrive var(--rise) ease-out var(--lag) both,
-                                      trace var(--linger) ease-in-out var(--hold) both; }
+.flow .seg.arrives { animation: arrive var(--rise) ease-out both; }
+
+/* A placeholder: short, low and quiet, since it stands for a token and is not one. */
+.slot { display: inline-block; width: .5em; height: .12em; border-radius: 1px;
+        background: var(--dim); opacity: .55; }
+.run.waiting .slot { animation: breathe 1.6s ease-in-out infinite; }
 
 /* ---- what an overlay draws ----
    A place on the scale arrives as `--t` and the colour is made here, so a measure computed
@@ -543,14 +545,13 @@ footer .fault { color: var(--accent); }
                  align-items: baseline; font: 400 13px/1.6 var(--mono); }
 .pending .grow { flex: 1; }
 @keyframes breathe { 50% { opacity: .35; } }
-.wait { animation: breathe 1.6s ease-in-out infinite; }
 
 /* A variation being drawn at the caret, so what stands below it is what the draw is about to
    replace. Hidden rather than taken out: the segments below are part of what a path-relative
    measure reads the lines above against, and a column rebuilt short would move the wash on
    text this act is not about. Nothing above the caret moves, which is the whole point of the
    gesture -- the reader is asking what else goes here, not going anywhere. */
-.flow.parting .seg.at ~ *:not(.wait) { display: none; }
+.flow.parting :is(.seg.at, .run:has(.seg.at)) ~ *:not(.waiting) { display: none; }
 
 /* A composer standing at the caret, in the flow and in the prose's own face. **What is being
    written is the text and not a form about it**, so it takes the column's measure and wraps
