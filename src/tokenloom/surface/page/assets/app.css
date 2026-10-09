@@ -256,6 +256,39 @@ body.folded :is(#edge, #heat) { --off: var(--fold); }
 .flow .seg.at.armed { box-shadow: inset -3px 0 0 var(--accent);
                       background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
+/* ---- what a draw leaves behind it ----
+   `wake.js` has the timing and `app.js` resumes each of these across a rebuild, so every one
+   is an animation with its delay handed over. All of them are shadows and opacity: nothing
+   here moves the text, and the ground behind it is left for the layers that use it.
+
+   The wait glows straight after the caret, where the length line's pulse has just stopped.
+   What lands comes in in its place and takes the glow over, holding it until the last token
+   is in and then fading -- so the mark is on what is new, and a run of draws leaves a trail.
+
+   The glow is a box open on its right: the first token takes the left side and every token
+   the top and bottom, so a run reads as one piece however many tokens it is, and the caret at
+   its end is what closes it. The wait is a run of one. `--glow` is the colour, registered so
+   it can be faded on its own without the shape moving. Each token's top and bottom are drawn
+   only 2px in from its ends, so neighbours' glows overlap to nearly one, with a dip at each
+   join that is there if looked for. */
+@property --glow { syntax: "<color>"; inherits: true; initial-value: transparent; }
+/* Declared where they are drawn and not on the flow: a `var()` in a custom property is filled in
+   where it is declared, so on the flow it would be the flow's glow, which is none. */
+.flow :is(.wait, .seg.trace) { --sides: 0 -2px 8px -2px var(--glow), 0 2px 8px -2px var(--glow);
+                               --open: -4px 0 8px -4px var(--glow), var(--sides); }
+.flow .wait { color: var(--accent); --glow: var(--accent); box-shadow: var(--open); }
+
+@keyframes arrive { from { opacity: 0; } }
+@keyframes trace { from { --glow: var(--accent); } to { --glow: transparent; } }
+.flow .seg.trace { box-shadow: var(--sides); }
+.flow .seg.trace.first { box-shadow: var(--open); }
+.flow .seg.at.trace { box-shadow: inset -2px 0 0 var(--accent), var(--sides); }
+.flow .seg.at.trace.first { box-shadow: inset -2px 0 0 var(--accent), var(--open); }
+.flow .seg.arrives { animation: arrive var(--rise) ease-out var(--lag) both; }
+.flow .seg.trace { animation: trace var(--linger) ease-in-out var(--hold) both; }
+.flow .seg.arrives.trace { animation: arrive var(--rise) ease-out var(--lag) both,
+                                      trace var(--linger) ease-in-out var(--hold) both; }
+
 /* ---- what an overlay draws ----
    A place on the scale arrives as `--t` and the colour is made here, so a measure computed
    anywhere reaches the column the same way. Nothing is drawn at the foot of the scale: a
@@ -518,7 +551,6 @@ footer .fault { color: var(--accent); }
    text this act is not about. Nothing above the caret moves, which is the whole point of the
    gesture -- the reader is asking what else goes here, not going anywhere. */
 .flow.parting .seg.at ~ *:not(.wait) { display: none; }
-.flow .wait { color: var(--accent); }
 
 /* A composer standing at the caret, in the flow and in the prose's own face. **What is being
    written is the text and not a form about it**, so it takes the column's measure and wraps

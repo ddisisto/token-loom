@@ -36,6 +36,7 @@ CHECKS = [
     "check-ranking.mjs",
     "check-room.mjs",
     "check-stub.mjs",
+    "check-wake.mjs",
 ]
 
 

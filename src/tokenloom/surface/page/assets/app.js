@@ -24,6 +24,7 @@ import {
 } from "./overlay.js";
 import * as ranking from "./ranking.js";
 import * as stub from "./stub.js";
+import * as wake from "./wake.js";
 
 const $ = id => document.getElementById(id);
 
@@ -890,6 +891,7 @@ async function show(node, where) {
   cursor.place(where === undefined ? cursor.resting(got.cells) : where);
   $("column").replaceChildren(laid(got));
   frontier();
+  wakes();
   settled();
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
@@ -1153,12 +1155,66 @@ function pending(...what) {
   return box;
 }
 
+/* What a draw leaves behind it, which `wake.js` times. While it is asked for, the wait stands
+ * straight after the caret and glows there; once it lands, what it brought comes in token by
+ * token in the wait's place and keeps the glow until the last is in, then fades. So the mark
+ * answers *what just landed*, and draws in quick succession leave a trail of them, each
+ * fainter than the last. The wait is where the length line's pulse hands over to -- that one
+ * stops as the draw is asked, which is when this one starts. */
+let landing = null;  // a draw that has landed and is not drawn yet: the ids it brought
+let traces = [];     // { ids, born, count, hold }: what each draw brought, while it fades
+
+$("column").style.setProperty("--rise", `${wake.RISE}ms`);
+$("column").style.setProperty("--linger", `${wake.LINGER}ms`);
+
+/** Mark what is drawn with whatever is still under way, resumed where it had got to: the
+ *  column is rebuilt by every read, and a rebuild is not the draw landing again. */
+function wakes() {
+  const now = performance.now();
+  const brought = (ids, cell) => cell.nodes.some(n => ids.has(n.id));
+  if (landing !== null) {
+    const ids = landing;
+    const count = drawn.filter(cell => brought(ids, cell)).length;
+    traces.push({ ids, born: now, count, hold: still.matches ? 0 : wake.arrived(count) });
+    landing = null;
+  }
+  traces = wake.trail(traces, now);
+  const segs = $("column").querySelectorAll(".flow .seg");
+  if (segs.length !== drawn.length) return;
+  const nth = new Map(traces.map(t => [t, 0]));
+  for (const [i, cell] of drawn.entries()) {
+    // The newest first, since a variation that merged brings nodes an older draw did.
+    const trace = traces.findLast(t => brought(t.ids, cell));
+    if (trace === undefined) continue;
+    const el = segs[i];
+    const since = now - trace.born;
+    const k = nth.get(trace);
+    nth.set(trace, k + 1);
+    // Under reduced motion they are simply there, and hold the glow for none of it.
+    if (!still.matches && since < wake.arrived(trace.count)) {
+      el.classList.add("arrives");
+      el.style.setProperty("--lag", `${wake.lag(k, trace.count) - since}ms`);
+    }
+    el.classList.add("trace");
+    el.classList.toggle("first", k === 0);
+    el.style.setProperty("--hold", `${wake.delay(trace, now)}ms`);
+    // Each ends as its own class, so the plain marks under it come back when it is done.
+    el.onanimationend = event => {
+      if (event.animationName === "arrive") el.classList.remove("arrives");
+      else if (event.animationName === "trace") el.classList.remove("trace", "first");
+    };
+  }
+}
+
 const breath = () => Object.assign(document.createElement("span"), {
   className: "wait", textContent: "\u2026",
 });
 
+/** The wait, straight after the caret, which is where what is asked for will start. */
 function waiting() {
-  pending(breath());
+  const at = $("column").querySelector(".flow .seg.at");
+  if (at === null) return pending(breath());
+  at.after(breath());
 }
 
 /** Take the text below the caret down while a variation is drawn at it, and put it back.
@@ -1255,6 +1311,7 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     // Asked for at the moment of the act, so what the panel holds now is what is sent and
     // what the record keeps. Nothing here caches it.
     const act = await ask("/generate", { at: where, params: draw() });
+    landing = new Set(act.nodes.map(n => n.id));
     await refresh();
     await show(act.tip, pin ? where : undefined);
     if (pin) parted(act, was);
@@ -1264,6 +1321,9 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     // Every way out of here, including the refusal that returns without drawing. A path that
     // landed has replaced the flow this was set on, so there is nothing left to put back.
     if (pin) rejoin();
+    // A draw that failed leaves the flow it was asked in, wait and all.
+    $("column").querySelector(".flow .wait")?.remove();
+    landing = null;
     working = false;
     quiet = Date.now() + REST;
     // What landed moved the end and may have moved the window: an arrival at the end is a
