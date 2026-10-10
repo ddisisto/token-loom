@@ -270,16 +270,20 @@ body.folded :is(#edge, #heat) { --off: var(--fold); }
 
    **A run is one element and its glow is one box**, broken only where the line breaks: open
    at its right, where the caret's own rule closes it, and with nothing between one token and
-   the next. `--glow` is its colour, registered so it can be faded without the shape moving. */
-@property --glow { syntax: "<color>"; inherits: true; initial-value: transparent; }
-.flow .run { --glow: var(--accent);
-             box-shadow: -4px 0 8px -4px var(--glow),
-                         0 -2px 8px -2px var(--glow), 0 2px 8px -2px var(--glow);
+   the next. It is the shadow itself that is animated, at each of its three strengths, since a
+   custom property holding only the colour is stepped and not faded where it is not registered. */
+.flow .run { --lit: -4px 0 8px -4px var(--accent),
+                    0 -2px 8px -2px var(--accent), 0 2px 8px -2px var(--accent);
+             --low: -4px 0 8px -4px var(--dimmed),
+                    0 -2px 8px -2px var(--dimmed), 0 2px 8px -2px var(--dimmed);
+             --out: -4px 0 8px -4px transparent,
+                    0 -2px 8px -2px transparent, 0 2px 8px -2px transparent;
+             box-shadow: var(--lit);
              animation: sink var(--decay) ease-in-out var(--hold) both,
                         wink var(--wink-for) linear var(--wink) forwards; }
 .flow .run.waiting { animation: none; }
-@keyframes sink { from { --glow: var(--accent); } to { --glow: var(--dimmed); } }
-@keyframes wink { from { --glow: var(--dimmed); } to { --glow: transparent; } }
+@keyframes sink { from { box-shadow: var(--lit); } to { box-shadow: var(--low); } }
+@keyframes wink { from { box-shadow: var(--low); } to { box-shadow: var(--out); } }
 
 /* A token not yet arrived, and one arriving. */
 .flow .seg.due { display: none; }

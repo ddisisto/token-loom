@@ -1260,8 +1260,10 @@ function wakes() {
       run.style.setProperty("--wink", `${wake.delay(trace, now) + wake.DECAY}ms`);
       const done = run;
       done.onanimationend = event => {
-        if (event.target === done && event.animationName === "wink")
-          done.replaceWith(...done.childNodes);
+        if (event.target !== done || event.animationName !== "wink") return;
+        // Moved, a segment still marked as arriving would arrive again.
+        for (const el of done.querySelectorAll(".arrives")) el.classList.remove("arrives");
+        done.replaceWith(...done.childNodes);
       };
     }
     // Under reduced motion it is simply there.
