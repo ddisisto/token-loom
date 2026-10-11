@@ -738,6 +738,18 @@ def test_a_waypoint_is_named_by_what_leads_up_to_it_within_the_budget(tree):
     assert S.waypoints(tree.conn, [7], 6)[7].lead == " blue"
 
 
+def test_what_follows_a_waypoint_stops_where_the_tree_parts(tree):
+    """The trail is a root's label begun below the waypoint, so it carries the same three
+    stops: where the tree parts, a leaf, and the budget -- and a set-aside arm parts nothing."""
+    got = S.waypoints(tree.conn, [1, 2, 3, 4, 7], 100)
+    assert (got[1].trail, got[1].parts) == (" sky", True)
+    assert (got[2].trail, got[2].parts) == ("", True)
+    assert (got[3].trail, got[3].parts) == (" blue is", False)
+    assert (got[7].trail, got[7].parts) == ("", False)
+    cut = S.waypoints(tree.conn, [3], 5)[3]
+    assert (cut.trail, cut.parts) == (" blue", False)
+
+
 def test_a_node_the_tree_does_not_hold_is_named_as_none(tree):
     assert S.waypoints(tree.conn, [999, 1], 100)[999] is None
 

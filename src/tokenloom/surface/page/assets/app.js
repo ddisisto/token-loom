@@ -117,9 +117,10 @@ function rootRow(root, current) {
 
 // ---- waypoints ---------------------------------------------------------------------------
 
-/* A waypoint stands under its root, and under the nearest waypoint above it, named by what
- * leads up to it with its own token picked out. Taking one is an arrival: the path through it,
- * with the caret on it. */
+/* A waypoint stands under its root, and under the nearest waypoint above it, named by the
+ * text either side of it with its own token picked out in the middle. Taking one is an
+ * arrival: the path through it, the caret on it in the middle of the window, and the token
+ * flashing there and in the nav so the eye finds where it landed. */
 
 const storage = (() => { try { return localStorage; } catch { return null; } })();
 let known = null;     // the last answer to `/tree`
@@ -138,24 +139,50 @@ function wayRows(item, depth) {
   const li = document.createElement("li");
   li.className = "waypoint";
   li.style.setProperty("--depth", depth);
-  // The lead is cut from its front, so what is clipped for room is the far end of it and
-  // the token stays in view.
+  // The lead is clipped at its far end and the trail at its own, so the token holds the
+  // middle of the row however wide the nav is.
   const lead = document.createElement("span");
   lead.className = "lead";
   lead.append(Object.assign(document.createElement("span"), { textContent: oneLine(item.lead) }));
   const token = Object.assign(document.createElement("b"), { textContent: oneLine(item.token) });
+  const trail = Object.assign(document.createElement("span"), {
+    className: "trail", textContent: oneLine(item.trail),
+  });
+  if (item.parts) {
+    const mark = Object.assign(document.createElement("span"), {
+      className: "fork", textContent: " ⑂", title: "the tree parts here",
+    });
+    trail.append(mark);
+  }
   const go = document.createElement("button");
   go.className = "flip";
   go.textContent = "×";
   go.title = "clear this waypoint";
   go.onclick = event => { event.stopPropagation(); waymark(item.node); };
-  li.append(lead, token, go);
+  li.append(lead, token, trail, go);
   // Set aside since it was set, which is shown whatever the toggle says: it is the reader's
   // mark, and dropping it would lose what they asked to keep.
   if (!item.live) li.classList.add("hidden");
   li.dataset.waypoint = item.node;
-  li.onclick = () => show(item.node, item.node);
+  li.onclick = () => reach(item.node, token);
   return [li, ...item.below.flatMap(under => wayRows(under, depth + 1))];
+}
+
+/** Arrive at the waypoint at `node`, whose token in the nav is `named`. */
+async function reach(node, named) {
+  await show(node, node);
+  const seg = $("column").querySelector(".flow .seg.at");
+  if (seg === null) return;
+  // The page's own scroll, which is not the reader reading on: nothing is asked for and the
+  // caret is not moved back into a band it is already in the middle of.
+  carried = performance.now() + CARRY;
+  seg.scrollIntoView({ block: "center" });
+  for (const el of [seg, named]) {
+    el.classList.remove("beacon");
+    void el.offsetWidth;  // a class taken off and put back in one frame does not restart
+    el.classList.add("beacon");
+    el.addEventListener("animationend", () => el.classList.remove("beacon"), { once: true });
+  }
 }
 
 /** Set a waypoint at `node`, or clear the one there. */
@@ -1563,8 +1590,15 @@ function moved(counts) {
 
 let wasAtEnd = false;
 let wasAt = 0;
+let carried = 0;  // until when a scroll is the page's own, and not the reader's
+const CARRY = 150;
 addEventListener("scroll", () => {
   const now = atEnd();
+  if (performance.now() < carried) {
+    wasAtEnd = now;
+    wasAt = window.scrollY;
+    return;
+  }
   // Downward and not merely different. At the end of the page there is nowhere below to go,
   // so an arrival there is the gesture; an armed caret has no such place, so the direction is
   // all there is -- and what lands after an act can shorten the page and move the window on

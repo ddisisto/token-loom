@@ -665,6 +665,8 @@ class Waypoint:
     live: bool  #: neither it nor anything above it is set aside
     lead: str  #: the text before its segment, cut from the front to the budget
     token: str  #: its segment's text
+    trail: str  #: the text after it, to where the tree parts or to the budget
+    parts: bool  #: the trail stopped where the tree parts, rather than at a leaf or for room
 
 
 def waypoints(
@@ -676,9 +678,10 @@ def waypoints(
     walk per node, so it costs what the waypoints' depths add up to. `under` is reckoned
     only among the nodes asked about together, which is what a list nesting them wants.
 
-    A waypoint is named by what leads up to it, which is the text a reader would recognise
-    it by, and so the lead is cut from its front. Its own segment is apart from the lead
-    so the token it marks can be picked out.
+    A waypoint is named by the text either side of it, with its own segment apart so the
+    token it marks can be picked out. The lead is cut from its front. The trail is a
+    root's label begun below it, so it stops where the tree parts for the reason a label
+    does: past that point it would follow whichever rule was live.
     """
     asked = set(nodes)
     out: dict[int, Waypoint | None] = {}
@@ -700,6 +703,8 @@ def waypoints(
                 break
             kept.append(cell.text)
             width += len(cell.text)
+        kids = [k for k in R.children(conn, node) if not k.deleted]
+        after = label(conn, kids[0].id, budget) if len(kids) == 1 else None
         out[node] = Waypoint(
             node=node,
             root=line[0].id,
@@ -707,5 +712,7 @@ def waypoints(
             live=R.path_liveness(line)[-1],
             lead="".join(reversed(kept)),
             token=cells[-1].text if cells else "",
+            trail="".join(cell.text for cell in after.segments) if after else "",
+            parts=after.forked if after else len(kids) > 1,
         )
     return out

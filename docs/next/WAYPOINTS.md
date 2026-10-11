@@ -58,6 +58,21 @@ aside something they had marked.
 
 ## What follows
 
+**A nav with room.** A row is a line of text either side of the token it marks, and at a
+sixth of the window that is a few words. The nav should open toward a third of the window on
+hover and be dragged to any width up to the whole window, the way the drawer is opened and
+held below the column. What has to be decided first is whether it moves the column or covers
+it. The column, the edge and the heat line are all placed from where the nav ends, so moving
+them is a reflow on every drag, and covering them leaves a reader unable to see the text and
+the map of it at once.
+
+**The waypoints on the path, while the reader moves along it.** Once the arrival's flash
+is over, nothing says the reader is still on a path a waypoint marks, or how far they have
+come from it. The nav could keep saying so as the reader scrolls: which waypoints are on the
+path in front of them, and how far each is from the caret, above or below. What is open is
+the measure (tokens, lines, or the rows and the column scrolling together) and the channel
+(the glow's strength, a position along the row, or a figure).
+
 **The parting.** Given a set of nodes, the skeleton of their paths is where they agree, printed
 once, and where they part. With that the nav shows where two waypoints parted. It is the same
 read that stacked arms need at the scale of tokens, so whichever of the two comes first builds

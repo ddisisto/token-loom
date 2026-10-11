@@ -69,6 +69,8 @@ def waypoint(node: int, item: S.Waypoint | None) -> dict[str, Any]:
         "live": item.live,
         "lead": item.lead,
         "token": item.token,
+        "trail": item.trail,
+        "parts": item.parts,
     }
 
 
