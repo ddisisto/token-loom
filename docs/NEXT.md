@@ -10,6 +10,13 @@ The ordering is the content. Each item below is cheaper before the one after it 
 expensive after, which is the only reason they are numbered; anything that does not stand in
 that relation to the others is a bullet at the end rather than a number.
 
+**A piece of work too large to be an item is an epic, and is a file under `docs/next/`.** Items
+here are recast as epics when they are next designed or reworked, and not before:
+
+- **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
+  nav under their roots. It comes before the increments below, because it answers a problem
+  daily use already has and touches nothing in the core.
+
 ---
 
 ## 1. The page
@@ -379,6 +386,11 @@ quoted from a tree is a figure against a state of it, which is the item below.
 ## Loose ends
 
 Not in the ordering; each stands on its own.
+
+- **A server that opens trees on request.** It is started against one tree, so the address can
+  name a node but never which tree the node is in. Opening on request makes a tree part of the
+  address. It also turns one claim per server into one per open tree, and that is a decision
+  about the claim and not only about routing.
 
 - **`README.md`'s picture is chosen again.** What it should show is the draw's controls worked
   into the reading — the edge, the heat and the drawer — where the current banner gives a third

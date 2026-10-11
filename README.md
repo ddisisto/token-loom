@@ -112,8 +112,8 @@ test.
   question says what would settle it.
 - **[`docs/LAYERS.md`](docs/LAYERS.md)**: what the page draws over the text: the measures, the
   scales they are read on, and the mark saying who put each token there.
-- **[`docs/NEXT.md`](docs/NEXT.md)**: what gets built next and in what order. Items are deleted
-  once they close.
+- **[`docs/NEXT.md`](docs/NEXT.md)**: what gets built next and in what order, with the larger
+  pieces of work as epics under [`docs/next/`](docs/next/). Items are deleted once they close.
 
 `CLAUDE.md` holds the rules for changing the code and the documents.
 

@@ -97,7 +97,10 @@ each one is here because it was got wrong.
   supersedes `docs/CONTROLLER.md`, which is in the history.
 - **`docs/NEXT.md` is living**: items are added as they come up and deleted once they close or
   fall out of scope, so it never accumulates a history of itself. Nothing cites it, and
-  nothing should — it is the one document allowed to be wrong tomorrow.
+  nothing should — it is the one document allowed to be wrong tomorrow. **An epic is a file
+  under `docs/next/`** and is held to the same rules: one piece of work too large to be an
+  item, deleted when it is done. Items in `docs/NEXT.md` are recast as epics when they are
+  next designed or reworked, and not before.
 - **`docs/PREMISE.md` is an essay and it constrains nothing.** **Nothing may depend on it and
   anything may point a reader at it**, which is the distinction that matters: a dependency
   makes revising an argument break a specification, and a pointer does not. That is how
@@ -252,5 +255,5 @@ How decisions get made here — what has paid off, and what it cost to skip.
 
 `README.md` says where the work stands. **Exactly two files carry what is unfinished**: the
 Status section of `docs/ADAPTER.md` for what the backend leaves open, and `docs/NEXT.md` for
-what gets built. Neither this file nor `docs/CORE.md` is one of them, and a status note landing
+what gets built, along with the epics under `docs/next/` that it lists. Neither this file nor `docs/CORE.md` is one of them, and a status note landing
 in either is the signal that something has no home yet.
