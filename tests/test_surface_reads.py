@@ -694,6 +694,54 @@ def test_naming_a_root_does_not_cost_what_reading_one_does(tmp_path):
     assert counts[0] == counts[1]
 
 
+# ---- naming a waypoint ----------------------------------------------------------------
+
+
+def path_text(conn, node):
+    line = R.path_nodes(conn, node)
+    spell = R.token_bytes(conn, (n.token_id for n in line))
+    return "".join(cell.text for cell in S.segments(line, lambda n: spell[n.token_id]))
+
+
+def test_a_waypoint_nests_under_the_nearest_of_the_others_above_it(tree):
+    """What is checked is the relation and not a table of answers: `under` is an ancestor
+    among those asked, and no other one asked stands between it and the waypoint."""
+    asked = [1, 3, 4, 7, 8, 5, 9]
+    got = S.waypoints(tree.conn, asked, 100)
+    for node in asked:
+        above = [n.id for n in R.path_nodes(tree.conn, node)[:-1]]
+        under = got[node].under
+        if under is None:
+            assert not set(above) & set(asked), node
+        else:
+            assert under in above and under in asked, node
+            between = above[above.index(under) + 1:]
+            assert not set(between) & set(asked), node
+    assert got[7].under == 4 and got[5].under == 1 and got[9].under is None
+
+
+def test_a_waypoint_says_its_root_and_whether_it_is_live(tree):
+    got = S.waypoints(tree.conn, [7, 8, 6, 9], 100)
+    assert [got[n].root for n in (7, 8, 6, 9)] == [1, 1, 1, 9]
+    assert [got[n].live for n in (7, 8, 6, 9)] == [True, False, False, True]
+
+
+def test_a_waypoint_is_named_by_what_leads_up_to_it_within_the_budget(tree):
+    """Read against the text of its path: the lead and the token are the end of it, and
+    the lead is whole segments no longer than the budget."""
+    for budget in (0, 3, 6, 100):
+        for node, w in S.waypoints(tree.conn, [1, 2, 4, 7], budget).items():
+            assert path_text(tree.conn, node).endswith(w.lead + w.token)
+            assert len(w.lead) <= budget
+    assert S.waypoints(tree.conn, [7], 100)[7].lead == "The sky is blue"
+    assert S.waypoints(tree.conn, [7], 100)[7].token == " is"
+    assert S.waypoints(tree.conn, [7], 6)[7].lead == " blue"
+
+
+def test_a_node_the_tree_does_not_hold_is_named_as_none(tree):
+    assert S.waypoints(tree.conn, [999, 1], 100)[999] is None
+
+
 # ---- what the tree below a node holds --------------------------------------------------
 
 

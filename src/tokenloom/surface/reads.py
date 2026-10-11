@@ -650,3 +650,62 @@ def label(conn: sqlite3.Connection, node: int, budget: int) -> Label:
         kept.append(cell)
         width += len(cell.text)
     return Label(kept, forked)
+
+
+# ---- naming a waypoint ---------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Waypoint:
+    """Where a waypoint stands, and the text a list of them is drawn from."""
+
+    node: int
+    root: int
+    under: int | None  #: the nearest waypoint above it, of those asked about together
+    live: bool  #: neither it nor anything above it is set aside
+    lead: str  #: the text before its segment, cut from the front to the budget
+    token: str  #: its segment's text
+
+
+def waypoints(
+    conn: sqlite3.Connection, nodes: Sequence[int], budget: int
+) -> dict[int, Waypoint | None]:
+    """Each of `nodes`, placed among the others, or `None` for one the tree does not hold.
+
+    Like `label`, this names what a list holds rather than reading a path: one ancestry
+    walk per node, so it costs what the waypoints' depths add up to. `under` is reckoned
+    only among the nodes asked about together, which is what a list nesting them wants.
+
+    A waypoint is named by what leads up to it, which is the text a reader would recognise
+    it by, and so the lead is cut from its front. Its own segment is apart from the lead
+    so the token it marks can be picked out.
+    """
+    asked = set(nodes)
+    out: dict[int, Waypoint | None] = {}
+    for node in nodes:
+        if not R.node_exists(conn, node):
+            out[node] = None
+            continue
+        line = R.path_nodes(conn, node)
+        # A character is at most four bytes and a token at least one, so this many nodes
+        # spell at least the budget whatever they are.
+        tail = line[-(budget * 4 + 1):]
+        spell = R.token_bytes(conn, (n.token_id for n in tail))
+        cells = segments(tail, lambda n, spell=spell: spell[n.token_id])
+        if len(tail) < len(line):
+            cells = cells[1:]  # it may begin inside a character the cut went through
+        kept, width = [], 0
+        for cell in reversed(cells[:-1]):
+            if width + len(cell.text) > budget:
+                break
+            kept.append(cell.text)
+            width += len(cell.text)
+        out[node] = Waypoint(
+            node=node,
+            root=line[0].id,
+            under=next((n.id for n in reversed(line[:-1]) if n.id in asked), None),
+            live=R.path_liveness(line)[-1],
+            lead="".join(reversed(kept)),
+            token=cells[-1].text if cells else "",
+        )
+    return out

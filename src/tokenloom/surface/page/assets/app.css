@@ -85,6 +85,15 @@ button:hover { color: var(--ink); border-color: var(--dim); }
 #roots li:hover .flip { background: var(--bg); }
 #roots li[aria-current="true"] .flip { background: var(--accent-bg); }
 
+/* A waypoint, under its root and under any waypoint above it. What leads up to it is clipped
+   at its far end, so the token it marks, picked out at the end of the row, stays in view. */
+#roots li.waypoint { display: flex; padding: 5px 12px 5px calc(12px + var(--depth) * 12px);
+                     font-size: 11.5px; }
+#roots .waypoint .lead { display: flex; justify-content: flex-end; min-width: 0;
+                         overflow: hidden; white-space: pre; }
+#roots .waypoint b { flex: none; font-weight: 400; color: var(--ink); white-space: pre;
+                     box-shadow: inset 0 2px 0 var(--accent); }
+
 /* Last in the list, which is the row the root it makes will occupy. */
 #roots .new { padding: 0; }
 #roots .new:hover { background: none; }
@@ -225,6 +234,14 @@ body.folded :is(#edge, #heat) { --off: var(--fold); }
 .flow .seg.past { color: var(--dim); }
 
 .flow .seg.at { box-shadow: inset -2px 0 0 var(--accent); }
+
+/* A waypoint: a rule along the top of the segment it marks. It is the caret's colour on an
+   edge nothing else uses, so the two read apart when the caret is on it, and it is drawn
+   out of the flow so it moves no text. The bottom edge is the underlines'. */
+.flow .seg.waypoint { position: relative; }
+.flow .seg.waypoint::after { content: ""; position: absolute; left: 0; right: 0; top: -1px;
+                             height: 2px; border-radius: 1px; background: var(--accent);
+                             pointer-events: none; }
 .flow .seg:hover { box-shadow: inset 2px 0 0 var(--faint); }
 .flow .seg.at:hover { box-shadow: inset -2px 0 0 var(--accent), inset 2px 0 0 var(--faint); }
 

@@ -57,6 +57,21 @@ def root(item: R.Node, name: S.Label) -> dict[str, Any]:
     }
 
 
+def waypoint(node: int, item: S.Waypoint | None) -> dict[str, Any]:
+    """A node asked about that the tree does not hold is `missing` and not a failure: a
+    list kept by a client can outlive what it names, and saying so is the client's."""
+    if item is None:
+        return {"node": node, "missing": True}
+    return {
+        "node": item.node,
+        "root": item.root,
+        "under": item.under,
+        "live": item.live,
+        "lead": item.lead,
+        "token": item.token,
+    }
+
+
 def spread(item: R.Spread) -> dict[str, Any]:
     """What one source's ranking says about the position a node stands at.
 

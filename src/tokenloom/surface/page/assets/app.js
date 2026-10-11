@@ -11,8 +11,9 @@
  * path read re-chooses the continuation below the node it is given, so a read at the caret
  * would rearrange the text the reader is pointing into.
  *
- * Nothing here is remembered between loads. Reader state lives in the session, and what is
- * live, what parts and what a ranking holds are read from the store every time.
+ * Nothing here is remembered between loads but the reader's waypoints, which `waypoint.js`
+ * keeps. Reader state lives in the session, and what is live, what parts and what a ranking
+ * holds are read from the store every time.
  */
 
 import * as cursor from "./cursor.js";
@@ -25,6 +26,7 @@ import {
 import * as ranking from "./ranking.js";
 import * as stub from "./stub.js";
 import * as wake from "./wake.js";
+import * as waypoint from "./waypoint.js";
 
 const $ = id => document.getElementById(id);
 
@@ -113,6 +115,68 @@ function rootRow(root, current) {
   return li;
 }
 
+// ---- waypoints ---------------------------------------------------------------------------
+
+/* A waypoint stands under its root, and under the nearest waypoint above it, named by what
+ * leads up to it with its own token picked out. Taking one is an arrival: the path through it,
+ * with the caret on it. */
+
+const storage = (() => { try { return localStorage; } catch { return null; } })();
+let known = null;     // the last answer to `/tree`
+let kept = [];        // { node, created }: the waypoints set in this tree, in the order set
+let ways = new Map(); // root -> what the server said of the waypoints under it, nested
+
+/** Ask what the kept waypoints are now: where each stands, whether it is live, and what
+ *  leads up to it. Nothing is asked when there are none. */
+async function named() {
+  const rows = kept.length
+    ? (await ask(`/waypoints?nodes=${kept.map(w => w.node).join(",")}`)).waypoints : [];
+  ways = waypoint.nest(rows, kept);
+}
+
+function wayRows(item, depth) {
+  const li = document.createElement("li");
+  li.className = "waypoint";
+  li.style.setProperty("--depth", depth);
+  // The lead is cut from its front, so what is clipped for room is the far end of it and
+  // the token stays in view.
+  const lead = document.createElement("span");
+  lead.className = "lead";
+  lead.append(Object.assign(document.createElement("span"), { textContent: oneLine(item.lead) }));
+  const token = Object.assign(document.createElement("b"), { textContent: oneLine(item.token) });
+  const go = document.createElement("button");
+  go.className = "flip";
+  go.textContent = "×";
+  go.title = "clear this waypoint";
+  go.onclick = event => { event.stopPropagation(); waymark(item.node); };
+  li.append(lead, token, go);
+  // Set aside since it was set, which is shown whatever the toggle says: it is the reader's
+  // mark, and dropping it would lose what they asked to keep.
+  if (!item.live) li.classList.add("hidden");
+  li.dataset.waypoint = item.node;
+  li.onclick = () => show(item.node, item.node);
+  return [li, ...item.below.flatMap(under => wayRows(under, depth + 1))];
+}
+
+/** Set a waypoint at `node`, or clear the one there. */
+async function waymark(node) {
+  kept = waypoint.toggle(kept, node, Date.now());
+  if (!waypoint.save(storage, known.created ?? known.path, kept))
+    say("this browser is not keeping waypoints, so these go with the page", true);
+  marked();
+  await named();
+  drawRoots(known, drawn[0]?.nodes[0].id);
+}
+
+/** Mark each segment holding a waypoint. */
+function marked() {
+  const at = new Set(kept.map(w => w.node));
+  const segs = [...$("column").querySelectorAll(".flow .seg")];
+  if (segs.length !== drawn.length) return;
+  for (const [i, el] of segs.entries())
+    el.classList.toggle("waypoint", drawn[i].nodes.some(n => at.has(n.id)));
+}
+
 /** Last in the list, which is the row the root it makes will occupy. */
 function newRow() {
   const li = document.createElement("li");
@@ -126,7 +190,9 @@ function newRow() {
 }
 
 function drawRoots(tree, current) {
-  const rows = live(tree).map(root => rootRow(root, current));
+  const rows = live(tree).flatMap(root => [
+    rootRow(root, current), ...(ways.get(root.id) ?? []).flatMap(item => wayRows(item, 1)),
+  ]);
   // An empty list and a list emptied by the toggle are different states, and a reader who
   // has set everything aside would otherwise be told the tree is new.
   if (!rows.length) rows.push(Object.assign(document.createElement("li"), {
@@ -147,7 +213,10 @@ async function refresh(current) {
   // off the top row entirely. Both make what is held wrong in the same way the rows are.
   stub.forget();
   drawnAt = null;  // the rows said what became of each row, and an act has changed that
-  const tree = await ask("/tree");
+  const tree = known = await ask("/tree");
+  // Keyed by the tree and not by the address, which names only the server.
+  kept = waypoint.load(storage, tree.created ?? tree.path);
+  await named();
   drawRoots(tree, current);
   tally(tree);
   return tree;
@@ -928,6 +997,7 @@ async function show(node, where) {
   cursor.place(where === undefined ? cursor.resting(got.cells) : where);
   $("column").replaceChildren(laid(got));
   frontier();
+  marked();
   wakes();
   settled();
   // Which root is current is derived from the path rather than held beside the position,
@@ -1556,6 +1626,13 @@ addEventListener("keydown", event => {
   if (event.key === "Escape") {
     if (composing()) unauthor(); else release();
     stir();
+    return;
+  }
+  // A waypoint at the caret, or the one there cleared.
+  if (event.key === "w" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (event.repeat || cursor.node() === null || known === null) return;
+    event.preventDefault();
+    waymark(cursor.node()).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
     return;
   }
   if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))

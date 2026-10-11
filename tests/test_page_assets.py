@@ -37,6 +37,7 @@ CHECKS = [
     "check-room.mjs",
     "check-stub.mjs",
     "check-wake.mjs",
+    "check-waypoint.mjs",
 ]
 
 

@@ -161,6 +161,19 @@ def test_a_root_is_named_by_what_it_opens_with_and_by_what_is_live(client):
     assert after[6] == before[6]
 
 
+def test_the_tree_read_carries_what_a_client_keys_it_by(client, writer):
+    assert client.get("/tree").json()["created"] == writer.store.tree["created"]
+
+
+def test_waypoints_come_back_in_the_order_asked_and_a_missing_one_says_so(client):
+    body = client.get("/waypoints?nodes=4,999,3").json()["waypoints"]
+    assert [w["node"] for w in body] == [4, 999, 3]
+    assert body[1] == {"node": 999, "missing": True}
+    assert (body[0]["under"], body[0]["root"], body[0]["token"]) == (3, 1, " blue")
+    assert client.get("/waypoints").json() == {"waypoints": []}
+    assert client.get("/waypoints?nodes=a").status_code == 400
+
+
 def test_a_path_runs_to_the_leaf_the_rule_chooses(client):
     body = client.get("/path/2").json()
     assert body["leaf"] == 4

@@ -74,6 +74,8 @@ class Page(StaticFiles):
 #: Characters of a root's opening text. It bounds what naming every root costs, and the
 #: client cuts it again to whatever column it has.
 LABEL = 120
+#: Characters of what leads up to a waypoint, which is what a list of them names it by.
+LEAD = 60
 
 
 class Busy(Exception):
@@ -244,6 +246,9 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 "path": str(writer.store.path),
                 "vocabulary": writer.store.vocabulary,
                 "marker": writer.store.tree["marker"],
+                # What a client keeps about this tree is keyed by it, since the address
+                # names the server and not the tree it was started against.
+                "created": writer.store.tree.get("created"),
                 "counts": {
                     table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
                     for table in ("nodes", "edges", "acts")
@@ -252,6 +257,19 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                     wire.root(n, S.label(conn, n.id, LABEL)) for n in R.roots(conn)
                 ],
                 "sources": wire.source_names(conn),
+            })
+
+    def waypoints(request: Request) -> JSONResponse:
+        """`nodes` is a comma-separated list of ids, in the order they come back."""
+        raw = request.query_params.get("nodes", "")
+        try:
+            nodes = [int(part) for part in raw.split(",") if part]
+        except ValueError as why:
+            raise ValueError(f"nodes must be integers, not {raw!r}") from why
+        with reading(writer) as conn:
+            named = S.waypoints(conn, nodes, LEAD)
+            return JSONResponse({
+                "waypoints": [wire.waypoint(node, named[node]) for node in dict.fromkeys(nodes)],
             })
 
     def path(request: Request) -> JSONResponse:
@@ -473,6 +491,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
         routes=[
             Route("/tree", tree),
             Route("/path/{node:int}", path),
+            Route("/waypoints", waypoints),
             Route("/ranking/{node:int}", ranking),
             Route("/branches/{node:int}", branches),
             Route("/stub/{node:int}", stub),
