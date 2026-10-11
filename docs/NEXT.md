@@ -1,25 +1,38 @@
 # Next
 
-**What gets built next, and why in that order.**
+**What gets built next, and in what order.**
 
 This document is living. Items are added as they come up and **deleted** once they close or fall
 out of scope — nothing is kept here for the record. What was done is in the history, and a list
 that accumulates its own past stops being read.
 
-The ordering is the content. Each item below is cheaper before the one after it and more
-expensive after, which is the only reason they are numbered; anything that does not stand in
-that relation to the others is a bullet at the end rather than a number.
+**It holds the index of the epics, and whatever is not yet one.** An epic is a piece of work too
+large to be an item, and it is a file under `docs/next/`. What is below the index is the rest:
+items too small to need a file, epics not yet formed enough to be written as one, and the work
+written here before epics existed. That last is recast as an epic when it is next designed or
+reworked, and not before.
 
-**A piece of work too large to be an item is an epic, and is a file under `docs/next/`.** Items
-here are recast as epics when they are next designed or reworked, and not before:
+## Epics
 
-- **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
-  nav under their roots. It comes before the increments below, because it answers a problem
-  daily use already has and touches nothing in the core.
+**The order is the content.** Each is cheaper before the one after it and dearer after, and that
+is the only reason they are numbered. One that has no file yet points at where it stands below.
+
+1. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
+   nav under their roots. It is first because daily use already needs it, and it touches nothing
+   in the core.
+2. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
+   a stack is read in. *The page*, increments 1 and 2. The read that shows where a set of paths
+   part is shared with Waypoints, and whichever of the two comes first builds it.
+3. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
+   *The page*, increment 3, and *The act's condition*. The two together open `acts` once and
+   not twice.
+4. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
+   measure looks and how wide a position branches. *The page*, increments 4 and 5. Branching
+   waits on Arms, which is what makes a position wide.
 
 ---
 
-## 1. The page
+## The page
 
 **Built in the order a reader meets it, which is the order it is written in.** A tree starts
 empty, so the first thing the page needs is a way to make one, and each rendering after that is
@@ -158,7 +171,7 @@ a row taken from the panel are the arrivals left.
 **It is the rule doing its job and not the page failing at its own**, which is why nothing here
 is a fix yet. What would change it is a second member of `RULES` measuring height over what was
 drawn rather than over what was rolled — a stub is any node no act but a greedy one produced, so
-it is derivable, and `acts` is the table *The settings a draw was made under* and section 2 both
+it is derivable, and `acts` is the table *The settings a draw was made under* and *The act's condition* both
 want opened. Whether it is wanted is a question about reading: a default path that follows the
 reading may be the right one, since what was explored is what was found interesting. **Settled
 by living with it**, which now costs nothing to do.
@@ -324,7 +337,7 @@ What lies below a node changes every time the reader generates, so the structura
 first thing the page draws that cannot be held across an act — which is a reason to keep the
 descent it rides on cheap, and not a reason to defer it.
 
-## 2. The act's condition
+## The act's condition
 
 **A recorded logprob is a measurement and the record gives it no error bar.** Two observations of
 one row agree bit for bit when the conditions match and disagree by up to a third of a nat when
@@ -353,7 +366,7 @@ endpoint offers, so it is asserted or it is absent, and `CLAUDE.md`'s rule that 
 vocabulary and not the source is the same problem one level up.
 
 **It is not a marker change.** New columns leave an older reader incomplete rather than wrong, which
-is the line section 3 draws, so this is built against the current marker and a tree written before it
+is the line *The next marker bump* draws, so this is built against the current marker and a tree written before it
 simply has no condition recorded. That is what puts it here rather than in the bundle: it buys a
 capability, and the bundle buys clarity.
 
@@ -381,7 +394,8 @@ would put it in.
 changes retroactively, which a refined measurement breaks by design. The surface is already
 indifferent — `reads.py` sorts rows by value and the page addresses a row by its token, so an
 order that differs between renderings is current rather than wrong. What is left is that a figure
-quoted from a tree is a figure against a state of it, which is the item below.
+quoted from a tree is a figure against a state of it, which is *Whether stamping wants an
+occasion beyond the command* under Loose ends.
 
 ## Loose ends
 
@@ -518,7 +532,7 @@ Not in the ordering; each stands on its own.
   existing text renders and reads, an authoring act that prices what it writes is one that wants a
   server, and `README.md`'s line about what runs without one moves when this does.
 
-## 3. The next marker bump
+## The next marker bump
 
 **A marker bump is what makes an older reader wrong rather than merely incomplete, so it is paid
 once and carries everything that wants it.** A new table or column does not change `marker`;
@@ -527,4 +541,4 @@ as they are found, and it is opened when something in it is worth the bump on it
 
 **Nothing is in it.** `token-loom/3` closed the last one, and everything wanted since has been
 additive: a writer creates what its `marker` defines and the tree lacks, which is how a tree
-written before `stamps` gains it, and section 2 is built the same way.
+written before `stamps` gains it, and *The act's condition* is built the same way.

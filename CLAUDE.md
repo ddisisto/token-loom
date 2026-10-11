@@ -96,11 +96,13 @@ each one is here because it was got wrong.
   *overlay* is `docs/LAYERS.md`'s word for the machinery either kind of measure is drawn by. It
   supersedes `docs/CONTROLLER.md`, which is in the history.
 - **`docs/NEXT.md` is living**: items are added as they come up and deleted once they close or
-  fall out of scope, so it never accumulates a history of itself. Nothing cites it, and
-  nothing should — it is the one document allowed to be wrong tomorrow. **An epic is a file
-  under `docs/next/`** and is held to the same rules: one piece of work too large to be an
-  item, deleted when it is done. Items in `docs/NEXT.md` are recast as epics when they are
-  next designed or reworked, and not before.
+  fall out of scope, so it never accumulates a history of itself. **It is the index of the
+  epics and holds whatever is not yet one.** An epic is a file under `docs/next/`, one piece
+  of work too large to be an item, and it is held to the same rules and deleted when it is
+  done; what the index says about it is its place in the order and nothing it would have to
+  keep in step with the file. Work written into `docs/NEXT.md` before epics existed is recast
+  as one when it is next designed or reworked, and not before. Nothing outside the two cites
+  either, and nothing should — they are the documents allowed to be wrong tomorrow.
 - **`docs/PREMISE.md` is an essay and it constrains nothing.** **Nothing may depend on it and
   anything may point a reader at it**, which is the distinction that matters: a dependency
   makes revising an argument break a specification, and a pointer does not. That is how
