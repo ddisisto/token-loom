@@ -17,19 +17,22 @@ reworked, and not before.
 **The order is the content.** Each is cheaper before the one after it and dearer after, and that
 is the only reason they are numbered. One that has no file yet points at where it stands below.
 
-1. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
-   nav under their roots. It is first because daily use already needs it, and it touches nothing
-   in the core.
-2. **[Alternation](next/ALTERNATION.md)**: a fork's branches taking turns in one place, weighted,
+1. **[Map](next/MAP.md)**: the tree drawn as a shape in the right margin, the reader's path and
+   waypoints on it, and a way in. It is first because the scripts already draw it and losing
+   one's place in the tree is the cost paid daily.
+2. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
+   nav under their roots. Its first cut is in, and the map is where what follows it is drawn
+   as well as listed.
+3. **[Alternation](next/ALTERNATION.md)**: a fork's branches taking turns in one place, weighted,
    and what is shown when the reader acts is what they get. It starts in the nav's trails, which
    Waypoints made, and it may change what Arms has to lay out.
-3. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
+4. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
    a stack is read in. *The page*, increments 1 and 2. The read that shows where a set of paths
    part is shared with Waypoints, and whichever of the two comes first builds it.
-4. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
+5. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
    *The page*, increment 3, and *The act's condition*. The two together open `acts` once and
    not twice.
-5. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
+6. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
    measure looks and how wide a position branches. *The page*, increments 4 and 5. Branching
    waits on Arms, which is what makes a position wide.
 

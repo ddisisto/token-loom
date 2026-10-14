@@ -124,7 +124,8 @@ path as prose, shows what was ranked at any token, continues or branches from th
 measure along the path, and puts the draw's length, heat and sampler settings beside the text. It
 is used daily, by one person.
 
-**Next:** several draws at a position shown side by side, so you can see where they agree. `docs/NEXT.md` has the order, and
+**Next:** a map of the whole tree beside the text, with your place in it marked, to move around
+by. `docs/NEXT.md` has the order, and
 `docs/ADAPTER.md`'s Status has what the backend leaves open.
 
 **By design:** one tree, one writer, one person reading, one local model. The documents say why.
