@@ -31,6 +31,7 @@ ASSETS = ROOT / "src" / "tokenloom" / "surface" / "page" / "assets"
 CHECKS = [
     "check-cursor.mjs",
     "check-draw.mjs",
+    "check-map.mjs",
     "check-mark.mjs",
     "check-overlay.mjs",
     "check-ranking.mjs",
