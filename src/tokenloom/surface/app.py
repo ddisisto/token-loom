@@ -272,6 +272,19 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 "waypoints": [wire.waypoint(node, named[node]) for node in dict.fromkeys(nodes)],
             })
 
+    def tree_map(request: Request) -> JSONResponse:
+        """The tree under a root as strands, which is what the map is drawn from. `hidden`
+        follows the page's toggle as every read here does, and is echoed for the reason
+        `/path`'s is."""
+        root = request.path_params["root"]
+        hidden = _flag(request, "hidden")
+        with reading(writer) as conn:
+            return JSONResponse({
+                "root": root,
+                "hidden": hidden,
+                "strands": [wire.strand(s) for s in S.strands(conn, root, hidden)],
+            })
+
     def path(request: Request) -> JSONResponse:
         """`hidden` carries the path past its live leaf into what was set aside. It is
         echoed because a client drawing hidden nodes distinctly has to know it asked.
@@ -492,6 +505,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             Route("/tree", tree),
             Route("/path/{node:int}", path),
             Route("/waypoints", waypoints),
+            Route("/map/{root:int}", tree_map),
             Route("/ranking/{node:int}", ranking),
             Route("/branches/{node:int}", branches),
             Route("/stub/{node:int}", stub),

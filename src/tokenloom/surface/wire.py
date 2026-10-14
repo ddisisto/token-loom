@@ -178,6 +178,23 @@ def branch(line: S.Branch) -> dict[str, Any]:
     }
 
 
+def strand(item: S.Strand) -> dict[str, Any]:
+    """One strand of a map, with ends and no nodes between them: a path through the strand
+    is what arriving at it reads, and it carries them all."""
+    return {
+        "head": item.head,
+        "tail": item.tail,
+        "up": item.up,
+        "depth": item.depth,
+        "length": item.length,
+        "weight": item.weight,
+        "logprob": item.logprob,
+        "leaf": item.leaf,
+        "stub": item.stub,
+        "aside": item.aside,
+    }
+
+
 def source_names(conn: sqlite3.Connection) -> dict[str, str]:
     return {
         str(row[0]): (f"{row[1]}:{row[2]}" if row[2] else row[1])

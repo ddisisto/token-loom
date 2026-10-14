@@ -716,3 +716,101 @@ def waypoints(
             parts=after.forked if after else len(kids) > 1,
         )
     return out
+
+
+# ---- the map -------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Strand:
+    """A maximal run of nodes each with one child: opened at a root or at a child of a fork,
+    and closed at a fork or a leaf. It is the unit the map draws, and what it carries is what
+    placing one needs and nothing about how it is placed.
+
+    Which strands are hair is not here. It is a cut the reader moves, so the read says what a
+    cut is made from -- whether it is a leaf, how long, whether a hover's stub -- and the page
+    makes it.
+    """
+
+    head: int
+    tail: int
+    up: int | None  #: the head of the strand whose tail this one hangs from
+    depth: int  #: nodes above the head
+    length: int  #: nodes in it
+    weight: int  #: nodes at or below its head, of those the read holds
+    logprob: float | None  #: the head's, in the ranking at the fork it leaves
+    leaf: bool
+    stub: bool  #: a leaf drawn at temperature 0 past its head, as a hover's stub is
+    aside: int | None  #: how many of its nodes come before what was set aside, where any was
+
+
+def _greedy(writings: list[R.Writing] | None) -> bool:
+    return bool(writings) and all(
+        w.op == "generate" and (w.params or {}).get("temperature") == 0 for w in writings
+    )
+
+
+def strands(conn: sqlite3.Connection, root: int, hidden: bool = False) -> list[Strand]:
+    """The tree under `root` as strands, depth-first, a strand before those below it and
+    siblings in id order.
+
+    Like `label`, this names what the tree holds rather than reading a path, and unlike it,
+    it is the whole of one root: one descent, which carries the set-aside nodes whatever
+    `hidden` says because the acts that wrote the live ones may have their tips among them.
+    `hidden` decides what is drawn, as it does for every read the page makes, and a root that
+    is itself set aside holds nothing until it is on.
+
+    **A stub is `docs/SPINE.md`'s**, read off the acts: every act that wrote a node past the
+    head drew at temperature 0. The head is left out because a hover's stub opens on the row
+    it was taken from, which a `realise` wrote, and a leaf of one node is not a stub at all.
+    """
+    top = R.get_node(conn, root)
+    if top.parent is not None:
+        raise ValueError(f"node {root} is not a root")
+    if top.deleted and not hidden:
+        return []
+    parents: dict[int, int | None] = {top.id: None}
+    live: dict[int, bool] = {top.id: not top.deleted}
+    kids: dict[int, list[int]] = {}
+    for _, node, alive in R.descend(conn, root):  # siblings arrive in id order
+        parents[node.id] = node.parent
+        live[node.id] = alive
+        if hidden or alive:
+            kids.setdefault(node.parent, []).append(node.id)
+    wrote = R.writings(conn, parents)
+
+    runs: list[tuple[list[int], int | None, int]] = []  # nodes, the strand above, depth
+    stack: list[tuple[int, int | None, int]] = [(top.id, None, 0)]
+    while stack:
+        head, up, depth = stack.pop()
+        run = [head]
+        while len(below := kids.get(run[-1], ())) == 1:
+            run.append(below[0])
+        runs.append((run, up, depth))
+        for kid in reversed(kids.get(run[-1], ())):
+            stack.append((kid, head, depth + len(run)))
+
+    weight: dict[int, int] = {}
+    for run, up, _ in reversed(runs):  # a strand comes before every strand below it
+        weight[run[0]] = weight.get(run[0], 0) + len(run)
+        if up is not None:
+            weight[up] = weight.get(up, 0) + weight[run[0]]
+    ranked = R.logprobs(conn, (run[0] for run, up, _ in runs if up is not None))
+
+    out = []
+    for run, up, depth in runs:
+        leaf = not kids.get(run[-1])
+        cut = next((i for i, n in enumerate(run) if not live[n]), None)
+        out.append(Strand(
+            head=run[0],
+            tail=run[-1],
+            up=up,
+            depth=depth,
+            length=len(run),
+            weight=weight[run[0]],
+            logprob=ranked.get(run[0]),
+            leaf=leaf,
+            stub=leaf and len(run) > 1 and all(_greedy(wrote.get(n)) for n in run[1:]),
+            aside=cut,
+        ))
+    return out

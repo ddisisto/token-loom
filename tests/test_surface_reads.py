@@ -923,3 +923,129 @@ def test_realised_answers_only_about_the_nodes_it_was_asked(ranked):
     store, tip = ranked
     assert R.realised(store.conn, []) == set()
     assert R.realised(store.conn, [tip]) == set()
+
+
+# ---- the map -------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mapped(tmp_path):
+    """One root with each kind of leaf a map tells apart, and a second root set aside.
+
+        The sky                       the root's strand, a fork at ' sky'
+          ' is blue'                  drawn at 1, a fork at ' blue'
+            ' is'                     drawn at 1: a leaf, not a stub
+            ' red grey'               drawn at 0 and again at 1, merging: not a stub
+          ' red' ' is blue'           a hover: realised, then drawn at 0 -- a stub,
+                                      with ' blue' set aside
+          ' grey'                     realised alone: a leaf of one node, not a stub
+        ' grey'                       a second root, set aside
+    """
+    rows = [(102, -0.1), (104, -1.0), (105, -2.0)]
+    with Store.initialise(tmp_path / "m", vocabulary="toy") as store:
+        v = ToyVocabulary()
+        sky = tip_of(store, store.create(None, "The sky", vocabulary=v, actor=USER))
+        hot, cold = {"length": 2, "temperature": 1}, {"length": 2, "temperature": 0}
+        blue = tip_of(store, store.generate(
+            sky, hot, adapter=ToyAdapter([drew((102, rows), (103, [(103, -0.3)]))]),
+            actor=USER)[0])
+        lone = tip_of(store, store.generate(
+            blue, {"length": 1, "temperature": 1},
+            adapter=ToyAdapter([drew((102, [(102, -0.5), (104, -0.7)]))]), actor=USER)[0])
+        twice = drew((104, [(102, -0.5), (104, -0.7)]), (105, [(105, -0.1)]))
+        mixed = tip_of(store, store.generate(
+            blue, cold, adapter=ToyAdapter([twice]), actor=USER)[0])
+        store.generate(blue, hot, adapter=ToyAdapter([twice]), actor=USER)
+        red = tip_of(store, store.realise(sky, MODEL, 104, actor=USER))
+        hover = drew((102, [(102, -0.2)]), (103, [(103, -0.1)]))
+        stubbed = tip_of(store, store.generate(
+            red, cold, adapter=ToyAdapter([hover]), actor=USER)[0])
+        store.delete(stubbed, actor=USER)
+        grey = tip_of(store, store.realise(sky, MODEL, 105, actor=USER))
+        other = tip_of(store, store.create(None, " grey", vocabulary=v, actor=USER))
+        store.delete(other, actor=USER)
+        yield store, dict(root=1, sky=sky, blue=blue, lone=lone, mixed=mixed, red=red,
+                          stubbed=stubbed, grey=grey, other=other)
+
+
+def held(conn, root, hidden):
+    """What the read should hold: the root and its descendants, the set-aside ones only
+    with the toggle on."""
+    nodes = {root: R.get_node(conn, root)}
+    for _, node, live in R.descend(conn, root):
+        if hidden or live:
+            nodes[node.id] = node
+    return nodes
+
+
+@pytest.mark.parametrize("hidden", [False, True])
+def test_strands_partition_the_tree_into_runs_closed_at_forks_and_leaves(mapped, hidden):
+    store, _ = mapped
+    conn = store.conn
+    nodes = held(conn, 1, hidden)
+    kids: dict[int, list[int]] = {}
+    for node in nodes.values():
+        if node.parent in nodes:
+            kids.setdefault(node.parent, []).append(node.id)
+    got = S.strands(conn, 1, hidden)
+    covered: list[int] = []
+    tails = {}
+    for s in got:
+        run, at = [], s.tail
+        for _ in range(s.length):
+            run.append(at)
+            at = nodes[at].parent
+        run.reverse()
+        assert run[0] == s.head
+        assert all(len(kids.get(n, [])) == 1 for n in run[:-1]), "no fork inside a strand"
+        assert len(kids.get(s.tail, [])) != 1, "closed at a fork or a leaf"
+        assert s.leaf == (not kids.get(s.tail))
+        if s.up is None:
+            assert s.head == 1
+        else:
+            assert tails[s.up] == nodes[s.head].parent, "it hangs from the tail above it"
+        tails[s.head] = s.tail
+        assert s.depth == R.depth(conn, s.head)
+        assert s.logprob == R.node_logprob(conn, s.head)
+        covered.extend(run)
+    assert sorted(covered) == sorted(nodes), "every node held is in exactly one strand"
+
+
+def test_a_strands_weight_is_what_lies_at_and_below_its_head(mapped):
+    store, _ = mapped
+    got = S.strands(store.conn, 1, True)
+    for s in got:
+        below = {s.head}
+        for t in got:  # parents come first, so one pass closes the set
+            if t.up in below:
+                below.add(t.head)
+        assert s.weight == sum(t.length for t in got if t.head in below)
+
+
+def test_a_stub_is_a_leaf_every_act_past_whose_head_drew_at_zero(mapped):
+    store, at = mapped
+    by_tail = {s.tail: s for s in S.strands(store.conn, 1, True)}
+    assert by_tail[at["stubbed"]].stub, "a hover's: realised, then drawn at 0"
+    assert not by_tail[at["lone"]].stub, "drawn at 1"
+    assert not by_tail[at["mixed"]].stub, "drawn at 0, and then at 1 onto the same nodes"
+    assert not by_tail[at["grey"]].stub, "a leaf of one node has nothing past its head"
+    assert by_tail[at["grey"]].leaf
+
+
+def test_what_is_set_aside_is_drawn_only_with_the_toggle_and_says_where_it_begins(mapped):
+    store, at = mapped
+    shown = {s.head: s for s in S.strands(store.conn, 1, True)}
+    live = {s.head: s for s in S.strands(store.conn, 1, False)}
+    hover = shown[at["red"]]
+    assert (hover.tail, hover.length, hover.aside) == (at["stubbed"], 3, 2)
+    assert (live[at["red"]].length, live[at["red"]].aside) == (2, None)
+    assert live[at["red"]].stub, "what was set aside is not what made it one"
+    assert all(s.aside is None for s in live.values())
+
+
+def test_a_root_set_aside_holds_nothing_until_the_toggle_is_on(mapped):
+    store, at = mapped
+    assert S.strands(store.conn, at["other"]) == []
+    assert [s.aside for s in S.strands(store.conn, at["other"], True)] == [0]
+    with pytest.raises(ValueError, match="not a root"):
+        S.strands(store.conn, at["sky"])

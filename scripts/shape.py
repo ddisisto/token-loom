@@ -12,8 +12,9 @@ shortest run of nodes whose bytes decode.
 
 A leaf strand is a **stub** when every act that wrote any node past its head drew at
 temperature 0, which is `docs/SPINE.md`'s test for the reference arm. The head is left out
-because a hover's stub opens on the row it was taken from. It is the one cut through the acts
-taken here, because without it a fork count mixes forks someone made with stubs a hover left.
+because a hover's stub opens on the row it was taken from, so a leaf of one node is not one.
+It is the one cut through the acts taken here, because without it a fork count mixes forks
+someone made with stubs a hover left.
 
     uv run scripts/shape.py data/daniel
     uv run scripts/shape.py data/daniel --json data/shape.json
@@ -95,7 +96,8 @@ def strands(parent, deleted, kids, greedy: set[int]) -> list[Strand]:
             run.append(kids[run[-1]][0])
         s = Strand(
             id=len(out), head=head, tail=run[-1], length=len(run), depth=depth, parent=up,
-            root=root, stub=len(kids[run[-1]]) == 0 and all(n in greedy for n in run[1:]),
+            root=root,
+            stub=not kids[run[-1]] and len(run) > 1 and all(n in greedy for n in run[1:]),
             deleted=any(deleted[n] for n in run),
         )
         out.append(s)

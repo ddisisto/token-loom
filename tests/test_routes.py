@@ -174,6 +174,23 @@ def test_waypoints_come_back_in_the_order_asked_and_a_missing_one_says_so(client
     assert client.get("/waypoints?nodes=a").status_code == 400
 
 
+def test_a_map_is_a_roots_strands_and_follows_the_toggle(client):
+    """The fork at ' sky' leaves the root's strand with one live arm, so it is no fork until
+    what was set aside is shown."""
+    body = client.get("/map/1").json()
+    assert (body["root"], body["hidden"]) == (1, False)
+    assert [(s["head"], s["tail"], s["length"]) for s in body["strands"]] == [(1, 4, 4)]
+    shown = client.get("/map/1?hidden").json()["strands"]
+    assert [(s["head"], s["up"], s["aside"]) for s in shown] == [(1, None, None),
+                                                                 (3, 1, None), (5, 1, 0)]
+    assert shown[1]["logprob"] == -0.1
+
+
+def test_a_map_of_what_is_not_a_root_says_which_it_is(client):
+    assert client.get("/map/2").status_code == 400
+    assert client.get("/map/999").status_code == 404
+
+
 def test_a_path_runs_to_the_leaf_the_rule_chooses(client):
     body = client.get("/path/2").json()
     assert body["leaf"] == 4

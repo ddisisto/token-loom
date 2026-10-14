@@ -16,7 +16,7 @@ import pytest
 
 from tokenloom.core import Store
 from tokenloom.core import reads as R
-from toy import OTHER, USER, ToyAdapter, ToyVocabulary, drew
+from toy import MODEL, OTHER, USER, ToyAdapter, ToyVocabulary, drew
 
 
 @pytest.fixture
@@ -313,6 +313,71 @@ def test_a_draw_past_the_recorded_rows_is_a_row_of_the_spread_like_any_other(tmp
         assert spread.rows == len(rows) + 1 == len(written)
         assert spread.mass == pytest.approx(sum(math.exp(lp) for lp in written.values()))
         assert (spread.top, spread.second) == (-0.10, -0.50), "the draw is below both"
+
+
+@pytest.fixture
+def written(tmp_path):
+    """A draw, the same draw again merging onto it, a hotter one beside it, a realise, and
+    the first draw's tip set aside.
+
+        1  The          create
+        2   sky         create
+        3    is         generate twice at 0, the second merging; then realised from 2 as well
+        4     blue      the same two, and deleted
+        5    red        generate at 1
+    """
+    rows = [(102, -0.1), (104, -1.0)]
+    greedy = drew((102, rows), (103, [(103, -0.2)]))
+    with Store.initialise(tmp_path / "w", vocabulary="toy") as store:
+        store.create(None, "The sky", vocabulary=ToyVocabulary(), actor=USER)
+        cold = {"length": 2, "temperature": 0}
+        store.generate(2, cold, adapter=ToyAdapter([greedy]), actor=USER)
+        store.generate(2, cold, adapter=ToyAdapter([greedy]), actor=USER)
+        store.generate(
+            2, {"length": 1, "temperature": 1},
+            adapter=ToyAdapter([drew((104, rows))]), actor=USER,
+        )
+        store.realise(2, MODEL, 102, actor=USER)
+        store.delete(4, actor=USER)
+        yield store
+
+
+def test_writings_agree_with_each_acts_own_range(written):
+    """Held against `act_tokens` in both directions: an act is at every node of its range
+    and at nothing else, a merge is two acts at one node, and a tip set aside still covers
+    what is above it."""
+    conn = written.conn
+    parents = {n.id: n.parent for _, n, _ in R.descend(conn)}
+    got = R.writings(conn, parents)
+    acts = [a for (a,) in conn.execute(
+        "SELECT id FROM acts WHERE op IN ('create', 'generate', 'realise') ORDER BY id")]
+    want: dict[int, list[int]] = {}
+    for act in acts:
+        for node in R.act_tokens(conn, act):
+            want.setdefault(node.id, []).append(act)
+    assert {n: [w.act for w in ws] for n, ws in got.items()} == want
+    assert [w.op for w in got[3]] == ["generate", "generate", "realise"], "merges are each there"
+    assert [w.op for w in got[4]] == ["generate", "generate"]
+
+
+def test_a_writing_carries_its_params_and_only_a_generate_has_any(written):
+    got = R.writings(written.conn, {n.id: n.parent for _, n, _ in R.descend(written.conn)})
+    assert [w.params["temperature"] for w in got[5]] == [1]
+    assert [w.params for w in got[1]] == [None]
+
+
+def test_writings_stop_where_the_parents_given_stop(written):
+    """Asked of a subtree, what lies above it is not reached even where an act's range does."""
+    got = R.writings(written.conn, {3: 2, 4: 3})
+    assert set(got) == {3, 4}
+
+
+def test_logprobs_agrees_with_node_logprob_at_every_node(written):
+    ids = [n.id for _, n, _ in R.descend(written.conn)]
+    got = R.logprobs(written.conn, ids)
+    for node in ids:
+        assert got.get(node) == R.node_logprob(written.conn, node)
+    assert 1 not in got, "a root has no edge above it and is absent"
 
 
 def test_token_bytes_agrees_with_node_bytes(tree):

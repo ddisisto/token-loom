@@ -11,9 +11,10 @@ nobody's to do silently.
 
 from __future__ import annotations
 
+import json
 import math
 import sqlite3
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 
 
@@ -355,6 +356,24 @@ def node_logprob(conn: sqlite3.Connection, node: int) -> float | None:
     return row[0] if row else None
 
 
+def logprobs(conn: sqlite3.Connection, nodes: Iterable[int]) -> dict[int, float]:
+    """`node_logprob` asked of many nodes at once. A node with no covering edge is absent."""
+    out: dict[int, float] = {}
+    for holes, part in _chunks(nodes):
+        out.update(
+            conn.execute(
+                f"""
+                SELECT n.id, e.logprob FROM nodes n
+                  JOIN edges e
+                    ON e.node = n.parent AND e.source = n.source AND e.token_id = n.token_id
+                 WHERE n.id IN ({holes})
+                """,
+                part,
+            )
+        )
+    return out
+
+
 def ranking_with_children(conn: sqlite3.Connection, node: int) -> list[RankedEdge]:
     """Every ranked edge at a node, what it spells, and what became of it.
 
@@ -526,6 +545,50 @@ def realised(conn: sqlite3.Connection, nodes: Iterable[int]) -> set[int]:
                 f"SELECT tip FROM acts WHERE op = 'realise' AND tip IN ({holes})", part
             )
         )
+    return out
+
+
+@dataclass(frozen=True, slots=True)
+class Writing:
+    """An act that put nodes in the tree, and the parameters it was made under."""
+
+    act: int
+    op: str
+    params: dict | None  #: a `generate`'s, decoded; None for the other two
+
+
+def writings(
+    conn: sqlite3.Connection, parents: Mapping[int, int | None]
+) -> dict[int, list[Writing]]:
+    """Every act whose range covers each node of `parents`, oldest first.
+
+    Takes the parent of each node rather than a connection's walk, because a caller asking
+    this of a subtree has descended it already. **It must hold the set-aside nodes as well as
+    the live ones**: an act's range is read from its tip up, and a tip that was set aside
+    covers the live nodes above it as much as one that was not.
+
+    A node can have several, since `(parent, token_id, source)` merges and every act that
+    arrived at a node writes its own row. `delete` and `undelete` write no nodes and are not
+    here. A range is walked up to its origin or to where `parents` stops, so what lies above
+    the nodes asked about is not reached.
+    """
+    out: dict[int, list[Writing]] = {}
+    rows = conn.execute(
+        "SELECT a.id, a.op, a.origin, a.tip, p.json FROM acts a "
+        "LEFT JOIN params p ON p.id = a.params "
+        "WHERE a.op IN ('create', 'generate', 'realise') AND a.tip IS NOT NULL "
+        "ORDER BY a.id"
+    )
+    for act, op, origin, tip, params in rows:
+        if tip not in parents:
+            continue
+        writing = Writing(act, op, json.loads(params) if params else None)
+        at: int | None = tip
+        for _ in range(len(parents)):
+            if at is None or at == origin or at not in parents:
+                break
+            out.setdefault(at, []).append(writing)
+            at = parents[at]
     return out
 
 

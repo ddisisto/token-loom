@@ -18,7 +18,7 @@ down to runs without a fork in them it is 3,755 of them, and the leaf runs have 
 tokens. The runs between forks have a median of 2, so forks arrive in bursts, and joining those
 within 4 tokens of each other makes 1,319 forks into 509 places.
 
-**Around two fifths of it is fringe.** 1,849 of its 2,436 leaves are runs drawn greedily past
+**Around two fifths of it is fringe.** 1,798 of its 2,436 leaves are runs drawn greedily past
 their first token, which is what a hover's arm leaves, and they hold 41% of the tokens. Without
 them and without the other short leaves, what is left is 405 forks and 508 leaves.
 
