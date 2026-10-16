@@ -398,11 +398,11 @@ was. So the reader's path is one straight row, a strand above it is one the mode
 the fork it leaves, and a strand far below is one it hardly considered.
 
 **Hair is a leaf the map does not give a row of its own**, drawn as a tick off its fork, to one
-side or the other by the same rule. The **skeleton** is what is left. Which leaves are hair is a cut the
-reader moves: a hover's stubs, in `docs/SPINE.md`'s sense, and leaves no longer than a length.
-The cut is stated by what it does to the drawing, as strands kept and the share of the tokens
-drawn as hair, because what the same numbers do differs by tree and by what the reader is after.
-The child that continues a fork is never hair, so a tree is never drawn without the path it
+side or the other by the same rule. The **skeleton** is what is left. Which leaves are hair is a
+cut the reader moves: a hover's stubs, in `docs/SPINE.md`'s sense, and leaves no longer than a
+length. The cut is stated by what it does to the drawing, as strands kept and the share of the
+tokens drawn as hair, because what the same numbers do differs by tree and by what the reader is
+after. The child that continues a fork is never hair, so a tree is never drawn without the path it
 mostly is.
 
 **What it marks**: the reader's path and the caret on it, the waypoints wherever they stand, what
@@ -411,9 +411,9 @@ how many.
 
 **What the pointer is over is one place on both.** The column and the map hold the same positions
 along the reader's path, and a pointer is only ever over one of them, so where it is is marked on
-each: a glow on the segment in the column, and a tick across the path on the map, in the ink where
-the caret's is in the accent. A segment out of view keeps its glow out of view, and the tick
-against the thumb says where it is.
+each: a glow on the segment in the column, and a tick across the path on the map, both in a colour
+of the pointer's own. A segment out of view keeps its glow out of view, and the tick against the
+thumb says where it is.
 
 **Pointing at a strand is an arrival.** The column reads the path through that strand and puts
 the caret on the segment holding the node under the pointer, as taking a waypoint does. A point
@@ -722,11 +722,12 @@ another, pushing what is left of the row ahead of them, and a draw cut short lea
 which go when its last segment is in. The run they make glows as one band along each line, with
 nothing between one token and the next, holds a beat past the last arrival, sinks to a remnant and
 goes out — so draws in quick succession leave a trail. It is shadow and not ground, which is left
-to the layers that use it. **The pace is the page's and not the model's**: an act arrives whole,
-so spreading it out invents a timing the record does not hold, and it is capped so that a long
-draw is no slower to read than a short one. What it is for is a reader who looked away finding
-their place, and a draw makes *where was I* and *what is new* the same question; the mark answers
-the second.
+to the layers that use it, and it is the page's one glow: where an arrival landed and what the
+pointer is over are marked by the same one, each in its own colour. **The pace is the page's
+and not the model's**: an act arrives whole, so spreading it out invents a timing the record does
+not hold, and it is capped so that a long draw is no slower to read than a short one. What it is
+for is a reader who looked away finding their place, and a draw makes *where was I* and *what is
+new* the same question; the mark answers the second.
 
 **The placeholder is read rather than remembered.** `docs/CORE.md` commits a `generate` act before
 the model is called, and an act with no terminator is a generation in flight, so what the

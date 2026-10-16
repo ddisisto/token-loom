@@ -7,6 +7,9 @@
   --bg: #faf8f4; --ink: #17150f; --dim: #6d685c; --faint: #d8d2c4;
   --rule: #e6e0d2; --accent: #9a4a1e; --accent-bg: #f0e2d6;
   --panel: #fffdf9;
+  /* What the pointer is over, on the column and on the map. A hue nothing else here holds:
+     warm is the accent's and the reader's, and blue is the sampler's. */
+  --point: #2f7d4f;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   /* U+2442 is missing from most system UI faces and falls back to a tofu box, which reads
@@ -33,6 +36,7 @@
     --bg: #14130f; --ink: #eae5d8; --dim: #8f8878; --faint: #33302a;
     --rule: #2a2721; --accent: #d98a55; --accent-bg: #33251b;
     --panel: #1c1a15;
+    --point: #72c992;
     --wash: 34%;
     --took-near: #9a6440; --took-far: #f5a469;
     --drew-near: #4a6a7c; --drew-far: #7cc2ea;
@@ -93,7 +97,7 @@ button:hover { color: var(--ink); border-color: var(--dim); }
                                       white-space: pre; }
 #roots .waypoint .lead { display: flex; justify-content: flex-end; }
 #roots .waypoint b { flex: none; font-weight: 400; color: var(--ink); white-space: pre;
-                     box-shadow: inset 0 2px 0 var(--accent); }
+                     --edge: inset 0 2px 0 var(--accent); }
 
 /* Last in the list, which is the row the root it makes will occupy. */
 #roots .new { padding: 0; }
@@ -234,27 +238,38 @@ body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
    follows the end and there is nothing past it. */
 .flow .seg.past { color: var(--dim); }
 
-.flow .seg.at { box-shadow: inset -2px 0 0 var(--accent); }
+/* One glow, in whatever colour it is handed as `--glowing`: a box that clings to the text,
+   fading out from its edges, with the ground and the text itself left to what uses them.
+   **It is the one box-shadow anything here takes**, so a rule that also wants an edge -- the
+   caret's, a waypoint's in the nav -- hands it over as `--edge` and keeps it under a glow.
+   The colour is registered so that it fades rather than steps. `--glow-end` is its right
+   side, which a run leaves open for the caret's rule to close. */
+@property --glowing { syntax: "<color>"; inherits: false; initial-value: transparent; }
+.flow .seg.at, .flow .seg.over, .flow .run, .beacon, #roots .waypoint b {
+  box-shadow: var(--edge, 0 0 transparent),
+              -4px 0 8px -4px var(--glowing), 4px 0 8px -4px var(--glow-end, var(--glowing)),
+              0 -2px 8px -2px var(--glowing), 0 2px 8px -2px var(--glowing); }
+
+.flow .seg.at { --edge: inset -2px 0 0 var(--accent); }
 
 /* A waypoint: a rule along the top of the segment it marks. It is the caret's colour on an
    edge nothing else uses, so the two read apart when the caret is on it, and it is drawn
    out of the flow so it moves no text. The bottom edge is the underlines'. */
 /* Where an arrival at a waypoint landed, flashed in the column and in the nav at once. */
-@keyframes beacon { 50% { text-shadow: 0 0 6px var(--accent), 0 0 12px var(--accent); } }
+@keyframes beacon { 50% { --glowing: var(--accent); } }
 .beacon { animation: beacon .45s ease-in-out 3; }
 @media (prefers-reduced-motion: reduce) { .beacon { animation: none; } }
 .flow .seg.waypoint { position: relative; }
 .flow .seg.waypoint::after { content: ""; position: absolute; left: 0; right: 0; top: -1px;
                              height: 2px; border-radius: 1px; background: var(--accent);
                              pointer-events: none; }
-/* What the pointer is over, from the column or from the map: a glow, which moves no text and
-   is the one mark here that is not on an edge. */
-.flow .seg.over { text-shadow: 0 0 6px color-mix(in srgb, var(--ink) 60%, transparent); }
+/* What the pointer is over, from the column or from the map. */
+.flow .seg.over { --glowing: var(--point); }
 
 /* The token the rows are alternatives to, which is the segment after the caret and not the
    caret's own. Neither mark above says it: both are rules on an inside edge, and an edge says
    where a position is rather than what stands past it. **The outline is what was left free** --
-   the inset is spoken for by the caret, the shadow by the pointer, the background by what is armed
+   the shadow is spoken for by the caret and the glows, the background by what is armed
    and by an overlay, the underline by the taker -- and it is also the one that cannot move the
    text, which pointing at anything may not do.
 
@@ -276,7 +291,7 @@ body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
 /* Armed: the next scroll down draws here, wherever the page is standing. It is the one state
    in which reading on writes, so it is marked and not only remembered -- a wider rule and the
    ground behind it, which no amount of scrolling past will hide. */
-.flow .seg.at.armed { box-shadow: inset -3px 0 0 var(--accent);
+.flow .seg.at.armed { --edge: inset -3px 0 0 var(--accent);
                       background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
 /* ---- what a draw leaves behind it ----
@@ -293,20 +308,13 @@ body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
 
    **A run is one element and its glow is one box**, broken only where the line breaks: open
    at its right, where the caret's own rule closes it, and with nothing between one token and
-   the next. It is the shadow itself that is animated, at each of its three strengths, since a
-   custom property holding only the colour is stepped and not faded where it is not registered. */
-.flow .run { --lit: -4px 0 8px -4px var(--accent),
-                    0 -2px 8px -2px var(--accent), 0 2px 8px -2px var(--accent);
-             --low: -4px 0 8px -4px var(--dimmed),
-                    0 -2px 8px -2px var(--dimmed), 0 2px 8px -2px var(--dimmed);
-             --out: -4px 0 8px -4px transparent,
-                    0 -2px 8px -2px transparent, 0 2px 8px -2px transparent;
-             box-shadow: var(--lit);
+   the next. */
+.flow .run { --glowing: var(--accent); --glow-end: transparent;
              animation: sink var(--decay) ease-in-out var(--hold) both,
                         wink var(--wink-for) linear var(--wink) forwards; }
 .flow .run.waiting { animation: none; }
-@keyframes sink { from { box-shadow: var(--lit); } to { box-shadow: var(--low); } }
-@keyframes wink { from { box-shadow: var(--low); } to { box-shadow: var(--out); } }
+@keyframes sink { from { --glowing: var(--accent); } to { --glowing: var(--dimmed); } }
+@keyframes wink { from { --glowing: var(--dimmed); } to { --glowing: transparent; } }
 
 /* A token not yet arrived, and one arriving. */
 .flow .seg.due { display: none; }
@@ -745,7 +753,7 @@ footer.peek, footer.held { z-index: 26; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
 #map .caret { stroke: var(--accent); stroke-width: 2; }
-#map .over { stroke: var(--ink); stroke-opacity: .55; stroke-width: 1.4; }
+#map .over { stroke: var(--point); stroke-width: 1.6; }
 #map .thumb { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .5;
               stroke-width: 1; }
 #map .lit { stroke: var(--ink); stroke-width: 2.4; stroke-opacity: 1; }
