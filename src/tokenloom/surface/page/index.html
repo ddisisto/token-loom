@@ -22,10 +22,15 @@
   <label id="whose" title="mark who put each token where it is">
     <input id="taker" type="checkbox" checked> taker
   </label>
+  <label id="chart" title="draw the tree beside the text">
+    <input id="charted" type="checkbox" checked> map
+  </label>
 </section>
 
 <main>
+  <svg id="map" aria-label="the tree under this root"></svg>
   <div id="column"></div>
+  <div id="chart-bar"></div>
   <footer><div id="drawer"></div><div id="status">&nbsp;</div></footer>
 </main>
 

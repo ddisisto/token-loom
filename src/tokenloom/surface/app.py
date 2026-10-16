@@ -212,6 +212,15 @@ def _int(request: Request, name: str) -> int:
         raise ValueError(f"{name} must be an integer, not {raw!r}") from why
 
 
+def _ids(request: Request, name: str) -> list[int]:
+    """A comma-separated list of node ids, empty where the parameter is absent."""
+    raw = request.query_params.get(name, "")
+    try:
+        return [int(part) for part in raw.split(",") if part]
+    except ValueError as why:
+        raise ValueError(f"{name} must be integers, not {raw!r}") from why
+
+
 def _fault(kind: str, status: int, message: str, **extra: Any) -> JSONResponse:
     """The status says a request failed; the body says which kind of failure it was."""
     return JSONResponse({"error": kind, "message": message, **extra}, status_code=status)
@@ -261,11 +270,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
 
     def waypoints(request: Request) -> JSONResponse:
         """`nodes` is a comma-separated list of ids, in the order they come back."""
-        raw = request.query_params.get("nodes", "")
-        try:
-            nodes = [int(part) for part in raw.split(",") if part]
-        except ValueError as why:
-            raise ValueError(f"nodes must be integers, not {raw!r}") from why
+        nodes = _ids(request, "nodes")
         with reading(writer) as conn:
             named = S.waypoints(conn, nodes, LEAD)
             return JSONResponse({
@@ -275,14 +280,21 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
     def tree_map(request: Request) -> JSONResponse:
         """The tree under a root as strands, which is what the map is drawn from. `hidden`
         follows the page's toggle as every read here does, and is echoed for the reason
-        `/path`'s is."""
+        `/path`'s is.
+
+        `marks` is a comma-separated list of nodes to place on it, in the order they come
+        back -- the reader's waypoints, which a map draws wherever they stand."""
         root = request.path_params["root"]
         hidden = _flag(request, "hidden")
+        marks = _ids(request, "marks")
         with reading(writer) as conn:
+            strands = S.strands(conn, root, hidden)
+            at = S.placed(conn, strands, marks)
             return JSONResponse({
                 "root": root,
                 "hidden": hidden,
-                "strands": [wire.strand(s) for s in S.strands(conn, root, hidden)],
+                "strands": [wire.strand(s) for s in strands],
+                "marks": [wire.placed(node, at[node]) for node in dict.fromkeys(marks)],
             })
 
     def path(request: Request) -> JSONResponse:

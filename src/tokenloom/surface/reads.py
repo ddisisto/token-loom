@@ -814,3 +814,22 @@ def strands(conn: sqlite3.Connection, root: int, hidden: bool = False) -> list[S
             aside=cut,
         ))
     return out
+
+
+def placed(
+    conn: sqlite3.Connection, strands: list[Strand], nodes: Sequence[int]
+) -> dict[int, tuple[int, int] | None]:
+    """Where each of `nodes` stands among `strands`: the head of the strand holding it and
+    its depth, or None for one they do not hold -- another root's, one the tree does not
+    hold, or one set aside while the map leaves that out. One ancestry walk per node."""
+    by = {s.head: s for s in strands}
+    out: dict[int, tuple[int, int] | None] = {}
+    for node in nodes:
+        if not R.node_exists(conn, node):
+            out[node] = None
+            continue
+        line = R.path_nodes(conn, node)
+        depth = len(line) - 1
+        s = next((by[n.id] for n in reversed(line) if n.id in by), None)
+        out[node] = (s.head, depth) if s and depth < s.depth + s.length else None
+    return out

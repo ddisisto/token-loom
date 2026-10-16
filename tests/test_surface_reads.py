@@ -1049,3 +1049,24 @@ def test_a_root_set_aside_holds_nothing_until_the_toggle_is_on(mapped):
     assert [s.aside for s in S.strands(store.conn, at["other"], True)] == [0]
     with pytest.raises(ValueError, match="not a root"):
         S.strands(store.conn, at["sky"])
+
+
+def test_a_node_is_placed_on_the_strand_holding_it_and_nowhere_else(mapped):
+    store, at = mapped
+    conn = store.conn
+    for hidden in (False, True):
+        got = S.strands(conn, 1, hidden)
+        nodes = held(conn, 1, True)
+        placed = S.placed(conn, got, [*nodes, at["other"], 999])
+        by = {s.head: s for s in got}
+        shown = held(conn, 1, hidden)
+        for node in nodes:
+            if node not in shown:
+                assert placed[node] is None, "set aside, and the map leaves that out"
+                continue
+            head, depth = placed[node]
+            s = by[head]
+            assert depth == R.depth(conn, node)
+            assert s.depth <= depth < s.depth + s.length
+            assert head in [n.id for n in R.path_nodes(conn, node)]
+        assert placed[at["other"]] is None and placed[999] is None

@@ -128,11 +128,11 @@ main { margin-left: var(--nav); transition: margin-left .14s ease;
    All are inside `main`, which is what `100cqw` is read against, and the cap is in the
    column's type size and not in `em`, which would be read in whichever face used it.
    `--start` is where the text begins, for what is fixed and so placed from the window. */
-#column, #edge, #heat, footer {
+#column, #edge, #heat, footer, #map, #chart-bar {
   --gutter: 24px; --type: 21px;
   --col: min(calc(var(--type) * 34), calc((100cqw - var(--gutter) * 2) / 2));
   --off: var(--nav); --start: calc(var(--off) + 50cqw - var(--col)); --by: 30px; }
-body.folded :is(#edge, #heat) { --off: var(--fold); }
+body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
 #column { --space: 85vh; --runway: 20vh; --top: 72px;
           position: relative;  /* the rows stand in the half the column leaves empty */
           box-sizing: content-box; width: calc(var(--col) * 2);
@@ -167,11 +167,11 @@ body.folded :is(#edge, #heat) { --off: var(--fold); }
         border-bottom-left-radius: 5px; }
 #read.open { width: 19.5rem; }
 
-#aside, #alts, #whose { display: flex; align-items: center; gap: 7px;
+#aside, #alts, #whose, #chart { display: flex; align-items: center; gap: 7px;
                         padding: 10px 6px 10px 14px; cursor: pointer; }
-#alts, #whose { padding-left: 6px; }
-#aside:hover, #alts:hover, #whose:hover { color: var(--ink); }
-#aside input, #alts input, #whose input { margin: 0; accent-color: var(--accent); }
+#alts, #whose, #chart { padding-left: 6px; }
+#aside:hover, #alts:hover, #whose:hover, #chart:hover { color: var(--ink); }
+#aside input, #alts input, #whose input, #chart input { margin: 0; accent-color: var(--accent); }
 
 #read .head { font: inherit; color: inherit; letter-spacing: .06em;
               border: none; border-radius: 0; padding: 10px 14px 10px 8px; }
@@ -723,3 +723,34 @@ footer.peek, footer.held { z-index: 26; }
                        background: var(--dim); transition: width .1s ease, height .1s ease; }
 #drawer .line:hover .point, #drawer .line.moving .point { width: 13px; height: 13px; }
 #drawer .row.off .line .point { background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--dim); }
+
+/* ---- the map ----
+   The tree under the current root, drawn in the half of the window the column leaves empty and
+   under everything placed there: it comes before the column in `main`, so the rows' own
+   background covers it where they open and nothing else has to know it is there. It takes no
+   pointer itself -- the column is over it, and reads a point on it as a strand to arrive at. */
+#map, #chart-bar { position: fixed; left: calc(var(--start) + var(--col) + var(--by));
+                   width: calc(var(--col) - var(--by)); }
+/* A height and not a bottom: an svg placed by both ends takes its default height of 150px. */
+#map { top: 44px; height: calc(100vh - 74px - var(--foot)); pointer-events: none;
+       overflow: visible; }
+#map line, #map path { fill: none; stroke-linecap: round; }
+#map .strand { stroke: var(--dim); stroke-width: 1.2; }
+#map .strand.path { stroke: var(--accent); stroke-width: 2.2; }
+#map .aside { stroke: var(--faint); stroke-dasharray: 2 2; }
+#map .link { stroke: var(--faint); stroke-width: .7; }
+#map .hair { stroke: var(--faint); stroke-width: .8; }
+#map .hair:not(.stub) { stroke: var(--dim); stroke-opacity: .6; }
+#map .knot { fill: var(--dim); fill-opacity: .7; }
+#map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
+#map .caret { stroke: var(--accent); stroke-width: 2; }
+#map .lit { stroke: var(--ink); stroke-width: 2.4; stroke-opacity: 1; }
+#column.charting { cursor: pointer; }
+
+#chart-bar { bottom: calc(var(--foot) + 6px); display: flex; gap: 6px; align-items: center;
+             font: 400 11px/1.4 var(--mono); color: var(--dim); }
+#chart-bar button { font: inherit; padding: 1px 7px; }
+#chart-bar button[aria-pressed="true"] { color: var(--ink); border-color: var(--accent);
+                                         background: var(--accent-bg); }
+#chart-bar .says { margin-left: auto; color: var(--faint); white-space: nowrap; }
+body.unmapped :is(#map, #chart-bar) { display: none; }

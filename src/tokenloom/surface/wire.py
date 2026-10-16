@@ -195,6 +195,13 @@ def strand(item: S.Strand) -> dict[str, Any]:
     }
 
 
+def placed(node: int, at: tuple[int, int] | None) -> dict[str, Any]:
+    """A node placed on a map: the head of its strand and its depth, both null where the
+    map does not hold it."""
+    head, depth = at if at is not None else (None, None)
+    return {"node": node, "head": head, "depth": depth}
+
+
 def source_names(conn: sqlite3.Connection) -> dict[str, str]:
     return {
         str(row[0]): (f"{row[1]}:{row[2]}" if row[2] else row[1])

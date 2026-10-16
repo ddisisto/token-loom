@@ -186,6 +186,14 @@ def test_a_map_is_a_roots_strands_and_follows_the_toggle(client):
     assert shown[1]["logprob"] == -0.1
 
 
+def test_a_map_places_the_marks_asked_for_in_the_order_asked(client):
+    body = client.get("/map/1?marks=4,6,3,999").json()["marks"]
+    assert body == [{"node": 4, "head": 1, "depth": 3}, {"node": 6, "head": None, "depth": None},
+                    {"node": 3, "head": 1, "depth": 2}, {"node": 999, "head": None, "depth": None}]
+    assert client.get("/map/1").json()["marks"] == []
+    assert client.get("/map/1?marks=a").status_code == 400
+
+
 def test_a_map_of_what_is_not_a_root_says_which_it_is(client):
     assert client.get("/map/2").status_code == 400
     assert client.get("/map/999").status_code == 404

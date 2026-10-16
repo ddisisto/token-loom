@@ -19,6 +19,7 @@
 import * as cursor from "./cursor.js";
 import { along, draw, keep, panel, place, set, share } from "./draw.js";
 import * as room from "./room.js";
+import * as map from "./map.js";
 import * as mark from "./mark.js";
 import {
   panel as overlayPanel, read as overlays, rule as taken, wants, weighed,
@@ -168,9 +169,10 @@ function wayRows(item, depth) {
   return [li, ...item.below.flatMap(under => wayRows(under, depth + 1))];
 }
 
-/** Arrive at the waypoint at `node`, whose token in the nav is `named`. */
-async function reach(node, named) {
-  await show(node, node);
+/** Arrive at `node` on the path through `through`, flashing it there and in `named` -- the
+ *  token in the nav, for a waypoint -- where there is one. */
+async function reach(node, named = null, through = node) {
+  await show(through, node);
   const seg = $("column").querySelector(".flow .seg.at");
   if (seg === null) return;
   // The page's own scroll, which is not the reader reading on: nothing is asked for and the
@@ -178,6 +180,7 @@ async function reach(node, named) {
   carried = performance.now() + CARRY;
   seg.scrollIntoView({ block: "center" });
   for (const el of [seg, named]) {
+    if (el === null) continue;
     el.classList.remove("beacon");
     void el.offsetWidth;  // a class taken off and put back in one frame does not restart
     el.classList.add("beacon");
@@ -193,6 +196,8 @@ async function waymark(node) {
   marked();
   await named();
   drawRoots(known, drawn[0]?.nodes[0].id);
+  charted = null;
+  charter();
 }
 
 /** Mark each segment holding a waypoint. */
@@ -240,6 +245,7 @@ async function refresh(current) {
   // off the top row entirely. Both make what is held wrong in the same way the rows are.
   stub.forget();
   drawnAt = null;  // the rows said what became of each row, and an act has changed that
+  charted = null;  // and the strands, wherever it landed
   const tree = known = await ask("/tree");
   // Keyed by the tree and not by the address, which names only the server.
   kept = waypoint.load(storage, tree.created ?? tree.path);
@@ -384,6 +390,7 @@ function frontier() {
     el.classList.toggle("armed", here && cursor.armed());
     if (here) past = true;
   }
+  chartCaret();
 }
 
 /** Point at a segment, which moves the caret before it over text that does not move.
@@ -1027,6 +1034,7 @@ async function show(node, where) {
   marked();
   wakes();
   settled();
+  charter();
   // Which root is current is derived from the path rather than held beside the position,
   // so the two cannot disagree about where the reader is.
   const root = got.cells[0].nodes[0].id;
@@ -1688,6 +1696,183 @@ async function resume() {
   return true;
 }
 
+// ---- the map --------------------------------------------------------------------------
+
+/* The tree under the current root, drawn as a shape in the margin. Its strands are read once
+ * per root, per toggle and per act; what moves with the reader -- the path and the caret -- is
+ * drawn again from what is held, and costs no read. Pointing at a strand is an arrival, as
+ * taking a waypoint is: the path through that point in the column, and the caret on it. */
+
+const SVG = "http://www.w3.org/2000/svg";
+const PAD = 10;            // px inside the map on every side
+const STEP = [1.5, 9];     // px between rows, at the least and the most
+const UNDER = [0, 4, 16, 64];  // the lengths a short leaf can be cut at, in nodes
+
+const chartEl = $("map");
+const chartBar = $("chart-bar");
+const look = { on: true, log: false, cut: { stubs: true, under: 16 } };
+let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
+let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
+let chart = null;    // { x, drawn, path, y0 }: what is drawn now, which a point is read against
+
+const svg = (name, attrs, cls) => {
+  const el = document.createElementNS(SVG, name);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (cls) el.setAttribute("class", cls);
+  return el;
+};
+const pathIds = () => drawn.flatMap(cell => cell.nodes.map(n => n.id));
+
+/** Read the strands if what is held is not this root's, then draw. */
+async function charter() {
+  const root = drawn[0]?.nodes[0].id;
+  if (!look.on || root === undefined) {
+    chartEl.replaceChildren();
+    chart = null;
+    return;
+  }
+  if (charted?.root !== root || charted.hidden !== showHidden) {
+    const want = { root, hidden: showHidden };
+    asking = want;
+    try {
+      const got = await ask(`/map/${root}?hidden=${showHidden ? 1 : 0}` +
+                            `&marks=${kept.map(w => w.node).join(",")}`);
+      if (asking !== want) return;
+      charted = { ...want, tree: map.index(got.strands), marks: got.marks };
+    } catch (why) {
+      if (asking === want) say(`map: ${why.kind || "unreachable"}: ${why.message}`, true);
+      return;
+    }
+  }
+  sketch();
+}
+
+/** Draw what is held around the path that is drawn. */
+function sketch() {
+  if (!look.on || charted === null) return;
+  const { tree } = charted;
+  const path = map.along(tree, pathIds());
+  const hairs = map.hair(tree, look.cut, path);
+  const box = chartEl.getBoundingClientRect();
+  const x = map.scale({ log: look.log, most: map.most(tree, hairs), width: box.width, pad: PAD });
+  const rows = map.layout(tree, { x, hairs, path });
+  const all = [...rows.values()];
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const step = Math.max(STEP[0], Math.min(STEP[1], (box.height - 2 * PAD) / Math.max(1, hi - lo)));
+  // Centred where it fits, and with the path's row in the middle of the map where it does not.
+  const top = (hi - lo) * step <= box.height - 2 * PAD
+    ? (box.height - (hi - lo) * step) / 2
+    : box.height / 2 + lo * step;
+  const drawn_ = map.plan(tree, rows, { x, hairs, path, step, top });
+  const ys = new Map(drawn_.strands.map(s => [s.head, s.y]));
+
+  const out = [];
+  for (const l of drawn_.links)
+    out.push(svg("path", { d: `M${l.x},${l.y0} V${l.y1}` }, "link"));
+  for (const h of drawn_.hairs)
+    out.push(svg("line", { x1: h.x0, y1: h.y0, x2: h.x1, y2: h.y1, "data-head": h.head },
+                 `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`));
+  for (const s of drawn_.strands) {
+    const end = s.aside ?? s.x1;
+    out.push(svg("line", { x1: s.x0, y1: s.y, x2: Math.max(end, s.x0 + 0.8), y2: s.y,
+                           "data-head": s.head }, `strand${s.path ? " path" : ""}`));
+    if (s.aside !== null)
+      out.push(svg("line", { x1: s.aside, y1: s.y, x2: Math.max(s.x1, s.aside + 0.8), y2: s.y,
+                             "data-head": s.head }, "strand aside"));
+  }
+  for (const k of drawn_.knots)
+    out.push(svg("circle", { cx: k.x, cy: k.y, r: 0.8 + 0.6 * Math.sqrt(k.n) }, "knot"));
+  for (const w of charted.marks) {
+    if (w.head === null || !ys.has(w.head)) continue;
+    out.push(svg("circle", { cx: x(w.depth + 0.5), cy: ys.get(w.head), r: 3 }, "waypoint"));
+  }
+  const caret = svg("line", {}, "caret");
+  out.push(caret);
+  chartEl.replaceChildren(...out);
+  chart = { tree, x, drawn: drawn_, caret, y0: ys.get(tree.top.head), step };
+  chartCaret();
+  chartSays(map.effect(tree, hairs));
+}
+
+/** Where the caret is on the path's row. */
+function chartCaret() {
+  if (chart === null) return;
+  const at = pathIds().indexOf(cursor.node());
+  chart.caret.style.display = at < 0 ? "none" : "";
+  if (at < 0) return;
+  const cx = chart.x(at + 0.5), h = Math.max(4, chart.step);
+  for (const [k, v] of Object.entries({ x1: cx, x2: cx, y1: chart.y0 - h, y2: chart.y0 + h }))
+    chart.caret.setAttribute(k, v);
+}
+
+/** The point an event is at, as a strand and a node on it, or null. */
+function chartHit(event) {
+  if (chart === null) return null;
+  const box = chartEl.getBoundingClientRect();
+  const px = event.clientX - box.left, py = event.clientY - box.top;
+  if (px < 0 || py < 0 || px > box.width || py > box.height) return null;
+  return map.hit(chart.tree, chart.drawn, chart.x, px, py, Math.max(4, chart.step / 2 + 1));
+}
+
+/** Arrive where a click on the column's own ground points on the map, and say whether it did. */
+function charting(event) {
+  const hit = chartHit(event);
+  if (hit === null) return false;
+  visit(hit).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+  return true;
+}
+
+/** The path through a strand's tail, and the caret on the segment holding the node pointed at. */
+async function visit({ tail, depth }) {
+  const line = await ask(`/path/${tail}?rule=none&hidden=${showHidden ? 1 : 0}`);
+  let seen = 0;
+  for (const cell of line.segments) {
+    seen += cell.nodes.length;
+    if (seen > depth) return reach(cell.nodes.at(-1).id, null, tail);
+  }
+  return reach(tail, null, tail);
+}
+
+let lit = null;
+$("column").addEventListener("pointermove", event => {
+  const hit = event.target === $("column") ? chartHit(event) : null;
+  const head = hit?.head ?? null;
+  $("column").classList.toggle("charting", head !== null);
+  if (head === lit) return;
+  for (const el of chartEl.querySelectorAll(".lit")) el.classList.remove("lit");
+  lit = head;
+  if (head !== null)
+    for (const el of chartEl.querySelectorAll(`[data-head="${head}"]`)) el.classList.add("lit");
+});
+
+/** The bar under the map: the scale, the cut, and what the cut does. */
+function chartSays(effect) {
+  const button = (text, title, pressed, onclick) => {
+    const b = Object.assign(document.createElement("button"), { textContent: text, title, onclick });
+    b.setAttribute("aria-pressed", String(pressed));
+    return b;
+  };
+  const next = UNDER[(UNDER.indexOf(look.cut.under) + 1) % UNDER.length];
+  chartBar.replaceChildren(
+    button("log", "tokens on a log scale", look.log, () => { look.log = !look.log; sketch(); }),
+    button("stubs", "draw a hover's stubs as hair", look.cut.stubs,
+           () => { look.cut.stubs = !look.cut.stubs; sketch(); }),
+    button(`≤${look.cut.under}`, `draw leaves this short as hair; next ≤${next}`,
+           look.cut.under > 0, () => { look.cut.under = next; sketch(); }),
+    Object.assign(document.createElement("span"), {
+      className: "says",
+      textContent: `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% hair`,
+    }),
+  );
+}
+
+$("charted").onchange = () => {
+  look.on = $("charted").checked;
+  document.body.classList.toggle("unmapped", !look.on);
+  charter();
+};
+addEventListener("resize", () => sketch());
+
 // ---- the page -------------------------------------------------------------------------
 
 function say(text, bad) {
@@ -1995,6 +2180,7 @@ $("taker").onchange = async () => {
  * means something, and naming those instead would be a list that goes stale as they are added. */
 $("column").onclick = event => {
   const on = event.target;
+  if (on === $("column") && charting(event)) return;
   if (on === $("column") || on.classList?.contains("flow")) release();
 };
 
@@ -2013,6 +2199,8 @@ try {
   // loads -- so what the box says is what the page believes, rather than the other way.
   showHidden = $("hidden").checked;
   ranking.want($("rows").checked);
+  look.on = $("charted").checked;
+  document.body.classList.toggle("unmapped", !look.on);
   const tree = await refresh();
   // With nothing yet chosen the first root is what is read; with no roots at all the page
   // is never a bare one, because the only thing to do here is the only thing offered.
