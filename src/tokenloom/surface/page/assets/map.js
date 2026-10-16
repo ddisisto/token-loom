@@ -1,10 +1,12 @@
 /* The map: the tree under a root drawn as strands, beside the text.
  *
- * x is a quantity summed from the root and says which -- tokens, on a linear or a log scale.
- * y is local and is the ranking: at each fork one child continues the row, the one on the
- * reader's path where there is one and otherwise the heaviest, and the others stand above it
- * if the model ranked them higher and below it if lower, the nearest rank nearest, each packed
- * as close to its fork as the drawing allows.
+ * Along is tokens from the root. Across is local and is the ranking: at each fork one child
+ * continues the row, the one on the reader's path where there is one and otherwise the
+ * heaviest, and the others stand above it if the model ranked them higher and below it if
+ * lower, the nearest rank nearest, each packed as close to its fork as the drawing allows.
+ *
+ * The plan is in those two: `x` along and `y` across, as the map drawn across the page has
+ * them. Drawn down the page it is the same plan with the two swapped.
  *
  * Everything here is arithmetic over the strands `/map` answers and the measurements it is
  * handed. What turns the plan into marks on a page is the page's.
@@ -71,12 +73,10 @@ export function effect(tree, hairs) {
 
 /** x for a count of tokens from the root, over `[pad, width - pad]` for `[0, most]`, and
  *  back again. */
-export function scale({ log, most, width, pad }) {
-  const f = log ? Math.log1p : v => v;
-  const g = log ? Math.expm1 : v => v;
-  const k = (width - 2 * pad) / Math.max(f(most), 1e-9);
-  const x = v => pad + f(v) * k;
-  x.invert = px => g(Math.max(0, px - pad) / k);
+export function scale({ most, width, pad }) {
+  const k = (width - 2 * pad) / Math.max(most, 1e-9);
+  const x = v => pad + v * k;
+  x.invert = px => Math.max(0, px - pad) / k;
   return x;
 }
 
@@ -234,4 +234,35 @@ export function hit(tree, drawn, x, px, py, slack) {
   const at = Math.floor(x.invert(px));
   const depth = Math.min(s.depth + s.length - 1, Math.max(s.depth, at));
   return { head: best, tail: s.tail, depth };
+}
+
+
+// ---- the window ---------------------------------------------------------------------------
+
+/** Where each of a path's cells starts, in tokens from the root, and where the last ends. */
+export function offsets(counts) {
+  const out = [0];
+  for (const n of counts) out.push(out.at(-1) + n);
+  return out;
+}
+
+/** The tokens of a path in view, as `[from, to)` -- or null with none. `edge(i)` is cell i's
+ *  `{ top, bottom }` and the cells stand in order down the page; `[lo, hi]` is what is in
+ *  view, on the same measure. */
+export function seen(at, edge, lo, hi) {
+  const n = at.length - 1;
+  let a = 0, b = n;
+  while (a < b) { const mid = (a + b) >> 1; if (edge(mid).bottom <= lo) a = mid + 1; else b = mid; }
+  const first = a;
+  a = first; b = n;
+  while (a < b) { const mid = (a + b) >> 1; if (edge(mid).top < hi) a = mid + 1; else b = mid; }
+  const last = a - 1;
+  return first > last ? null : [at[first], at[last + 1]];
+}
+
+/** The cell holding the token `depth` tokens from the root, the last where it is past them. */
+export function holding(at, depth) {
+  let a = 0, b = at.length - 2;
+  while (a < b) { const mid = (a + b + 1) >> 1; if (at[mid] <= depth) a = mid; else b = mid - 1; }
+  return Math.max(0, a);
 }

@@ -371,28 +371,34 @@ whether a reader should be told is in What is not decided here.
 
 **The tree under the current root, drawn as a shape in the half of the window the column leaves
 empty.** The column shows one path and cannot show where that path stands in the tree or what
-else the tree holds; the map is that picture, and pointing at a place in it is an arrival. It sits
-under everything placed in that half, so the rows cover it where they open and it is back when
-they close, and it is a way of looking with a switch beside the others.
+else the tree holds; the map is that picture, and pointing at a place in it is an arrival. It has
+that half to itself: while it is on, the rows are not shown and *Arms* with them. It is a way of
+looking with a switch beside the others, and it is drawn from the half's edge nearest the text.
+
+**Down the page by default, and across behind a switch.** Drawn down, the map is a scrollbar for
+the whole tree: the tokens in view are a thumb on the reader's path, dragged to scroll the column.
+Drawn across, it is the same plan turned, with the thumb along the path's row. The two are kept so
+that each can be read against the other on any tree.
 
 **A strand is a maximal run of nodes each with one child**, opened at a root or at a child of a
 fork and closed at a fork or a leaf. It is the map's unit, since a tree grown by drawing is long
 runs with nothing on them and the forks carry all of its shape. *Segment* is the display unit
 above and is not this.
 
-**x is a quantity summed from the root, and says which.** It is tokens, on a linear scale or a
-log one, and a strand runs from where its fork stands to where it ends. An axis that holds a
-quantity is the rule; one squeezed to fit what the drawing has room for is not.
+**Along a strand is a quantity summed from the root, and says which.** It is tokens, and a strand
+runs from where its fork stands to where it ends. An axis that holds a quantity is the rule; one
+squeezed to fit what the drawing has room for is not.
 
-**y is the ranking, and it is local.** At each fork one child continues the row: the one on the
-reader's path where there is one, and otherwise the heaviest. The others stand above it if the
-model ranked them higher and below it if lower, the nearest rank nearest, each packed as close to
+**Across is the ranking, and it is local.** At each fork one child continues the row: the one on
+the reader's path where there is one, and otherwise the heaviest. The others stand on one side of
+it if the model ranked them higher and on the other if lower — above and below across the page,
+left and right down it — the nearest rank nearest, each packed as close to
 its fork as the strands already placed allow. A child nothing ranked stands below every one that
 was. So the reader's path is one straight row, a strand above it is one the model liked better at
 the fork it leaves, and a strand far below is one it hardly considered.
 
-**Hair is a leaf the map does not give a row of its own**, drawn as a tick off its fork, up or
-down by the same rule. The **skeleton** is what is left. Which leaves are hair is a cut the
+**Hair is a leaf the map does not give a row of its own**, drawn as a tick off its fork, to one
+side or the other by the same rule. The **skeleton** is what is left. Which leaves are hair is a cut the
 reader moves: a hover's stubs, in `docs/SPINE.md`'s sense, and leaves no longer than a length.
 The cut is stated by what it does to the drawing, as strands kept and the share of the tokens
 drawn as hair, because what the same numbers do differs by tree and by what the reader is after.
@@ -405,7 +411,9 @@ how many.
 
 **Pointing at a strand is an arrival.** The column reads the path through that strand and puts
 the caret on the segment holding the node under the pointer, as taking a waypoint does. A point
-on nothing is a point on nothing, and releases the caret as before.
+on nothing is a point on nothing, and releases the caret as before. The thumb is taken and not
+pointed at: dragging it scrolls, the column's own scroll is not a reader reading on and asks for
+nothing, and the caret follows the window once it is let go, as after any scroll.
 
 **What it is drawn from is read once per root and per act**, and once again when the toggle or
 the waypoints change. Moving along a path or arriving on another redraws it from what is held,
@@ -880,8 +888,8 @@ when it is settled.
 - **Whether the map holds still.** It is laid again around every arrival, so the shape moves
   whenever the path does, and it is the path that stays put. A map that held its shape while the
   reader moved through it is the other way to have it. Settled by use.
-- **Where the map lives.** The margin is where it started, under the rows, and *Arms* wants that
-  room too. Settled by use, once both are drawn there.
+- **Where the rows stand while the map has the margin.** The map took the half the rows open in,
+  and they are off while it is on. Settled by placing them somewhere else and reading with both.
 - **Everything past the first gesture.** Comparison across branches, and what the instrument does
   that a reader could not get from reading one path at a time. Nothing settles this but use.
 
@@ -895,7 +903,7 @@ over HTTP, with the page at the root so the two arrive from one origin. The page
 names them, sets one path as prose with a caret that every act at a position lands on, continues
 it by a scroll at the end or a key at the caret, writes at the caret through a composer, takes a
 ranked row or reads and buys its arm, sets the draw beside the text, and draws the root it is
-reading as a map in the margin, which a reader moves around the tree by.
+reading as a map in the margin, which a reader moves around the tree by and scrolls by.
 
 **What does not exist is everything past that**: nothing shown beside a row unasked — what the
 reader already grew there is still only a size — no depth limit and so no view that presets one,

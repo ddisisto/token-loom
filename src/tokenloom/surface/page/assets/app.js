@@ -1710,10 +1710,12 @@ const UNDER = [0, 4, 16, 64];  // the lengths a short leaf can be cut at, in nod
 
 const chartEl = $("map");
 const chartBar = $("chart-bar");
-const look = { on: true, log: false, cut: { stubs: true, under: 16 } };
+const look = { on: true, down: true, cut: { stubs: true, under: 16 } };
 let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
 let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
-let chart = null;    // { x, drawn, path, y0 }: what is drawn now, which a point is read against
+let chart = null;    // what is drawn now, which a point is read against
+let thumbed = null;  // the thumb in the hand: how far into it it was taken, in tokens
+let dragged = false;  // a drag ended, and the click that follows it is not an arrival
 
 const svg = (name, attrs, cls) => {
   const el = document.createElementNS(SVG, name);
@@ -1723,7 +1725,14 @@ const svg = (name, attrs, cls) => {
 };
 const pathIds = () => drawn.flatMap(cell => cell.nodes.map(n => n.id));
 
-/** Read the strands if what is held is not this root's, then draw. */
+/** The rows are hidden while the map has the margin. */
+function margin() {
+  $("rows").disabled = look.on;
+  ranking.want($("rows").checked && !look.on);
+  settled();
+}
+
+/** Read the strands if what is thumbed is not this root's, then draw. */
 async function charter() {
   const root = drawn[0]?.nodes[0].id;
   if (!look.on || root === undefined) {
@@ -1747,52 +1756,66 @@ async function charter() {
   sketch();
 }
 
-/** Draw what is held around the path that is drawn. */
+/** Draw what is thumbed around the path that is drawn: across the margin, or down it with the
+ *  window in view as the thumb on the path. */
 function sketch() {
   if (!look.on || charted === null) return;
   const { tree } = charted;
   const path = map.along(tree, pathIds());
   const hairs = map.hair(tree, look.cut, path);
   const box = chartEl.getBoundingClientRect();
-  const x = map.scale({ log: look.log, most: map.most(tree, hairs), width: box.width, pad: PAD });
+  const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
+  const x = map.scale({ most: map.most(tree, hairs), width: long, pad: PAD });
   const rows = map.layout(tree, { x, hairs, path });
   const all = [...rows.values()];
   const lo = Math.min(...all), hi = Math.max(...all);
-  const step = Math.max(STEP[0], Math.min(STEP[1], (box.height - 2 * PAD) / Math.max(1, hi - lo)));
-  // Centred where it fits, and with the path's row in the middle of the map where it does not.
-  const top = (hi - lo) * step <= box.height - 2 * PAD
-    ? (box.height - (hi - lo) * step) / 2
-    : box.height / 2 + lo * step;
-  const drawn_ = map.plan(tree, rows, { x, hairs, path, step, top });
-  const ys = new Map(drawn_.strands.map(s => [s.head, s.y]));
+  const step = Math.max(STEP[0], Math.min(STEP[1], (wide - 2 * PAD) / Math.max(1, hi - lo)));
+  // Where it fits, from the margin's edge down the page and centred across it; where it does
+  // not, the path's row in the middle.
+  const fits = (hi - lo) * step <= wide - 2 * PAD;
+  const top = !fits ? wide / 2 + lo * step : look.down ? PAD : (wide - (hi - lo) * step) / 2;
+  const plan = map.plan(tree, rows, { x, hairs, path, step, top });
+  const ys = new Map(plan.strands.map(s => [s.head, s.y]));
+  // The plan is along and across; down the page the two are swapped.
+  const at = (along, across) => look.down ? { x: across, y: along } : { x: along, y: across };
+  const line = (a0, c0, a1, c1) => {
+    const p = at(a0, c0), q = at(a1, c1);
+    return { x1: p.x, y1: p.y, x2: q.x, y2: q.y };
+  };
+  const dot = (along, across, r) => { const p = at(along, across); return { cx: p.x, cy: p.y, r }; };
 
   const out = [];
-  for (const l of drawn_.links)
-    out.push(svg("path", { d: `M${l.x},${l.y0} V${l.y1}` }, "link"));
-  for (const h of drawn_.hairs)
-    out.push(svg("line", { x1: h.x0, y1: h.y0, x2: h.x1, y2: h.y1, "data-head": h.head },
+  const thumb = svg("rect", {}, "thumb");
+  out.push(thumb);
+  for (const l of plan.links)
+    out.push(svg("line", line(l.x, l.y0, l.x, l.y1), "link"));
+  for (const h of plan.hairs)
+    out.push(svg("line", { ...line(h.x0, h.y0, h.x1, h.y1), "data-head": h.head },
                  `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`));
-  for (const s of drawn_.strands) {
+  for (const s of plan.strands) {
     const end = s.aside ?? s.x1;
-    out.push(svg("line", { x1: s.x0, y1: s.y, x2: Math.max(end, s.x0 + 0.8), y2: s.y,
-                           "data-head": s.head }, `strand${s.path ? " path" : ""}`));
+    out.push(svg("line", { ...line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y), "data-head": s.head },
+                 `strand${s.path ? " path" : ""}`));
     if (s.aside !== null)
-      out.push(svg("line", { x1: s.aside, y1: s.y, x2: Math.max(s.x1, s.aside + 0.8), y2: s.y,
+      out.push(svg("line", { ...line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
                              "data-head": s.head }, "strand aside"));
   }
-  for (const k of drawn_.fans)
-    out.push(svg("circle", { cx: k.x, cy: k.y, r: 0.8 + 0.6 * Math.sqrt(k.n) }, "fan"));
+  for (const k of plan.fans)
+    out.push(svg("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan"));
   for (const w of charted.marks) {
     if (w.head === null || !ys.has(w.head)) continue;
-    out.push(svg("circle", { cx: x(w.depth + 0.5), cy: ys.get(w.head), r: 3 }, "waypoint"));
+    out.push(svg("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint"));
   }
   const caret = svg("line", {}, "caret");
   out.push(caret);
   chartEl.replaceChildren(...out);
-  chart = { tree, x, drawn: drawn_, caret, y0: ys.get(tree.top.head), step };
+  chart = { tree, x, plan, caret, thumb, at, line, step, y0: ys.get(tree.top.head), cells: null };
   chartCaret();
+  chartThumb();
   chartSays(map.effect(tree, hairs));
 }
+
+const assign = (el, attrs) => { for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); };
 
 /** Where the caret is on the path's row. */
 function chartCaret() {
@@ -1800,22 +1823,74 @@ function chartCaret() {
   const at = pathIds().indexOf(cursor.node());
   chart.caret.style.display = at < 0 ? "none" : "";
   if (at < 0) return;
-  const cx = chart.x(at + 0.5), h = Math.max(4, chart.step);
-  for (const [k, v] of Object.entries({ x1: cx, x2: cx, y1: chart.y0 - h, y2: chart.y0 + h }))
-    chart.caret.setAttribute(k, v);
+  const a = chart.x(at + 0.5), h = Math.max(4, chart.step);
+  assign(chart.caret, chart.line(a, chart.y0 - h, a, chart.y0 + h));
 }
 
-/** The point an event is at, as a strand and a node on it, or null. */
-function chartHit(event) {
+/** The path's cells as they stand on the page, and where each starts in tokens. */
+function cells() {
+  const segs = [...$("column").querySelectorAll(".flow .seg")];
+  if (segs.length !== drawn.length) return null;
+  if (chart.cells?.drawn !== drawn)
+    chart.cells = { drawn, at: map.offsets(drawn.map(c => c.nodes.length)) };
+  return { segs, at: chart.cells.at };
+}
+
+/** What is above the footer, which is the window the column is read in. */
+const view = () => [0, document.querySelector("footer").getBoundingClientRect().top];
+
+/** The tokens in view, drawn as the thumb over the path's row. */
+function chartThumb() {
+  if (chart === null) return;
+  const got = cells();
+  const [lo, hi] = view();
+  const span = got && map.seen(got.at, i => got.segs[i].getBoundingClientRect(), lo, hi);
+  chart.thumb.style.display = span ? "" : "none";
+  chart.span = span;
+  if (!span) return;
+  const a0 = chart.x(span[0]), a1 = chart.x(span[1]), half = chart.half = Math.max(5, chart.step * 1.5);
+  const p = chart.at(a0, chart.y0 - half), q = chart.at(a1, chart.y0 + half);
+  assign(chart.thumb, { x: p.x, y: p.y, width: Math.max(1, q.x - p.x), height: Math.max(1, q.y - p.y),
+                     rx: 2 });
+}
+
+/** The point an event is at, along and across the plan, or null off the map. */
+function chartPoint(event) {
   if (chart === null) return null;
   const box = chartEl.getBoundingClientRect();
   const px = event.clientX - box.left, py = event.clientY - box.top;
   if (px < 0 || py < 0 || px > box.width || py > box.height) return null;
-  return map.hit(chart.tree, chart.drawn, chart.x, px, py, Math.max(4, chart.step / 2 + 1));
+  return look.down ? { along: py, across: px } : { along: px, across: py };
+}
+
+/** The point an event is at, as a strand and a node on it, or null. */
+function chartHit(event) {
+  const p = chartPoint(event);
+  if (p === null) return null;
+  return map.hit(chart.tree, chart.plan, chart.x, p.along, p.across,
+                 Math.max(4, chart.step / 2 + 1));
+}
+
+/** Whether an event is on the thumb, and how far into it in tokens. */
+function onThumb(event) {
+  const p = chartPoint(event);
+  if (p === null || !chart.span || Math.abs(p.across - chart.y0) > chart.half + 2) return null;
+  const t = chart.x.invert(p.along);
+  return t >= chart.span[0] - 0.5 && t <= chart.span[1] + 0.5 ? t - chart.span[0] : null;
+}
+
+/** Scroll the column so the token `depth` tokens from the root stands at the top of the view. */
+function scrollAt(depth) {
+  const got = cells();
+  if (got === null) return;
+  const el = got.segs[map.holding(got.at, depth)];
+  carried = performance.now() + CARRY;
+  window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - view()[0]);
 }
 
 /** Arrive where a click on the column's own ground points on the map, and say whether it did. */
 function charting(event) {
+  if (dragged) { dragged = false; return true; }
   const hit = chartHit(event);
   if (hit === null) return false;
   visit(hit).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
@@ -1833,11 +1908,35 @@ async function visit({ tail, depth }) {
   return reach(tail, null, tail);
 }
 
+$("column").addEventListener("pointerdown", event => {
+  if (event.target !== $("column") || event.button !== 0) return;
+  const into = onThumb(event);
+  if (into === null) return;
+  thumbed = into;
+  dragged = false;
+  $("column").setPointerCapture(event.pointerId);
+  event.preventDefault();
+});
+$("column").addEventListener("pointerup", event => {
+  if (thumbed === null) return;
+  thumbed = null;
+  $("column").releasePointerCapture(event.pointerId);
+  // The caret follows the window, as it does after any scroll, and nothing is asked for.
+  moved(false);
+});
+
 let lit = null;
 $("column").addEventListener("pointermove", event => {
+  if (thumbed !== null) {
+    const p = chartPoint(event);
+    if (p !== null) { dragged = true; scrollAt(chart.x.invert(p.along) - thumbed); }
+    return;
+  }
   const hit = event.target === $("column") ? chartHit(event) : null;
   const head = hit?.head ?? null;
   $("column").classList.toggle("charting", head !== null);
+  $("column").classList.toggle("thumbing", head === null && event.target === $("column")
+                                           && onThumb(event) !== null);
   if (head === lit) return;
   for (const el of chartEl.querySelectorAll(".lit")) el.classList.remove("lit");
   lit = head;
@@ -1845,7 +1944,7 @@ $("column").addEventListener("pointermove", event => {
     for (const el of chartEl.querySelectorAll(`[data-head="${head}"]`)) el.classList.add("lit");
 });
 
-/** The bar under the map: the scale, the cut, and what the cut does. */
+/** The bar under the map: which way it is drawn, the cut, and what the cut does. */
 function chartSays(effect) {
   const button = (text, title, pressed, onclick) => {
     const b = Object.assign(document.createElement("button"), { textContent: text, title, onclick });
@@ -1854,7 +1953,8 @@ function chartSays(effect) {
   };
   const next = UNDER[(UNDER.indexOf(look.cut.under) + 1) % UNDER.length];
   chartBar.replaceChildren(
-    button("log", "tokens on a log scale", look.log, () => { look.log = !look.log; sketch(); }),
+    button("down", "draw the map down the page, as a scrollbar; off, across it", look.down,
+           () => { look.down = !look.down; sketch(); }),
     button("stubs", "draw a hover's stubs as hair", look.cut.stubs,
            () => { look.cut.stubs = !look.cut.stubs; sketch(); }),
     button(`≤${look.cut.under}`, `draw leaves this short as hair; next ≤${next}`,
@@ -1869,9 +1969,11 @@ function chartSays(effect) {
 $("charted").onchange = () => {
   look.on = $("charted").checked;
   document.body.classList.toggle("unmapped", !look.on);
+  margin();
   charter();
 };
 addEventListener("resize", () => sketch());
+addEventListener("scroll", () => chartThumb(), { passive: true });
 
 // ---- the page -------------------------------------------------------------------------
 
@@ -2184,10 +2286,7 @@ $("column").onclick = event => {
   if (on === $("column") || on.classList?.contains("flow")) release();
 };
 
-$("rows").onchange = () => {
-  ranking.want($("rows").checked);
-  settled();
-};
+$("rows").onchange = () => margin();
 
 $("fold").onclick = () => {
   const folded = document.body.classList.toggle("folded");
@@ -2198,9 +2297,10 @@ try {
   // A reload restores a checkbox in some browsers, and nothing here is remembered between
   // loads -- so what the box says is what the page believes, rather than the other way.
   showHidden = $("hidden").checked;
-  ranking.want($("rows").checked);
   look.on = $("charted").checked;
   document.body.classList.toggle("unmapped", !look.on);
+  ranking.want($("rows").checked && !look.on);
+  $("rows").disabled = look.on;
   const tree = await refresh();
   // With nothing yet chosen the first root is what is read; with no roots at all the page
   // is never a bare one, because the only thing to do here is the only thing offered.

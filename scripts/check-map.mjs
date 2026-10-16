@@ -41,7 +41,7 @@ const hand = m.index(strands([[1, null, 10, null], [20, 1, 30, -0.5], [60, 1, 8,
                               [80, 1, 5, -2.0], [90, 1, 3, -0.2, true]]));
 const none = new Set();
 const cut = { stubs: true, under: 2 };
-const x = m.scale({ log: false, most: 40, width: 440, pad: 20 });
+const x = m.scale({ most: 40, width: 440, pad: 20 });
 
 is("the heaviest continues where no path runs", m.continuing(hand.kids.get(1), none).head, 20);
 is("  and the path's child where one does",
@@ -62,9 +62,7 @@ is("the path is the straight row, and the rest are ranked against it",
    [1, 80, 20, 60].map(h => turned.get(h)), [0, 0, -1, -2]);
 
 is("x runs from the pad to the width less it", [x(0), x(40)], [20, 420]);
-const lx = m.scale({ log: true, most: 40, width: 440, pad: 20 });
-is("  and on log too", [lx(0), Math.round(lx(40))], [20, 420]);
-is("  and inverts", [x.invert(x(17)), Math.round(lx.invert(lx(17)) * 1e9) / 1e9], [17, 17]);
+is("  and inverts", x.invert(x(17)), 17);
 
 const drawn = m.plan(hand, rows, { x, hairs, path: none, step: 10 });
 is("a link from the fork's row to each strand off it",
@@ -103,8 +101,7 @@ for (let t = 0; t < 40; t++) {
   for (let s = tip; s; s = tree.byHead.get(s.up)) nodes.push(s.head);
   const path = m.along(tree, nodes);
   const hairs = m.hair(tree, { stubs: true, under: 4 }, path);
-  const log = t % 2 === 0;
-  const x = m.scale({ log, most: m.most(tree, hairs), width: 600, pad: 10 });
+  const x = m.scale({ most: m.most(tree, hairs), width: 200 + 20 * t, pad: 10 });
   const rows = m.layout(tree, { x, hairs, path });
   for (const s of tree.strands) if (rows.has(s.head) === hairs.has(s.head)) unplaced++;
   for (const h of path) if (rows.get(h) !== 0) offPath++;
@@ -149,5 +146,32 @@ is("the path holds row 0 throughout", offPath, 0);
 is("above is ranked higher than what continues, and below lower", misranked, 0);
 is("the nearest rank stands nearest", misordered, 0);
 is("every strand off its fork's row is linked to it", unlinked, 0);
+
+// The window: cells set as text sets them, several to a line and some across several, and
+// what is in view read against every cell's box one at a time.
+is("a path's offsets start at 0 and sum its cells", m.offsets([2, 1, 3]), [0, 2, 3, 6]);
+let unseen = 0, misheld = 0;
+for (let t = 0; t < 40; t++) {
+  const counts = [], boxes = [];
+  let line = 0;
+  for (let i = 0, n = 1 + Math.floor(rand() * 60); i < n; i++) {
+    counts.push(1 + Math.floor(rand() * 4));
+    const lines = rand() < 0.1 ? 2 + Math.floor(rand() * 3) : 1;
+    boxes.push({ top: line * 20, bottom: (line + lines) * 20 });
+    line += lines - 1 + (rand() < 0.3 ? 1 : 0);
+  }
+  const at = m.offsets(counts);
+  const lo = rand() * line * 20, hi = lo + rand() * 200;
+  const inView = boxes.map((b, i) => [b, i]).filter(([b]) => b.bottom > lo && b.top < hi);
+  const want = inView.length ? [at[inView[0][1]], at[inView.at(-1)[1] + 1]] : null;
+  if (JSON.stringify(m.seen(at, i => boxes[i], lo, hi)) !== JSON.stringify(want)) unseen++;
+  for (let d = 0; d <= at.at(-1) + 2; d++) {
+    const i = m.holding(at, d);
+    const ok = d >= at.at(-1) ? i === counts.length - 1 : at[i] <= d && d < at[i + 1];
+    if (!ok) misheld++;
+  }
+}
+is("the tokens in view are those of the cells the window crosses", unseen, 0);
+is("each token is held by the cell it falls in, and past the end by the last", misheld, 0);
 
 process.exit(bad ? 1 : 0);

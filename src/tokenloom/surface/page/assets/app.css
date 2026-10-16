@@ -744,8 +744,11 @@ footer.peek, footer.held { z-index: 26; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
 #map .caret { stroke: var(--accent); stroke-width: 2; }
+#map .thumb { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .5;
+              stroke-width: 1; }
 #map .lit { stroke: var(--ink); stroke-width: 2.4; stroke-opacity: 1; }
 #column.charting { cursor: pointer; }
+#column.thumbing { cursor: grab; }
 
 #chart-bar { bottom: calc(var(--foot) + 6px); display: flex; gap: 6px; align-items: center;
              font: 400 11px/1.4 var(--mono); color: var(--dim); }
