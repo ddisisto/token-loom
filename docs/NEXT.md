@@ -18,8 +18,8 @@ reworked, and not before.
 is the only reason they are numbered. One that has no file yet points at where it stands below.
 
 1. **[Map](next/MAP.md)**: the tree drawn as a shape in the right margin, the reader's path and
-   waypoints on it, and a way in. It is first because the scripts already draw it and losing
-   one's place in the tree is the cost paid daily.
+   waypoints on it, and a way in. Its first cut is in, and what follows is other quantities along
+   it, the layers' colours on it, and a box drawn on it to zoom.
 2. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
    nav under their roots. Its first cut is in, and the map is where what follows it is drawn
    as well as listed.
@@ -54,7 +54,8 @@ read against a tree the page could not yet have made.
 at is a composer that starts a root, a column that sets one path as prose, a caret that says
 where the reader is pointing and is where every act at a position lands, the rows at that
 position on demand, a scroll that asks for more there, the draw's settings at the page's edge,
-along the footer and in a drawer beneath it, and a panel saying what is drawn over the text. This section is what comes after that.
+along the footer and in a drawer beneath it, a panel saying what is drawn over the text, and a
+map of the root in the margin. This section is what comes after that.
 
 ### The increments, in order
 

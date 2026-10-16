@@ -180,14 +180,14 @@ export function layout(tree, { x, hairs, path }) {
 // ---- the plan -----------------------------------------------------------------------------
 
 /** What is drawn, in px: strands as runs along their rows, links from a fork down or up to
- *  a strand that left it, hair as ticks off the fork they leave, and a knot wherever three
- *  or more strands leave one place. `step` is the px between rows; `top` is the y of the
+ *  a strand that left it, hair as ticks off the fork they leave, and a fan wherever three
+ *  or more strands leave one fork. `step` is the px between rows; `top` is the y of the
  *  highest row. */
 export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
   let lo = Infinity, hi = -Infinity;
   for (const r of rows.values()) { lo = Math.min(lo, r); hi = Math.max(hi, r); }
   const y = head => top + (rows.get(head) - lo) * step;
-  const out = { strands: [], links: [], hairs: [], knots: [],
+  const out = { strands: [], links: [], hairs: [], fans: [],
                 height: rows.size ? (hi - lo) * step : 0 };
   for (const s of tree.strands) {
     if (!rows.has(s.head)) continue;
@@ -201,7 +201,7 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
     if (!rows.has(up)) continue;
     const parent = tree.byHead.get(up);
     const at = x(parent.depth + parent.length);
-    if (kids.length >= 3) out.knots.push({ head: up, x: at, y: y(up), n: kids.length });
+    if (kids.length >= 3) out.fans.push({ head: up, x: at, y: y(up), n: kids.length });
     const main = continuing(kids.filter(k => !hairs.has(k.head)), path);
     for (const k of kids) {
       if (!hairs.has(k.head)) continue;

@@ -367,6 +367,50 @@ mark and nothing else — no count, no preview, no affordance beyond being marke
 children of which one is deleted is not a fork and is not marked. The record still holds it, and
 whether a reader should be told is in What is not decided here.
 
+## The map
+
+**The tree under the current root, drawn as a shape in the half of the window the column leaves
+empty.** The column shows one path and cannot show where that path stands in the tree or what
+else the tree holds; the map is that picture, and pointing at a place in it is an arrival. It sits
+under everything placed in that half, so the rows cover it where they open and it is back when
+they close, and it is a way of looking with a switch beside the others.
+
+**A strand is a maximal run of nodes each with one child**, opened at a root or at a child of a
+fork and closed at a fork or a leaf. It is the map's unit, since a tree grown by drawing is long
+runs with nothing on them and the forks carry all of its shape. *Segment* is the display unit
+above and is not this.
+
+**x is a quantity summed from the root, and says which.** It is tokens, on a linear scale or a
+log one, and a strand runs from where its fork stands to where it ends. An axis that holds a
+quantity is the rule; one squeezed to fit what the drawing has room for is not.
+
+**y is the ranking, and it is local.** At each fork one child continues the row: the one on the
+reader's path where there is one, and otherwise the heaviest. The others stand above it if the
+model ranked them higher and below it if lower, the nearest rank nearest, each packed as close to
+its fork as the strands already placed allow. A child nothing ranked stands below every one that
+was. So the reader's path is one straight row, a strand above it is one the model liked better at
+the fork it leaves, and a strand far below is one it hardly considered.
+
+**Hair is a leaf the map does not give a row of its own**, drawn as a tick off its fork, up or
+down by the same rule. The **skeleton** is what is left. Which leaves are hair is a cut the
+reader moves: a hover's stubs, in `docs/SPINE.md`'s sense, and leaves no longer than a length.
+The cut is stated by what it does to the drawing, as strands kept and the share of the tokens
+drawn as hair, because what the same numbers do differs by tree and by what the reader is after.
+The child that continues a fork is never hair, so a tree is never drawn without the path it
+mostly is.
+
+**What it marks**: the reader's path and the caret on it, the waypoints wherever they stand, what
+is set aside where the toggle shows it, and a fork three or more strands leave as a dot sized by
+how many.
+
+**Pointing at a strand is an arrival.** The column reads the path through that strand and puts
+the caret on the segment holding the node under the pointer, as taking a waypoint does. A point
+on nothing is a point on nothing, and releases the caret as before.
+
+**What it is drawn from is read once per root and per act**, and once again when the toggle or
+the waypoints change. Moving along a path or arriving on another redraws it from what is held,
+and the packing is laid again around the new path.
+
 ## Rankings
 
 **Selecting a token asks what else was live at that position**, which is the ranking at its
@@ -706,7 +750,7 @@ loses along with the process holding it.
 
 ## What the surface reads
 
-**Three reads, and each is one descent.** A read that asks per node — its own ancestry for
+**Four reads, and each is one descent.** A read that asks per node — its own ancestry for
 liveness, its own children for what parts — is the one shape these cannot have, and `docs/CORE.md`
 says what the fix is: *a descent from the root carries the answer down.* These are stated as what
 must be answerable that way, not as an interface.
@@ -729,6 +773,14 @@ character budget, depth-first, with the nested divergences inside each run and t
 parts at. **A divergence with no index is counted rather than returned** — one past the budget's
 cut, and one inside a segment, which nothing addresses — since what a reader is owed is how many
 are not there. What the rows are laid out from is this and measurement, and nothing else.
+
+**4. A map.** Below a root: its strands, depth-first, each with its two ends, the strand it hangs
+from, its depth, its length, how many nodes lie at or below it, the logprob its first node had at
+the fork it leaves, whether it is a leaf, whether it is a stub, and where in it what was set aside
+begins. **It carries no node between a strand's ends**: arriving at one reads the path through
+it, and that path carries them all. Which strands are hair is not in it, because the cut is the
+reader's and moves without a read. Asked with a list of nodes, it also says where each stands on
+it, as a strand and a depth, which is how a waypoint off the reader's path is drawn.
 
 Point reads — a node, a tree's roots, the act list — are already cheap and need nothing.
 
@@ -800,9 +852,9 @@ when it is settled.
   target and only half of it exists. What settles it is working a real tree
   with the mouse put away.
 - **What a click means.** A token opens a ranking, a row is taken at the depth it is clicked at,
-  and a click on nothing releases the caret to the end of the path. Three meanings for one
-  gesture, told apart by what is under it. It works and it is not obviously right. What settles
-  it is finding where the wrong one fires.
+  a strand on the map is arrived at, and a click on nothing releases the caret to the end of the
+  path. Four meanings for one gesture, told apart by what is under it. It works and it is not
+  obviously right. What settles it is finding where the wrong one fires.
 - **Whether a control token is marked.** The store can tell a control token from text spelling the
   same characters. Whether the reader should is a question about honesty against clutter, and what
   settles it is a tree with control tokens in ordinary positions, read both ways.
@@ -817,6 +869,19 @@ when it is settled.
   whatever is new to the view would cover them all and makes a long re-derived path light up
   whole after a shallow row is taken, which is either noise or the point. What settles it is
   marking them and reading a tree with them marked.
+- **What the ranked map does to a whole tree.** Each fork orders only its own children, and what
+  a global picture made of only local orders looks like is the open part of *The map*. Settled by
+  reading it on trees of each kind — one long writing, one many draws from near its start, one a
+  fan of greedy arms.
+- **What the hair cut is by default.** It is a hover's stubs and leaves of sixteen nodes or fewer,
+  which is a first number, and stubs will stop being one thing when a hover draws under other
+  settings than greedy. Settled by use, with the switch: the default is whatever a reader leaves
+  it at.
+- **Whether the map holds still.** It is laid again around every arrival, so the shape moves
+  whenever the path does, and it is the path that stays put. A map that held its shape while the
+  reader moved through it is the other way to have it. Settled by use.
+- **Where the map lives.** The margin is where it started, under the rows, and *Arms* wants that
+  room too. Settled by use, once both are drawn there.
 - **Everything past the first gesture.** Comparison across branches, and what the instrument does
   that a reader could not get from reading one path at a time. Nothing settles this but use.
 
@@ -825,11 +890,12 @@ when it is settled.
 ## Status
 
 **What is built is the body above, and `docs/LAYERS.md` for what is drawn over the column.**
-`tokenloom serve` holds one tree and serves the three reads, the path predicate and the five acts
+`tokenloom serve` holds one tree and serves the four reads, the path predicate and the five acts
 over HTTP, with the page at the root so the two arrive from one origin. The page starts roots and
 names them, sets one path as prose with a caret that every act at a position lands on, continues
 it by a scroll at the end or a key at the caret, writes at the caret through a composer, takes a
-ranked row or reads and buys its arm, and sets the draw beside the text.
+ranked row or reads and buys its arm, sets the draw beside the text, and draws the root it is
+reading as a map in the margin, which a reader moves around the tree by.
 
 **What does not exist is everything past that**: nothing shown beside a row unasked — what the
 reader already grew there is still only a size — no depth limit and so no view that presets one,

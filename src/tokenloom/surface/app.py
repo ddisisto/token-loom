@@ -1,7 +1,7 @@
 """The process: one tree, claimed for as long as it runs, and the page read against it.
 
 `docs/SURFACE.md` has the surface claiming its tree and verifying once for the life of the
-process rather than before every write, and this is that process. It serves the three reads
+process rather than before every write, and this is that process. It serves the four reads
 `reads.py` answers, the path predicate an adapter provides, and the five acts -- each under
 its own verb, since a surface write with no verb would be a new kind of write -- and it
 serves `page/` at the root, so what the page reads and the page itself arrive from one place

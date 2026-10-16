@@ -28,7 +28,7 @@ where this is stated.
 
 **A read sits above the core when it needs a character, a measure of room, or what the
 reader did.** `src/tokenloom/surface/reads.py` is that layer — segmentation, the continuation rule,
-and the three reads `docs/SURFACE.md` states — and `core/reads.py` holds the record half each
+and the four reads `docs/SURFACE.md` states — and `core/reads.py` holds the record half each
 of them stands on. The core answers about the record and stops, which is what keeps a
 decision about display from becoming a fact about the format.
 

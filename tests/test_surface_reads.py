@@ -1,4 +1,4 @@
-"""The three reads `docs/SURFACE.md` names, and the segmentation they are stated in.
+"""The four reads `docs/SURFACE.md` names, and the segmentation they are stated in.
 
 These sit above the core, so what they are tested against is what the core has no notion
 of: where a character ends, which continuation a rule picks, and what a line's worth of
@@ -395,7 +395,7 @@ def test_an_authored_node_stands_in_a_ranking_it_has_no_row_in(ranked):
 
 def test_overlays_are_one_query_whatever_the_path_holds(ranked):
     """What decorating the output rather than joining the recursion is for. A spread per
-    node would be one statement each, which is the N+1 the three reads exist to avoid."""
+    node would be one statement each, which is the N+1 the reads exist to avoid."""
     store, tip = ranked
     cells = S.path(store.conn, tip, rule=None)
     counted = 0
@@ -870,7 +870,7 @@ def test_what_is_beneath_follows_the_toggle_where_the_rule_never_does(tree):
 def test_what_is_beneath_costs_the_same_whatever_the_path_holds(tree):
     """One descent and a couple of small reads around it, none of them per node -- which is
     the property, and not the number. A measure asked for node by node would be the N+1 the
-    three reads exist to avoid, and would grow with the path where this does not.
+    reads exist to avoid, and would grow with the path where this does not.
     """
     def asked(node):
         cells = S.path(tree.conn, node)

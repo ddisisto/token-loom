@@ -136,7 +136,7 @@ def test_reading_goes_on_while_a_write_is_in_flight_and_a_second_write_does_not(
     assert client.get("/acts", params={"in_flight": "1"}).json()["acts"] == []
 
 
-# ---- the three reads ------------------------------------------------------------------
+# ---- the four reads -------------------------------------------------------------------
 
 
 def test_the_tree_read_names_its_roots_and_its_vocabulary(client):

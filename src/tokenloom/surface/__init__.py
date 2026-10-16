@@ -1,6 +1,6 @@
 """The reading surface: the reads it needs above the core, and the process that serves them.
 
-`reads.py` holds segmentation, the continuation rule and the three reads `docs/SURFACE.md`
+`reads.py` holds segmentation, the continuation rule and the four reads `docs/SURFACE.md`
 states, each standing on `core/reads.py`. `app.py` is the process -- one tree claimed for as
 long as it runs, serving those reads, the five acts and the page. `wire.py` is what crosses
 between them.

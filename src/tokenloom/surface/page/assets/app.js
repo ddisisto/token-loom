@@ -1780,8 +1780,8 @@ function sketch() {
       out.push(svg("line", { x1: s.aside, y1: s.y, x2: Math.max(s.x1, s.aside + 0.8), y2: s.y,
                              "data-head": s.head }, "strand aside"));
   }
-  for (const k of drawn_.knots)
-    out.push(svg("circle", { cx: k.x, cy: k.y, r: 0.8 + 0.6 * Math.sqrt(k.n) }, "knot"));
+  for (const k of drawn_.fans)
+    out.push(svg("circle", { cx: k.x, cy: k.y, r: 0.8 + 0.6 * Math.sqrt(k.n) }, "fan"));
   for (const w of charted.marks) {
     if (w.head === null || !ys.has(w.head)) continue;
     out.push(svg("circle", { cx: x(w.depth + 0.5), cy: ys.get(w.head), r: 3 }, "waypoint"));

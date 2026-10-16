@@ -1,10 +1,10 @@
-"""The three reads `docs/SURFACE.md` names, and the segmentation they are stated in.
+"""The four reads `docs/SURFACE.md` names, and the segmentation they are stated in.
 
 These sit above `core/reads.py` because each needs something the record has no notion of:
 a character, a line's worth of room, or which continuation the reader is following. The
 core answers questions about the record and stops there.
 
-Nothing here is an interface. The document states the three as what must be answerable from
+Nothing here is an interface. The document states the four as what must be answerable from
 one descent, and this is that; what an API or a command line hands a client is its own.
 
 `label` is not a fourth. A list of roots is a point read the core already answers, and what
@@ -718,7 +718,7 @@ def waypoints(
     return out
 
 
-# ---- the map -------------------------------------------------------------------------
+# ---- 4. a map ------------------------------------------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -754,8 +754,7 @@ def strands(conn: sqlite3.Connection, root: int, hidden: bool = False) -> list[S
     """The tree under `root` as strands, depth-first, a strand before those below it and
     siblings in id order.
 
-    Like `label`, this names what the tree holds rather than reading a path, and unlike it,
-    it is the whole of one root: one descent, which carries the set-aside nodes whatever
+    It is the whole of one root in one descent, which carries the set-aside nodes whatever
     `hidden` says because the acts that wrote the live ones may have their tips among them.
     `hidden` decides what is drawn, as it does for every read the page makes, and a root that
     is itself set aside holds nothing until it is on.

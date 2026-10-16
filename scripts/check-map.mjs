@@ -71,7 +71,7 @@ is("a link from the fork's row to each strand off it",
    drawn.links.map(l => [l.head, l.y0, l.y1]), [[60, 10, 0], [80, 10, 20]]);
 is("hair ticks off its fork on the side its rank puts it",
    drawn.hairs.map(h => [h.head, h.x0, h.y1 < h.y0]), [[90, x(10), true]]);
-is("a knot where three or more leave one place", drawn.knots.map(k => [k.head, k.n]), [[1, 4]]);
+is("a fan where three or more leave one fork", drawn.fans.map(k => [k.head, k.n]), [[1, 4]]);
 is("a point on a strand is the node under it, from the root",
    m.hit(hand, drawn, x, x(25.5), 11, 4), { head: 20, tail: 49, depth: 25 });
 is("  clamped to the strand's own nodes",

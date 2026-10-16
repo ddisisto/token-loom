@@ -741,7 +741,7 @@ footer.peek, footer.held { z-index: 26; }
 #map .link { stroke: var(--faint); stroke-width: .7; }
 #map .hair { stroke: var(--faint); stroke-width: .8; }
 #map .hair:not(.stub) { stroke: var(--dim); stroke-opacity: .6; }
-#map .knot { fill: var(--dim); fill-opacity: .7; }
+#map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
 #map .caret { stroke: var(--accent); stroke-width: 2; }
 #map .lit { stroke: var(--ink); stroke-width: 2.4; stroke-opacity: 1; }
