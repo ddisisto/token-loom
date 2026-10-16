@@ -756,7 +756,9 @@ footer.peek, footer.held { z-index: 26; }
 #map .over { stroke: var(--point); stroke-width: 1.6; }
 #map .thumb { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .5;
               stroke-width: 1; }
-#map .lit { stroke: var(--ink); stroke-width: 2.4; stroke-opacity: 1; }
+#map .lit { stroke: var(--point); stroke-width: 2.4; stroke-opacity: 1; }
+/* While the drawing moves from one packing to the next, what moves with the reader waits. */
+#map.moving :is(.caret, .over, .thumb) { visibility: hidden; }
 #column.charting { cursor: pointer; }
 #column.thumbing { cursor: grab; }
 

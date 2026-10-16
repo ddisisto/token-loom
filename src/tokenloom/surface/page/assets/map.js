@@ -266,3 +266,30 @@ export function holding(at, depth) {
   while (a < b) { const mid = (a + b + 1) >> 1; if (at[mid] <= depth) a = mid; else b = mid - 1; }
   return Math.max(0, a);
 }
+
+// ---- moving ------------------------------------------------------------------------------
+
+/** The heads of a strand and of every strand it hangs from, up to the root's. */
+export function lineage(tree, head) {
+  const out = [];
+  for (let s = tree.byHead.get(head); s; s = tree.byHead.get(s.up)) out.push(s.head);
+  return out;
+}
+
+/** Eased progress at `t` of the way, slow out and slow in. */
+export const ease = t => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+
+/** What moves from one drawing to the next, each mark keyed and its geometry as numbers:
+ *  `moved` is every mark in both whose numbers differ, as `[key, [[name, from, to], ...]]`,
+ *  and `fresh` the keys only in the next. */
+export function shift(was, now) {
+  const moved = [], fresh = [];
+  for (const [key, to] of now) {
+    const from = was.get(key);
+    if (from === undefined) { fresh.push(key); continue; }
+    const pairs = Object.keys(to).filter(k => k in from && from[k] !== to[k])
+      .map(k => [k, from[k], to[k]]);
+    if (pairs.length) moved.push([key, pairs]);
+  }
+  return { moved, fresh };
+}

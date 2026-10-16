@@ -174,4 +174,17 @@ for (let t = 0; t < 40; t++) {
 is("the tokens in view are those of the cells the window crosses", unseen, 0);
 is("each token is held by the cell it falls in, and past the end by the last", misheld, 0);
 
+// Moving between two drawings.
+is("a strand's lineage runs up to the root", m.lineage(hand, 20), [20, 1]);
+is("  and the root's is itself", m.lineage(hand, 1), [1]);
+const eased = Array.from({ length: 101 }, (_, i) => m.ease(i / 100));
+is("easing starts at 0 and ends at 1", [eased[0], eased[100]], [0, 1]);
+is("  never goes back", eased.every((v, i) => i === 0 || v >= eased[i - 1]), true);
+is("  and is half way at half time, either side mirroring the other",
+   eased.every((v, i) => Math.abs(v + eased[100 - i] - 1) < 1e-12), true);
+is("what moved is what is in both and differs, and what is new is said apart",
+   m.shift(new Map([["a", { x: 1, y: 2 }], ["b", { x: 0 }], ["gone", { x: 9 }]]),
+           new Map([["a", { x: 1, y: 5 }], ["b", { x: 0 }], ["c", { x: 3 }]])),
+   { moved: [["a", [["y", 2, 5]]]], fresh: ["c"] });
+
 process.exit(bad ? 1 : 0);

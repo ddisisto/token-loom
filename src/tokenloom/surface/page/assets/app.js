@@ -1708,6 +1708,8 @@ const SVG = "http://www.w3.org/2000/svg";
 const PAD = 10;            // px inside the map on every side
 const STEP = [1.5, 9];     // px between rows, at the least and the most
 const UNDER = [0, 4, 16, 64];  // the lengths a short leaf can be cut at, in nodes
+const GLIDE = 1200;        // ms the drawing takes to move from one packing to the next
+const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
 
 const chartEl = $("map");
 const chartBar = $("chart-bar");
@@ -1718,6 +1720,8 @@ let chart = null;    // what is drawn now, which a point is read against
 let thumbed = null;  // the thumb in the hand: how far into it it was taken, in tokens
 let dragged = false;  // a drag ended, and the click that follows it is not an arrival
 let pointedAt = null; // the path's cell the pointer is over, from the column or the map
+let gliding = 0;      // which move is running, so a newer drawing stops an older one
+let lit = null;       // the strand the pointer is over on the map, traced to the root
 
 const svg = (name, attrs, cls) => {
   const el = document.createElementNS(SVG, name);
@@ -1762,6 +1766,8 @@ async function charter() {
  *  window in view as the thumb on the path. */
 function sketch() {
   if (!look.on || charted === null) return;
+  gliding++;
+  chartEl.classList.remove("moving");
   const { tree } = charted;
   const path = map.along(tree, pathIds());
   const hairs = map.hair(tree, look.cut, path);
@@ -1792,31 +1798,49 @@ function sketch() {
   const out = [];
   const thumb = svg("rect", {}, "thumb");
   out.push(thumb);
+  // Every mark keyed by what it draws, so the next drawing can say where each one was.
+  const byHead = new Map();
+  const mark = (name, attrs, cls, key, head = null) => {
+    const el = svg(name, { ...attrs, "data-key": key }, cls);
+    if (head !== null) {
+      el.dataset.head = head;
+      if (!byHead.has(head)) byHead.set(head, []);
+      byHead.get(head).push(el);
+    }
+    out.push(el);
+  };
   for (const l of plan.links)
-    out.push(svg("line", line(l.x, l.y0, l.x, l.y1), "link"));
+    mark("line", line(l.x, l.y0, l.x, l.y1), "link", `l${l.head}`, l.head);
   for (const h of plan.hairs)
-    out.push(svg("line", { ...line(h.x0, h.y0, h.x1, h.y1), "data-head": h.head },
-                 `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`));
+    mark("line", line(h.x0, h.y0, h.x1, h.y1),
+         `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`, `h${h.head}`, h.head);
   for (const s of plan.strands) {
     const end = s.aside ?? s.x1;
-    out.push(svg("line", { ...line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
-                           "data-head": s.head }, `strand${s.path ? " path" : ""}`));
+    mark("line", line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
+         `strand${s.path ? " path" : ""}`, `s${s.head}`, s.head);
     if (s.aside !== null)
-      out.push(svg("line", { ...line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
-                             "data-head": s.head }, "strand aside"));
+      mark("line", line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
+           "strand aside", `a${s.head}`, s.head);
   }
   for (const k of plan.fans)
-    out.push(svg("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan"));
+    mark("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan", `f${k.head}`);
   for (const w of charted.marks) {
     if (w.head === null || !ys.has(w.head)) continue;
-    out.push(svg("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint"));
+    mark("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint", `w${w.node}`);
   }
   const caret = svg("line", {}, "caret");
   const pointed = svg("line", {}, "over");
   out.push(pointed, caret);
+  // The same tree drawn the same way and the same size is a packing that moved, which glides;
+  // anything else is a new drawing, which does not.
+  const same = chart !== null && chart.tree === tree && chart.down === look.down
+    && chart.long === long && chart.wide === wide;
+  const was = same ? shape() : null;
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, path, caret, pointed, thumb, at, line, step,
-            y0: ys.get(tree.top.head), cells: null };
+  chart = { tree, x, plan, path, caret, pointed, thumb, at, line, step, byHead,
+            down: look.down, long, wide, y0: ys.get(tree.top.head), cells: null };
+  lit = null;
+  if (was !== null) glide(was);
   chartCaret();
   chartOver();
   chartThumb();
@@ -1826,6 +1850,39 @@ function sketch() {
 const assign = (el, attrs) => {
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
 };
+
+/** Each keyed mark's geometry, as numbers. */
+function shape() {
+  const out = new Map();
+  for (const el of chartEl.querySelectorAll("[data-key]")) {
+    const at = {};
+    for (const k of SHAPE) if (el.hasAttribute(k)) at[k] = Number(el.getAttribute(k));
+    out.set(el.dataset.key, at);
+  }
+  return out;
+}
+
+/** Move what is drawn from where it was, so a branch taken is seen straightening onto the
+ *  path's row. What is new fades in, and what moves with the reader -- the caret, the pointer
+ *  and the thumb -- waits until it lands. */
+function glide(was) {
+  const { moved, fresh } = map.shift(was, shape());
+  if (!moved.length && !fresh.length) return;
+  const els = new Map([...chartEl.querySelectorAll("[data-key]")].map(el => [el.dataset.key, el]));
+  const id = gliding;
+  const t0 = performance.now();
+  chartEl.classList.add("moving");
+  const frame = now => {
+    if (id !== gliding) return;
+    const t = Math.min(1, (now - t0) / GLIDE), e = map.ease(t);
+    for (const [key, pairs] of moved)
+      for (const [k, a, b] of pairs) els.get(key).setAttribute(k, a + (b - a) * e);
+    for (const key of fresh) els.get(key).style.opacity = t < 1 ? e : "";
+    if (t < 1) requestAnimationFrame(frame);
+    else chartEl.classList.remove("moving");
+  };
+  frame(t0);
+}
 
 /** Where the caret is on the path's row. */
 function chartCaret() {
@@ -1924,6 +1981,8 @@ function scrollAt(depth) {
 /** Arrive where a click on the column's own ground points on the map, and say whether it did. */
 function charting(event) {
   if (dragged) { dragged = false; return true; }
+  // A click while the drawing moves would land on where something is going, not where it is.
+  if (chartEl.classList.contains("moving")) return true;
   const hit = chartHit(event);
   if (hit === null) return false;
   visit(hit).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
@@ -1958,7 +2017,6 @@ $("column").addEventListener("pointerup", event => {
   moved(false);
 });
 
-let lit = null;
 $("column").addEventListener("pointerleave", () => hover(null));
 $("column").addEventListener("pointermove", event => {
   if (thumbed !== null) {
@@ -1978,8 +2036,10 @@ $("column").addEventListener("pointermove", event => {
   if (head === lit) return;
   for (const el of chartEl.querySelectorAll(".lit")) el.classList.remove("lit");
   lit = head;
+  // Traced back to the root, so where it leaves the path and the shape it would take are seen.
   if (head !== null)
-    for (const el of chartEl.querySelectorAll(`[data-head="${head}"]`)) el.classList.add("lit");
+    for (const h of map.lineage(chart.tree, head))
+      for (const el of chart.byHead.get(h) ?? []) el.classList.add("lit");
 });
 
 /** The bar under the map: which way it is drawn, the cut, and what the cut does. */

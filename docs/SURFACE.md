@@ -415,8 +415,15 @@ each: a glow on the segment in the column, and a tick across the path on the map
 of the pointer's own. A segment out of view keeps its glow out of view, and the tick against the
 thumb says where it is.
 
+**A strand pointed at is traced back to the root**, lit along every strand it hangs from, so the
+shape it would take and where it leaves the reader's path are both in view before it is taken.
+
 **Pointing at a strand is an arrival.** The column reads the path through that strand and puts
-the caret on the segment holding the node under the pointer, as taking a waypoint does. A point
+the caret on the segment holding the node under the pointer, as taking a waypoint does. The
+reader's path is always one straight row and a branch is offset from it, so taking a branch is
+that branch straightening, and the drawing moves there over a second rather than jumping, with
+what is new fading in. A click while it moves is not taken, since it would land on where
+something is going rather than where it is. A point
 on nothing is a point on nothing, and releases the caret as before. The thumb is taken and not
 pointed at: dragging it scrolls, the column's own scroll is not a reader reading on and asks for
 nothing, and the caret follows the window once it is let go, as after any scroll.
