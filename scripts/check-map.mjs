@@ -182,6 +182,31 @@ is("easing starts at 0 and ends at 1", [eased[0], eased[100]], [0, 1]);
 is("  never goes back", eased.every((v, i) => i === 0 || v >= eased[i - 1]), true);
 is("  and is half way at half time, either side mirroring the other",
    eased.every((v, i) => Math.abs(v + eased[100 - i] - 1) < 1e-12), true);
+// The trail, on a tree whose strands 20, 60 and 80 each hang from the root's.
+const on = (...heads) => new Set(heads);
+let walked = m.remember(hand, [], on(1, 20), 20);
+is("the first path read starts the trail", walked, [{ head: 20 }]);
+is("  and reading it again changes nothing", m.remember(hand, walked, on(1, 20), 20), walked);
+walked = m.remember(hand, walked, on(1, 60), 60);
+walked = m.remember(hand, walked, on(1, 80), 80);
+is("each path taken goes on top", walked.map(e => e.head), [80, 60, 20]);
+is("  and one taken again comes off where it stood",
+   m.remember(hand, walked, on(1, 20), 20).map(e => e.head), [20, 80, 60]);
+is("a path that only grew takes the place of the one it grew from",
+   m.remember(hand, [{ head: 1 }], on(1, 20), 20), [{ head: 20 }]);
+is("  and the trail stops at what it keeps",
+   m.remember(hand, walked, on(1, 20), 20, 2).map(e => e.head), [20, 80]);
+is("a strand off the path is as many paths back as it was last on one, the root never",
+   [...m.steps(hand, walked, on(1, 80), 4)], [[60, 1], [20, 2]]);
+is("  and only so many are counted", [...m.steps(hand, walked, on(1, 80), 1)], [[60, 1]]);
+is("  and a path under another root counts for nothing",
+   [...m.steps(hand, [{ head: 80 }, { head: 999 }, { head: 60 }], on(1, 80), 1)], [[60, 1]]);
+const box = new Map();
+const store = { getItem: k => box.get(k) ?? null, setItem: (k, v) => box.set(k, v) };
+m.keep(store, "t", walked);
+is("a trail kept is the trail recalled", m.recall(store, "t"), walked);
+is("  and with no storage there is none, and nothing fails",
+   [m.recall(null, "t"), m.keep(null, "t", walked)], [[], false]);
 is("what moved is what is in both and differs, and what is new is said apart",
    m.shift(new Map([["a", { x: 1, y: 2 }], ["b", { x: 0 }], ["gone", { x: 9 }]]),
            new Map([["a", { x: 1, y: 5 }], ["b", { x: 0 }], ["c", { x: 3 }]])),

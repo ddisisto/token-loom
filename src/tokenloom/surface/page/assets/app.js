@@ -249,6 +249,7 @@ async function refresh(current) {
   const tree = known = await ask("/tree");
   // Keyed by the tree and not by the address, which names only the server.
   kept = waypoint.load(storage, tree.created ?? tree.path);
+  walked = map.recall(storage, tree.created ?? tree.path);
   await named();
   drawRoots(tree, current);
   tally(tree);
@@ -1710,6 +1711,7 @@ const STEP = [1.5, 9];     // px between rows, at the least and the most
 const UNDER = [0, 4, 16, 64];  // the lengths a short leaf can be cut at, in nodes
 const GLIDE = 1200;        // ms the drawing takes to move from one packing to the next
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
+const STEPS = 4;           // paths back the trail is drawn for, each in a colour of its own
 
 const chartEl = $("map");
 const chartBar = $("chart-bar");
@@ -1722,6 +1724,14 @@ let dragged = false;  // a drag ended, and the click that follows it is not an a
 let pointedAt = null; // the path's cell the pointer is over, from the column or the map
 let gliding = 0;      // which move is running, so a newer drawing stops an older one
 let lit = null;       // the strand the pointer is over on the map, traced to the root
+let walked = [];      // the trail: the paths the reader has been on in this tree, newest first
+
+chartEl.style.setProperty("--glide", `${GLIDE}ms`);
+
+/** A strand's colour: the path's, how many paths back it was on one, or none. */
+const tone = (path, back, head) =>
+  path.has(head) ? "var(--accent)"
+  : back.has(head) ? `var(--trail-${back.get(head)})` : "var(--dim)";
 
 const svg = (name, attrs, cls) => {
   const el = document.createElementNS(SVG, name);
@@ -1771,6 +1781,13 @@ function sketch() {
   const { tree } = charted;
   const path = map.along(tree, pathIds());
   const hairs = map.hair(tree, look.cut, path);
+  // The trail takes the path the reader is on, and is drawn from before and after it did.
+  const earlier = chart === null ? null
+    : { path: chart.path, back: map.steps(tree, walked, chart.path, STEPS) };
+  const now = map.remember(tree, walked, path, [...path].at(-1) ?? null);
+  if (now !== walked) map.keep(storage, known.created ?? known.path, now);
+  walked = now;
+  const back = map.steps(tree, walked, path, STEPS);
   const box = chartEl.getBoundingClientRect();
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
   const x = map.scale({ most: map.most(tree, hairs), width: long, pad: PAD });
@@ -1800,6 +1817,7 @@ function sketch() {
   out.push(thumb);
   // Every mark keyed by what it draws, so the next drawing can say where each one was.
   const byHead = new Map();
+  const tones = [];
   const mark = (name, attrs, cls, key, head = null) => {
     const el = svg(name, { ...attrs, "data-key": key }, cls);
     if (head !== null) {
@@ -1808,6 +1826,7 @@ function sketch() {
       byHead.get(head).push(el);
     }
     out.push(el);
+    return el;
   };
   for (const l of plan.links)
     mark("line", line(l.x, l.y0, l.x, l.y1), "link", `l${l.head}`, l.head);
@@ -1816,8 +1835,10 @@ function sketch() {
          `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`, `h${h.head}`, h.head);
   for (const s of plan.strands) {
     const end = s.aside ?? s.x1;
-    mark("line", line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
-         `strand${s.path ? " path" : ""}`, `s${s.head}`, s.head);
+    const el = mark("line", line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
+                    `strand${s.path ? " path" : back.has(s.head) ? " behind" : ""}`,
+                    `s${s.head}`, s.head);
+    tones.push([el, s.head]);
     if (s.aside !== null)
       mark("line", line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
            "strand aside", `a${s.head}`, s.head);
@@ -1836,6 +1857,16 @@ function sketch() {
   const same = chart !== null && chart.tree === tree && chart.down === look.down
     && chart.long === long && chart.wide === wide;
   const was = same ? shape() : null;
+  // Each strand's colour, and where it changed, the change eased over the same glide.
+  for (const [el, head] of tones) {
+    const to = tone(path, back, head);
+    el.style.setProperty("--to", to);
+    const from = same && earlier !== null ? tone(earlier.path, earlier.back, head) : to;
+    if (from !== to) {
+      el.style.setProperty("--from", from);
+      el.classList.add("stain");
+    }
+  }
   chartEl.replaceChildren(...out);
   chart = { tree, x, plan, path, caret, pointed, thumb, at, line, step, byHead,
             down: look.down, long, wide, y0: ys.get(tree.top.head), cells: null };

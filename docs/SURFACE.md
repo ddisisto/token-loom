@@ -423,7 +423,16 @@ the caret on the segment holding the node under the pointer, as taking a waypoin
 reader's path is always one straight row and a branch is offset from it, so taking a branch is
 that branch straightening, and the drawing moves there over a second rather than jumping, with
 what is new fading in. A click while it moves is not taken, since it would land on where
-something is going rather than where it is. A point
+something is going rather than where it is.
+
+**The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths
+they were on in this tree, newest first, kept in the browser as waypoints are, so it follows a
+reader between visits and is drawn again on the way back in. The four most recent paths behind
+the current one are drawn, each in a colour of its own that steps away from the accent through
+red as it ages, so each can be told from the next; a strand takes the colour of the most recent
+it was on, and the change is eased over the same glide. A path that only grew past the last one
+takes its place rather than being another, so moving along a path or a draw extending it leaves
+nothing behind. A point
 on nothing is a point on nothing, and releases the caret as before. The thumb is taken and not
 pointed at: dragging it scrolls, the column's own scroll is not a reader reading on and asks for
 nothing, and the caret follows the window once it is let go, as after any scroll.

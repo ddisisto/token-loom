@@ -10,6 +10,9 @@
   /* What the pointer is over, on the column and on the map. A hue nothing else here holds:
      warm is the accent's and the reader's, and blue is the sampler's. */
   --point: #2f7d4f;
+  /* The paths a reader has left on the map, one back to four back: from the accent's warmth
+     round through red, and cooling as they age. */
+  --trail-1: #b3352b; --trail-2: #a32e66; --trail-3: #7d4498; --trail-4: #5e5b8c;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   /* U+2442 is missing from most system UI faces and falls back to a tofu box, which reads
@@ -37,6 +40,7 @@
     --rule: #2a2721; --accent: #d98a55; --accent-bg: #33251b;
     --panel: #1c1a15;
     --point: #72c992;
+    --trail-1: #e5604f; --trail-2: #d0588f; --trail-3: #a881d2; --trail-4: #8683aa;
     --wash: 34%;
     --took-near: #9a6440; --took-far: #f5a469;
     --drew-near: #4a6a7c; --drew-far: #7cc2ea;
@@ -744,8 +748,14 @@ footer.peek, footer.held { z-index: 26; }
 #map { top: 44px; height: calc(100vh - 74px - var(--foot)); pointer-events: none;
        overflow: visible; }
 #map line, #map path { fill: none; stroke-linecap: round; }
-#map .strand { stroke: var(--dim); stroke-width: 1.2; }
-#map .strand.path { stroke: var(--accent); stroke-width: 2.2; }
+/* A strand's colour is handed over as `--to`, and as `--from` too where it changed, which it
+   eases between over the glide. Registered, so it fades rather than steps. */
+@property --stroke { syntax: "<color>"; inherits: false; initial-value: transparent; }
+#map .strand { --stroke: var(--to); stroke: var(--stroke); stroke-width: 1.2; }
+#map .strand.path { stroke-width: 2.2; }
+#map .strand.behind { stroke-width: 1.6; }
+#map .strand.stain { animation: stain var(--glide) ease-in-out both; }
+@keyframes stain { from { --stroke: var(--from); } to { --stroke: var(--to); } }
 #map .aside { stroke: var(--faint); stroke-dasharray: 2 2; }
 #map .link { stroke: var(--faint); stroke-width: .7; }
 #map .hair { stroke: var(--faint); stroke-width: .8; }

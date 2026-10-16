@@ -293,3 +293,58 @@ export function shift(was, now) {
   }
   return { moved, fresh };
 }
+
+// ---- the trail --------------------------------------------------------------------------
+
+/* Where the reader has been: the paths they were on, newest first, each kept as its deepest
+ * strand since a strand's lineage is its path. Kept in the browser and keyed by the tree, as
+ * waypoints are, and missing storage is simply no trail. */
+
+const TRAIL = "tokenloom:trail:";
+export const KEEP = 20;  // paths remembered
+
+/** The trail kept for `tree`. */
+export function recall(storage, tree) {
+  try {
+    const list = JSON.parse(storage?.getItem(TRAIL + tree) ?? "[]");
+    return Array.isArray(list) ? list.filter(e => Number.isInteger(e?.head)) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Keep `trail` for `tree`, and say whether it was kept. */
+export function keep(storage, tree, trail) {
+  try {
+    storage.setItem(TRAIL + tree, JSON.stringify(trail));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The trail once the reader is on `path`, whose deepest strand is `deepest`. A path that only
+ *  grew past the last one is that one further on and takes its place; any other is put on top,
+ *  coming off wherever it stood lower down. The same trail is handed back where nothing
+ *  changed. */
+export function remember(tree, trail, path, deepest, most = KEEP) {
+  if (deepest === null || trail[0]?.head === deepest) return trail;
+  const top = trail[0];
+  const grew = top !== undefined && tree.byHead.has(top.head)
+    && lineage(tree, top.head).every(h => path.has(h));
+  const rest = (grew ? trail.slice(1) : trail).filter(e => e.head !== deepest);
+  return [{ head: deepest }, ...rest].slice(0, most);
+}
+
+/** How many paths back each strand off `path` was last on one, from 1 to `n`, counting only
+ *  paths under this tree. */
+export function steps(tree, trail, path, n) {
+  const out = new Map();
+  let k = 0;
+  for (const e of trail) {
+    if (!tree.byHead.has(e.head) || path.has(e.head)) continue;
+    if (++k > n) break;
+    for (const h of lineage(tree, e.head)) if (!path.has(h) && !out.has(h)) out.set(h, k);
+  }
+  return out;
+}

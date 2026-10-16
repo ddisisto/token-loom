@@ -406,6 +406,15 @@ occasion beyond the command* under Loose ends.
 
 ## Loose ends
 
+- **The trail walked back.** `docs/SURFACE.md`'s *The map* keeps the last twenty paths a reader
+  was on, and back is the gesture that takes the last one off: each arrival a history entry, so
+  the browser's back, a mouse's and a key all pop it, forward puts it back, and it stops at the
+  start of the trail rather than leaving the page. Two things want deciding with it: an entry
+  keeps only its path, so where the caret stood on it has to be kept too for back to land where
+  the reader was; and the page opens on a root's resting path, which a reload then puts on top of
+  the trail, where opening on the top of the trail instead would be the reader picking up where
+  they left off.
+
 Not in the ordering; each stands on its own.
 
 - **A server that opens trees on request.** It is started against one tree, so the address can
