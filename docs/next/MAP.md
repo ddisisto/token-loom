@@ -60,6 +60,24 @@ tokens with the window in view as a thumb. What follows:
 squeezing or stretching it would cost the scrollbar its thumb. What the model was sure of goes on
 as colour instead.
 
+**Arriving reads as straightening.** The reader's path is always one straight column and every
+branch is offset from it, so taking a branch is that branch straightening out. Three pieces make
+that seen rather than inferred:
+
+- **A hovered strand traced back to the root**, lit along every strand it hangs from, so the shape
+  it would take and exactly where it leaves the reader's path are both in front of them.
+- **The re-packing eased** over a quarter of a second rather than jumping, with clicks held until
+  it lands.
+- **A preview under the pointer.** A strand held for half a second shows what it says, and a click
+  then moves the caret into it. The column taking the strand's path until the pointer leaves is
+  one way; something local at the strand is another and smaller. A preview is not a selection, so
+  `docs/SURFACE.md`'s reader state does not move under it.
+
+**What changed in the column arrives as colour.** Any change to the tokens in the column, an
+arrival or a draw, is laid out at once in the background's colour with the layers already applied.
+The new caret glows, the point where the path diverged above it is plain if it is in view, and the
+text in view fades in over a second.
+
 **The layers' colours on it.** A strand coloured by a measure along it, as the column is: summed
 entropy first, so a greedy stretch reads apart from an exploration. It is depth-bound in
 `docs/LAYERS.md`'s sense — the recorded rows count and the rest of the mass does not — and

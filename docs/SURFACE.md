@@ -409,6 +409,12 @@ mostly is.
 is set aside where the toggle shows it, and a fork three or more strands leave as a dot sized by
 how many.
 
+**What the pointer is over is one place on both.** The column and the map hold the same positions
+along the reader's path, and a pointer is only ever over one of them, so where it is is marked on
+each: a glow on the segment in the column, and a tick across the path on the map, in the ink where
+the caret's is in the accent. A segment out of view keeps its glow out of view, and the tick
+against the thumb says where it is.
+
 **Pointing at a strand is an arrival.** The column reads the path through that strand and puts
 the caret on the segment holding the node under the pointer, as taking a waypoint does. A point
 on nothing is a point on nothing, and releases the caret as before. The thumb is taken and not

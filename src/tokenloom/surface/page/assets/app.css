@@ -247,13 +247,14 @@ body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
 .flow .seg.waypoint::after { content: ""; position: absolute; left: 0; right: 0; top: -1px;
                              height: 2px; border-radius: 1px; background: var(--accent);
                              pointer-events: none; }
-.flow .seg:hover { box-shadow: inset 2px 0 0 var(--faint); }
-.flow .seg.at:hover { box-shadow: inset -2px 0 0 var(--accent), inset 2px 0 0 var(--faint); }
+/* What the pointer is over, from the column or from the map: a glow, which moves no text and
+   is the one mark here that is not on an edge. */
+.flow .seg.over { text-shadow: 0 0 6px color-mix(in srgb, var(--ink) 60%, transparent); }
 
 /* The token the rows are alternatives to, which is the segment after the caret and not the
    caret's own. Neither mark above says it: both are rules on an inside edge, and an edge says
    where a position is rather than what stands past it. **The outline is what was left free** --
-   both insets are spoken for by the caret and the pointer, the background by what is armed
+   the inset is spoken for by the caret, the shadow by the pointer, the background by what is armed
    and by an overlay, the underline by the taker -- and it is also the one that cannot move the
    text, which pointing at anything may not do.
 
@@ -744,6 +745,7 @@ footer.peek, footer.held { z-index: 26; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
 #map .caret { stroke: var(--accent); stroke-width: 2; }
+#map .over { stroke: var(--ink); stroke-opacity: .55; stroke-width: 1.4; }
 #map .thumb { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .5;
               stroke-width: 1; }
 #map .lit { stroke: var(--ink); stroke-width: 2.4; stroke-opacity: 1; }

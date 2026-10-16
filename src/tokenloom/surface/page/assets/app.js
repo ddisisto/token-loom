@@ -361,11 +361,11 @@ function spans(segments, marks, takers) {
       if (hidden) restore(cell);
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
     };
-    el.onmouseenter = () => peek(i, el);
+    el.onmouseenter = () => { hover(i); peek(i, el); };
     // The caret is drawn *on* the segment it follows and never between segments. An element
     // in the flow moves the text around it, and text that shifts as the reader points at it
     // is friction in the one thing this page is for. A rule on an inside edge costs no
-    // layout at all, which is the same reason the hover mark is one.
+    // layout at all, which is the same reason the hover mark is a glow.
     out.push(el);
   }
   return out;
@@ -1013,7 +1013,7 @@ function laid({ read, cells, closed }) {
   flow.className = "flow";
   // Leaving the text puts the rows back where the reader is, so a peek never outlives the
   // pointer and what stands beside the column is the caret's again.
-  flow.onmouseleave = () => { clearTimeout(peeking); settled(); };
+  flow.onmouseleave = () => { clearTimeout(peeking); hover(null); settled(); };
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
   // range from the text in front of the reader.
   flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells, read.kinds)));
@@ -1029,6 +1029,7 @@ async function show(node, where) {
   // gesture that asks for more of a path and the gesture that asks for a draw at a position
   // are the same act at the same node, which is the ordinary case and not a coincidence.
   cursor.place(where === undefined ? cursor.resting(got.cells) : where);
+  hover(null);
   $("column").replaceChildren(laid(got));
   frontier();
   marked();
@@ -1716,6 +1717,7 @@ let asking = null;   // which of those is in flight, so a late answer does not d
 let chart = null;    // what is drawn now, which a point is read against
 let thumbed = null;  // the thumb in the hand: how far into it it was taken, in tokens
 let dragged = false;  // a drag ended, and the click that follows it is not an arrival
+let pointedAt = null; // the path's cell the pointer is over, from the column or the map
 
 const svg = (name, attrs, cls) => {
   const el = document.createElementNS(SVG, name);
@@ -1782,7 +1784,10 @@ function sketch() {
     const p = at(a0, c0), q = at(a1, c1);
     return { x1: p.x, y1: p.y, x2: q.x, y2: q.y };
   };
-  const dot = (along, across, r) => { const p = at(along, across); return { cx: p.x, cy: p.y, r }; };
+  const dot = (along, across, r) => {
+    const p = at(along, across);
+    return { cx: p.x, cy: p.y, r };
+  };
 
   const out = [];
   const thumb = svg("rect", {}, "thumb");
@@ -1794,8 +1799,8 @@ function sketch() {
                  `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`));
   for (const s of plan.strands) {
     const end = s.aside ?? s.x1;
-    out.push(svg("line", { ...line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y), "data-head": s.head },
-                 `strand${s.path ? " path" : ""}`));
+    out.push(svg("line", { ...line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
+                           "data-head": s.head }, `strand${s.path ? " path" : ""}`));
     if (s.aside !== null)
       out.push(svg("line", { ...line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
                              "data-head": s.head }, "strand aside"));
@@ -1807,15 +1812,20 @@ function sketch() {
     out.push(svg("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint"));
   }
   const caret = svg("line", {}, "caret");
-  out.push(caret);
+  const pointed = svg("line", {}, "over");
+  out.push(pointed, caret);
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, caret, thumb, at, line, step, y0: ys.get(tree.top.head), cells: null };
+  chart = { tree, x, plan, path, caret, pointed, thumb, at, line, step,
+            y0: ys.get(tree.top.head), cells: null };
   chartCaret();
+  chartOver();
   chartThumb();
   chartSays(map.effect(tree, hairs));
 }
 
-const assign = (el, attrs) => { for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); };
+const assign = (el, attrs) => {
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+};
 
 /** Where the caret is on the path's row. */
 function chartCaret() {
@@ -1825,6 +1835,28 @@ function chartCaret() {
   if (at < 0) return;
   const a = chart.x(at + 0.5), h = Math.max(4, chart.step);
   assign(chart.caret, chart.line(a, chart.y0 - h, a, chart.y0 + h));
+}
+
+/** Mark the path's cell `i` as what the pointer is over, in the column and on the map, or
+ *  nothing with null. The two hold the same positions and a pointer is over one of them. */
+function hover(i) {
+  if (i === pointedAt) return;
+  const segs = $("column").querySelectorAll(".flow .seg");
+  segs[pointedAt]?.classList.remove("over");
+  pointedAt = i;
+  segs[pointedAt]?.classList.add("over");
+  chartOver();
+}
+
+/** Where the pointer is on the path's row, from whichever side it is on. */
+function chartOver() {
+  if (chart === null) return;
+  const got = pointedAt === null ? null : cells();
+  chart.pointed.style.display = got ? "" : "none";
+  if (!got) return;
+  const mid = (got.at[pointedAt] + got.at[pointedAt + 1]) / 2;
+  const a = chart.x(mid), h = Math.max(4, chart.step);
+  assign(chart.pointed, chart.line(a, chart.y0 - h, a, chart.y0 + h));
 }
 
 /** The path's cells as they stand on the page, and where each starts in tokens. */
@@ -1848,10 +1880,11 @@ function chartThumb() {
   chart.thumb.style.display = span ? "" : "none";
   chart.span = span;
   if (!span) return;
-  const a0 = chart.x(span[0]), a1 = chart.x(span[1]), half = chart.half = Math.max(5, chart.step * 1.5);
-  const p = chart.at(a0, chart.y0 - half), q = chart.at(a1, chart.y0 + half);
-  assign(chart.thumb, { x: p.x, y: p.y, width: Math.max(1, q.x - p.x), height: Math.max(1, q.y - p.y),
-                     rx: 2 });
+  const half = chart.half = Math.max(5, chart.step * 1.5);
+  const p = chart.at(chart.x(span[0]), chart.y0 - half);
+  const q = chart.at(chart.x(span[1]), chart.y0 + half);
+  assign(chart.thumb, { x: p.x, y: p.y, rx: 2,
+                        width: Math.max(1, q.x - p.x), height: Math.max(1, q.y - p.y) });
 }
 
 /** The point an event is at, along and across the plan, or null off the map. */
@@ -1926,14 +1959,19 @@ $("column").addEventListener("pointerup", event => {
 });
 
 let lit = null;
+$("column").addEventListener("pointerleave", () => hover(null));
 $("column").addEventListener("pointermove", event => {
   if (thumbed !== null) {
     const p = chartPoint(event);
     if (p !== null) { dragged = true; scrollAt(chart.x.invert(p.along) - thumbed); }
     return;
   }
-  const hit = event.target === $("column") ? chartHit(event) : null;
+  // Over the text, the segment says what it is over itself.
+  if (event.target !== $("column")) return;
+  const hit = chartHit(event);
   const head = hit?.head ?? null;
+  const got = hit !== null && chart.path.has(head) ? cells() : null;
+  hover(got === null ? null : map.holding(got.at, hit.depth));
   $("column").classList.toggle("charting", head !== null);
   $("column").classList.toggle("thumbing", head === null && event.target === $("column")
                                            && onThumb(event) !== null);
@@ -1947,7 +1985,8 @@ $("column").addEventListener("pointermove", event => {
 /** The bar under the map: which way it is drawn, the cut, and what the cut does. */
 function chartSays(effect) {
   const button = (text, title, pressed, onclick) => {
-    const b = Object.assign(document.createElement("button"), { textContent: text, title, onclick });
+    const b = Object.assign(document.createElement("button"),
+                            { textContent: text, title, onclick });
     b.setAttribute("aria-pressed", String(pressed));
     return b;
   };
@@ -1961,7 +2000,8 @@ function chartSays(effect) {
            look.cut.under > 0, () => { look.cut.under = next; sketch(); }),
     Object.assign(document.createElement("span"), {
       className: "says",
-      textContent: `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% hair`,
+      textContent:
+        `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% hair`,
     }),
   );
 }
