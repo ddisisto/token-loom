@@ -19,7 +19,7 @@ is the only reason they are numbered. One that has no file yet points at where i
 
 1. **[Map](next/MAP.md)**: the tree drawn as a shape in the right margin, the reader's path and
    waypoints on it, and a way in. It runs down the page as a scrollbar for the whole tree, and
-   what follows is the layers' colours on it and a box drawn on it to zoom.
+   what follows is the layers' colours on it and zooming it with shift and the wheel.
 2. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
    nav under their roots. Its first cut is in, and the map is where what follows it is drawn
    as well as listed.
