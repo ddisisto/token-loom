@@ -398,11 +398,15 @@ was. So the reader's path is one straight row, a strand above it is one the mode
 the fork it leaves, and a strand far below is one it hardly considered.
 
 **Hair is a leaf the map does not give a row of its own**, drawn as a tick off its fork, to one
-side or the other by the same rule. The **skeleton** is what is left. Which leaves are hair is a
-cut the reader moves: a hover's stubs, in `docs/SPINE.md`'s sense, and leaves no longer than a
-length. The cut is stated by what it does to the drawing, as strands kept and the share of the
-tokens drawn as hair, because what the same numbers do differs by tree and by what the reader is
-after. The child that continues a fork is never hair, so a tree is never drawn without the path it
+side or the other by the same rule, and **a fold is a whole subtree drawn so**: one tick reaching
+as far as what it holds and as heavy as its tokens, which a click takes down its heaviest line,
+and which says so when a waypoint is folded inside it. The **skeleton** is what is left. What is
+cut is one ladder of rungs the reader moves, finest to coarsest: nothing; a hover's stubs, in
+`docs/SPINE.md`'s sense; with them, leaves no longer than 4, 8, 16, 32 and 64 nodes; and with
+those, subtrees holding no more than 256 tokens, 1,024, and any. The cut is stated by what it does
+to the drawing, as strands kept and the share of the tokens drawn as ticks, because what the same
+numbers do differs by tree and by what the reader is after. The axis is the whole tree whatever is
+cut. The child that continues a fork is never cut, so a tree is never drawn without the path it
 mostly is.
 
 **What it marks**: the reader's path and the caret on it, the waypoints wherever they stand, what
@@ -904,9 +908,9 @@ when it is settled.
   a global picture made of only local orders looks like is the open part of *The map*. Settled by
   reading it on trees of each kind — one long writing, one many draws from near its start, one a
   fan of greedy arms.
-- **What the hair cut is by default.** It is a hover's stubs and leaves of sixteen nodes or fewer,
+- **What the cut is by default.** It is a hover's stubs and leaves of sixteen nodes or fewer,
   which is a first number, and stubs will stop being one thing when a hover draws under other
-  settings than greedy. Settled by use, with the switch: the default is whatever a reader leaves
+  settings than greedy. Settled by use, with the ladder: the default is whatever a reader leaves
   it at.
 - **Whether the map holds still.** It is laid again around every arrival, so the shape moves
   whenever the path does, and it is the path that stays put. A map that held its shape while the

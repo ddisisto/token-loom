@@ -760,6 +760,8 @@ footer.peek, footer.held { z-index: 26; }
 #map .link { stroke: var(--faint); stroke-width: .7; }
 #map .hair { stroke: var(--faint); stroke-width: .8; }
 #map .hair:not(.stub) { stroke: var(--dim); stroke-opacity: .6; }
+#map .hair.fold { stroke: var(--dim); stroke-opacity: .8; stroke-width: var(--heft); }
+#map .hair.fold.marked { stroke: var(--accent); stroke-opacity: .6; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
 #map .caret { stroke: var(--accent); stroke-width: 2; }
@@ -777,5 +779,6 @@ footer.peek, footer.held { z-index: 26; }
 #chart-bar button { font: inherit; padding: 1px 7px; }
 #chart-bar button[aria-pressed="true"] { color: var(--ink); border-color: var(--accent);
                                          background: var(--accent-bg); }
+#chart-bar .rung { min-width: 4.5em; text-align: center; color: var(--ink); }
 #chart-bar .says { margin-left: auto; color: var(--faint); white-space: nowrap; }
 body.unmapped :is(#map, #chart-bar) { display: none; }

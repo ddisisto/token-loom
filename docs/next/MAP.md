@@ -101,14 +101,9 @@ is already a threshold, the same everywhere; zoom makes it vary with distance.
 
 - **The focus is the thumb**, which already has the window's bounds, and it stays the thumb: a
   zoom is always about what is being read, and scrolling the column moves it. There is no pan.
-- **The cut is one ladder of rungs**, finest to coarsest: the stubs drawn, then leaves taken as
-  hair at none, 4, 8, 16, 32 and 64 nodes, then whole subtrees folded. The bar's cut is a rung on
-  it, and it is the base every zone starts from.
-- **The last rung folds a whole subtree into one mark.** Hair is only ever a leaf, which cannot
-  thin out the distance enough, so a strand that is not a leaf is folded with everything below
-  it into one tick off its fork, reaching as far as the subtree's deepest end and weighted by
-  the tokens it holds. A click on it goes down its heaviest line. Hair already takes no row, so a
-  fold is hair of a subtree and the packing needs nothing new.
+- **The cut is `docs/SURFACE.md`'s ladder**, whose last rungs fold whole subtrees, since hair is
+  only ever a leaf and cannot thin out the distance enough. The bar's rung is the base every zone
+  starts from.
 - **The axis is split into zones about the focus, mirrored either side of it.** The focus zone
   is the thumb and a focal distance either side; past it are rings, each wider than the last by a
   ratio. A step of the wheel moves the focus zone one rung finer and each zone further out a

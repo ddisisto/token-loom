@@ -1707,15 +1707,15 @@ async function resume() {
 
 const SVG = "http://www.w3.org/2000/svg";
 const PAD = 10;            // px inside the map on every side
-const STEP = [1.5, 9];     // px between rows, at the least and the most
-const UNDER = [0, 4, 16, 64];  // the lengths a short leaf can be cut at, in nodes
+const STEP = [1.5, 20];    // px between rows, at the least and the most
+const MARK = 9;            // px of a row's step the caret, the pointer and the thumb grow to
 const GLIDE = 1200;        // ms the drawing takes to move from one packing to the next
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
 const STEPS = 4;           // paths back the trail is drawn for, each in a colour of its own
 
 const chartEl = $("map");
 const chartBar = $("chart-bar");
-const look = { on: true, down: true, cut: { stubs: true, under: 16 } };
+const look = { on: true, down: true, rung: 4 };  // the rung is `map.LADDER`'s
 let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
 let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
 let chart = null;    // what is drawn now, which a point is read against
@@ -1780,7 +1780,7 @@ function sketch() {
   chartEl.classList.remove("moving");
   const { tree } = charted;
   const path = map.along(tree, pathIds());
-  const hairs = map.hair(tree, look.cut, path);
+  const hairs = map.hair(tree, map.LADDER[look.rung], path);
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
     : { path: chart.path, back: map.steps(tree, walked, chart.path, STEPS) };
@@ -1790,7 +1790,7 @@ function sketch() {
   const back = map.steps(tree, walked, path, STEPS);
   const box = chartEl.getBoundingClientRect();
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
-  const x = map.scale({ most: map.most(tree, hairs), width: long, pad: PAD });
+  const x = map.scale({ most: map.most(tree), width: long, pad: PAD });
   const rows = map.layout(tree, { x, hairs, path });
   const all = [...rows.values()];
   const lo = Math.min(...all), hi = Math.max(...all);
@@ -1830,9 +1830,15 @@ function sketch() {
   };
   for (const l of plan.links)
     mark("line", line(l.x, l.y0, l.x, l.y1), "link", `l${l.head}`, l.head);
-  for (const h of plan.hairs)
-    mark("line", line(h.x0, h.y0, h.x1, h.y1),
-         `hair${h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`, `h${h.head}`, h.head);
+  const folds = new Map();
+  for (const h of plan.hairs) {
+    const el = mark("line", line(h.x0, h.y0, h.x1, h.y1),
+                    `hair${h.fold ? " fold" : h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`,
+                    `h${h.head}`, h.head);
+    if (!h.fold) continue;
+    el.style.setProperty("--heft", map.heft(h.weight));
+    folds.set(h.head, el);
+  }
   for (const s of plan.strands) {
     const end = s.aside ?? s.x1;
     const el = mark("line", line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
@@ -1846,8 +1852,14 @@ function sketch() {
   for (const k of plan.fans)
     mark("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan", `f${k.head}`);
   for (const w of charted.marks) {
-    if (w.head === null || !ys.has(w.head)) continue;
-    mark("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint", `w${w.node}`);
+    if (w.head === null) continue;
+    if (ys.has(w.head)) {
+      mark("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint", `w${w.node}`);
+      continue;
+    }
+    // Folded away, the fold says it holds one.
+    const fold = map.lineage(tree, w.head).find(h => folds.has(h));
+    if (fold !== undefined) folds.get(fold).classList.add("marked");
   }
   const caret = svg("line", {}, "caret");
   const pointed = svg("line", {}, "over");
@@ -1921,7 +1933,7 @@ function chartCaret() {
   const at = pathIds().indexOf(cursor.node());
   chart.caret.style.display = at < 0 ? "none" : "";
   if (at < 0) return;
-  const a = chart.x(at + 0.5), h = Math.max(4, chart.step);
+  const a = chart.x(at + 0.5), h = Math.max(4, Math.min(MARK, chart.step));
   assign(chart.caret, chart.line(a, chart.y0 - h, a, chart.y0 + h));
 }
 
@@ -1943,7 +1955,7 @@ function chartOver() {
   chart.pointed.style.display = got ? "" : "none";
   if (!got) return;
   const mid = (got.at[pointedAt] + got.at[pointedAt + 1]) / 2;
-  const a = chart.x(mid), h = Math.max(4, chart.step);
+  const a = chart.x(mid), h = Math.max(4, Math.min(MARK, chart.step));
   assign(chart.pointed, chart.line(a, chart.y0 - h, a, chart.y0 + h));
 }
 
@@ -1968,7 +1980,7 @@ function chartThumb() {
   chart.thumb.style.display = span ? "" : "none";
   chart.span = span;
   if (!span) return;
-  const half = chart.half = Math.max(5, chart.step * 1.5);
+  const half = chart.half = Math.max(5, Math.min(MARK, chart.step) * 1.5);
   const p = chart.at(chart.x(span[0]), chart.y0 - half);
   const q = chart.at(chart.x(span[1]), chart.y0 + half);
   assign(chart.thumb, { x: p.x, y: p.y, rx: 2,
@@ -2073,6 +2085,11 @@ $("column").addEventListener("pointermove", event => {
       for (const el of chart.byHead.get(h) ?? []) el.classList.add("lit");
 });
 
+/** A rung of the cut as the bar names it. */
+const rungName = c =>
+  c.fold === Infinity ? "fold all" : c.fold ? `fold ≤${c.fold}`
+  : !c.stubs ? "uncut" : c.under ? `≤${c.under}` : "stubs";
+
 /** The bar under the map: which way it is drawn, the cut, and what the cut does. */
 function chartSays(effect) {
   const button = (text, title, pressed, onclick) => {
@@ -2081,18 +2098,27 @@ function chartSays(effect) {
     b.setAttribute("aria-pressed", String(pressed));
     return b;
   };
-  const next = UNDER[(UNDER.indexOf(look.cut.under) + 1) % UNDER.length];
+  const rung = by => () => {
+    look.rung = Math.min(map.LADDER.length - 1, Math.max(0, look.rung + by));
+    sketch();
+  };
+  const finer = button("−", "cut less: draw more of the tree", false, rung(-1));
+  const coarser = button("+", "cut more: draw less of the tree", false, rung(1));
+  finer.disabled = look.rung === 0;
+  coarser.disabled = look.rung === map.LADDER.length - 1;
   chartBar.replaceChildren(
     button("down", "draw the map down the page, as a scrollbar; off, across it", look.down,
            () => { look.down = !look.down; sketch(); }),
-    button("stubs", "draw a hover's stubs as hair", look.cut.stubs,
-           () => { look.cut.stubs = !look.cut.stubs; sketch(); }),
-    button(`≤${look.cut.under}`, `draw leaves this short as hair; next ≤${next}`,
-           look.cut.under > 0, () => { look.cut.under = next; sketch(); }),
+    finer,
+    Object.assign(document.createElement("span"), {
+      className: "rung", textContent: rungName(map.LADDER[look.rung]),
+      title: "what is drawn as a tick off its fork rather than given a row",
+    }),
+    coarser,
     Object.assign(document.createElement("span"), {
       className: "says",
       textContent:
-        `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% hair`,
+        `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`,
     }),
   );
 }

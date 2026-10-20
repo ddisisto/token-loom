@@ -15,9 +15,28 @@
 export const GAP = 4;     // px kept clear between two strands on one row
 export const REACH = 64;  // nodes past which a hair is drawn no longer
 
+/** The cut's rungs, finest to coarsest. A child that does not continue its fork's row is drawn
+ *  as a tick off the fork rather than given a row: a leaf where it is a stub and `stubs` is on
+ *  or it is no longer than `under` nodes, and any other strand, with everything below it, where
+ *  its subtree holds no more than `fold` tokens. */
+export const LADDER = [
+  { stubs: false, under: 0, fold: 0 },
+  { stubs: true, under: 0, fold: 0 },
+  { stubs: true, under: 4, fold: 0 },
+  { stubs: true, under: 8, fold: 0 },
+  { stubs: true, under: 16, fold: 0 },
+  { stubs: true, under: 32, fold: 0 },
+  { stubs: true, under: 64, fold: 0 },
+  { stubs: true, under: 64, fold: 256 },
+  { stubs: true, under: 64, fold: 1024 },
+  { stubs: true, under: 64, fold: Infinity },
+];
+
 const rank = s => s.logprob ?? -Infinity;
 
-/** The strands by head, each one's children in the order they came, and the root's. */
+/** The strands by head, each one's children in the order they came, and the root's; and by
+ *  head, where the subtree under a strand ends in tokens from the root, and the deepest strand
+ *  of its heaviest line. A strand comes before every strand below it, as `/map` sends them. */
 export function index(strands) {
   const byHead = new Map(strands.map(s => [s.head, s]));
   const kids = new Map();
@@ -27,7 +46,14 @@ export function index(strands) {
     if (!kids.has(s.up)) kids.set(s.up, []);
     kids.get(s.up).push(s);
   }
-  return { strands, byHead, kids, top };
+  const ends = new Map(), lines = new Map();
+  for (const s of [...strands].reverse()) {
+    const mine = kids.get(s.head) ?? [];
+    ends.set(s.head, mine.reduce((m, k) => Math.max(m, ends.get(k.head)), s.depth + s.length));
+    const heaviest = continuing(mine, new Set());
+    lines.set(s.head, heaviest === null ? s : lines.get(heaviest.head));
+  }
+  return { strands, byHead, kids, top, ends, lines };
 }
 
 /** The heads of the strands a path runs through, from its node ids. */
@@ -46,28 +72,38 @@ export function continuing(kids, path) {
   return best;
 }
 
-/** Which strands are hair under `cut`: leaves that are not their fork's continuing child,
- *  and are a stub where `cut.stubs` is on or no longer than `cut.under` nodes. */
+/** Which strands are drawn as ticks under `cut`, a rung of `LADDER`: hair, which is a leaf,
+ *  and folds, which are not. A fork's continuing child is never one. */
 export function hair(tree, cut, path) {
   const out = new Set();
   for (const kids of tree.kids.values()) {
     const main = continuing(kids, path);
-    for (const k of kids)
-      if (k !== main && k.leaf && ((cut.stubs && k.stub) || k.length <= cut.under))
+    for (const k of kids) {
+      if (k === main) continue;
+      if (k.leaf ? (cut.stubs && k.stub) || k.length <= cut.under : k.weight <= (cut.fold ?? 0))
         out.add(k.head);
+    }
   }
   return out;
 }
 
+/** The strands with no row of their own under `hairs`: each tick and everything below it. */
+export function undrawn(tree, hairs) {
+  const out = new Set();
+  for (const s of tree.strands) if (hairs.has(s.head) || out.has(s.up)) out.add(s.head);
+  return out;
+}
+
 /** What a cut does to the drawing, which is what it is stated in: strands kept of all of
- *  them, and the share of the tokens set aside as hair. */
+ *  them, and the share of the tokens drawn as ticks. */
 export function effect(tree, hairs) {
+  const gone = undrawn(tree, hairs);
   let tokens = 0, cut = 0;
   for (const s of tree.strands) {
     tokens += s.length;
-    if (hairs.has(s.head)) cut += s.length;
+    if (gone.has(s.head)) cut += s.length;
   }
-  return { kept: tree.strands.length - hairs.size, of: tree.strands.length,
+  return { kept: tree.strands.length - gone.size, of: tree.strands.length,
            share: tokens ? cut / tokens : 0 };
 }
 
@@ -80,9 +116,11 @@ export function scale({ most, width, pad }) {
   return x;
 }
 
-/** How far the drawing reaches on x, in tokens: the furthest kept strand's end. */
-export const most = (tree, hairs) =>
-  tree.strands.reduce((m, s) => hairs.has(s.head) ? m : Math.max(m, s.depth + s.length), 1);
+/** How far the tree reaches on x, in tokens, whatever is cut. */
+export const most = tree => tree.top === null ? 1 : Math.max(1, tree.ends.get(tree.top.head));
+
+/** How wide a fold's tick is drawn, in px, for the tokens it holds. */
+export const heft = weight => Math.min(5, 1 + Math.log2(1 + weight / 256));
 
 // ---- packing ------------------------------------------------------------------------------
 
@@ -205,35 +243,39 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
     const main = continuing(kids.filter(k => !hairs.has(k.head)), path);
     for (const k of kids) {
       if (!hairs.has(k.head)) continue;
-      // Shorter hair stands further off its row, so a fringe of them reads as a fringe.
-      const lift = step * (0.25 + 0.5 * (1 - Math.min(1, k.length / REACH)));
+      // Shorter hair stands further off its row, so a fringe of them reads as a fringe. A fold
+      // reaches as far as what it holds does.
+      const span = tree.ends.get(k.head) - k.depth;
+      const lift = step * (0.25 + 0.5 * (1 - Math.min(1, span / REACH)));
       const higher = main === null || rank(k) > rank(main);
-      const reach = x(k.depth + Math.min(k.length, REACH));
+      const reach = x(k.depth + (k.leaf ? Math.min(span, REACH) : span));
       out.hairs.push({ head: k.head, x0: at, x1: Math.max(at + 1, reach),
                        y0: y(up), y1: y(up) + (higher ? -lift : lift),
-                       stub: k.stub, aside: k.aside !== null });
+                       stub: k.stub, aside: k.aside !== null,
+                       fold: !k.leaf, weight: k.weight });
     }
   }
   return out;
 }
 
-/** The strand or hair nearest a point within `slack` px, and which of its nodes the point is
- *  over, counted from the root -- or null. */
+/** The strand or tick nearest a point within `slack` px, and which of its nodes the point is
+ *  over, counted from the root -- or null. A fold is its heaviest line. */
 export function hit(tree, drawn, x, px, py, slack) {
-  let best = null, far = slack;
-  const consider = (head, x0, x1, y0, y1) => {
+  let best = null, far = slack, folded = false;
+  const consider = (head, x0, x1, y0, y1, fold) => {
     if (px < x0 - slack || px > x1 + slack) return;
     const t = x1 > x0 ? Math.min(1, Math.max(0, (px - x0) / (x1 - x0))) : 0;
     const d = Math.abs(py - (y0 + (y1 - y0) * t));
-    if (d <= far) { far = d; best = head; }
+    if (d <= far) { far = d; best = head; folded = fold; }
   };
-  for (const s of drawn.strands) consider(s.head, s.x0, s.x1, s.y, s.y);
-  for (const h of drawn.hairs) consider(h.head, h.x0, h.x1, h.y0, h.y1);
+  for (const s of drawn.strands) consider(s.head, s.x0, s.x1, s.y, s.y, false);
+  for (const h of drawn.hairs) consider(h.head, h.x0, h.x1, h.y0, h.y1, h.fold);
   if (best === null) return null;
   const s = tree.byHead.get(best);
+  const to = folded ? tree.lines.get(best) : s;
   const at = Math.floor(x.invert(px));
-  const depth = Math.min(s.depth + s.length - 1, Math.max(s.depth, at));
-  return { head: best, tail: s.tail, depth };
+  const depth = Math.min(to.depth + to.length - 1, Math.max(s.depth, at));
+  return { head: best, tail: to.tail, depth };
 }
 
 

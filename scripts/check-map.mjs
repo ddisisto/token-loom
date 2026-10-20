@@ -76,6 +76,37 @@ is("  clamped to the strand's own nodes",
    m.hit(hand, drawn, x, x(0) - 2, 10, 4), { head: 1, tail: 10, depth: 0 });
 is("  and a point near nothing is nothing", m.hit(hand, drawn, x, x(30), 35, 4), null);
 
+// A limb: 60 leaves the root's fork and forks again, its heaviest line through 62.
+//   1 (10) --+-- 20 (100, rank -0.5)
+//            +-- 60 (8, rank -0.1) --+-- 61 (5, rank -1.0)
+//                                    +-- 62 (40, rank -0.2)
+const limb = m.index(strands([[1, null, 10, null], [20, 1, 100, -0.5], [60, 1, 8, -0.1],
+                              [61, 60, 5, -1.0], [62, 60, 40, -0.2]]));
+is("a subtree ends where its deepest strand does", m.most(limb), 110);
+is("  and its heaviest line runs down the heaviest child", limb.lines.get(60).head, 62);
+const foldAt = cut => [...m.hair(limb, { stubs: true, under: 4, fold: cut }, none)];
+is("a strand that is not a leaf folds where it holds no more than the rung says",
+   [foldAt(52), foldAt(53)], [[], [60]]);
+const folded = m.hair(limb, { stubs: true, under: 4, fold: 256 }, none);
+is("  and everything below a fold is undrawn with it", [...m.undrawn(limb, folded)], [60, 61, 62]);
+is("  which is what the cut is said in", m.effect(limb, folded), { kept: 2, of: 5, share: 53 / 163 });
+is("  and the path is never folded",
+   [...m.hair(limb, { stubs: true, under: 64, fold: Infinity }, m.along(limb, [1, 60, 61]))], [62]);
+const lx = m.scale({ most: m.most(limb), width: 240, pad: 20 });
+const limbRows = m.layout(limb, { x: lx, hairs: folded, path: none });
+is("a fold holds no row, nor does anything below it", [...limbRows.keys()].sort(), [1, 20]);
+const limbDrawn = m.plan(limb, limbRows, { x: lx, hairs: folded, path: none, step: 10 });
+is("a fold ticks off its fork as far as what it holds reaches",
+   limbDrawn.hairs.map(h => [h.head, h.fold, h.x0, h.x1, h.weight]), [[60, true, lx(10), lx(58), 53]]);
+const tick = limbDrawn.hairs[0];
+is("a point on a fold goes down its heaviest line",
+   m.hit(limb, limbDrawn, lx, lx(30.5), tick.y0 + (tick.y1 - tick.y0) * (20.5 / 48), 3),
+   { head: 60, tail: 101, depth: 30 });
+is("a fold is drawn heavier the more it holds",
+   [m.heft(0), m.heft(256) < m.heft(1024), m.heft(1e9)], [1, true, 5]);
+is("the ladder runs from nothing cut to everything folded",
+   [m.LADDER[0], m.LADDER.at(-1).fold === Infinity], [{ stubs: false, under: 0, fold: 0 }, true]);
+
 // ---- at random ----------------------------------------------------------------------------
 
 let seed = 7;
@@ -100,10 +131,11 @@ for (let t = 0; t < 40; t++) {
   const nodes = [];
   for (let s = tip; s; s = tree.byHead.get(s.up)) nodes.push(s.head);
   const path = m.along(tree, nodes);
-  const hairs = m.hair(tree, { stubs: true, under: 4 }, path);
-  const x = m.scale({ most: m.most(tree, hairs), width: 200 + 20 * t, pad: 10 });
+  const hairs = m.hair(tree, m.LADDER[t % m.LADDER.length], path);
+  const gone = m.undrawn(tree, hairs);
+  const x = m.scale({ most: m.most(tree), width: 200 + 20 * t, pad: 10 });
   const rows = m.layout(tree, { x, hairs, path });
-  for (const s of tree.strands) if (rows.has(s.head) === hairs.has(s.head)) unplaced++;
+  for (const s of tree.strands) if (rows.has(s.head) === gone.has(s.head)) unplaced++;
   for (const h of path) if (rows.get(h) !== 0) offPath++;
   const byRow = new Map();
   for (const s of tree.strands) if (rows.has(s.head)) {
@@ -141,7 +173,7 @@ for (let t = 0; t < 40; t++) {
       unlinked++;
 }
 is("no two strands on one row come within the gap", overlaps, 0);
-is("every kept strand is placed and no hair is", unplaced, 0);
+is("every kept strand is placed and nothing cut is", unplaced, 0);
 is("the path holds row 0 throughout", offPath, 0);
 is("above is ranked higher than what continues, and below lower", misranked, 0);
 is("the nearest rank stands nearest", misordered, 0);
