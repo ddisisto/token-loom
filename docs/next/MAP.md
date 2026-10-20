@@ -95,28 +95,45 @@ anything.
 **Zoom is a cut that depends on where the reader is.** It should feel like zooming and is not a
 magnification: shift with the wheel turned up shows more of the tree around the thumb and less
 of it far away, and turned down evens that out again, down to the cut as it is now. This is a
-degree-of-interest view, after Furnas's fisheye views: each strand has an interest, which is how
-much it matters less how far it is from the focus, and what is drawn is what clears a threshold
-the wheel moves. The hair cut is that threshold already, and the same everywhere; zoom makes it
-vary with distance.
+degree-of-interest view, after Furnas's fisheye views: how much of a strand is drawn depends on
+how far it stands from the focus, and the wheel sets how much that distance counts. The hair cut
+is already a threshold, the same everywhere; zoom makes it vary with distance.
 
 - **The focus is the thumb**, which already has the window's bounds, and it stays the thumb: a
   zoom is always about what is being read, and scrolling the column moves it. There is no pan.
-- **The axis does not move.** It stays the whole tree in tokens, so the thumb stays honest and
-  nothing is clipped. What changes is which strands have a column of their own: more near the
-  focus, fewer far from it, and the room across that freeing columns far away leaves goes to
-  those near it.
-- **Distance from the focus is along and out.** Along is how far a strand's fork stands from the
-  thumb's range in tokens; out is how many forks it is off the reader's path, so a sibling off a
-  fork in the thumb is near and that sibling's own branches are further.
-- **Far from the focus, a whole subtree folds into one mark.** Hair is only ever a leaf, which
-  cannot thin out the distance enough, so the cut gains a second rung: a strand that is not a
-  leaf, with everything below it, drawn as one tick weighted by what it holds. This is the new
-  mechanism, and the packing has to treat a folded subtree as one strand.
-- **What a step does, to start with.** Near the focus each step lowers the length a leaf is hair
-  under, from sixteen through eight and four to none, and then draws the stubs too. Far from it
-  each step raises it and then folds subtrees, the furthest first. The bar says what that does,
-  as the cut already is stated: how many strands are drawn near the focus, and how many far.
+- **The cut is one ladder of rungs**, finest to coarsest: the stubs drawn, then leaves taken as
+  hair at none, 4, 8, 16, 32 and 64 nodes, then whole subtrees folded. The bar's cut is a rung on
+  it, and it is the base every zone starts from.
+- **The last rung folds a whole subtree into one mark.** Hair is only ever a leaf, which cannot
+  thin out the distance enough, so a strand that is not a leaf is folded with everything below
+  it into one tick off its fork, reaching as far as the subtree's deepest end and weighted by
+  the tokens it holds. A click on it goes down its heaviest line. Hair already takes no row, so a
+  fold is hair of a subtree and the packing needs nothing new.
+- **The axis is split into zones about the focus, mirrored either side of it.** The focus zone
+  is the thumb and a focal distance either side; past it are rings, each wider than the last by a
+  ratio. A step of the wheel moves the focus zone one rung finer and each zone further out a
+  scaling's worth of rungs coarser than the one inside it, so with three zones and a scaling of
+  one the middle keeps the base. Turned back to none, every zone is on the base. Three zones
+  start it, and more is a finer fisheye with nothing else changed. The focal distance is a share
+  of the axis, so it is a band of the map of one size whatever the tree's depth. All three are
+  constants first, and a control comes when using it says which one is reached for.
+- **A strand is in the zone of its nearest point**, so a limb that left the trunk early and runs
+  alongside the thumb is near, and a subtree folds only when all of it is far. Which zone its
+  fork is in is the other way to read it, and it is behind a switch beside the cut: what is
+  wanted may turn on the structure in view.
+- **The root and the tip are walls.** A zone is not moved off a wall; what lies past it is empty,
+  and what is not drawn there is room across for the focus. **The tip is the reader's path's.**
+  With no steps the axis is the whole tree; from the first step it runs from the root to the
+  path's end wherever that is short of the tree's deepest, so the thumb is the column's share of
+  the map, and strands that run past the end are clipped at the edge and marked there. A short
+  path in a long tree makes that first step a sharp one, and that is accepted.
+- **Otherwise the axis does not move.** It stays a count in tokens, so the thumb stays honest.
+  What changes is which strands have a column of their own: more near the focus, fewer far from
+  it, and the room across that freeing columns far away leaves goes to those near it.
+- **Distance is along the axis only, to start.** How many forks a strand is off the reader's path
+  is the other half of it, and the first of what an interest might take in beside distance.
+- **The bar says what a step does**, as the cut already is stated: how many strands are drawn
+  near the focus, and how many far.
 - **Each step moves the packing**, and the glide carries it so it reads as motion, on a pace of
   its own: a second and more for every notch would be far too slow.
 - **Shift and the wheel are claimed in full.** A wheel at the end of the column asks for a draw,
@@ -141,12 +158,6 @@ the strand, and `docs/SURFACE.md`'s reader state does not move under it.
 arrival or a draw, is laid out at once in the background's colour with the layers already applied.
 The new caret glows, the point where the path diverged above it is plain if it is in view, and the
 text in view fades in over a second.
-
-**The layers' colours on it.** A strand coloured by a measure along it, as the column is: summed
-entropy first, so a greedy stretch reads apart from an exploration. It is depth-bound in
-`docs/LAYERS.md`'s sense — the recorded rows count and the rest of the mass does not — and
-authored text has no ranking, so a prompt has no value on it. Then surprisal, and anything a layer
-reads, chosen as a measure is chosen, from the same panel.
 
 **The icicle.** Each strand a band as tall as the tokens below it: it says where the material
 is, as the ranked layout says where the reader can go. A box drawn over it, or over the ranked
@@ -174,8 +185,12 @@ for every path at once. Whichever of the two is built first, the other is built 
 - **Whether knots are drawn as one place, or given more of the axis.** Forks a token apart read
   as a smudge across a long tree, and zoom thins what is around them without spreading them.
   *Settled by zooming into root 1's and reading whether they still smear.*
-- **What interest a strand has before its distance.** Weight, how recently it was on the trail,
-  or nothing, so that distance alone decides. *Settled by starting with distance alone and
-  reading where it folds something wanted.*
+- **What interest a strand has beside its distance along.** Distance out from the path, weight,
+  the waypoints in it, how recently it was on the trail, or nothing. *Settled by starting with
+  distance along alone and reading where it folds something wanted.*
+- **Whether a strand is near by its nearest point or by its fork.** *Settled by the switch, on
+  the trees that have limbs.*
+- **What the focal distance, the ratio and the scaling start at.** *Settled by zooming long roots
+  and short ones, and only then by a control.*
 - **Whether zoom is enough to read at every scale.** If it is, local maps are never built.
   *Settled by navigating long roots with zoom alone.*
