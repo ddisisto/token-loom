@@ -92,48 +92,15 @@ hue and in two or three steps told apart by intensity alone, and always on; fewe
 since walking it back and forward (`docs/NEXT.md` has it) shows any older order without losing
 anything.
 
-**Zoom is a cut that depends on where the reader is.** It should feel like zooming and is not a
-magnification: shift with the wheel turned up shows more of the tree around the thumb and less
-of it far away, and turned down evens that out again, down to the cut as it is now. This is a
-degree-of-interest view, after Furnas's fisheye views: how much of a strand is drawn depends on
-how far it stands from the focus, and the wheel sets how much that distance counts. The hair cut
-is already a threshold, the same everywhere; zoom makes it vary with distance.
+**Zoom is `docs/SURFACE.md`'s, and what follows it is here.**
 
-- **The focus is the thumb**, which already has the window's bounds, and it stays the thumb: a
-  zoom is always about what is being read, and scrolling the column moves it. There is no pan.
-- **The cut is `docs/SURFACE.md`'s ladder**, whose last rungs fold whole subtrees, since hair is
-  only ever a leaf and cannot thin out the distance enough. The bar's rung is the base every zone
-  starts from.
-- **The axis is split into zones about the focus, mirrored either side of it.** The focus zone
-  is the thumb and a focal distance either side; past it are rings, each wider than the last by a
-  ratio. A step of the wheel moves the focus zone one rung finer and each zone further out a
-  scaling's worth of rungs coarser than the one inside it, so with three zones and a scaling of
-  one the middle keeps the base. Turned back to none, every zone is on the base. Three zones
-  start it, and more is a finer fisheye with nothing else changed. The focal distance is a share
-  of the axis, so it is a band of the map of one size whatever the tree's depth. All three are
-  constants first, and a control comes when using it says which one is reached for.
-- **A strand is in the zone of its nearest point**, so a limb that left the trunk early and runs
-  alongside the thumb is near, and a subtree folds only when all of it is far. Which zone its
-  fork is in is the other way to read it, and it is behind a switch beside the cut: what is
-  wanted may turn on the structure in view.
-- **The root and the tip are walls.** A zone is not moved off a wall; what lies past it is empty,
-  and what is not drawn there is room across for the focus. **The tip is the reader's path's.**
-  With no steps the axis is the whole tree; from the first step it runs from the root to the
-  path's end wherever that is short of the tree's deepest, so the thumb is the column's share of
-  the map, and strands that run past the end are clipped at the edge and marked there. A short
-  path in a long tree makes that first step a sharp one, and that is accepted.
-- **Otherwise the axis does not move.** It stays a count in tokens, so the thumb stays honest.
-  What changes is which strands have a column of their own: more near the focus, fewer far from
-  it, and the room across that freeing columns far away leaves goes to those near it.
+- **More zones, and a control for them.** More than three is a finer fisheye with nothing else
+  changed, and the focal distance, the ratio and the scaling are constants until using them says
+  which one is reached for.
 - **Distance is along the axis only, to start.** How many forks a strand is off the reader's path
   is the other half of it, and the first of what an interest might take in beside distance.
 - **The bar says what a step does**, as the cut already is stated: how many strands are drawn
   near the focus, and how many far.
-- **Each step moves the packing**, and the glide carries it so it reads as motion, on a pace of
-  its own: a second and more for every notch would be far too slow.
-- **Shift and the wheel are claimed in full.** A wheel at the end of the column asks for a draw,
-  and shift turns a wheel sideways in some browsers, so the gesture is taken before either and
-  does neither. A notch is a step and a fine wheel's movement adds up to one.
 - **Resolution along the axis is not what this changes.** Forks a token apart still stand a token
   apart. If knots still smear, giving the focus more of the axis is the long empty stretches
   given less of it, above, and is decided apart from this.
@@ -183,9 +150,5 @@ for every path at once. Whichever of the two is built first, the other is built 
 - **What interest a strand has beside its distance along.** Distance out from the path, weight,
   the waypoints in it, how recently it was on the trail, or nothing. *Settled by starting with
   distance along alone and reading where it folds something wanted.*
-- **Whether a strand is near by its nearest point or by its fork.** *Settled by the switch, on
-  the trees that have limbs.*
-- **What the focal distance, the ratio and the scaling start at.** *Settled by zooming long roots
-  and short ones, and only then by a control.*
 - **Whether zoom is enough to read at every scale.** If it is, local maps are never built.
   *Settled by navigating long roots with zoom alone.*

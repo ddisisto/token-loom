@@ -107,10 +107,61 @@ is("a fold is drawn heavier the more it holds",
 is("the ladder runs from nothing cut to everything folded",
    [m.LADDER[0], m.LADDER.at(-1).fold === Infinity], [{ stubs: false, under: 0, fold: 0 }, true]);
 
-// ---- at random ----------------------------------------------------------------------------
-
 let seed = 7;
 const rand = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+
+// ---- zoom --------------------------------------------------------------------------------
+
+is("a strand over the focus or within the focal distance of it is in the first zone",
+   [m.zone([105, 106], [100, 110], 10), m.zone([111, 120], [100, 110], 10)], [0, 0]);
+is("  one ring further is in the second, and past them all in the last",
+   [m.zone([140, 150], [100, 110], 10), m.zone([0, 1], [100, 110], 10)], [1, 2]);
+is("no step leaves every zone on the base", [0, 1, 2].map(i => m.rungAt(4, 0, i)), [4, 4, 4]);
+is("  a step takes the focus finer and the far zone coarser",
+   [0, 1, 2].map(i => m.rungAt(4, 1, i)), [3, 4, 5]);
+is("  and none goes off the ladder",
+   [m.rungAt(0, 3, 0), m.rungAt(8, 3, 2)], [0, m.LADDER.length - 1]);
+let unmirrored = 0, nearer = 0;
+for (let t = 0; t < 400; t++) {
+  const a = rand() * 500, b = a + rand() * 100, w = rand() * 50, f = 1 + rand() * 30;
+  const g = rand() * 200, h = g + rand() * 200;
+  if (m.zone([a - g - w, a - g], [a, b], f) !== m.zone([b + g, b + g + w], [a, b], f)) unmirrored++;
+  if (m.zone([b + h, b + h + w], [a, b], f) < m.zone([b + g, b + g + w], [a, b], f)) nearer++;
+}
+is("zones are mirrored either side of the focus", unmirrored, 0);
+is("  and further is never in a nearer one", nearer, 0);
+let pastDeepest = 0;
+for (let base = 0; base < m.LADDER.length; base++) {
+  const d = m.deepest(base);
+  for (let i = 0; i < m.ZONES.n; i++) if (m.rungAt(base, d + 1, i) !== m.rungAt(base, d, i))
+    pastDeepest++;
+}
+is("past the deepest step nothing changes", pastDeepest, 0);
+
+is("the axis is the whole tree unzoomed", m.axis(limb, 0, 30), 110);
+is("  and zoomed, ends where the path does", m.axis(limb, 1, 30), 30);
+// On the rung that folds 60 unzoomed, a step leaves it drawn near the thumb and folded far off.
+const folds60 = (span, byFork) => m.hair(limb, m.zoned(limb,
+  { base: 7, steps: 1, span, most: 110, byFork }), none).has(60);
+is("zoomed in, a subtree far from the thumb folds, and near it is drawn",
+   [folds60([100, 110]), folds60([20, 30])], [true, false]);
+is("  near by its nearest point, and by its fork behind the switch",
+   [folds60([50, 58], false), folds60([50, 58], true)], [false, true]);
+is("unzoomed, every strand is on the base",
+   m.zoned(limb, { base: 3, steps: 0, span: [0, 5], most: 110 })(limb.byHead.get(60)), m.LADDER[3]);
+const walled = m.hair(limb, m.LADDER[0], none, 15);
+is("past the wall every strand is cut", [...walled].sort(), [61, 62]);
+const wx = m.scale({ most: 15, width: 240, pad: 20 });
+const wallDrawn = m.plan(limb, m.layout(limb, { x: wx, hairs: walled, path: none }),
+                         { x: wx, hairs: walled, path: none, step: 10 });
+is("  a strand running past it is clipped at the edge and says so",
+   wallDrawn.strands.map(s => [s.head, s.x1, s.clipped]),
+   [[1, wx(10), false], [20, wx(15), true], [60, wx(15), true]]);
+is("  and nothing past it is drawn", wallDrawn.hairs.length, 0);
+is("the same strands are the same cut", [m.same(new Set([1, 2]), new Set([2, 1])),
+   m.same(new Set([1]), new Set([1, 2]))], [true, false]);
+
+// ---- at random ----------------------------------------------------------------------------
 
 function grown(n) {
   const spec = [[1, null, 1 + Math.floor(rand() * 20), null]];
@@ -131,9 +182,16 @@ for (let t = 0; t < 40; t++) {
   const nodes = [];
   for (let s = tip; s; s = tree.byHead.get(s.up)) nodes.push(s.head);
   const path = m.along(tree, nodes);
-  const hairs = m.hair(tree, m.LADDER[t % m.LADDER.length], path);
+  // Half of them zoomed about a thumb somewhere on the path, against the wall at its end.
+  const steps = t % 2 ? 1 + Math.floor(rand() * 5) : 0;
+  const end = tip.depth + tip.length;
+  const most = m.axis(tree, steps, end);
+  const from = rand() * end, span = [from, Math.min(end, from + 1 + rand() * 40)];
+  const base = t % m.LADDER.length;
+  const hairs = m.hair(tree, m.zoned(tree, { base, steps, span, most }), path,
+                       steps ? most : Infinity);
   const gone = m.undrawn(tree, hairs);
-  const x = m.scale({ most: m.most(tree), width: 200 + 20 * t, pad: 10 });
+  const x = m.scale({ most, width: 200 + 20 * t, pad: 10 });
   const rows = m.layout(tree, { x, hairs, path });
   for (const s of tree.strands) if (rows.has(s.head) === gone.has(s.head)) unplaced++;
   for (const h of path) if (rows.get(h) !== 0) offPath++;

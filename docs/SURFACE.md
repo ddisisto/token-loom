@@ -409,6 +409,28 @@ numbers do differs by tree and by what the reader is after. The axis is the whol
 cut. The child that continues a fork is never cut, so a tree is never drawn without the path it
 mostly is.
 
+**Zoom is a cut that depends on where the reader is**, and not a magnification: shift with the
+wheel turned up draws more of the tree around the thumb and less of it far away, and turned down
+evens that out again, down to the bar's cut. It is a degree-of-interest view, after Furnas's
+fisheye views. **The focus is the thumb** and stays the thumb, so a zoom is always about what is
+being read, scrolling moves it, and there is no pan. **The axis is split into zones about it,
+mirrored either side**: the thumb and a focal distance either side, then rings each wider than
+the last by a ratio. A step moves the focus a rung of the ladder finer and each zone further out
+a scaling's worth of rungs coarser than the one inside it, so with three zones the middle keeps
+the bar's rung and the far one is what folds. The focal distance is a share of the axis, a band
+of the map of one size whatever the tree's depth. **A strand is in the zone of its nearest
+point**, so a limb that left the trunk early and runs alongside the thumb is near, and a subtree
+folds only when all of it is far; a switch puts it in the zone its fork is in instead.
+
+**The root and the path's end are walls.** A zone is not moved off a wall, and what is not drawn
+past it is room across for the focus. Zoomed in at all, the axis runs from the root to the end of
+the reader's path wherever that is short of the tree's deepest, so the thumb is the column's
+share of the map, and a strand running past the end stops at the edge with a dot. Otherwise the
+axis does not move. A step glides, quicker than an arrival does; a scroll that moves what is cut
+draws it again at once. Shift and the wheel are claimed in full, being neither the draw a wheel
+at the end of the column asks for nor the sideways scroll some browsers make of it, and a fine
+wheel's movement adds up to a notch.
+
 **What it marks**: the reader's path and the caret on it, the waypoints wherever they stand, what
 is set aside where the toggle shows it, and a fork three or more strands leave as a dot sized by
 how many.
@@ -912,6 +934,11 @@ when it is settled.
   which is a first number, and stubs will stop being one thing when a hover draws under other
   settings than greedy. Settled by use, with the ladder: the default is whatever a reader leaves
   it at.
+- **Where the zones stand and how they step.** Three zones, a focal distance of a twentieth of
+  the axis, rings three times wider each, and a rung a step, are first numbers. Settled by
+  zooming long roots and short ones, and only then by a control.
+- **Whether a strand is near by its nearest point or by its fork.** Settled by the switch, on the
+  trees that have limbs.
 - **Whether the map holds still.** It is laid again around every arrival, so the shape moves
   whenever the path does, and it is the path that stays put. A map that held its shape while the
   reader moved through it is the other way to have it. Settled by use.

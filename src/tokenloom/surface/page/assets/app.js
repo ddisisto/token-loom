@@ -1627,6 +1627,7 @@ addEventListener("scroll", () => {
 // Already somewhere that counts, and still going down. Every way of moving the page is one
 // of these.
 addEventListener("wheel", event => {
+  if (event.shiftKey && look.on) return;  // the map's zoom
   // The drawer scrolls itself, and a wheel there is not the page being read further.
   if (event.target instanceof Element && event.target.closest("footer")) return;
   stir(true);
@@ -1710,12 +1711,15 @@ const PAD = 10;            // px inside the map on every side
 const STEP = [1.5, 20];    // px between rows, at the least and the most
 const MARK = 9;            // px of a row's step the caret, the pointer and the thumb grow to
 const GLIDE = 1200;        // ms the drawing takes to move from one packing to the next
+const STRIDE = 400;        // ms it takes over a step of zoom
+const NOTCH = 40;          // px of a fine wheel that make one step of zoom
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
 const STEPS = 4;           // paths back the trail is drawn for, each in a colour of its own
 
 const chartEl = $("map");
 const chartBar = $("chart-bar");
-const look = { on: true, down: true, rung: 4 };  // the rung is `map.LADDER`'s
+// The rung is `map.LADDER`'s, and `byFork` puts a strand in the zone its fork is in.
+const look = { on: true, down: true, rung: 4, byFork: false };
 let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
 let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
 let chart = null;    // what is drawn now, which a point is read against
@@ -1725,8 +1729,10 @@ let pointedAt = null; // the path's cell the pointer is over, from the column or
 let gliding = 0;      // which move is running, so a newer drawing stops an older one
 let lit = null;       // the strand the pointer is over on the map, traced to the root
 let walked = [];      // the trail: the paths the reader has been on in this tree, newest first
-
-chartEl.style.setProperty("--glide", `${GLIDE}ms`);
+let zoomed = 0;       // steps of zoom in about the thumb
+let wheeled = 0;      // px of a fine wheel not yet a step
+let refocusing = false; // a check of the cut asked for this frame, so a scroll asks once
+let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
 /** A strand's colour: the path's, how many paths back it was on one, or none. */
 const tone = (path, back, head) =>
@@ -1763,6 +1769,7 @@ async function charter() {
       const got = await ask(`/map/${root}?hidden=${showHidden ? 1 : 0}` +
                             `&marks=${kept.map(w => w.node).join(",")}`);
       if (asking !== want) return;
+      if (charted?.root !== root) zoomed = 0;
       charted = { ...want, tree: map.index(got.strands), marks: got.marks };
     } catch (why) {
       if (asking === want) say(`map: ${why.kind || "unreachable"}: ${why.message}`, true);
@@ -1772,15 +1779,25 @@ async function charter() {
   sketch();
 }
 
+/** What is cut on the path drawn, zoomed as far as it is about the thumb, and the axis it is
+ *  cut on. */
+function cutting(tree, path) {
+  const most = map.axis(tree, zoomed, pathIds().length);
+  const span = thumbSpan();
+  const cut = map.zoned(tree, { base: look.rung, steps: zoomed, span, most, byFork: look.byFork });
+  return { most, span, hairs: map.hair(tree, cut, path, zoomed > 0 ? most : Infinity) };
+}
+
 /** Draw what is thumbed around the path that is drawn: across the margin, or down it with the
- *  window in view as the thumb on the path. */
-function sketch() {
+ *  window in view as the thumb on the path. A drawing that glides takes `pace` ms. */
+function sketch({ glides = true, pace = GLIDE } = {}) {
   if (!look.on || charted === null) return;
   gliding++;
   chartEl.classList.remove("moving");
+  chartEl.style.setProperty("--glide", `${pace}ms`);
   const { tree } = charted;
   const path = map.along(tree, pathIds());
-  const hairs = map.hair(tree, map.LADDER[look.rung], path);
+  const { most, hairs } = cutting(tree, path);
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
     : { path: chart.path, back: map.steps(tree, walked, chart.path, STEPS) };
@@ -1790,7 +1807,7 @@ function sketch() {
   const back = map.steps(tree, walked, path, STEPS);
   const box = chartEl.getBoundingClientRect();
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
-  const x = map.scale({ most: map.most(tree), width: long, pad: PAD });
+  const x = map.scale({ most, width: long, pad: PAD });
   const rows = map.layout(tree, { x, hairs, path });
   const all = [...rows.values()];
   const lo = Math.min(...all), hi = Math.max(...all);
@@ -1848,6 +1865,8 @@ function sketch() {
     if (s.aside !== null)
       mark("line", line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
            "strand aside", `a${s.head}`, s.head);
+    // Past the path's end, where a zoom puts the wall, what runs on is marked where it leaves.
+    if (s.clipped) mark("circle", dot(s.x1, s.y, 1.6), "clip", `c${s.head}`);
   }
   for (const k of plan.fans)
     mark("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan", `f${k.head}`);
@@ -1866,7 +1885,7 @@ function sketch() {
   out.push(pointed, caret);
   // The same tree drawn the same way and the same size is a packing that moved, which glides;
   // anything else is a new drawing, which does not.
-  const same = chart !== null && chart.tree === tree && chart.down === look.down
+  const same = glides && chart !== null && chart.tree === tree && chart.down === look.down
     && chart.long === long && chart.wide === wide;
   const was = same ? shape() : null;
   // Each strand's colour, and where it changed, the change eased over the same glide.
@@ -1880,10 +1899,10 @@ function sketch() {
     }
   }
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, path, caret, pointed, thumb, at, line, step, byHead,
-            down: look.down, long, wide, y0: ys.get(tree.top.head), cells: null };
+  chart = { tree, x, plan, path, hairs, caret, pointed, thumb, at, line, step, byHead,
+            down: look.down, long, wide, y0: ys.get(tree.top.head) };
   lit = null;
-  if (was !== null) glide(was);
+  if (was !== null) glide(was, pace);
   chartCaret();
   chartOver();
   chartThumb();
@@ -1908,7 +1927,7 @@ function shape() {
 /** Move what is drawn from where it was, so a branch taken is seen straightening onto the
  *  path's row. What is new fades in, and what moves with the reader -- the caret, the pointer
  *  and the thumb -- waits until it lands. */
-function glide(was) {
+function glide(was, pace) {
   const { moved, fresh } = map.shift(was, shape());
   if (!moved.length && !fresh.length) return;
   const els = new Map([...chartEl.querySelectorAll("[data-key]")].map(el => [el.dataset.key, el]));
@@ -1917,7 +1936,7 @@ function glide(was) {
   chartEl.classList.add("moving");
   const frame = now => {
     if (id !== gliding) return;
-    const t = Math.min(1, (now - t0) / GLIDE), e = map.ease(t);
+    const t = Math.min(1, (now - t0) / pace), e = map.ease(t);
     for (const [key, pairs] of moved)
       for (const [k, a, b] of pairs) els.get(key).setAttribute(k, a + (b - a) * e);
     for (const key of fresh) els.get(key).style.opacity = t < 1 ? e : "";
@@ -1963,20 +1982,25 @@ function chartOver() {
 function cells() {
   const segs = [...$("column").querySelectorAll(".flow .seg")];
   if (segs.length !== drawn.length) return null;
-  if (chart.cells?.drawn !== drawn)
-    chart.cells = { drawn, at: map.offsets(drawn.map(c => c.nodes.length)) };
-  return { segs, at: chart.cells.at };
+  if (cellsAt?.drawn !== drawn)
+    cellsAt = { drawn, at: map.offsets(drawn.map(c => c.nodes.length)) };
+  return { segs, at: cellsAt.at };
 }
 
 /** What is above the footer, which is the window the column is read in. */
 const view = () => [0, document.querySelector("footer").getBoundingClientRect().top];
 
+/** The tokens in view on the path, as `[from, to)`, or null. */
+function thumbSpan() {
+  const got = cells();
+  const [lo, hi] = view();
+  return got && map.seen(got.at, i => got.segs[i].getBoundingClientRect(), lo, hi);
+}
+
 /** The tokens in view, drawn as the thumb over the path's row. */
 function chartThumb() {
   if (chart === null) return;
-  const got = cells();
-  const [lo, hi] = view();
-  const span = got && map.seen(got.at, i => got.segs[i].getBoundingClientRect(), lo, hi);
+  const span = thumbSpan();
   chart.thumb.style.display = span ? "" : "none";
   chart.span = span;
   if (!span) return;
@@ -2100,6 +2124,7 @@ function chartSays(effect) {
   };
   const rung = by => () => {
     look.rung = Math.min(map.LADDER.length - 1, Math.max(0, look.rung + by));
+    zoomed = Math.min(zoomed, map.deepest(look.rung));
     sketch();
   };
   const finer = button("−", "cut less: draw more of the tree", false, rung(-1));
@@ -2111,10 +2136,15 @@ function chartSays(effect) {
            () => { look.down = !look.down; sketch(); }),
     finer,
     Object.assign(document.createElement("span"), {
-      className: "rung", textContent: rungName(map.LADDER[look.rung]),
-      title: "what is drawn as a tick off its fork rather than given a row",
+      className: "rung",
+      textContent: rungName(map.LADDER[look.rung]) + (zoomed ? ` · ${zoomed} in` : ""),
+      title: "what is drawn as a tick off its fork rather than given a row;"
+        + " shift and the wheel zoom in about the thumb",
     }),
     coarser,
+    button("fork", "zoomed, put a strand in the zone its fork is in;"
+           + " off, in the zone of its nearest point", look.byFork,
+           () => { look.byFork = !look.byFork; sketch({ pace: STRIDE }); }),
     Object.assign(document.createElement("span"), {
       className: "says",
       textContent:
@@ -2130,7 +2160,42 @@ $("charted").onchange = () => {
   charter();
 };
 addEventListener("resize", () => sketch());
-addEventListener("scroll", () => chartThumb(), { passive: true });
+addEventListener("scroll", () => { chartThumb(); refocus(); }, { passive: true });
+
+/** Zoomed in, draw again once this frame if the thumb moving changed what is cut. */
+function refocus() {
+  if (zoomed === 0 || chart === null || refocusing) return;
+  refocusing = true;
+  requestAnimationFrame(() => {
+    refocusing = false;
+    if (chart === null || charted === null) return;
+    const { hairs } = cutting(charted.tree, chart.path);
+    if (!map.same(hairs, chart.hairs)) sketch({ glides: false });
+  });
+}
+
+/** Zoom by `n` steps, in where it is positive, gliding to the cut that makes. */
+function zoomBy(n) {
+  const to = Math.min(map.deepest(look.rung), Math.max(0, zoomed + n));
+  if (to === zoomed) return;
+  zoomed = to;
+  sketch({ pace: STRIDE });
+}
+
+// Shift and the wheel zoom the map, wherever the pointer is, and do nothing else: not the
+// draw a wheel at the end of the column asks for, nor the sideways scroll some browsers make
+// of it. A notch is a step, and a fine wheel's movement adds up to one.
+addEventListener("wheel", event => {
+  if (!event.shiftKey || !look.on || chart === null) return;
+  event.preventDefault();
+  const d = event.deltaY || event.deltaX;
+  if (event.deltaMode !== 0 || Math.abs(d) >= NOTCH) wheeled = Math.sign(d) * NOTCH;
+  else wheeled += d;
+  const n = Math.trunc(wheeled / NOTCH);
+  if (n === 0) return;
+  wheeled -= n * NOTCH;
+  zoomBy(-n);
+}, { passive: false });
 
 // ---- the page -------------------------------------------------------------------------
 
