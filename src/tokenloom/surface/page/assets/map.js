@@ -366,6 +366,16 @@ export function zoned(tree, { base, steps, span, most, byFork = false, zones = Z
     zones.scaling)];
 }
 
+/** How many strands are drawn in each zone, nearest first, by where each one stands. */
+export function zoneCounts(tree, hairs, { span, most, zones = ZONES }) {
+  const out = Array(zones.n).fill(0);
+  const gone = undrawn(tree, hairs);
+  for (const s of tree.strands)
+    if (!gone.has(s.head))
+      out[zone([s.depth, s.depth + s.length], span, zones.focal * most, zones)]++;
+  return out;
+}
+
 /** Whether two cuts are the same strands. */
 export const same = (a, b) => a.size === b.size && [...a].every(h => b.has(h));
 

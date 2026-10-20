@@ -158,6 +158,9 @@ is("  a strand running past it is clipped at the edge and says so",
    wallDrawn.strands.map(s => [s.head, s.x1, s.clipped]),
    [[1, wx(10), false], [20, wx(15), true], [60, wx(15), true]]);
 is("  and nothing past it is drawn", wallDrawn.hairs.length, 0);
+const counted = m.zoneCounts(limb, folded, { span: [100, 110], most: 110 });
+is("each strand drawn is counted in the zone it stands in, and only those",
+   [counted, counted.reduce((a, b) => a + b)], [[1, 0, 1], m.effect(limb, folded).kept]);
 is("the same strands are the same cut", [m.same(new Set([1, 2]), new Set([2, 1])),
    m.same(new Set([1]), new Set([1, 2]))], [true, false]);
 

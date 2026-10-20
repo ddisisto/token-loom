@@ -99,8 +99,6 @@ anything.
   which one is reached for.
 - **Distance is along the axis only, to start.** How many forks a strand is off the reader's path
   is the other half of it, and the first of what an interest might take in beside distance.
-- **The bar says what a step does**, as the cut already is stated: how many strands are drawn
-  near the focus, and how many far.
 - **Resolution along the axis is not what this changes.** Forks a token apart still stand a token
   apart. If knots still smear, giving the focus more of the axis is the long empty stretches
   given less of it, above, and is decided apart from this.

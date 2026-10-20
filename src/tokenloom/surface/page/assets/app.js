@@ -1797,7 +1797,7 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
   chartEl.style.setProperty("--glide", `${pace}ms`);
   const { tree } = charted;
   const path = map.along(tree, pathIds());
-  const { most, hairs } = cutting(tree, path);
+  const { most, span, hairs } = cutting(tree, path);
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
     : { path: chart.path, back: map.steps(tree, walked, chart.path, STEPS) };
@@ -1906,7 +1906,8 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
   chartCaret();
   chartOver();
   chartThumb();
-  chartSays(map.effect(tree, hairs));
+  chartSays(map.effect(tree, hairs),
+            zoomed && span ? map.zoneCounts(tree, hairs, { span, most }) : null);
 }
 
 const assign = (el, attrs) => {
@@ -2114,8 +2115,9 @@ const rungName = c =>
   c.fold === Infinity ? "fold all" : c.fold ? `fold ≤${c.fold}`
   : !c.stubs ? "uncut" : c.under ? `≤${c.under}` : "stubs";
 
-/** The bar under the map: which way it is drawn, the cut, and what the cut does. */
-function chartSays(effect) {
+/** The bar under the map: which way it is drawn, the cut, and what the cut does, and zoomed
+ *  in, how many strands are drawn in each zone from the thumb out. */
+function chartSays(effect, zones) {
   const button = (text, title, pressed, onclick) => {
     const b = Object.assign(document.createElement("button"),
                             { textContent: text, title, onclick });
@@ -2147,8 +2149,9 @@ function chartSays(effect) {
            () => { look.byFork = !look.byFork; sketch({ pace: STRIDE }); }),
     Object.assign(document.createElement("span"), {
       className: "says",
-      textContent:
-        `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`,
+      textContent: (zones ? `${zones.join(" · ")} near to far · ` : "")
+        + `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`,
+      title: zones ? "strands drawn in each zone, from the thumb out" : "",
     }),
   );
 }
@@ -2169,8 +2172,10 @@ function refocus() {
   requestAnimationFrame(() => {
     refocusing = false;
     if (chart === null || charted === null) return;
-    const { hairs } = cutting(charted.tree, chart.path);
+    const { tree } = charted;
+    const { most, span, hairs } = cutting(tree, chart.path);
     if (!map.same(hairs, chart.hairs)) sketch({ glides: false });
+    else if (span) chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }));
   });
 }
 

@@ -426,7 +426,8 @@ folds only when all of it is far; a switch puts it in the zone its fork is in in
 past it is room across for the focus. Zoomed in at all, the axis runs from the root to the end of
 the reader's path wherever that is short of the tree's deepest, so the thumb is the column's
 share of the map, and a strand running past the end stops at the edge with a dot. Otherwise the
-axis does not move. A step glides, quicker than an arrival does; a scroll that moves what is cut
+axis does not move. Zoomed in, the bar says how many strands are drawn in each zone, from the
+thumb out, beside what the cut does. A step glides, quicker than an arrival does; a scroll that moves what is cut
 draws it again at once. Shift and the wheel are claimed in full, being neither the draw a wheel
 at the end of the column asks for nor the sideways scroll some browsers make of it, and a fine
 wheel's movement adds up to a notch.

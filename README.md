@@ -123,10 +123,11 @@ test.
 path as prose, shows what was ranked at any token, continues or branches from there, draws a
 measure along the path, puts the draw's length, heat and sampler settings beside the text, and
 draws the tree as a map in the margin, with your place in it marked, to move around by and
-scroll by. It is used daily, by one person.
+scroll by, and to zoom with shift and the wheel into more of the tree around what you are
+reading. It is used daily, by one person.
 
-**Next:** more of the map: coloured by how sure the model was along it, and zoomed with shift and
-the wheel. `docs/NEXT.md` has the order, and `docs/ADAPTER.md`'s Status has what the backend
+**Next:** more of the map: coloured by how sure the model was along it. `docs/NEXT.md` has the
+order, and `docs/ADAPTER.md`'s Status has what the backend
 leaves open.
 
 **By design:** one tree, one writer, one person reading, one local model. The documents say why.
