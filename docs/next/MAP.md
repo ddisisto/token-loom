@@ -92,33 +92,45 @@ hue and in two or three steps told apart by intensity alone, and always on; fewe
 since walking it back and forward (`docs/NEXT.md` has it) shows any older order without losing
 anything.
 
-**Zoom, by shift and the wheel.** Shift with the wheel turned up zooms the map in by a step,
-wherever on the page the pointer is, and turned down zooms it out. A step is a tenth of the
-whole: from 100%, which is the whole tree as now and the default, up to 500% to start with. A
-zoom is along the axis only, and bounded by the root at one end and the deepest tip at the other,
-so the map never shows past either. Shift with the left button dragged on the map pans it.
-Without shift, a drag on the thumb scrolls and a click arrives, as now.
+**Zoom is a cut that depends on where the reader is.** It should feel like zooming and is not a
+magnification: shift with the wheel turned up shows more of the tree around the thumb and less
+of it far away, and turned down evens that out again, down to the cut as it is now. This is a
+degree-of-interest view, after Furnas's fisheye views: each strand has an interest, which is how
+much it matters less how far it is from the focus, and what is drawn is what clears a threshold
+the wheel moves. The hair cut is that threshold already, and the same everywhere; zoom makes it
+vary with distance.
 
-- **The thumb is what a zoom is held about**, since it already has the window's bounds. Zooming
-  in first brings the window back to the thumb wherever it was panned to, then zooms about it;
-  zooming out holds wherever the reader panned. And the window follows the thumb as the column
-  scrolls, so what the reader is reading stays on the map.
-- **Across follows from what is left, and is not zoomed.** A strand wholly outside the window is
-  not drawn, which takes a branch whose fork was clipped with it. Each strand left keeps the
-  column the whole packing gave it, so nothing moves sideways against anything else, and the
-  spacing is taken from the columns still in view, so fewer of them spread wider, as far as the
-  clamp allows.
-- **What is clipped says how much, and which way.** A rail along the map's edge shows the window
-  against the whole depth, as the thumb shows the column against the path, and a strand running
-  out of the window is marked where it leaves, so the edges a reader cannot see say what is past
-  them.
-- **It is what a small thumb on a long bar needs**, and what a tall root on a short window needs,
-  which the first cut draws with its rows squeezed.
-- **A measure on a zoomed map has a scale to match.** `docs/LAYERS.md`'s third scale takes its
-  domain from what is in front of the reader, and a zoomed window is that for the map.
-- **Shift and the wheel are free now and are claimed in full.** A wheel at the end of the column
-  asks for a draw, and shift turns a wheel sideways in some browsers, so the gesture is taken
-  before either and does neither.
+- **The focus is the thumb**, which already has the window's bounds, and it stays the thumb: a
+  zoom is always about what is being read, and scrolling the column moves it. There is no pan.
+- **The axis does not move.** It stays the whole tree in tokens, so the thumb stays honest and
+  nothing is clipped. What changes is which strands have a column of their own: more near the
+  focus, fewer far from it, and the room across that freeing columns far away leaves goes to
+  those near it.
+- **Distance from the focus is along and out.** Along is how far a strand's fork stands from the
+  thumb's range in tokens; out is how many forks it is off the reader's path, so a sibling off a
+  fork in the thumb is near and that sibling's own branches are further.
+- **Far from the focus, a whole subtree folds into one mark.** Hair is only ever a leaf, which
+  cannot thin out the distance enough, so the cut gains a second rung: a strand that is not a
+  leaf, with everything below it, drawn as one tick weighted by what it holds. This is the new
+  mechanism, and the packing has to treat a folded subtree as one strand.
+- **What a step does, to start with.** Near the focus each step lowers the length a leaf is hair
+  under, from sixteen through eight and four to none, and then draws the stubs too. Far from it
+  each step raises it and then folds subtrees, the furthest first. The bar says what that does,
+  as the cut already is stated: how many strands are drawn near the focus, and how many far.
+- **Each step moves the packing**, and the glide carries it so it reads as motion, on a pace of
+  its own: a second and more for every notch would be far too slow.
+- **Shift and the wheel are claimed in full.** A wheel at the end of the column asks for a draw,
+  and shift turns a wheel sideways in some browsers, so the gesture is taken before either and
+  does neither. A notch is a step and a fine wheel's movement adds up to one.
+- **Resolution along the axis is not what this changes.** Forks a token apart still stand a token
+  apart. If knots still smear, giving the focus more of the axis is the long empty stretches
+  given less of it, above, and is decided apart from this.
+- **A measure on a map like this has a scale to match.** `docs/LAYERS.md`'s third scale takes its
+  domain from what is in front of the reader, and the strands near the focus are that.
+
+The axis magnified about the thumb, with a pan, a rail and the edges marked where strands ran out
+of the window, was built first and is kept on the `zoom-svg` branch: it worked, and was not what
+was wanted.
 
 **A preview under the pointer.** A strand held for half a second shows what it says, and a
 click then moves the caret into it. The column is fixed by selection, so a preview is at most a
@@ -143,13 +155,13 @@ map, is a second way to zoom, to what the box holds.
 **Pruning from the map.** Choosing strands and setting them aside, which is `delete` and needs
 nothing else.
 
-**Local maps.** A smaller map already zoomed to a knot, a trunk, or the tree down to some order of
+**Local maps.** A smaller map already cut to a knot, a trunk, or the tree down to some order of
 branching. Zoom may be all that reading at different scales needs, and a local map is built only
 if it is not. More than one root at once is the other direction.
 
 **Knots.** Forks close enough along a path to be drawn as one place, which `data/daniel` has more
-of than single forks. The first cut draws each fork where it stands, and zooming in is expected to
-pull most of them apart.
+of than single forks. The first cut draws each fork where it stands. Zoom thins what is around a
+knot and does not pull its forks apart, so whether they are drawn as one place is still open.
 
 **Other orderings across.** The rank is the first; weight, age or a measure are others, and the
 switch is what makes them askable.
@@ -159,7 +171,11 @@ for every path at once. Whichever of the two is built first, the other is built 
 
 ## Open
 
-- **Whether knots need drawing as one place once there is zoom.** Forks a token apart read as a
-  smudge across a long tree at 100%. *Settled by zooming into root 1's.*
+- **Whether knots are drawn as one place, or given more of the axis.** Forks a token apart read
+  as a smudge across a long tree, and zoom thins what is around them without spreading them.
+  *Settled by zooming into root 1's and reading whether they still smear.*
+- **What interest a strand has before its distance.** Weight, how recently it was on the trail,
+  or nothing, so that distance alone decides. *Settled by starting with distance alone and
+  reading where it folds something wanted.*
 - **Whether zoom is enough to read at every scale.** If it is, local maps are never built.
   *Settled by navigating long roots with zoom alone.*
