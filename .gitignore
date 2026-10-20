@@ -15,3 +15,5 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 probe/*.js
+# A person's own workspace settings for their tools, and not the project's.
+.claude/

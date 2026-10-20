@@ -252,6 +252,14 @@ How decisions get made here — what has paid off, and what it cost to skip.
   earns more than one that reaches a document. **Default it on and give it a switch**: that is
   what makes the question askable, and the answer is the default for a later version rather than
   something prose settles first.
+- **A piece of work larger than a sitting has a shape across sessions.** Its design is written
+  into its epic on a branch of its own and committed there before any code, so the build starts
+  from a document rather than from a conversation. The build runs in a fresh session: it checks
+  in with the person first, builds, has each step looked at as it lands, and merges once it
+  holds. A session that has grown long steps back to planning across the project instead of
+  starting the next build in what is left of its context, since design leaves behind turns that
+  a build is better without. What was built and set aside is kept on a branch, and the epic
+  names the branch in a line.
 
 ## What carries the unfinished
 
