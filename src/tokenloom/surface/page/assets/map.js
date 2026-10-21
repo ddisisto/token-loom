@@ -34,9 +34,10 @@ export const LADDER = [
 
 const rank = s => s.logprob ?? -Infinity;
 
-/** The strands by head, each one's children in the order they came, and the root's; and by
+/** The strands by head, each one's children in the order they came, and the root's; by
  *  head, where the subtree under a strand ends in tokens from the root, and the deepest strand
- *  of its heaviest line. A strand comes before every strand below it, as `/map` sends them. */
+ *  of its heaviest line; and the strands depth-first, a fork's children ranked higher first and
+ *  nothing ranked last. A strand comes before every strand below it, as `/map` sends them. */
 export function index(strands) {
   const byHead = new Map(strands.map(s => [s.head, s]));
   const kids = new Map();
@@ -53,7 +54,14 @@ export function index(strands) {
     const heaviest = continuing(mine, new Set());
     lines.set(s.head, heaviest === null ? s : lines.get(heaviest.head));
   }
-  return { strands, byHead, kids, top, ends, lines };
+  const order = [], next = top === null ? [] : [top];
+  const higher = (a, b) => rank(a) > rank(b) ? -1 : rank(a) < rank(b) ? 1 : 0;
+  while (next.length) {
+    const s = next.pop();
+    order.push(s);
+    next.push(...[...(kids.get(s.head) ?? [])].sort(higher).reverse());
+  }
+  return { strands, byHead, kids, top, ends, lines, order };
 }
 
 /** The heads of the strands a path runs through, from its node ids. */
@@ -95,6 +103,20 @@ export function undrawn(tree, hairs) {
   const out = new Set();
   for (const s of tree.strands) if (hairs.has(s.head) || out.has(s.up)) out.add(s.head);
   return out;
+}
+
+/** The leaf a scan steps to from the strand `head`, `by` 1 down the depth-first order or -1 up
+ *  it: the nearest leaf with a row of its own under `hairs` whose end is at or past `from`, or
+ *  null past either end of the order. */
+export function scan(tree, hairs, head, by, from) {
+  const gone = undrawn(tree, hairs);
+  const at = tree.order.findIndex(s => s.head === head);
+  if (at < 0) return null;
+  for (let i = at + by; i >= 0 && i < tree.order.length; i += by) {
+    const s = tree.order[i];
+    if (s.leaf && !gone.has(s.head) && s.depth + s.length >= from) return s;
+  }
+  return null;
 }
 
 /** What a cut does to the drawing, which is what it is stated in: strands kept of all of

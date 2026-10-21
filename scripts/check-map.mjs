@@ -107,6 +107,21 @@ is("a fold is drawn heavier the more it holds",
 is("the ladder runs from nothing cut to everything folded",
    [m.LADDER[0], m.LADDER.at(-1).fold === Infinity], [{ stubs: false, under: 0, fold: 0 }, true]);
 
+is("depth-first, a fork's children ranked higher first",
+   limb.order.map(s => s.head), [1, 60, 62, 61, 20]);
+const unranked = m.index(strands([[1, null, 5, null], [10, 1, 5, null], [20, 1, 5, -3],
+                                  [30, 1, 5, null]]));
+is("  and nothing ranked last, in the order it came", unranked.order.map(s => s.head),
+   [1, 20, 10, 30]);
+const scanFrom = (head, by, hairs = none, from = 0) => m.scan(limb, hairs, head, by, from)?.head ?? null;
+is("a scan steps to the next leaf over, either way",
+   [scanFrom(62, 1), scanFrom(61, 1), scanFrom(61, -1)], [61, 20, 62]);
+is("  and stops past either end", [scanFrom(20, 1), scanFrom(62, -1)], [null, null]);
+is("  from a strand that is not a leaf, to the leaves either side of where it stands",
+   [scanFrom(60, 1), scanFrom(60, -1)], [62, null]);
+is("  passing a leaf that ends short of the focus", scanFrom(62, 1, none, 60), 20);
+is("  and one with no row of its own", scanFrom(62, 1, new Set([61])), 20);
+
 let seed = 7;
 const rand = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
 
@@ -276,6 +291,38 @@ for (let t = 0; t < 40; t++) {
       unlinked++;
 }
 is("no two strands on one row come within the gap", overlaps, 0);
+
+// A scan from the root down, and from the last leaf up, meets every leaf that has a row and
+// reaches the focus, once each and in the order's own order.
+let unbroken = 0, missed = 0, unreversed = 0;
+for (let t = 0; t < 40; t++) {
+  const tree = grown(5 + Math.floor(rand() * 120));
+  const at = new Map(tree.order.map((s, i) => [s.head, i]));
+  for (const s of tree.order) {
+    const under = tree.strands.filter(o => m.lineage(tree, o.head).includes(s.head)).length;
+    for (const o of tree.order.slice(at.get(s.head), at.get(s.head) + under))
+      if (!m.lineage(tree, o.head).includes(s.head)) unbroken++;
+  }
+  const hairs = m.hair(tree, m.LADDER[t % m.LADDER.length], new Set());
+  const gone = m.undrawn(tree, hairs);
+  const from = rand() * m.most(tree);
+  const want = tree.order.filter(s => s.leaf && !gone.has(s.head) && s.depth + s.length >= from)
+    .map(s => s.head);
+  const walk = (head, by) => {
+    const out = [];
+    for (let s = m.scan(tree, hairs, head, by, from); s; s = m.scan(tree, hairs, s.head, by, from))
+      out.push(s.head);
+    return out;
+  };
+  if (JSON.stringify(walk(tree.top.head, 1)) !== JSON.stringify(want.filter(h => h !== tree.top.head)))
+    missed++;
+  const last = tree.order.at(-1).head;
+  const back = [...walk(last, -1)].reverse();
+  if (JSON.stringify(back) !== JSON.stringify(want.filter(h => h !== last))) unreversed++;
+}
+is("depth-first keeps every subtree together", unbroken, 0);
+is("a scan down meets every leaf in reach, once each", missed, 0);
+is("  and a scan up meets the same, reversed", unreversed, 0);
 is("every kept strand is placed and nothing cut is", unplaced, 0);
 is("the path holds row 0 throughout", offPath, 0);
 is("above is ranked higher than what continues, and below lower", misranked, 0);

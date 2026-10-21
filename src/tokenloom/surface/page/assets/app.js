@@ -171,14 +171,15 @@ function wayRows(item, depth) {
 
 /** Arrive at `node` on the path through `through`, flashing it there and in `named` -- the
  *  token in the nav, for a waypoint -- where there is one. */
-async function reach(node, named = null, through = node) {
+async function reach(node, named = null, through = node, hold = null) {
   await show(through, node);
   const seg = $("column").querySelector(".flow .seg.at");
   if (seg === null) return;
   // The page's own scroll, which is not the reader reading on: nothing is asked for and the
   // caret is not moved back into a band it is already in the middle of.
   carried = performance.now() + CARRY;
-  seg.scrollIntoView({ block: "center" });
+  if (hold === null) seg.scrollIntoView({ block: "center" });
+  else window.scrollBy(0, seg.getBoundingClientRect().top - hold);
   for (const el of [seg, named]) {
     if (el === null) continue;
     el.classList.remove("beacon");
@@ -1689,6 +1690,16 @@ addEventListener("keydown", event => {
     waymark(cursor.node()).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
     return;
   }
+  // Across the map to the next branch over: left and right where it runs down the page, up and
+  // down where it runs across.
+  if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && look.on) {
+    const by = (look.down ? { ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1 })[event.key];
+    if (by !== undefined) {
+      event.preventDefault();
+      scanBy(by).catch(scanFails);
+      return;
+    }
+  }
   if (!["ArrowDown", "PageDown", "End", " ", "ArrowUp", "PageUp", "Home"].includes(event.key))
     return;
   moved(["ArrowDown", "PageDown", "End", " "].includes(event.key) && ready());
@@ -1742,6 +1753,8 @@ let walked = [];      // the trail: the paths the reader has been on in this tre
 let zoomed = 0;       // steps of zoom in about the thumb
 let wheeled = 0;      // px of a fine wheel not yet a step
 let refocusing = false; // a check of the cut asked for this frame, so a scroll asks once
+let scanned = 0;      // px of a fine wheel not yet a step across
+let scanning = false; // an arrival across still on its way
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
 /** A strand's colour: the path's, how many paths back it was on one, or none. */
@@ -2112,15 +2125,16 @@ function charting(event) {
   return true;
 }
 
-/** The path through a strand's tail, and the caret on the segment holding the node pointed at. */
-async function visit({ tail, depth }) {
+/** The path through a strand's tail, and the caret on the segment holding the node pointed at:
+ *  centred in the window, or with its top at `hold` px. */
+async function visit({ tail, depth }, hold = null) {
   const line = await ask(`/path/${tail}?rule=none&hidden=${showHidden ? 1 : 0}`);
   let seen = 0;
   for (const cell of line.segments) {
     seen += cell.nodes.length;
-    if (seen > depth) return reach(cell.nodes.at(-1).id, null, tail);
+    if (seen > depth) return reach(cell.nodes.at(-1).id, null, tail, hold);
   }
-  return reach(tail, null, tail);
+  return reach(tail, null, tail, hold);
 }
 
 $("column").addEventListener("pointerdown", event => {
@@ -2259,13 +2273,47 @@ function zoomBy(n) {
   sketch({ pace: STRIDE });
 }
 
+/** Arrive on the branch next over from the path, `by` 1 down the depth-first order or -1 up it,
+ *  at the caret's depth or that branch's end where it is short of it, with the token at that
+ *  depth held where it stands in the window. */
+async function scanBy(by) {
+  if (!look.on || chart === null || scanning) return;
+  const got = cells();
+  if (got === null) return;
+  const { tree, span, most } = chart;
+  const caret = pathIds().indexOf(cursor.node());
+  const depth = caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
+  const from = span ? span[0] - map.ZONES.focal * most : depth;
+  const to = map.scan(tree, chart.hairs, [...chart.path].at(-1), by, from);
+  if (to === null) { say(by > 0 ? "no branch further over" : "no branch further back"); return; }
+  const hold = got.segs[map.holding(got.at, depth)].getBoundingClientRect().top;
+  scanning = true;
+  try {
+    await visit({ tail: to.tail, depth: Math.min(depth, to.depth + to.length - 1) }, hold);
+  } finally {
+    scanning = false;
+  }
+}
+
+const scanFails = why => say(`${why.kind || "unreachable"}: ${why.message}`, true);
+
 // Shift and the wheel zoom the map, wherever the pointer is, and do nothing else: not the
 // draw a wheel at the end of the column asks for, nor the sideways scroll some browsers make
-// of it. A notch is a step, and a fine wheel's movement adds up to one.
+// of it, nor the browser's own zoom with Ctrl, which scans across instead. A notch is a step,
+// and a fine wheel's movement adds up to one.
 addEventListener("wheel", event => {
   if (!event.shiftKey || !look.on || chart === null) return;
   event.preventDefault();
   const d = event.deltaY || event.deltaX;
+  if (event.ctrlKey) {
+    if (event.deltaMode !== 0 || Math.abs(d) >= NOTCH) scanned = Math.sign(d) * NOTCH;
+    else scanned += d;
+    const n = Math.trunc(scanned / NOTCH);
+    if (n === 0) return;
+    scanned -= n * NOTCH;
+    scanBy(Math.sign(n)).catch(scanFails);
+    return;
+  }
   if (event.deltaMode !== 0 || Math.abs(d) >= NOTCH) wheeled = Math.sign(d) * NOTCH;
   else wheeled += d;
   const n = Math.trunc(wheeled / NOTCH);

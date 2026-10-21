@@ -418,6 +418,16 @@ occasion beyond the command* under Loose ends.
 
 Not in the ordering; each stands on its own.
 
+- **A server that only reads.** One server holds a tree's claim, so a second page on the same
+  tree, a person reading beside an agent working in it, has nowhere to be served from. A server
+  started to read would take no claim and offer no write. What it has to decide is what it shows
+  of an act another writer has in flight, which it can see and cannot call aborted.
+
+- **A scan that lands short draws on.** Scanning across lands at a short branch's end when the
+  caret is deeper. Drawing that branch on toward the caret's depth, as an option, in modest
+  increments and rate-limited, would make a sweep read every branch at one place; streaming
+  would make it continuous and is the larger piece of work.
+
 - **A server that opens trees on request.** It is started against one tree, so the address can
   name a node but never which tree the node is in. Opening on request makes a tree part of the
   address. It also turns one claim per server into one per open tree, and that is a decision

@@ -140,7 +140,9 @@ glides, and the thumb and the window stay where they were while only the branch 
   that left the trunk early and runs beside the thumb is in, and a stub that ended far above it
   is not, so the zoom widens and narrows what is scanned with nothing of its own.
 - **It lands at the caret's depth**, or at the branch's end where that is short of it, so a short
-  stub ending in the focus is scanned among the longer branches and not passed over.
+  stub ending in the focus is scanned among the longer branches and not passed over. With no
+  caret it lands at the middle of the window, and the token it lands on keeps its place there.
+- **It stops at either end of the order** and says so, so a sweep has edges.
 
 **The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths
 they were on in this tree, newest first, kept in the browser as waypoints are, so it follows a
@@ -294,7 +296,7 @@ when it is settled.
 
 ## Status
 
-**What is built is the body above, except three things designed and not built**: scanning
-across branches with Ctrl, the layers' colours on the strands, and the trail moving to the halo.
+**What is built is the body above, except two things designed and not built**: the layers'
+colours on the strands, and the trail moving to the halo.
 An axis magnified about the thumb, with a pan and a rail, was built and set aside and is on the
 `zoom-svg` branch.
