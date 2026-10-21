@@ -21,9 +21,9 @@ pass turns it into decisions and open questions.
 `docs/MAP.md`'s *What a tree looks like*: the strands between forks have a median of 2 tokens, so
 forks arrive in bursts, and joining those within 4 tokens of each other makes `data/daniel`'s
 1,319 forks into 509 places. Three limbs of 2,000–3,000 tokens leave the largest root's trunk at
-tokens 162 and 163, which is one knot drawn as two forks. The zoom thins what is around a knot
-and does not pull its forks apart, which is why the fisheye on the axis comes first: it is what
-a knot is inspected with while this is built.
+tokens 162 and 163, which is one knot drawn as two forks. The zoom's cut thins what is around a knot
+and does not pull its forks apart; its fisheye does, and it is what a knot is inspected with while
+this is built.
 
 ## Proposals from the discussion
 

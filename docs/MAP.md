@@ -109,10 +109,12 @@ folds only when all of it is far; a switch puts it in the zone its fork is in in
 past it is room across for the focus. The axis does not move: it is the whole tree at every step,
 so a long path and a short one beside it keep their places while the reader compares them. Zoomed
 in, the bar says how many strands are drawn in each zone, from the thumb out, beside what the cut
-does. A step glides, quicker than an arrival does; a scroll that moves what is cut draws it again
-at once. Shift and the wheel are claimed in full, being neither the draw a wheel
-at the end of the column asks for nor the sideways scroll some browsers make of it, and a fine
-wheel's movement adds up to a notch.
+does. A step glides, quicker than an arrival does. A scroll the reader makes is followed as it
+goes, and one the page makes — an arrival carrying the column to its caret — glides there from
+wherever the drawing stands, so a jump to somewhere shaped differently reads as one movement.
+Shift and the wheel are claimed in full, being neither the draw a wheel at the end of the column
+asks for nor the sideways scroll some browsers make of it, and a fine wheel's movement adds up to
+a notch.
 
 ## Moving through it
 
@@ -271,7 +273,6 @@ when it is settled.
 
 ## Status
 
-**What is built is the body above, except three things designed and not built**: the function
-from tokens to the axis, which is linear; the layers' colours on the strands; and the trail moving
-to the halo. An axis magnified about the thumb, with a pan and a rail, was built and set aside and
+**What is built is the body above, except two things designed and not built**: the layers'
+colours on the strands, and the trail moving to the halo. An axis magnified about the thumb, with a pan and a rail, was built and set aside and
 is on the `zoom-svg` branch.

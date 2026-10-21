@@ -150,6 +150,60 @@ is("unzoomed, every strand is on the base",
 const counted = m.zoneCounts(limb, folded, { span: [100, 110], most: 110 });
 is("each strand drawn is counted in the zone it stands in, and only those",
    [counted, counted.reduce((a, b) => a + b)], [[1, 0, 1], m.effect(limb, folded).kept]);
+// The fisheye.
+let unbanded = 0, misbanded = 0;
+for (let t = 0; t < 200; t++) {
+  const most = 50 + rand() * 1000, a = rand() * most, b = Math.min(most, a + rand() * 60);
+  const f = 1 + rand() * 40, runs = m.bands([a, b], f, most);
+  if (runs[0][0] !== 0 || runs.at(-1)[1] !== most) unbanded++;
+  for (let j = 1; j < runs.length; j++) if (runs[j][0] !== runs[j - 1][1]) unbanded++;
+  for (const [from, to, i] of runs) {
+    const mid = (from + to) / 2;
+    if (m.zone([mid, mid], [a, b], f) !== i) misbanded++;
+  }
+}
+is("the zones' runs cover the axis end to end with nothing between them", unbanded, 0);
+is("  and each is the zone its tokens stand in", misbanded, 0);
+const flat = m.fisheye({ span: [40, 60], most: 200, steps: 0 });
+is("unzoomed, the fisheye is the straight share", [flat(0), flat(50), flat(200)], [0, 0.25, 1]);
+let falling = 0, unread = 0, unmagnified = 0, ungiven = 0;
+for (let t = 0; t < 200; t++) {
+  const most = 100 + rand() * 2000, a = rand() * most * 0.9, b = Math.min(most, a + 1 + rand() * 40);
+  const steps = 1 + Math.floor(rand() * 6), lens = m.fisheye({ span: [a, b], most, steps });
+  let was = -1;
+  for (let i = 0; i <= 200; i++) {
+    const v = most * i / 200, u = lens(v);
+    if (u < was - 1e-12) falling++;
+    was = u;
+    if (Math.abs(lens.invert(u) - v) > 1e-6 * most) unread++;
+  }
+  if (lens(b) - lens(a) <= (b - a) / most) unmagnified++;
+  // The same thumb against the root's wall has more of the axis than it has well clear of it.
+  const w = b - a, mid = m.fisheye({ span: [most / 2, most / 2 + w], most, steps });
+  const wall = m.fisheye({ span: [0, w], most, steps });
+  if (wall(w) - wall(0) <= mid(most / 2 + w) - mid(most / 2)) ungiven++;
+}
+is("the fisheye only rises", falling, 0);
+is("  reads back what it was given", unread, 0);
+is("  gives the thumb more of the axis than its tokens' share", unmagnified, 0);
+is("  and against a wall, more again", ungiven, 0);
+const lx2 = m.scale({ most: 200, width: 440, pad: 20,
+                      lens: m.fisheye({ span: [40, 60], most: 200, steps: 2 }) });
+is("a scale through the fisheye still runs from pad to pad", [lx2(0), lx2(200)], [20, 420]);
+is("  and inverts", Math.round(lx2.invert(lx2(57)) * 1e9) / 1e9, 57);
+const sx = m.scale({ most: 1000, width: 440, pad: 20 });
+const straight = m.ticks(sx, 1000), majors = straight.filter(([, big]) => big).map(([v]) => v);
+is("ticks start at the root, a round step apart, as far as the tree",
+   [majors[0], majors[1] - majors[0], majors.at(-1)], [0, 100, 1000]);
+is("  given their room on a straight axis", sx(majors[1]) - sx(majors[0]) >= 24, true);
+const lensed = m.ticks(lx2, 200);
+const bigAt = lensed.filter(([, big]) => big).map(([v]) => v);
+const fineAt = lensed.filter(([, big]) => !big).map(([v]) => v);
+const major = bigAt[1] - bigAt[0], minor = fineAt[0] % major;
+const under = v => Math.floor(v / major) * major;  // the major tick a fine one follows
+is("  and finer ones only where the fisheye spreads them a third of the room apart",
+   [fineAt.length > 0, fineAt.every(v => lx2(under(v) + minor) - lx2(under(v)) >= 8),
+    new Set(fineAt.map(under)).size < bigAt.length], [true, true, true]);
 is("the same strands are the same cut", [m.same(new Set([1, 2]), new Set([2, 1])),
    m.same(new Set([1]), new Set([1, 2]))], [true, false]);
 

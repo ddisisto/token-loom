@@ -1718,8 +1718,9 @@ const STEPS = 4;           // paths back the trail is drawn for, each in a colou
 
 const chartEl = $("map");
 const chartBar = $("chart-bar");
-// The rung is `map.LADDER`'s, and `byFork` puts a strand in the zone its fork is in.
-const look = { on: true, down: true, rung: 4, byFork: false };
+// The rung is `map.LADDER`'s, `byFork` puts a strand in the zone its fork is in, and `lens`
+// gives the thumb more of the axis as the zoom goes in.
+const look = { on: true, down: true, rung: 4, byFork: false, lens: true };
 let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
 let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
 let chart = null;    // what is drawn now, which a point is read against
@@ -1787,6 +1788,93 @@ function cutting(tree, path) {
   return { most, span, hairs: map.hair(tree, cut, path) };
 }
 
+/** Along and across the plan, as the page has them: down the page the two are swapped. */
+const placed = (along, across) => look.down ? { x: across, y: along } : { x: along, y: across };
+const lineAt = (a0, c0, a1, c1) => {
+  const p = placed(a0, c0), q = placed(a1, c1);
+  return { x1: p.x, y1: p.y, x2: q.x, y2: q.y };
+};
+const dotAt = (along, across, r) => {
+  const p = placed(along, across);
+  return { cx: p.x, cy: p.y, r };
+};
+
+/** The scale the map is drawn on: straight, or zoomed in with the lens on, through the fisheye
+ *  about the thumb. */
+const lensed = (most, long, span) => map.scale({ most, width: long, pad: PAD,
+  lens: look.lens && zoomed > 0 && span ? map.fisheye({ span, most, steps: zoomed }) : null });
+
+/** Every mark a plan draws, keyed by what it draws, as `[key, name, attrs, cls, head, style]`.
+ *  A waypoint folded away marks the fold that holds it. */
+function marksOf(tree, plan, x, back) {
+  const out = [];
+  const ys = new Map(plan.strands.map(s => [s.head, s.y]));
+  const folds = new Set(plan.hairs.filter(h => h.fold).map(h => h.head));
+  const marked = new Set(), spots = [];
+  for (const w of charted.marks) {
+    if (w.head === null) continue;
+    if (ys.has(w.head)) { spots.push(w); continue; }
+    const fold = map.lineage(tree, w.head).find(h => folds.has(h));
+    if (fold !== undefined) marked.add(fold);
+  }
+  for (const l of plan.links)
+    out.push([`l${l.head}`, "line", lineAt(l.x, l.y0, l.x, l.y1), "link", l.head, {}]);
+  for (const h of plan.hairs)
+    out.push([`h${h.head}`, "line", lineAt(h.x0, h.y0, h.x1, h.y1),
+              `hair${h.fold ? " fold" : h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`
+              + (marked.has(h.head) ? " marked" : ""),
+              h.head, h.fold ? { "--heft": map.heft(h.weight) } : {}]);
+  for (const s of plan.strands) {
+    const end = s.aside ?? s.x1;
+    out.push([`s${s.head}`, "line", lineAt(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
+              `strand${s.path ? " path" : back.has(s.head) ? " behind" : ""}`, s.head, {}]);
+    if (s.aside !== null)
+      out.push([`a${s.head}`, "line", lineAt(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
+                "strand aside", s.head, {}]);
+  }
+  for (const k of plan.fans)
+    out.push([`f${k.head}`, "circle", dotAt(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan", null, {}]);
+  for (const w of spots)
+    out.push([`w${w.node}`, "circle", dotAt(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint",
+              null, {}]);
+  return out;
+}
+
+/** The ticks along the map's outer edge, while the fisheye is bending the axis. */
+function rule() {
+  const ticks = look.lens && zoomed > 0 ? map.ticks(chart.x, chart.most) : [];
+  const edge = chart.wide - 2;
+  chart.ruler.replaceChildren(...ticks.map(([v, major]) => {
+    const a = chart.x(v), reach = major ? 5 : 2.5;
+    return svg("line", lineAt(a, edge - reach, a, edge), major ? "tick" : "tick minor");
+  }));
+}
+
+/** Draw the same strands again through the fisheye as it stands about the thumb now, moving
+ *  each mark rather than making it anew. */
+function restretch(span) {
+  gliding++;
+  chartEl.classList.remove("moving");
+  const { tree } = charted;
+  const x = lensed(chart.most, chart.long, span);
+  const plan = map.plan(tree, chart.rows,
+                        { x, hairs: chart.hairs, path: chart.path, step: chart.step, top: chart.top });
+  for (const [key, , attrs] of marksOf(tree, plan, x, chart.back)) {
+    const el = chart.els.get(key);
+    if (el === undefined) continue;
+    assign(el, attrs);
+    el.style.opacity = "";  // a glide cut short leaves what it was fading in part way
+  }
+  Object.assign(chart, { x, plan, lensAt: span });
+  rule();
+  chartCaret();
+  chartOver();
+  chartThumb();
+}
+
+/** How far in a zoom goes: as far as the cut changes, and with the lens on, as far as it does. */
+const zoomMost = () => Math.max(map.deepest(look.rung), look.lens ? map.LENS.steps : 0);
+
 /** Draw what is thumbed around the path that is drawn: across the margin, or down it with the
  *  window in view as the thumb on the path. A drawing that glides takes `pace` ms. */
 function sketch({ glides = true, pace = GLIDE } = {}) {
@@ -1806,8 +1894,8 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
   const back = map.steps(tree, walked, path, STEPS);
   const box = chartEl.getBoundingClientRect();
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
-  const x = map.scale({ most, width: long, pad: PAD });
-  const rows = map.layout(tree, { x, hairs, path });
+  // Packed on the straight axis, so a fisheye moving with the thumb moves no strand across.
+  const rows = map.layout(tree, { x: map.scale({ most, width: long, pad: PAD }), hairs, path });
   const all = [...rows.values()];
   const lo = Math.min(...all), hi = Math.max(...all);
   const step = Math.max(STEP[0], Math.min(STEP[1], (wide - 2 * PAD) / Math.max(1, hi - lo)));
@@ -1815,67 +1903,25 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
   // not, the path's row in the middle.
   const fits = (hi - lo) * step <= wide - 2 * PAD;
   const top = !fits ? wide / 2 + lo * step : look.down ? PAD : (wide - (hi - lo) * step) / 2;
+  const x = lensed(most, long, span);
   const plan = map.plan(tree, rows, { x, hairs, path, step, top });
-  const ys = new Map(plan.strands.map(s => [s.head, s.y]));
-  // The plan is along and across; down the page the two are swapped.
-  const at = (along, across) => look.down ? { x: across, y: along } : { x: along, y: across };
-  const line = (a0, c0, a1, c1) => {
-    const p = at(a0, c0), q = at(a1, c1);
-    return { x1: p.x, y1: p.y, x2: q.x, y2: q.y };
-  };
-  const dot = (along, across, r) => {
-    const p = at(along, across);
-    return { cx: p.x, cy: p.y, r };
-  };
 
   const out = [];
+  const ruler = svg("g", {}, "scale");
   const thumb = svg("rect", {}, "thumb");
-  out.push(thumb);
+  out.push(ruler, thumb);
   // Every mark keyed by what it draws, so the next drawing can say where each one was.
-  const byHead = new Map();
-  const tones = [];
-  const mark = (name, attrs, cls, key, head = null) => {
+  const byHead = new Map(), els = new Map();
+  for (const [key, name, attrs, cls, head, style] of marksOf(tree, plan, x, back)) {
     const el = svg(name, { ...attrs, "data-key": key }, cls);
+    for (const [k, v] of Object.entries(style)) el.style.setProperty(k, v);
     if (head !== null) {
       el.dataset.head = head;
       if (!byHead.has(head)) byHead.set(head, []);
       byHead.get(head).push(el);
     }
+    els.set(key, el);
     out.push(el);
-    return el;
-  };
-  for (const l of plan.links)
-    mark("line", line(l.x, l.y0, l.x, l.y1), "link", `l${l.head}`, l.head);
-  const folds = new Map();
-  for (const h of plan.hairs) {
-    const el = mark("line", line(h.x0, h.y0, h.x1, h.y1),
-                    `hair${h.fold ? " fold" : h.stub ? " stub" : ""}${h.aside ? " aside" : ""}`,
-                    `h${h.head}`, h.head);
-    if (!h.fold) continue;
-    el.style.setProperty("--heft", map.heft(h.weight));
-    folds.set(h.head, el);
-  }
-  for (const s of plan.strands) {
-    const end = s.aside ?? s.x1;
-    const el = mark("line", line(s.x0, s.y, Math.max(end, s.x0 + 0.8), s.y),
-                    `strand${s.path ? " path" : back.has(s.head) ? " behind" : ""}`,
-                    `s${s.head}`, s.head);
-    tones.push([el, s.head]);
-    if (s.aside !== null)
-      mark("line", line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
-           "strand aside", `a${s.head}`, s.head);
-  }
-  for (const k of plan.fans)
-    mark("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan", `f${k.head}`);
-  for (const w of charted.marks) {
-    if (w.head === null) continue;
-    if (ys.has(w.head)) {
-      mark("circle", dot(x(w.depth + 0.5), ys.get(w.head), 3), "waypoint", `w${w.node}`);
-      continue;
-    }
-    // Folded away, the fold says it holds one.
-    const fold = map.lineage(tree, w.head).find(h => folds.has(h));
-    if (fold !== undefined) folds.get(fold).classList.add("marked");
   }
   const caret = svg("line", {}, "caret");
   const pointed = svg("line", {}, "over");
@@ -1886,20 +1932,23 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
     && chart.long === long && chart.wide === wide;
   const was = same ? shape() : null;
   // Each strand's colour, and where it changed, the change eased over the same glide.
-  for (const [el, head] of tones) {
-    const to = tone(path, back, head);
+  for (const s of plan.strands) {
+    const el = els.get(`s${s.head}`);
+    const to = tone(path, back, s.head);
     el.style.setProperty("--to", to);
-    const from = same && earlier !== null ? tone(earlier.path, earlier.back, head) : to;
+    const from = same && earlier !== null ? tone(earlier.path, earlier.back, s.head) : to;
     if (from !== to) {
       el.style.setProperty("--from", from);
       el.classList.add("stain");
     }
   }
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, path, hairs, caret, pointed, thumb, at, line, step, byHead,
-            down: look.down, long, wide, y0: ys.get(tree.top.head) };
+  chart = { tree, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, pointed,
+            thumb, ruler, els, at: placed, line: lineAt, step, byHead, down: look.down, long,
+            wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
   if (was !== null) glide(was, pace);
+  rule();
   chartCaret();
   chartOver();
   chartThumb();
@@ -2123,7 +2172,7 @@ function chartSays(effect, zones) {
   };
   const rung = by => () => {
     look.rung = Math.min(map.LADDER.length - 1, Math.max(0, look.rung + by));
-    zoomed = Math.min(zoomed, map.deepest(look.rung));
+    zoomed = Math.min(zoomed, zoomMost());
     sketch();
   };
   const finer = button("−", "cut less: draw more of the tree", false, rung(-1));
@@ -2144,6 +2193,12 @@ function chartSays(effect, zones) {
     button("fork", "zoomed, put a strand in the zone its fork is in;"
            + " off, in the zone of its nearest point", look.byFork,
            () => { look.byFork = !look.byFork; sketch({ pace: STRIDE }); }),
+    button("lens", "zoomed, give the thumb more of the axis; off, zoom cuts alone", look.lens,
+           () => {
+             look.lens = !look.lens;
+             zoomed = Math.min(zoomed, zoomMost());
+             sketch({ pace: STRIDE });
+           }),
     Object.assign(document.createElement("span"), {
       className: "says",
       textContent: (zones ? `${zones.join(" · ")} near to far · ` : "")
@@ -2162,7 +2217,8 @@ $("charted").onchange = () => {
 addEventListener("resize", () => sketch());
 addEventListener("scroll", () => { chartThumb(); refocus(); }, { passive: true });
 
-/** Zoomed in, draw again once this frame if the thumb moving changed what is cut. */
+/** Zoomed in, draw again once this frame if the thumb moving changed what is cut, and move
+ *  what is drawn if it bent the axis. */
 function refocus() {
   if (zoomed === 0 || chart === null || refocusing) return;
   refocusing = true;
@@ -2171,14 +2227,24 @@ function refocus() {
     if (chart === null || charted === null) return;
     const { tree } = charted;
     const { most, span, hairs } = cutting(tree, chart.path);
-    if (!map.same(hairs, chart.hairs)) sketch({ glides: false });
-    else if (span) chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }));
+    // A scroll the reader makes is followed as it goes; one the page makes, or one that lands
+    // while the drawing is still moving, glides there from wherever the marks now stand.
+    const jumped = performance.now() < carried || chartEl.classList.contains("moving");
+    const bent = look.lens && span
+      && (span[0] !== chart.lensAt?.[0] || span[1] !== chart.lensAt?.[1]);
+    if (!map.same(hairs, chart.hairs) || (jumped && bent)) {
+      sketch(jumped ? {} : { glides: false });
+      return;
+    }
+    if (!span) return;
+    if (bent) restretch(span);
+    chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }));
   });
 }
 
 /** Zoom by `n` steps, in where it is positive, gliding to the cut that makes. */
 function zoomBy(n) {
-  const to = Math.min(map.deepest(look.rung), Math.max(0, zoomed + n));
+  const to = Math.min(zoomMost(), Math.max(0, zoomed + n));
   if (to === zoomed) return;
   zoomed = to;
   sketch({ pace: STRIDE });

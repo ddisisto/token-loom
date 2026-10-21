@@ -111,8 +111,14 @@ export function effect(tree, hairs) {
 }
 
 /** x for a count of tokens from the root, over `[pad, width - pad]` for `[0, most]`, and
- *  back again. */
-export function scale({ most, width, pad }) {
+ *  back again: straight, or through a `lens` from `fisheye`. */
+export function scale({ most, width, pad, lens = null }) {
+  if (lens !== null) {
+    const k = width - 2 * pad;
+    const x = v => pad + lens(v) * k;
+    x.invert = px => lens.invert(Math.min(1, Math.max(0, (px - pad) / k)));
+    return x;
+  }
   const k = (width - 2 * pad) / Math.max(most, 1e-9);
   const x = v => pad + v * k;
   x.invert = px => Math.max(0, px - pad) / k;
@@ -356,6 +362,74 @@ export function zoned(tree, { base, steps, span, most, byFork = false, zones = Z
   return k => LADDER[rungAt(base, steps, zone(
     byFork ? [k.depth, k.depth] : [k.depth, tree.ends.get(k.head)], span, focal, zones),
     zones.scaling)];
+}
+
+/** How much a step of zoom magnifies the focus, and how many steps of it there are. */
+export const LENS = { gain: 2, steps: 6 };
+
+/** The zones about the focus `[a, b)` on `[0, most]`, in order along the axis, as
+ *  `[from, to, zone]` runs. A zone past a wall spans nothing and is left out. */
+export function bands([a, b], focal, most, { ratio, n } = ZONES) {
+  const edges = [];  // how far from the focus each zone but the last reaches
+  for (let i = 0, edge = 0, width = focal; i < n - 1; i++, width *= ratio) edges.push(edge += width);
+  const starts = [[-Infinity, n - 1]];
+  for (let i = n - 2; i >= 0; i--) starts.push([a - edges[i], i]);
+  for (let i = 0; i < n - 1; i++) starts.push([b + edges[i], i + 1]);
+  const out = [];
+  for (let j = 0; j < starts.length; j++) {
+    const from = clamp(starts[j][0], 0, most);
+    const to = clamp(j + 1 < starts.length ? starts[j + 1][0] : Infinity, 0, most);
+    if (to > from) out.push([from, to, starts[j][1]]);
+  }
+  return out;
+}
+
+/** The share of the axis a count of tokens stands at, zoomed `steps` in about the thumb's
+ *  `span`: each zone's tokens weighted by the gain, the focus up and the far zone down as their
+ *  rungs go, and straight within a zone. Not zoomed, or with no thumb, it is straight.
+ *  `share.invert` reads a share back as tokens. */
+export function fisheye({ span, most, steps, zones = ZONES, lens = LENS }) {
+  const runs = steps === 0 || span === null ? [[0, most, 0, 1]]
+    : bands(span, zones.focal * most, most, zones).map(([from, to, i]) =>
+        [from, to, i, lens.gain ** (-steps * (i * zones.scaling - 1))]);
+  const at = [];  // the weighted tokens before each run
+  let total = 0;
+  for (const [from, to, , w] of runs) { at.push(total); total += (to - from) * w; }
+  const which = v => { let j = 0; while (j < runs.length - 1 && v >= runs[j][1]) j++; return j; };
+  const share = v => {
+    const j = which(v), [from, to, , w] = runs[j];
+    return (at[j] + (clamp(v, from, to) - from) * w) / total;
+  };
+  share.invert = u => {
+    const t = u * total;
+    let j = 0;
+    while (j < runs.length - 1 && t >= at[j + 1]) j++;
+    const [from, to, , w] = runs[j];
+    return clamp(from + (t - at[j]) / w, from, to);
+  };
+  return share;
+}
+
+/** The round count at or above `v`: one, two or five of a power of ten. */
+const nice = v => {
+  const k = 10 ** Math.floor(Math.log10(v));
+  return [1, 2, 5, 10].map(m => m * k).find(m => m >= v - 1e-9);
+};
+
+/** Round counts of tokens to mark the axis at, as `[v, major]`: a step that gives the straight
+ *  axis `room` px or more between them, and finer ones between those wherever `x` spreads them
+ *  a third of that apart. */
+export function ticks(x, most, room = 24) {
+  const step = nice(Math.max(1, most * room / Math.max(1, x(most) - x(0))));
+  const lead = Math.round(step / 10 ** Math.floor(Math.log10(step)));
+  const fine = lead === 2 ? step / 2 : step / 5;
+  const out = [];
+  for (let v = 0; v <= most; v += step) {
+    out.push([v, true]);
+    if (fine >= 1 && x(Math.min(most, v + fine)) - x(v) >= room / 3)
+      for (let f = v + fine; f < v + step && f <= most; f += fine) out.push([f, false]);
+  }
+  return out;
 }
 
 /** How many strands are drawn in each zone, nearest first, by where each one stands. */
