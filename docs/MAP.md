@@ -143,13 +143,34 @@ and the packing is laid again around the new path.
 
 **The position axis stays one quantity.** Tokens are a count of what is there, and a measure
 squeezing or stretching it would cost the scrollbar its thumb. What the model was sure of goes on
-as colour instead. **What may change is the function from tokens to the axis**, which is a
-fisheye on the axis itself: more of it for the zones near the thumb and less far away, the count
-still read off a dim scale along the map's edge so the thumb says what it holds. It gives the
-detail near a short stub room without changing the axis's extent, which must not move while the
-reader compares that stub with a longer path. Long empty stretches given less of the axis, so the
-forks get the resolution, is the same function read off the tree rather than off the thumb. Later
-still, the zones' bands are markers on that scale for the reader to drag.
+as colour instead. **What changes is the function from tokens to the axis**, and its extent never
+does: the axis is the whole tree at every step, so nothing moves while the reader compares a
+short path with a longer one.
+
+**Zoomed in, the axis is a fisheye about the thumb, on the zoom's own zones.** Each zone's share
+of the axis is the tokens it spans, weighted: the focus by a gain for each step, the middle by
+one, and the far zone by the gain's inverse, so a step gives the focus more of the axis and takes
+it from far away. Within a zone the function is linear, so it is continuous and only rises, and
+the thumb, the caret and a click are drawn and read through it and stay honest. **A wall needs
+nothing of its own**: a zone past the root or the tree's end spans no tokens and has no share,
+and what it would have had goes to the zones that do. So a thumb near the root opens into the
+room the root side does not need, and forks a token apart in the focus stand as far apart as the
+gain makes them, which is what a knot is read with.
+
+- **One gesture, both halves.** A step of shift and the wheel moves the cut and the gain
+  together, so it keeps feeling like one zoom, and a switch on the bar turns the gain off and
+  leaves the cut.
+- **Packed on the straight axis and drawn through the fisheye.** The packing measures its gap
+  in px, so packing through the fisheye would move rows as the thumb moves; packed straight, a
+  scroll moves no strand across and only stretches what is there. Far strands squeezed together
+  may then crowd on a row, where the cut is coarse anyway.
+- **A scale says what the axis is doing**: dim ticks along the map's outer edge at round counts
+  of tokens, drawn through the same function, so they spread where the axis is magnified and
+  bunch where it is squeezed, and the thumb's length can be read against them.
+- **The zones' bands are markers on that scale**, later, for the reader to drag.
+
+Long empty stretches given less of the axis, so the forks get the resolution, is the same
+function read off the tree rather than off the thumb.
 
 ## Channels
 
@@ -198,7 +219,9 @@ when it is settled.
   settings than greedy. Settled by use, with the ladder: the default is whatever a reader leaves
   it at.
 - **Where the zones stand and how they step.** Three zones, a focal distance of a twentieth of
-  the axis, rings three times wider each, and a rung a step, are first numbers. More zones is a
+  the axis, rings three times wider each, a rung a step and a gain of two a step are first
+  numbers, and how many steps there are is as far as the cut or the gain still changes
+  something. More zones is a
   finer fisheye with nothing else changed. Settled by zooming long roots and short ones, and only
   then by a control.
 - **Whether a strand is near by its nearest point or by its fork.** Settled by the switch, on the
