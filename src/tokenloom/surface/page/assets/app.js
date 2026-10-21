@@ -2284,7 +2284,8 @@ async function scanBy(by) {
   const caret = pathIds().indexOf(cursor.node());
   const depth = caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
   const from = span ? span[0] - map.ZONES.focal * most : depth;
-  const to = map.scan(tree, chart.hairs, [...chart.path].at(-1), by, from);
+  const until = span ? span[1] : depth;
+  const to = map.scan(tree, chart.hairs, [...chart.path].at(-1), by, { from, until });
   if (to === null) { say(by > 0 ? "no branch further over" : "no branch further back"); return; }
   const hold = got.segs[map.holding(got.at, depth)].getBoundingClientRect().top;
   scanning = true;

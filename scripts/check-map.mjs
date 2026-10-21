@@ -113,7 +113,11 @@ const unranked = m.index(strands([[1, null, 5, null], [10, 1, 5, null], [20, 1, 
                                   [30, 1, 5, null]]));
 is("  and nothing ranked last, in the order it came", unranked.order.map(s => s.head),
    [1, 20, 10, 30]);
-const scanFrom = (head, by, hairs = none, from = 0) => m.scan(limb, hairs, head, by, from)?.head ?? null;
+const scanFrom = (head, by, hairs = none, from = 0, until = Infinity) =>
+  m.scan(limb, hairs, head, by, { from, until })?.head ?? null;
+is("a strand leaves a path where the first strand above it off the path starts",
+   [m.parts(limb, 61, new Set([1, 60, 62])), m.parts(limb, 61, new Set([1, 20])),
+    m.parts(limb, 60, new Set([1, 60]))], [18, 10, null]);
 is("a scan steps to the next leaf over, either way",
    [scanFrom(62, 1), scanFrom(61, 1), scanFrom(61, -1)], [61, 20, 62]);
 is("  and stops past either end", [scanFrom(20, 1), scanFrom(62, -1)], [null, null]);
@@ -121,6 +125,8 @@ is("  from a strand that is not a leaf, to the leaves either side of where it st
    [scanFrom(60, 1), scanFrom(60, -1)], [62, null]);
 is("  passing a leaf that ends short of the focus", scanFrom(62, 1, none, 60), 20);
 is("  and one with no row of its own", scanFrom(62, 1, new Set([61])), 20);
+is("  and one leaving the path below the window, which reads the same in it",
+   [scanFrom(62, 1, none, 0, 17), scanFrom(62, 1, none, 0, 18)], [20, 61]);
 
 let seed = 7;
 const rand = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
@@ -293,8 +299,10 @@ for (let t = 0; t < 40; t++) {
 is("no two strands on one row come within the gap", overlaps, 0);
 
 // A scan from the root down, and from the last leaf up, meets every leaf that has a row and
-// reaches the focus, once each and in the order's own order.
-let unbroken = 0, missed = 0, unreversed = 0;
+// reaches the focus, once each and in the order's own order; and bounded below, a step there
+// and back returns to what reads the same in the window, which is the same leaf or one leaving
+// its path only below it.
+let unbroken = 0, missed = 0, unreversed = 0, unreturned = 0;
 for (let t = 0; t < 40; t++) {
   const tree = grown(5 + Math.floor(rand() * 120));
   const at = new Map(tree.order.map((s, i) => [s.head, i]));
@@ -308,12 +316,20 @@ for (let t = 0; t < 40; t++) {
   const from = rand() * m.most(tree);
   const want = tree.order.filter(s => s.leaf && !gone.has(s.head) && s.depth + s.length >= from)
     .map(s => s.head);
+  const reach = { from, until: Infinity };
   const walk = (head, by) => {
     const out = [];
-    for (let s = m.scan(tree, hairs, head, by, from); s; s = m.scan(tree, hairs, s.head, by, from))
+    for (let s = m.scan(tree, hairs, head, by, reach); s; s = m.scan(tree, hairs, s.head, by, reach))
       out.push(s.head);
     return out;
   };
+  const until = from + rand() * 100;
+  for (const s of tree.order) for (const by of [1, -1]) {
+    const there = m.scan(tree, hairs, s.head, by, { from, until });
+    if (there !== null && s.leaf && !gone.has(s.head) && s.depth + s.length >= from
+        && (m.parts(tree, m.scan(tree, hairs, there.head, -by, { from, until })?.head ?? s.head,
+                    new Set(m.lineage(tree, s.head))) ?? Infinity) <= until) unreturned++;
+  }
   if (JSON.stringify(walk(tree.top.head, 1)) !== JSON.stringify(want.filter(h => h !== tree.top.head)))
     missed++;
   const last = tree.order.at(-1).head;
@@ -323,6 +339,7 @@ for (let t = 0; t < 40; t++) {
 is("depth-first keeps every subtree together", unbroken, 0);
 is("a scan down meets every leaf in reach, once each", missed, 0);
 is("  and a scan up meets the same, reversed", unreversed, 0);
+is("bounded below, a step across and back returns to what reads the same", unreturned, 0);
 is("every kept strand is placed and nothing cut is", unplaced, 0);
 is("the path holds row 0 throughout", offPath, 0);
 is("above is ranked higher than what continues, and below lower", misranked, 0);

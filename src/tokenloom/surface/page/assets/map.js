@@ -105,16 +105,27 @@ export function undrawn(tree, hairs) {
   return out;
 }
 
+/** Where the strand `head` leaves the path through `path`, in tokens from the root: the depth
+ *  of the first strand above it that the path does not run through, or null if it runs through
+ *  them all. */
+export function parts(tree, head, path) {
+  let off = null;
+  for (let s = tree.byHead.get(head); s && !path.has(s.head); s = tree.byHead.get(s.up)) off = s;
+  return off === null ? null : off.depth;
+}
+
 /** The leaf a scan steps to from the strand `head`, `by` 1 down the depth-first order or -1 up
- *  it: the nearest leaf with a row of its own under `hairs` whose end is at or past `from`, or
- *  null past either end of the order. */
-export function scan(tree, hairs, head, by, from) {
+ *  it: the nearest leaf with a row of its own under `hairs` that leaves the path through `head`
+ *  at or above `until` and ends at or past `from`, or null past either end of the order. */
+export function scan(tree, hairs, head, by, { from, until }) {
   const gone = undrawn(tree, hairs);
+  const path = new Set(lineage(tree, head));
   const at = tree.order.findIndex(s => s.head === head);
   if (at < 0) return null;
   for (let i = at + by; i >= 0 && i < tree.order.length; i += by) {
     const s = tree.order[i];
-    if (s.leaf && !gone.has(s.head) && s.depth + s.length >= from) return s;
+    if (s.leaf && !gone.has(s.head) && s.depth + s.length >= from
+        && (parts(tree, s.head, path) ?? Infinity) <= until) return s;
   }
   return null;
 }

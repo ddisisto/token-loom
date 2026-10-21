@@ -135,10 +135,14 @@ glides, and the thumb and the window stay where they were while only the branch 
   whichever way the reader scans and wherever they land, and a branch shaped nothing like the last
   cannot reshuffle what comes next. The children's order is the part another ordering across
   would replace.
-- **What is scanned is every branch the map draws that reaches the focus**: each leaf the cut
-  leaves a row of its own, whose end is at or past the start of the thumb's focal zone. A limb
-  that left the trunk early and runs beside the thumb is in, and a stub that ended far above it
-  is not, so the zoom widens and narrows what is scanned with nothing of its own.
+- **What is scanned is every branch the map draws that reads differently in the window**: each
+  leaf the cut leaves a row of its own, whose end is at or past the start of the thumb's focal
+  zone, and which leaves the path being read at or above the window's foot. A limb that left
+  the trunk early and runs beside the thumb is in; a stub that ended far above it is not, and
+  nor is a branch leaving below the window, which reads the same in it. The zoom widens and
+  narrows what is scanned with nothing of its own. Which branches read differently depends on
+  the path, so a step across and back returns to what reads the same in the window, which is
+  the branch left or another leaving it only below the window.
 - **It lands at the caret's depth**, or at the branch's end where that is short of it, so a short
   stub ending in the focus is scanned among the longer branches and not passed over. With no
   caret it lands at the middle of the window, and the token it lands on keeps its place there.
