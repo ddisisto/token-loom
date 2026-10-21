@@ -192,7 +192,8 @@ is("  along with the payload, which is what says where the row is and who ranked
    [from.node, from.sources[String(taken.source)]], [9, "model:qwen"]);
 
 const bare = R.list({ node: 9, rows: [], sources: SOURCES }, null, () => {}, null);
-says("a position nothing ranked says so", words(bare), "nothing was ranked");
+is("a position nothing ranked draws nothing",
+   [bare.classList.contains("empty"), bare.children.length], [true, 0]);
 
 /* A row realised under the pointer, which is a hover spending and not a list being rebuilt.
  * It fails in two silent ways. The node is what anything hung on a row is addressed by, so a

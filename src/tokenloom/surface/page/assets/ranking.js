@@ -214,7 +214,7 @@ export function list(payload, next, pick, weigh, rolls) {
   const box = el("aside", "rows");
   const groups = sorted(payload.rows);
   if (!groups.length) {
-    box.append(el("div", "none", "nothing was ranked at this position"));
+    box.classList.add("empty");
     return box;
   }
   for (const [source, rows] of groups) {

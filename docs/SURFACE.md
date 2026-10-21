@@ -298,9 +298,10 @@ than a value to find, which makes greedy a place on the dial — and the only on
 2, one candidate being greedy at any heat. The text fades out behind the line so it stands clear
 of what scrolls under.
 
-**The drawer lifts on a look and holds on a pull.** Hovering the footer lifts it over the text
-after a beat and it falls after another, so passing over does neither and a look at a setting
-moves nothing. Dragging the heat's line, or the grip at its right end, more than 80px up holds the
+**The drawer lifts on a look and holds on a pull.** Hovering the footer across from the drawer
+lifts it over the text after a beat and it falls after another, so passing over does neither, a
+pointer overshooting the map's bar onto the footer beside it lifts nothing, and a look at a
+setting moves nothing. Dragging the heat's line, or the grip at its right end, more than 80px up holds the
 drawer where it is let go — shut or full within 80px of either end, scrolling between — and only a
 held drawer takes room from the text. A drag inside that distance is the heat's alone, and a click
 on the grip opens or shuts it.

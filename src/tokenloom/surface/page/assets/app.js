@@ -2329,8 +2329,10 @@ stand(room.roomFor(draw().length));
 const foot = document.querySelector("footer");
 const drawer = $("drawer");
 const LIFT = 120, FALL = 300;  // ms
+const NEAR = 32;  // px either side of the drawer's panel a pointer on the footer lifts it from
 let over = 0;   // how many of the footer and the heat the pointer is on
 let lifting = null;
+let rising = null;  // a lift waiting on the pointer staying near the drawer
 let held = 0;   // px the drawer is held open at; 0 is shut
 
 /** How tall the drawer is with everything in it showing, held to most of the screen. */
@@ -2364,21 +2366,35 @@ function lift(up) {
   measure();
 }
 
-/** The pointer arrived on something that keeps the drawer up; `lifts` if it may raise it. A
- *  drawer held open is already up, so nothing lifts it further. */
-function arrive(lifts) {
+/** The pointer arrived on something that keeps the drawer up. */
+function arrive() {
   over++;
   clearTimeout(lifting);
-  if (lifts && held === 0 && !foot.classList.contains("peek"))
-    lifting = setTimeout(() => lift(true), LIFT);
 }
 function depart() {
   over = Math.max(0, over - 1);
   clearTimeout(lifting);
   if (over === 0 && foot.classList.contains("peek")) lifting = setTimeout(() => lift(false), FALL);
 }
-foot.addEventListener("pointerenter", () => arrive(true));
-foot.addEventListener("pointerleave", depart);
+/** Lift the drawer after a beat while the pointer on the footer is across from its panel, and
+ *  not while it is anywhere else along the footer. */
+function aim(event) {
+  const panel = drawer.querySelector(".panel")?.getBoundingClientRect();
+  const near = panel && event.clientX >= panel.left - NEAR && event.clientX <= panel.right + NEAR;
+  if (!near || held > 0 || foot.classList.contains("peek")) {
+    clearTimeout(rising);
+    rising = null;
+    return;
+  }
+  if (rising === null) rising = setTimeout(() => { rising = null; lift(true); }, LIFT);
+}
+foot.addEventListener("pointerenter", event => { arrive(); aim(event); });
+foot.addEventListener("pointermove", aim);
+foot.addEventListener("pointerleave", () => {
+  clearTimeout(rising);
+  rising = null;
+  depart();
+});
 
 /* The heat of a draw, set along a line across the column at the footer's top. Its range and
  * steps are the draw panel's, read through `along` and `share`. */
@@ -2445,7 +2461,7 @@ heat.addEventListener("pointermove", event => {
   }
   hold(to ?? grip.from);
 });
-heat.addEventListener("pointerenter", () => arrive(false));
+heat.addEventListener("pointerenter", () => arrive());
 heat.addEventListener("pointerleave", depart);
 for (const end of ["pointerup", "pointercancel"]) {
   heat.addEventListener(end, () => {

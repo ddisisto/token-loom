@@ -405,7 +405,7 @@ body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
         padding: 1px 0 1px 14px; border-left: 2px solid var(--rule);
         background: var(--bg);
         font: 400 12px/1.5 var(--mono); color: var(--dim); }
-.rows .none { font: italic 400 13px/1.5 var(--serif); }
+.rows.empty { display: none; }  /* nothing was ranked here, and nothing is drawn for it */
 
 /* Which gesture a list is up by, said in the spine it hangs from and not in a line of words
    above it. A reader who has to be told in a sentence has to read that sentence on every list

@@ -146,8 +146,8 @@ away from its position still reads, which is what the current placement was buil
 panel says it does not.** They are anchored on `edges`, and a child carrying no covering edge is
 invisible: an authored one, since `create` records no ranking and its `user` source gives it a
 merge key of its own; one a backend declined to rank; one a stop condition left. Where every
-child is unranked the position reads *nothing was ranked at this position*, which is true and
-says nothing about the tree carrying on below it. Nothing else reaches them either — no
+child is unranked the position shows no rows at all, which says nothing about the tree carrying
+on below it. Nothing else reaches them either — no
 continuation rule is obliged to pick one, so an authored fork beside a longer recorded one is
 reachable only by knowing its id. `branches` sees them, but reviving it as a surface reopens
 what the rows closed. **So the rows take them.** An unranked child costs a selection and no act,
