@@ -38,6 +38,10 @@ const { aside } = cursor;
  * hidden nodes only ever carry the path on from where the live one ran out. */
 let showHidden = false;
 
+/* Whether the server writes, as `/tree` says. One started to read holds no claim, and the page
+ * it serves offers no gesture that writes: no draw, no composer, no realise, no setting aside. */
+let writable = true;
+
 // ---- the wire -------------------------------------------------------------------------
 
 class Fault extends Error {
@@ -108,7 +112,7 @@ function rootRow(root, current) {
     // something to read, since a root has no parent to fall back to.
     flip(root.deleted, root.id, root.deleted ? root.id : null);
   };
-  li.append(go);
+  if (writable) li.append(go);
   if (root.deleted) li.classList.add("hidden");
   li.dataset.node = root.id;
   li.setAttribute("aria-current", String(root.id === current));
@@ -232,7 +236,7 @@ function drawRoots(tree, current) {
     className: "none",
     textContent: tree.roots.length ? "Everything here is set aside." : "Nothing here yet.",
   }));
-  $("roots").replaceChildren(...rows, newRow());
+  $("roots").replaceChildren(...rows, ...(writable ? [newRow()] : []));
 }
 
 /** The roots the toggle admits. */
@@ -248,6 +252,8 @@ async function refresh(current) {
   drawnAt = null;  // the rows said what became of each row, and an act has changed that
   charted = null;  // and the strands, wherever it landed
   const tree = known = await ask("/tree");
+  writable = tree.writable !== false;
+  document.body.classList.toggle("read-only", !writable);
   // Keyed by the tree and not by the address, which names only the server.
   kept = waypoint.load(storage, tree.created ?? tree.path);
   walked = map.recall(storage, tree.created ?? tree.path);
@@ -288,7 +294,7 @@ function boundary(cell) {
   go.textContent = "restore";
   go.title = "bring this back into the live tree";
   go.onclick = () => restore(cell);
-  mark.append(shut(), "set aside", go);
+  mark.append(shut(), "set aside", ...(writable ? [go] : []));
   return mark;
 }
 
@@ -359,7 +365,7 @@ function spans(segments, marks, takers) {
       // it: the two would then say different things about where the text is going, and only
       // one of them is on screen. The status line has the way out of it.
       if (composing()) return;
-      if (!event.altKey) return point(i);
+      if (!event.altKey || !writable) return point(i);
       if (hidden) restore(cell);
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
     };
@@ -615,7 +621,7 @@ function clear() {
  *  an arm a draw parted from. The third is an act. */
 function took(row, payload) {
   if (composing()) return;  // the same reason a click on a token does nothing
-  if (row.child === null) return realise(row, payload);
+  if (row.child === null) return writable ? realise(row, payload) : undefined;
   show(row.child, row.child).catch(
     why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
 }
@@ -635,7 +641,7 @@ function took(row, payload) {
  *  ahead of the caret, and clicking one is the click that commits that move.
  */
 async function realise(row, payload) {
-  if (working) return;
+  if (working || !writable) return;
   working = true;
   try {
     const act = await ask("/realise", {
@@ -722,6 +728,9 @@ function pulse(where, on) {
     { className: "more", textContent: "\u2026" }));
 }
 
+/** Whether a row carries the price: there is more to buy below it, and a server to buy it from. */
+const priced = node => writable && stub.costly(node);
+
 /** What a closure mark does when it is taken: show what is set aside, wherever it is.
  *
  *  **It reveals and it does not revive.** Turning the toggle on brings the hidden tail back
@@ -789,7 +798,7 @@ async function grow(node) {
     const li = seat(node);
     if (li === null) return;
     paint(li, out);
-    if (armed === node) pulse(li, stub.costly(node));
+    if (armed === node) pulse(li, priced(node));
   } catch {
     // A failed read is not reported: nothing was asked for out loud, and an error where a
     // reader only moved a pointer is noise about something they did not do.
@@ -825,7 +834,7 @@ async function roll(row, where, payload) {
   // One at a time, against one writer and one cache slot. A second roll would not only
   // queue behind this one, it would truncate the prompt cache this one is warm in --
   // `docs/SPINE.md` measures that at 28 ms against 7.4 s.
-  if (buying !== null || working) return;
+  if (buying !== null || working || !writable) return;
   buying = row;
   let last = null;
   try {
@@ -865,7 +874,7 @@ async function roll(row, where, payload) {
         // The price follows the pointer and not the reading, the same as everywhere else
         // -- and it is what goes out when the arm reaches the cap, which is the roll
         // ending by having finished rather than by being left.
-        if (armed === node) pulse(li, stub.costly(node));
+        if (armed === node) pulse(li, priced(node));
       }
       // And a burst that brought nothing ends it too, whatever the reason: asking again from
       // the same tip under the same settings is asking the same question.
@@ -928,7 +937,7 @@ function rolls(row, where, on, payload) {
   armed = row.child;
   // Set before anything is read, because the pulse follows the pointer and not the answer.
   // A row with no node under it is certainly costly and needs no read to say so.
-  pulse(where, stub.costly(row.child));
+  pulse(where, priced(row.child));
   // The dwell is counted from the free read, where there is one to make: until it has
   // landed there is no price to have rested on, and `burst` would decline anyway. An arm
   // already held resolves at once, so returning to a row starts the clock immediately --
@@ -941,7 +950,7 @@ function rolls(row, where, on, payload) {
 function dwell(row, where, payload) {
   const read = row.child === null ? Promise.resolve() : grow(row.child);
   read.then(() => {
-    if (resting !== row) return;
+    if (resting !== row || !writable) return;
     clearTimeout(dwelling);
     dwelling = setTimeout(() => {
       if (resting === row) roll(row, where, payload).catch(() => {});
@@ -1149,6 +1158,7 @@ function stage(at) {
   drawn = [];
   cursor.place(null);
   showing = null;
+  if (!writable) return $("column").replaceChildren();
   $("column").replaceChildren(compose(at));
   $("column").querySelector("textarea").focus();
 }
@@ -1198,7 +1208,7 @@ function unauthor() {
  *  the path through what was made, which is `show` doing what it does for every act.
  */
 function author() {
-  if (working || composing()) return;
+  if (working || composing() || !writable) return;
   const flow = $("column").querySelector(".flow");
   const at = cursor.node();
   if (flow === null || at === null) return;
@@ -1505,7 +1515,8 @@ async function more(where = cursor.node(), { pin = false } = {}) {
   //
   // An open composer holds it too. The reader is writing the continuation at this position by
   // hand, and a draw landing under them would answer the question they are in the middle of.
-  if (working || composing() || buying !== null || where === null || where === undefined) return;
+  if (working || composing() || buying !== null || !writable) return;
+  if (where === null || where === undefined) return;
   working = true;
   // Taken before the act, because what is drawn is replaced by it and the comparison is what
   // says whether the draw parted from anything.
@@ -1706,10 +1717,18 @@ addEventListener("keydown", event => {
 });
 
 /** An act with no terminator is a generation in flight, so a reload draws it rather than
- *  losing it. One writer means there is at most one. */
+ *  losing it. One writer means there is at most one.
+ *
+ *  On a server that only reads, the act is another writer's, and it is said rather than waited
+ *  on or called abandoned. */
 async function resume() {
   const { acts } = await ask("/acts?in_flight=1");
   if (!acts.length) return false;
+  if (!writable) {
+    say(`act ${acts[0].id} is a draw in flight: the writer holding this tree is drawing it, `
+        + "or is gone and the next writer will record it aborted \u00b7 reload to see it land");
+    return false;
+  }
   working = true;
   // As long as the act asked for, which the record holds and the page's setting may not.
   waiting(acts[0].params?.length);

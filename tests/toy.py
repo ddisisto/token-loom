@@ -88,3 +88,12 @@ def drew(*pairs) -> Generation:
         for spec in pairs
     )
     return Generation("limit", positions)
+
+
+def record_files(path) -> dict[str, tuple[int, bytes]]:
+    """What a reader must leave as it found it: every file in the tree but SQLite's
+    shared-memory index, which every reader of a write-ahead log maps and writes."""
+    return {
+        f.name: (f.stat().st_mtime_ns, f.read_bytes())
+        for f in sorted(path.iterdir()) if not f.name.endswith("-shm")
+    }

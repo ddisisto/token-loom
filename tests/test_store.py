@@ -15,7 +15,7 @@ import pytest
 
 from tokenloom.core import Generation, Rejected, Source, Store, StoreError, violations
 from tokenloom.core import reads as R
-from toy import MODEL, OTHER, USER, VOCAB, ToyAdapter, ToyVocabulary, drew
+from toy import MODEL, OTHER, USER, VOCAB, ToyAdapter, ToyVocabulary, drew, record_files
 
 
 @pytest.fixture
@@ -652,6 +652,30 @@ def test_a_reader_takes_no_lock_and_will_not_write(tmp_path):
     assert R.path_bytes(reader.conn, 2) == b"The sky"
     with pytest.raises(StoreError, match="opened for reading"):
         reader.delete(1, actor=USER)
+
+
+def test_a_reader_leaves_an_abandoned_tree_exactly_as_it_found_it(tmp_path):
+    """Neither the sweep nor a checkpoint of the log the dead writer left.
+
+    The log is what this is about: a connection that closes last folds it into the database,
+    so a reader opened as an ordinary connection rewrites `bulk.sqlite` without one statement
+    that writes. The act it sees is in flight, since only a claim can say it is abandoned.
+    """
+    path = tmp_path / "t"
+    src = _ABANDON_SCRIPT.format(path=str(path), tests=_TESTS_DIR)
+    proc = subprocess.run([sys.executable, "-c", src], capture_output=True, text=True, timeout=30)
+    assert proc.returncode != 0, proc.stdout + proc.stderr
+    assert (path / "bulk.sqlite-wal").stat().st_size > 0  # or there is nothing to fold in
+
+    before = record_files(path)
+    with Store.open(path) as reader:
+        assert reader.conn.execute(
+            "SELECT terminator FROM acts WHERE op = 'generate'"
+        ).fetchall() == [(None,)]
+        side = reader.reader()
+        assert R.path_bytes(side, 2) == b"The sky"
+        side.close()
+    assert record_files(path) == before
 
 
 def test_a_reader_that_does_not_recognise_marker_stops(tmp_path):

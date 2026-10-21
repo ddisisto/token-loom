@@ -71,6 +71,9 @@ change the page makes, the command line can make too:
 model, and `create` uses the server for its tokeniser; everything else, reads included, runs
 without one. `uv run pytest` needs no server either; `-m live` runs only the tests that do.
 
+A tree has one writer at a time, and `serve` is one for as long as it runs. `serve --read-only`
+is not: it serves a page that reads a tree something else is writing, and offers no writes.
+
 ## What it is for
 
 Two things, honestly stated:

@@ -615,6 +615,9 @@ footer .fault { color: var(--accent); }
                 outline: 2px solid var(--accent); outline-offset: -2px;
                 caret-color: var(--accent); }
 
+/* A server that only reads draws nothing, so the draw's controls are not shown. */
+body.read-only :is(#edge, #heat, #drawer) { display: none; }
+
 /* ---- the room below the text ----
    The length of a draw, set as where the last line stands when a scroll at the end draws.
    A faint line just left of the text with a point on it, found once and otherwise out of the

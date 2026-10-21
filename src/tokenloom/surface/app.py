@@ -78,6 +78,10 @@ LABEL = 120
 LEAD = 60
 
 
+class ReadOnly(Exception):
+    """A write was asked of a server started to read. Nothing was written."""
+
+
 class Busy(Exception):
     """A write was asked for while one was in flight. There is no queue."""
 
@@ -106,15 +110,20 @@ class Writer:
 
     The lock is not what serialises the writes -- one worker does that. It is what refuses a
     second request rather than queueing it behind the first.
+
+    Opened `read_only`, it takes no claim and verifies nothing, so it opens a tree another
+    process holds; the store it holds is a reader's and the routes that write refuse.
     """
 
-    def __init__(self, path: str | Path, *, verify: bool = True) -> None:
+    def __init__(
+        self, path: str | Path, *, verify: bool = True, read_only: bool = False
+    ) -> None:
         self.path = Path(path)
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tokenloom-write")
         self._busy = threading.Lock()
         try:
             self.store: Store = self._pool.submit(
-                Store.open, self.path, write=True, verify=verify
+                Store.open, self.path, write=not read_only, verify=verify
             ).result()
         except BaseException:
             self._pool.shutdown()
@@ -228,6 +237,7 @@ def _fault(kind: str, status: int, message: str, **extra: Any) -> JSONResponse:
 
 HANDLERS = {
     Rejected: lambda r, e: _fault("rejected", 400, str(e)),
+    ReadOnly: lambda r, e: _fault("read_only", 403, str(e)),
     Busy: lambda r, e: _fault("busy", 409, str(e)),
     Unreachable: lambda r, e: _fault("backend", 503, str(e)),
     Failed: lambda r, e: _fault("failed", 502, str(e)),
@@ -255,6 +265,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 "path": str(writer.store.path),
                 "vocabulary": writer.store.vocabulary,
                 "marker": writer.store.tree["marker"],
+                "writable": writer.store.writable,
                 # What a client keeps about this tree is keyed by it, since the address
                 # names the server and not the tree it was started against.
                 "created": writer.store.tree.get("created"),
@@ -443,6 +454,17 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
 
     # ---- writes: five acts, each under its own verb -----------------------------------
 
+    def writes(endpoint: Callable) -> Callable:
+        """The endpoint, or on a server started to read, a refusal made before the request
+        is read or a backend is asked for."""
+        if writer.store.writable:
+            return endpoint
+
+        async def refused(request: Request) -> JSONResponse:
+            raise ReadOnly(f"this server only reads {writer.store.path}")
+
+        return refused
+
     async def create(request: Request) -> JSONResponse:
         body = await request.json()
         adapter = await run_in_threadpool(backend.get)
@@ -523,11 +545,11 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             Route("/stub/{node:int}", stub),
             Route("/acts", acts),
             Route("/evaluable", evaluable),
-            Route("/create", create, methods=["POST"]),
-            Route("/generate", generate, methods=["POST"]),
-            Route("/realise", realise, methods=["POST"]),
-            Route("/delete", _liveness(False), methods=["POST"]),
-            Route("/undelete", _liveness(True), methods=["POST"]),
+            Route("/create", writes(create), methods=["POST"]),
+            Route("/generate", writes(generate), methods=["POST"]),
+            Route("/realise", writes(realise), methods=["POST"]),
+            Route("/delete", writes(_liveness(False)), methods=["POST"]),
+            Route("/undelete", writes(_liveness(True)), methods=["POST"]),
             # Last: the page is what is left over, and a named route is never shadowed by a
             # file that happens to share its path.
             Mount("/", Page(directory=PAGE, html=True)),

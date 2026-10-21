@@ -712,6 +712,18 @@ died — a killed command line, most likely — is swept the moment the surface 
 terminator is therefore something the surface *finds*: a request the surface itself loses, it
 loses along with the process holding it.
 
+**A surface started to read takes no claim, so it can be opened beside the one writer** — a
+person reading a tree an agent is working in, or a second page on a tree the command line holds.
+It verifies nothing and sweeps nothing, every one of the five verbs answers that this server only
+reads before it reads the request, and `/tree` says it is not writable. The page then offers no
+gesture that writes: no draw at the end of the column or at the caret, no composer, no realised
+row and no price on one, nothing set aside or brought back, and the draw's controls are not
+drawn. What it reads is a snapshot until the page is reloaded.
+
+**An act in flight there belongs to another writer, which may be drawing it or may be gone**, and
+only the next claim can tell the two apart. So the page neither waits on it nor calls it
+abandoned: it says that the act is in flight, whose it is, and that a reload shows it land.
+
 ## What the surface reads
 
 **Four reads, and each is one descent.** A read that asks per node — its own ancestry for
@@ -843,7 +855,8 @@ when it is settled.
 **What is built is the body above, `docs/LAYERS.md` for what is drawn over the column, and
 `docs/MAP.md` for what is drawn beside it.**
 `tokenloom serve` holds one tree and serves the four reads, the path predicate and the five acts
-over HTTP, with the page at the root so the two arrive from one origin. The page starts roots and
+over HTTP, with the page at the root so the two arrive from one origin, or with `--read-only`
+serves the reads alone on a tree another process holds. The page starts roots and
 names them, sets one path as prose with a caret that every act at a position lands on, continues
 it by a scroll at the end or a key at the caret, writes at the caret through a composer, takes a
 ranked row or reads and buys its arm, sets the draw beside the text, and draws the root it is

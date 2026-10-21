@@ -352,15 +352,15 @@ def cmd_serve(args) -> int:
     The claim is taken here rather than inside the application so that a tree another
     process holds is reported by the command that asked for it, and not as a server that
     fails to come up. The backend is built on first need: reads want none, and neither do
-    three of the five acts.
+    three of the five acts. `--read-only` takes no claim and serves none of the five.
     """
     import uvicorn
 
     from .surface.app import Backend, Writer, build_app
 
-    writer = Writer(args.tree)
-    print(f"{writer.store.path}  vocabulary {writer.store.vocabulary}  "
-          f"claimed until this process exits", flush=True)
+    writer = Writer(args.tree, read_only=args.read_only)
+    held = "read only, unclaimed" if args.read_only else "claimed until this process exits"
+    print(f"{writer.store.path}  vocabulary {writer.store.vocabulary}  {held}", flush=True)
     try:
         uvicorn.run(
             build_app(writer, Backend(lambda: adapter_for(args))),
@@ -518,6 +518,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8080)
     p.add_argument("--log-level", default="info", dest="log_level")
+    p.add_argument("--read-only", action="store_true", dest="read_only",
+                   help="take no claim and serve no writes, so a tree another process "
+                        "holds can be read")
     backend(p)
     p.set_defaults(fn=cmd_serve)
 

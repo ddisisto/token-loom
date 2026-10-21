@@ -19,7 +19,7 @@ from starlette.testclient import TestClient
 from tokenloom.core import Generation, Store, StoreError
 from tokenloom.core import reads as R
 from tokenloom.surface.app import PAGE, Backend, Writer, build_app
-from toy import FRAG_HI, FRAG_LO, MODEL, USER, ToyAdapter, ToyVocabulary, drew
+from toy import FRAG_HI, FRAG_LO, MODEL, USER, ToyAdapter, ToyVocabulary, drew, record_files
 
 
 def build(path):
@@ -80,12 +80,119 @@ def test_closing_the_writer_releases_the_claim(tmp_path):
 
 
 def test_a_read_connection_cannot_write(writer):
-    """`query_only`, so a read handler that reached for the store could not become a second
-    writer by accident."""
+    """Opened read-only, so a read handler that reached for the store could not become a
+    second writer by accident."""
     conn = writer.reader()
     try:
         with pytest.raises(Exception, match="readonly"):
             conn.execute("UPDATE nodes SET deleted = 1 WHERE id = 1")
+    finally:
+        conn.close()
+
+
+# ---- a server that only reads -------------------------------------------------------
+
+#: What each write route is sent, well-formed, so that a refusal is the mode's and not the
+#: request's.
+WRITES = {
+    "/create": {"at": 4, "text": " grey"},
+    "/generate": {"at": 4, "params": {"length": 1}},
+    "/realise": {"at": 2, "token": 104, "source": str(MODEL)},
+    "/delete": {"node": 4},
+    "/undelete": {"node": 5},
+}
+
+
+@pytest.fixture
+def looker(writer, tmp_path):
+    """A second server on the tree `writer` holds, started to read."""
+    held = Writer(tmp_path / "t", read_only=True)
+    yield held
+    held.close()
+
+
+def test_the_routes_that_write_are_the_five_acts(client):
+    """Every route that is not a GET, which is what a read-only server must refuse -- so a
+    write added without a refusal turns this red."""
+    posted = {
+        route.path for route in client.app.routes
+        if set(getattr(route, "methods", None) or ()) - {"GET", "HEAD"}
+    }
+    assert posted == set(WRITES)
+
+
+def test_a_read_only_server_opens_a_tree_another_process_holds(looker, tmp_path):
+    client = TestClient(build_app(looker, Backend(lambda: ToyAdapter([]))))
+    tree = client.get("/tree").json()
+    assert tree["writable"] is False
+    assert [r["id"] for r in tree["roots"]] == [1, 6]
+    assert client.get("/path/2").json()["leaf"] == 4
+    with pytest.raises(StoreError, match="another writer holds"):
+        Writer(tmp_path / "t")  # the claim it never took is still the other's
+
+
+def test_a_server_that_writes_says_so(client):
+    assert client.get("/tree").json()["writable"] is True
+
+
+def test_every_write_route_refuses_on_a_read_only_server_before_the_backend(looker):
+    asked = []
+
+    def make():
+        asked.append(True)
+        return ToyAdapter([])
+
+    client = TestClient(build_app(looker, Backend(make)))
+    acts = client.get("/tree").json()["counts"]["acts"]
+    for route, body in WRITES.items():
+        answer = client.post(route, json=body)
+        assert answer.status_code == 403, route
+        assert answer.json()["error"] == "read_only", route
+    assert client.get("/tree").json()["counts"]["acts"] == acts
+    assert asked == []
+
+
+def test_a_read_only_server_writes_nothing_while_another_writer_draws(writer, tmp_path):
+    """The other writer is inside a model call with its act committed and in flight. The
+    second server sees the act in flight and leaves it so -- calling it aborted is the claim's
+    to do -- and nothing it does reaches the disk, refused writes included."""
+    inside, go = threading.Event(), threading.Event()
+
+    def block(ids, params):
+        inside.set()
+        go.wait(5)
+        return drew((103, None))
+
+    slow = ToyAdapter([block])
+    thread = threading.Thread(
+        target=lambda: writer.act(
+            lambda store: store.generate(4, {"length": 1}, adapter=slow, actor=USER)
+        )
+    )
+    thread.start()
+    try:
+        assert inside.wait(5)
+        before = record_files(tmp_path / "t")
+        looker = Writer(tmp_path / "t", read_only=True)
+        try:
+            client = TestClient(build_app(looker, Backend(lambda: ToyAdapter([]))))
+            flight = client.get("/acts", params={"in_flight": 1}).json()["acts"]
+            assert [(a["op"], a["terminator"]) for a in flight] == [("generate", None)]
+            for read in ("/tree", "/path/2", "/ranking/2", "/stub/2", "/acts", "/map/1"):
+                assert client.get(read).status_code == 200, read
+            for route, body in WRITES.items():
+                assert client.post(route, json=body).status_code == 403, route
+        finally:
+            looker.close()
+        assert record_files(tmp_path / "t") == before
+    finally:
+        go.set()
+        thread.join(5)
+    conn = writer.reader()
+    try:
+        assert conn.execute(
+            "SELECT terminator FROM acts WHERE op = 'generate' ORDER BY id DESC LIMIT 1"
+        ).fetchone() == ("limit",)  # the writer that was drawing it landed it
     finally:
         conn.close()
 

@@ -57,9 +57,11 @@ def canonical(params: Mapping) -> str:
 class Store:
     """One tree, in one directory.
 
-    A reader takes no lock. A writer claims the tree when it opens it and holds the claim
-    until it closes, so one claim is one writer. Its first write after claiming records
-    abandoned acts, so opening a tree for writing can modify it.
+    A reader takes no lock and writes nothing: its connection is opened read-only, so not even
+    a checkpoint of what a departed writer left in the write-ahead log reaches the file. A
+    writer claims the tree when it opens it and holds the claim until it closes, so one claim
+    is one writer. Its first write after claiming records abandoned acts, so opening a tree
+    for writing can modify it.
     """
 
     def __init__(
@@ -106,7 +108,8 @@ class Store:
         # The claim is taken before the store is read, so what is verified is a tree no
         # other writer can still be changing.
         claim = cls._take_claim(path) if write else None
-        store = cls(path, _connect(path / BULK_FILE), tree, write=write, claim=claim)
+        conn = _connect(path / BULK_FILE, read_only=not write)
+        store = cls(path, conn, tree, write=write, claim=claim)
         if write:
             try:
                 store._create_missing_tables()
@@ -159,15 +162,13 @@ class Store:
     def reader(self) -> sqlite3.Connection:
         """A connection of its own, for a read that must not wait behind a write.
 
-        It takes no claim and makes no second writer: `query_only` is set on it, and the
+        It takes no claim and makes no second writer: it is opened read-only, and the
         journal mode already lets a reader take no lock. Unlike the store's own connection
         it may be used from another thread, which is the whole reason it exists -- a
         connection cannot leave the thread that made it, and a `generate` holds the writer's
         for as long as the model takes. The caller closes it.
         """
-        conn = _connect(self.path / BULK_FILE)
-        conn.execute("PRAGMA query_only = ON")
-        return conn
+        return _connect(self.path / BULK_FILE, read_only=True)
 
     def close(self) -> None:
         self.conn.close()
@@ -557,8 +558,13 @@ class Store:
         ).lastrowid
 
 
-def _connect(db: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(db)
+def _connect(db: Path, *, read_only: bool = False) -> sqlite3.Connection:
+    """`read_only` opens the file so that SQLite cannot write to it at all -- a checkpoint
+    when the last connection closes included, which `query_only` would still allow."""
+    if read_only:
+        conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True)
+    else:
+        conn = sqlite3.connect(db)
     conn.execute("PRAGMA journal_mode = WAL")  # a reader takes no lock and is not blocked
     conn.execute("PRAGMA synchronous = FULL")
     return conn
