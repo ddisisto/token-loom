@@ -310,13 +310,17 @@ tap("reading", "ln nodes");
 
 // ---- the rule is chosen from the same list -------------------------------------------------
 
-/* Every downward measure is a continuation rule, so the rules on offer are the measures and
- * not a second list. They move apart, because reading a path one measure laid out while
- * another is drawn over it is the case `docs/SURFACE.md` says a preset must leave reachable.
+/* Every downward measure is a continuation rule, so the rules on offer are the ranking and
+ * the measures, not a second list of measures. They move apart, because reading a path one
+ * measure laid out while another is drawn over it is the case `docs/SURFACE.md` says a preset
+ * must leave reachable.
  */
-is("the rules on offer are the downward measures",
-   groups.get("path").map(chip => chip.textContent), ["height", "size", "forks", "run"]);
+is("the rules on offer are the ranking, then the downward measures",
+   groups.get("path").map(chip => chip.textContent), ["ranked", "height", "size", "forks", "run"]);
+is("  and the ranking is the rule until another is chosen", O.rule(), "ranked");
+tap("path", "height");
 is("  and height's rule is sent under the name that is older than it", O.rule(), "longest");
+tap("path", "ranked");
 is("  while a measure that is no rule is not among them",
    groups.get("path").map(chip => chip.textContent).includes("passed"), false);
 

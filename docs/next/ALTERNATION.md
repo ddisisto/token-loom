@@ -13,17 +13,18 @@ a rule's verdict made before they looked.
 
 ## What it replaces
 
-**`longest` picks one future by a rule that has nothing to do with reading.** Under it, the
-path below the caret is whichever continuation is tallest. An arrival can land on a stub nobody
-chose, because rolling one made it the tallest. That is what `docs/NEXT.md` leaves open under
+**A rule picks one future by something that has nothing to do with reading.** Under `ranked`,
+the path below the caret is whichever continuation the model ranked highest at each fork, and
+under `longest` whichever is tallest. An arrival can land on a stub nobody chose, because buying
+one made it the highest ranked or rolling one made it the tallest. That is what `docs/NEXT.md` leaves open under
 *a tree that has been read over leans toward where the reading went*. Under alternation no branch
 is favoured for good, and nothing is chosen until the reader acts.
 
 **It is a continuation rule, of a kind that varies over time.** `docs/SURFACE.md` names a family
 of rules and settles none. A rule here gives each branch at a fork a weight rather than picking
 one, and the page shows each branch for a share of the time in proportion to its weight.
-`longest` is the case where all the weight is on one branch, so it stays a member of the family
-and is not replaced by this.
+`ranked` and `longest` are the case where all the weight is on one branch, so they stay members
+of the family and are not replaced by this.
 
 ## The weight
 

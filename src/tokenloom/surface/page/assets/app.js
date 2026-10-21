@@ -1788,6 +1788,7 @@ const svg = (name, attrs, cls) => {
   return el;
 };
 const pathIds = () => drawn.flatMap(cell => cell.nodes.map(n => n.id));
+const pathEnd = () => drawn.at(-1)?.nodes.at(-1).id ?? null;
 
 /** The rows open over the map where they are on, and their own ground covers it there. */
 function margin() {
@@ -2140,7 +2141,9 @@ function charting(event) {
   if (chartEl.classList.contains("moving")) return true;
   const hit = chartHit(event);
   if (hit === null) return false;
-  visit(hit).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+  // A point on the path being read keeps it, and only the caret moves.
+  const to = chart.path.has(hit.head) ? { tail: pathEnd(), depth: hit.depth } : hit;
+  visit(to).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
   return true;
 }
 
@@ -2621,10 +2624,13 @@ heated();
  * front of me. Moving any of them re-reads rather than repainting what is already drawn --
  * turning a measure on asks the server for what the last read did not carry, and changing the
  * rule asks for a different path entirely. One path costs milliseconds either way. */
+let ruled = taken();  // the rule the path being read was laid out by
 $("read").append(overlayPanel(async () => {
   try {
     const here = cursor.node();
-    await (here === null ? overlays([], {}) : show(here, here));
+    const through = taken() === ruled ? pathEnd() : here;
+    ruled = taken();
+    await (here === null ? overlays([], {}) : show(through, here));
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   }
@@ -2637,7 +2643,7 @@ $("hidden").onchange = async () => {
   showHidden = $("hidden").checked;
   try {
     await refresh();
-    if (cursor.node() !== null) await show(cursor.node());
+    if (pathEnd() !== null) await show(pathEnd());
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   }
@@ -2653,7 +2659,7 @@ $("taker").onchange = async () => {
   mark.want($("taker").checked);
   const here = cursor.node();
   try {
-    if (here !== null) await show(here, here);
+    if (here !== null) await show(pathEnd(), here);
   } catch (why) {
     say(`${why.kind || "unreachable"}: ${why.message}`, true);
   }

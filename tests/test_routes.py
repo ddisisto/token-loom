@@ -844,9 +844,11 @@ def test_a_path_carries_no_downward_measure_until_one_is_asked_for(client):
 def test_the_route_says_what_it_can_measure_and_what_it_can_follow(client):
     """A client picking a rule or a measure should not have to be told the names out of
     band, and the two lists are one fact: every downward measure makes a rule, so a server
-    that gained a measure and not its rule would be reporting an inconsistency it has."""
+    that gained a measure and not its rule would be reporting an inconsistency it has. The
+    ranking is the one rule no measure makes."""
     body = client.get("/path/1").json()
-    assert set(body["rules"]) == (set(body["measures"]) - {"height"}) | {"longest"}
+    assert body["rule"] == "ranked"
+    assert set(body["rules"]) == (set(body["measures"]) - {"height"}) | {"longest", "ranked"}
     for name in body["rules"]:
         assert client.get("/path/1", params={"rule": name}).status_code == 200
 

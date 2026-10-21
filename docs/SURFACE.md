@@ -138,17 +138,22 @@ own words beside them.
 **The surface shows one complete path**, root to a leaf, and the reader's position in the tree
 *is* that path.
 
-**Below a node that has just changed, a continuation rule picks the rest.** The first
-implementation is the **longest live continuation** — deepest wins, deleted nodes are not
-followed, ties go to insertion order. It is one of a family, the surface takes the rule as a
-parameter rather than embedding it, and which member is right is in What is not decided here. On
-first open, with nothing yet chosen, the whole path is that rule from the root.
+**Below a node that has just changed, a continuation rule picks the rest.** The default is
+**ranked**: at every fork the live child ranked highest there, authored text last since nothing
+ranked it, ties to insertion order. It is the child the map stands left-most, so the path from a
+root is the map's first branch and the first a scan across meets, and a reader can tell from the
+map where a path will go. It is one of a family, the surface takes the rule as a parameter
+rather than embedding it, and which member suits what is in What is not decided here. On first
+open, with nothing yet chosen, the whole path is that rule from the root, and from a waypoint
+it is that rule below it.
 
-**The path is held rather than re-derived**, and changes when the reader selects a branch or when
-an act lands. A reader who takes a shallow alternative and generates five tokens onto it would
-otherwise be thrown back onto the two-hundred-token branch they just left, which is still the
-longest descent from the root. **The path follows the act:** what an act produced is what the
-reader is looking at when it lands.
+**The path is held rather than re-derived**, and changes when the reader selects a branch, when
+an act lands, or when the rule is changed. A reader who takes a low-ranked alternative and
+generates five tokens onto it would otherwise be thrown back onto the branch they just left,
+which is still the rule's choice from the root. Pointing at the path being read, on the map as
+in the column, moves the caret and keeps the path, and so does any re-read that only changes
+how it is looked at. **The path follows the act:** what an act produced is what the reader is
+looking at when it lands.
 
 **Between forks, nothing is drawn.** A stretch where nothing is offered should look like prose,
 so the visible object is the fork and the column is otherwise text.
@@ -804,12 +809,13 @@ when it is settled.
   hunted for, or the parked ends going unused.
 - **Whether the draw's settings survive a reload.** None do, every act carrying its own. Settled
   by whether a reader finds themselves setting the same ones again after every load.
-- **Which continuation rule.** Longest, first, last, most-recently-used, cumulative open time —
-  each is defensible and they are comparable only by use. `longest` is the first implementation
-  because it is the one member that needs nothing but the tree; ties bite only for it, and are
-  insertion order. What settles it is reading one tree under two of them, which is why the path
-  read takes the rule as a parameter. A rule that reads what the reader did is what puts reader
-  state in *Nothing written is only here*.
+- **Which continuation rule, for what.** With the map drawing every path and the scan walking
+  them, a rule decides where a reading starts and what fills the column below a choice, and
+  `ranked` is the default for being the one a reader can predict from the map. Longest, the
+  other downward measures, most-recently-used and cumulative open time each serve some purpose,
+  and they are comparable only by use; reading one tree under two of them is what settles one,
+  which is why the path read takes the rule as a parameter. A rule that reads what the reader
+  did is what puts reader state in *Nothing written is only here*.
 - **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each
   reads differently at a sharp position than at a flat one, and a real ranking is often one and
   sometimes the other. The bar drawn now is each row against the top row of its source, which

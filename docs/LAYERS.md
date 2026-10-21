@@ -275,14 +275,16 @@ instead read the tree below a node — how far it reaches, how much of it there 
 parts, how far it runs before it parts at all. Three things follow at once, which is why this is
 a declaration and not a remark. One that looks up rides on the path read; one that looks down
 wants a descent. One that looks up never changes again, while one that looks down changes every
-time the reader generates. And **only a measure that looks down can be a continuation rule**,
-because a rule chooses among children by what lies beneath them.
+time the reader generates. And **a measure that looks down is a continuation rule**, because a
+rule chooses among children and what lies beneath each is what such a measure reads.
 
 **That last is not an analogy.** `longest` takes the child of greatest height, which is a measure
 of the subtree below each candidate used as an argmax over siblings. So every downward measure
 yields a rule, mechanically and with no second vocabulary. **Neither family contains the other**:
 a rule may read insertion order or what the reader last took, and neither is a quantity worth
-drawing along a path, since every node on one is the node that was taken. What the two share is
+drawing along a path, since every node on one is the node that was taken. A rule may also read
+the children themselves: `ranked` takes the one ranked highest at the fork, which is what a
+measure that looks up reads, compared across siblings rather than drawn along a path. What the two share is
 the part where a reader would otherwise set two things to get one behaviour, and that part is
 large enough that the rules are generated from the measures rather than listed beside them.
 
@@ -501,7 +503,8 @@ the measure reached and at what depths.
 from the same list.** Height, subtree size, the forks below and the run to the next fork come
 from one descent the path read carries when it is asked for. Each is offered twice — as a
 measure to draw and as the rule to continue by — because they are one scalar read two ways, and
-the two are set separately, so a path laid out by one can be read under another. None of them
+the two are set separately, so a path laid out by one can be read under another. The rules lead
+with `ranked`, which is the default and is offered as a rule alone. None of them
 carries a fixed domain, so the scale is the path's own and the panel does not offer to fix it.
 A fifth is drawn and is not offered as a rule: what the rule passed over, which is nothing along
 a corridor and the size of the declined arm at every fork.

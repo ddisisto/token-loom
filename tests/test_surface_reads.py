@@ -129,14 +129,14 @@ def test_a_stray_continuation_byte_is_its_own_segment():
 
 def test_longest_takes_the_deepest_arm(tree):
     """Node 5 is a leaf and node 3 reaches two further, so the rule goes through 3."""
-    assert [n.id for n in S.continuation(tree.conn, 2)] == [3, 4, 7]
+    assert [n.id for n in S.continuation(tree.conn, 2, S.longest)] == [3, 4, 7]
 
 
 def test_longest_breaks_a_tie_by_insertion_order(tree):
     """Nodes 5 and 3 are both live children of 2; make them the same depth and the earlier
     id wins, which is the only part of `longest` that is a choice rather than a reading."""
     tree.delete(4, actor=USER)
-    assert [n.id for n in S.continuation(tree.conn, 2)] == [3]
+    assert [n.id for n in S.continuation(tree.conn, 2, S.longest)] == [3]
 
 
 def test_longest_is_not_first(tmp_path):
@@ -152,11 +152,34 @@ def test_longest_is_not_first(tmp_path):
         store.create(2, " red", vocabulary=v, actor=USER)          # 3, a leaf, and earlier
         store.create(2, " is blue", vocabulary=v, actor=USER)      # 4, 5
         assert [n.id for n in R.children(store.conn, 2)] == [3, 4]
-        assert [n.id for n in S.continuation(store.conn, 1)] == [2, 4, 5]
+        assert [n.id for n in S.continuation(store.conn, 1, S.longest)] == [2, 4, 5]
 
-        lines = S.branches(store.conn, 1, budget=100)
+        lines = S.branches(store.conn, 1, budget=100, rule=S.longest)
         assert [reading(b) for b in lines] == [" sky is blue"]
         assert [(b.parts_at, reading(b)) for b in lines[0].branches] == [(len(" sky"), " red")]
+
+
+def test_ranked_takes_the_child_ranked_highest_and_not_the_longest_or_first(ranked):
+    """The drawn child is ranked -0.10 and the realised one -0.50, and the realised one is
+    made the longest. Authored text beside them is passed over too: nothing ranked it."""
+    store, tip = ranked
+    v = ToyVocabulary()
+    store.create(tip, " grey is red", vocabulary=v, actor=USER)
+    live = [n.id for n in R.children(store.conn, tip) if not n.deleted]
+    rank = R.logprobs(store.conn, live)
+    drawn, realised = sorted(rank, key=rank.get, reverse=True)
+    assert len(live) == 3 and rank[drawn] > rank[realised]
+    store.create(realised, " is blue red grey", vocabulary=v, actor=USER)
+    assert S.continuation(store.conn, tip, S.ranked)[0].id == drawn
+    assert S.continuation(store.conn, tip)[0].id == drawn, "and it is what a path follows"
+    assert S.continuation(store.conn, tip, S.longest)[0].id != drawn
+
+
+def test_ranked_takes_authored_text_in_the_order_it_came_where_nothing_was_ranked(tree):
+    """Every child of node 2 was written, so none is ranked, and the earliest live one is
+    taken."""
+    assert R.logprobs(tree.conn, [3, 5]) == {}
+    assert [n.id for n in S.continuation(tree.conn, 2, S.ranked)] == [3, 4, 7]
 
 
 def test_a_continuation_does_not_follow_a_deleted_node(tree):
@@ -275,9 +298,9 @@ def test_a_hidden_pass_appends_and_never_chooses(tree):
     tree.delete(8, actor=USER)
 
     # What the rule does when it is offered both, which is what must not happen.
-    assert S.continuation(tree.conn, 4, hidden=True)[0].id == 8
-    assert ids(S.path(tree.conn, 4, hidden=True)) == [1, 2, 3, 4, 7]
-    assert ids(S.path(tree.conn, 4, hidden=True)) == ids(S.path(tree.conn, 4))
+    assert S.continuation(tree.conn, 4, S.longest, hidden=True)[0].id == 8
+    assert ids(S.path(tree.conn, 4, S.longest, hidden=True)) == [1, 2, 3, 4, 7]
+    assert ids(S.path(tree.conn, 4, S.longest, hidden=True)) == ids(S.path(tree.conn, 4, S.longest))
 
 
 def test_a_node_that_is_hidden_continues_nowhere_until_it_is_asked_for(tree):
@@ -821,7 +844,7 @@ def test_the_run_stops_at_a_fork_and_at_a_leaf(tree):
 def test_the_rules_are_the_measures_and_longest_is_the_height_one(lopsided):
     """The relation the whole of this rests on. If `longest` were written separately it
     could drift from the measure it is, and nothing but this would notice."""
-    assert set(S.RULES) == (set(S.DOWNWARD) - {"height"}) | {"longest"}
+    assert set(S.RULES) == (set(S.DOWNWARD) - {"height"}) | {"longest", "ranked"}
     assert S.longest is S.RULES["longest"]
     held = S.Subtree(lopsided.conn, None)
     kids = held.below(1)

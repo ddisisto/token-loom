@@ -168,16 +168,17 @@ clicked inside an arm is not, and what draws there is the key at the caret.
 
 **A tree that has been read over leans toward where the reading went, and that is the open
 part.** A bought arm lands live, because a stub born set aside would read as one the reader
-closed and the mark that says which would stop meaning anything. Live, it is taller than the
-standing descent at about a third of the positions in the trees here, so `longest` hands it the
-branch point. Nothing moves while the reader is looking — a purchase is bought where it stands,
+closed and the mark that says which would stop meaning anything. Live, it takes the branch point
+under `ranked` wherever it outranks what was drawn there, which a hot draw leaves room for,
+and under `longest` at about a third of the positions in the trees here, where it is taller than
+the standing descent. Nothing moves while the reader is looking — a purchase is bought where it stands,
 whichever row it is, and pointing at a token takes no read — but **an arrival is derived afresh**,
 and it can land on a stub nobody chose. Observed: a sweep across three rows at one position, then
 a reload, and the column came back down one of the three. A reload, a root taken from the list and
 a row taken from the panel are the arrivals left.
 
 **It is the rule doing its job and not the page failing at its own**, which is why nothing here
-is a fix yet. What would change it is a second member of `RULES` measuring height over what was
+is a fix yet. What would change it is a member of `RULES` measuring height over what was
 drawn rather than over what was rolled — a stub is any node no act but a greedy one produced, so
 it is derivable, and `acts` is the table *The settings a draw was made under* and *The act's condition* both
 want opened. Whether it is wanted is a question about reading: a default path that follows the
@@ -322,11 +323,6 @@ is read. A generation still running is the exception, because it is the one act 
 the record is something the reader is waiting on. `/acts` answers the whole list unfiltered and
 should keep doing so: the rest of it belongs behind a log view, hidden by default, which is worth
 having while the page is being built and is not part of reading.
-
-**The continuation rule is a parameter of the read, and the page must not put it back.**
-`docs/SURFACE.md` names a family of them and settles none, because they are compared by use.
-`longest` is the only member built, a second is a function and an entry in `RULES`, and what the
-page owes the question is a way to swap them over one tree.
 
 **Nothing can change the store under the page, and what to do with that is the page's to
 settle.** The server holds the claim, so it is the only writer there is — but that is true of

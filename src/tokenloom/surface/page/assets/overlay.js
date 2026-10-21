@@ -215,8 +215,9 @@ let fixed = true;
 /* Which continuation rule the read follows, by the server's name for it. It is held here
  * because it is chosen from the same list of scalars the measures are, and it moves
  * independently of them: reading a path laid out by one measure while another is drawn over
- * it is the case `docs/SURFACE.md` says a preset must not take away. */
-let taken = "longest";
+ * it is the case `docs/SURFACE.md` says a preset must not take away. `ranked` is first and no
+ * measure: the map's left-most child at every fork. */
+let taken = "ranked";
 
 export const asked = () => chosen !== null;
 
@@ -518,11 +519,15 @@ export function panel(changed) {
    * list: a scalar of what is below is a rule, taking the child with the most of it. The two
    * are set apart because reading a path one measure chose while another is drawn over it is
    * the case that pays, and that is what a preset must leave reachable. */
-  const rules = MEASURES.filter(m => m.rule).map(m => ({
-    label: m.key,
-    value: m.rule,
-    title: `continue into the child with the most ${m.key} below it`,
-  }));
+  const rules = [
+    { label: "ranked", value: "ranked",
+      title: "continue into the child ranked highest, as the map stands them, authored last" },
+    ...MEASURES.filter(m => m.rule).map(m => ({
+      label: m.key,
+      value: m.rule,
+      title: `continue into the child with the most ${m.key} below it`,
+    })),
+  ];
 
   body.append(
     chips("path", rules, () => taken, value => { taken = value; }, changed),

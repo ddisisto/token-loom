@@ -196,7 +196,7 @@ def _rule(request: Request, *, bare: bool = False) -> S.Rule | None:
     """`bare` admits `none`, which is the ancestry and nothing below -- what a client that
     already knows its leaf asks for. A preview has no such reading: it follows a rule or it
     is not a preview."""
-    named = request.query_params.get("rule", "longest")
+    named = request.query_params.get("rule", "ranked")
     if bare and named == "none":
         return None
     if named not in RULES:
@@ -349,7 +349,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
                 # that matters: a path that ran out and a path the reader closed stop in
                 # the same place and are not the same thing.
                 "why": S.CLOSED if S.shut(conn, leaf) else S.ENDS,
-                "rule": request.query_params.get("rule", "longest"),
+                "rule": request.query_params.get("rule", "ranked"),
                 "hidden": hidden,
                 "overlays": wanted,
                 "beneath": under,
@@ -420,7 +420,7 @@ def build_app(writer: Writer, backend: Backend) -> Starlette:
             return JSONResponse({
                 "node": node,
                 "budget": budget,
-                "rule": request.query_params.get("rule", "longest"),
+                "rule": request.query_params.get("rule", "ranked"),
                 "branches": [wire.branch(line) for line in lines],
                 "sources": wire.source_names(conn),
             })

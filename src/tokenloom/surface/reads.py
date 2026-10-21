@@ -115,6 +115,8 @@ class Subtree:
         rooted: bool = False,
     ) -> None:
         self.anchor = anchor
+        self.conn = conn
+        self._ranks: dict[int, float | None] = {}
         self.children: dict[int | None, list[R.Node]] = {}
         order: list[R.Node] = []
         if rooted and anchor is not None:
@@ -181,6 +183,14 @@ class Subtree:
     def nodes(self) -> list[R.Node]:
         return [n for kids in self.children.values() for n in kids]
 
+    def ranks(self, nodes: list[R.Node]) -> dict[int, float | None]:
+        """The logprob each node's token had in the ranking at its parent, by node, and None
+        where nothing ranked it, as for authored text."""
+        if missing := [n.id for n in nodes if n.id not in self._ranks]:
+            got = R.logprobs(self.conn, missing)
+            self._ranks.update({i: got.get(i) for i in missing})
+        return {n.id: self._ranks[n.id] for n in nodes}
+
 
 type Rule = Callable[[Subtree, list[R.Node]], R.Node]
 
@@ -225,10 +235,23 @@ RULES["longest"] = RULES.pop("height")
 longest: Rule = RULES["longest"]
 
 
+def ranked(tree: Subtree, candidates: list[R.Node]) -> R.Node:
+    """The child ranked highest at the fork, what nothing ranked last, ties to insertion
+    order. It is the map's left-most child, so the path it makes from a root is the first
+    branch a scan across meets."""
+    if len(candidates) == 1:
+        return candidates[0]
+    rank = tree.ranks(candidates)
+    return max(candidates, key=lambda n: (rank[n.id] is not None, rank[n.id] or 0.0, -n.id))
+
+
+RULES["ranked"] = ranked
+
+
 def continuation(
     conn: sqlite3.Connection,
     node: int | None = None,
-    rule: Rule = longest,
+    rule: Rule = ranked,
     hidden: bool = False,
 ) -> list[R.Node]:
     """The rest of a path below `node`, chosen a step at a time by `rule`.
@@ -368,7 +391,7 @@ def reference(
 def path(
     conn: sqlite3.Connection,
     node: int,
-    rule: Rule | None = longest,
+    rule: Rule | None = ranked,
     hidden: bool = False,
 ) -> list[Segment[R.PathNode]]:
     """Root to a leaf through `node`, in segments, each carrying its nodes' marks.
@@ -542,7 +565,7 @@ class Branch:
 
 
 def branches(
-    conn: sqlite3.Connection, node: int, budget: int, rule: Rule = longest
+    conn: sqlite3.Connection, node: int, budget: int, rule: Rule = ranked
 ) -> list[Branch]:
     """The live subtree below `node` as preview lines, depth-first.
 
