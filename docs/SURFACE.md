@@ -371,9 +371,9 @@ whether a reader should be told is in What is not decided here.
 
 **The tree under the current root, drawn as a shape in the half of the window the column leaves
 empty.** The column shows one path and cannot show where that path stands in the tree or what
-else the tree holds; the map is that picture, and pointing at a place in it is an arrival. It has
-that half to itself: while it is on, the rows are not shown and *Arms* with them. It is a way of
-looking with a switch beside the others, and it is drawn from the half's edge nearest the text.
+else the tree holds; the map is that picture, and pointing at a place in it is an arrival. The
+rows open over it where they are on, their own ground covering it there. It is a way of looking
+with a switch beside the others, and it is drawn from the half's edge nearest the text.
 
 **Down the page by default, and across behind a switch.** Drawn down, the map is a scrollbar for
 the whole tree: the tokens in view are a thumb on the reader's path, dragged to scroll the column.
@@ -422,11 +422,10 @@ of the map of one size whatever the tree's depth. **A strand is in the zone of i
 point**, so a limb that left the trunk early and runs alongside the thumb is near, and a subtree
 folds only when all of it is far; a switch puts it in the zone its fork is in instead.
 
-**The root and the path's end are walls.** A zone is not moved off a wall, and what is not drawn
-past it is room across for the focus. Zoomed in at all, the axis runs from the root to the end of
-the reader's path wherever that is short of the tree's deepest, so the thumb is the column's
-share of the map, and a strand running past the end stops at the edge with a dot. Otherwise the
-axis does not move. Zoomed in, the bar says how many strands are drawn in each zone, from the
+**The root and the tree's end are walls.** A zone is not moved off a wall, and what is not drawn
+past it is room across for the focus. The axis does not move: it is the whole tree at every step,
+so a long path and a short one beside it keep their places while the reader compares them. Zoomed
+in, the bar says how many strands are drawn in each zone, from the
 thumb out, beside what the cut does. A step glides, quicker than an arrival does; a scroll that moves what is cut
 draws it again at once. Shift and the wheel are claimed in full, being neither the draw a wheel
 at the end of the column asks for nor the sideways scroll some browsers make of it, and a fine
@@ -943,8 +942,9 @@ when it is settled.
 - **Whether the map holds still.** It is laid again around every arrival, so the shape moves
   whenever the path does, and it is the path that stays put. A map that held its shape while the
   reader moved through it is the other way to have it. Settled by use.
-- **Where the rows stand while the map has the margin.** The map took the half the rows open in,
-  and they are off while it is on. Settled by placing them somewhere else and reading with both.
+- **Where the rows stand while the map has the margin.** They open over it, which is easy to
+  dismiss and covers what is under them. Settled by placing them somewhere else and reading with
+  both.
 - **Everything past the first gesture.** Comparison across branches, and what the instrument does
   that a reader could not get from reading one path at a time. Nothing settles this but use.
 

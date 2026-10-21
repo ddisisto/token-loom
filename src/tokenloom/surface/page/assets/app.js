@@ -1747,10 +1747,9 @@ const svg = (name, attrs, cls) => {
 };
 const pathIds = () => drawn.flatMap(cell => cell.nodes.map(n => n.id));
 
-/** The rows are hidden while the map has the margin. */
+/** The rows open over the map where they are on, and their own ground covers it there. */
 function margin() {
-  $("rows").disabled = look.on;
-  ranking.want($("rows").checked && !look.on);
+  ranking.want($("rows").checked);
   settled();
 }
 
@@ -1782,10 +1781,10 @@ async function charter() {
 /** What is cut on the path drawn, zoomed as far as it is about the thumb, and the axis it is
  *  cut on. */
 function cutting(tree, path) {
-  const most = map.axis(tree, zoomed, pathIds().length);
+  const most = map.most(tree);
   const span = thumbSpan();
   const cut = map.zoned(tree, { base: look.rung, steps: zoomed, span, most, byFork: look.byFork });
-  return { most, span, hairs: map.hair(tree, cut, path, zoomed > 0 ? most : Infinity) };
+  return { most, span, hairs: map.hair(tree, cut, path) };
 }
 
 /** Draw what is thumbed around the path that is drawn: across the margin, or down it with the
@@ -1865,8 +1864,6 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
     if (s.aside !== null)
       mark("line", line(s.aside, s.y, Math.max(s.x1, s.aside + 0.8), s.y),
            "strand aside", `a${s.head}`, s.head);
-    // Past the path's end, where a zoom puts the wall, what runs on is marked where it leaves.
-    if (s.clipped) mark("circle", dot(s.x1, s.y, 1.6), "clip", `c${s.head}`);
   }
   for (const k of plan.fans)
     mark("circle", dot(k.x, k.y, 0.8 + 0.6 * Math.sqrt(k.n)), "fan", `f${k.head}`);
@@ -2526,8 +2523,7 @@ try {
   showHidden = $("hidden").checked;
   look.on = $("charted").checked;
   document.body.classList.toggle("unmapped", !look.on);
-  ranking.want($("rows").checked && !look.on);
-  $("rows").disabled = look.on;
+  ranking.want($("rows").checked);
   const tree = await refresh();
   // With nothing yet chosen the first root is what is read; with no roots at all the page
   // is never a bare one, because the only thing to do here is the only thing offered.

@@ -74,14 +74,13 @@ export function continuing(kids, path) {
 
 /** Which strands are drawn as ticks under `cut`, a rung of `LADDER` or a strand's rung from
  *  `zoned`: hair, which is a leaf, and folds, which are not. A fork's continuing child is never
- *  one. A strand starting at or past `end` is cut whatever it is, being past the wall. */
-export function hair(tree, cut, path, end = Infinity) {
+ *  one. */
+export function hair(tree, cut, path) {
   const out = new Set();
   const at = typeof cut === "function" ? cut : () => cut;
   for (const kids of tree.kids.values()) {
     const main = continuing(kids, path);
     for (const k of kids) {
-      if (k.depth >= end) { out.add(k.head); continue; }
       if (k === main) continue;
       const c = at(k);
       if (k.leaf ? (c.stubs && k.stub) || k.length <= c.under : k.weight <= (c.fold ?? 0))
@@ -112,12 +111,11 @@ export function effect(tree, hairs) {
 }
 
 /** x for a count of tokens from the root, over `[pad, width - pad]` for `[0, most]`, and
- *  back again. Past `most` is at the edge, and `x.most` says where that is. */
+ *  back again. */
 export function scale({ most, width, pad }) {
   const k = (width - 2 * pad) / Math.max(most, 1e-9);
-  const x = v => pad + Math.min(v, most) * k;
+  const x = v => pad + v * k;
   x.invert = px => Math.max(0, px - pad) / k;
-  x.most = most;
   return x;
 }
 
@@ -236,8 +234,7 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
     if (!rows.has(s.head)) continue;
     const a = x(s.depth), b = x(s.depth + s.length);
     out.strands.push({ head: s.head, x0: a, x1: b, y: y(s.head), path: path.has(s.head),
-                       aside: s.aside === null ? null : x(s.depth + s.aside),
-                       clipped: s.depth + s.length > (x.most ?? Infinity) });
+                       aside: s.aside === null ? null : x(s.depth + s.aside) });
     if (s.up !== null && rows.get(s.up) !== rows.get(s.head))
       out.links.push({ head: s.head, x: a, y0: y(s.up), y1: y(s.head) });
   }
@@ -248,7 +245,7 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
     if (kids.length >= 3) out.fans.push({ head: up, x: at, y: y(up), n: kids.length });
     const main = continuing(kids.filter(k => !hairs.has(k.head)), path);
     for (const k of kids) {
-      if (!hairs.has(k.head) || k.depth >= (x.most ?? Infinity)) continue;
+      if (!hairs.has(k.head)) continue;
       // Shorter hair stands further off its row, so a fringe of them reads as a fringe. A fold
       // reaches as far as what it holds does.
       const span = tree.ends.get(k.head) - k.depth;
@@ -349,11 +346,6 @@ export function deepest(base, { n, scaling } = ZONES) {
   const far = (n - 1) * scaling - 1;  // rungs a step moves the furthest zone by
   return Math.max(base, far > 0 ? Math.ceil((LADDER.length - 1 - base) / far) : 0);
 }
-
-/** How long the axis is, in tokens: the whole tree, and zoomed in, as far as the path `end`s
- *  where it ends short of that. */
-export const axis = (tree, steps, end) =>
-  steps > 0 && end > 0 ? Math.min(end, most(tree)) : most(tree);
 
 /** Each strand's rung zoomed `steps` in about the thumb's `span`, on an axis `most` tokens long:
  *  that of the zone it stands in, by its nearest point or, `byFork`, by where it leaves its

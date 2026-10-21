@@ -58,7 +58,12 @@ tokens with the window in view as a thumb. What follows:
 
 **The position axis stays one quantity.** Tokens are a count of what is there, and a measure
 squeezing or stretching it would cost the scrollbar its thumb. What the model was sure of goes on
-as colour instead.
+as colour instead. **What may change is the function from tokens to the axis**, which is a
+fisheye on the axis itself: more of it for the zones near the thumb and less far away, the count
+still read off a dim scale along the map's edge so the thumb says what it holds. It gives the
+detail near a short stub room without changing the axis's extent, which must not move while the
+reader compares that stub with a longer path. Later still, the zones' bands are markers on that
+scale for the reader to drag.
 
 **Each channel has one owner**, as the column's do, so that anything drawn can be drawn alongside
 anything else without one hiding the other. The column's stylesheet names its own: the inset

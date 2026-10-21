@@ -138,8 +138,6 @@ for (let base = 0; base < m.LADDER.length; base++) {
 }
 is("past the deepest step nothing changes", pastDeepest, 0);
 
-is("the axis is the whole tree unzoomed", m.axis(limb, 0, 30), 110);
-is("  and zoomed, ends where the path does", m.axis(limb, 1, 30), 30);
 // On the rung that folds 60 unzoomed, a step leaves it drawn near the thumb and folded far off.
 const folds60 = (span, byFork) => m.hair(limb, m.zoned(limb,
   { base: 7, steps: 1, span, most: 110, byFork }), none).has(60);
@@ -149,15 +147,6 @@ is("  near by its nearest point, and by its fork behind the switch",
    [folds60([50, 58], false), folds60([50, 58], true)], [false, true]);
 is("unzoomed, every strand is on the base",
    m.zoned(limb, { base: 3, steps: 0, span: [0, 5], most: 110 })(limb.byHead.get(60)), m.LADDER[3]);
-const walled = m.hair(limb, m.LADDER[0], none, 15);
-is("past the wall every strand is cut", [...walled].sort(), [61, 62]);
-const wx = m.scale({ most: 15, width: 240, pad: 20 });
-const wallDrawn = m.plan(limb, m.layout(limb, { x: wx, hairs: walled, path: none }),
-                         { x: wx, hairs: walled, path: none, step: 10 });
-is("  a strand running past it is clipped at the edge and says so",
-   wallDrawn.strands.map(s => [s.head, s.x1, s.clipped]),
-   [[1, wx(10), false], [20, wx(15), true], [60, wx(15), true]]);
-is("  and nothing past it is drawn", wallDrawn.hairs.length, 0);
 const counted = m.zoneCounts(limb, folded, { span: [100, 110], most: 110 });
 is("each strand drawn is counted in the zone it stands in, and only those",
    [counted, counted.reduce((a, b) => a + b)], [[1, 0, 1], m.effect(limb, folded).kept]);
@@ -185,14 +174,13 @@ for (let t = 0; t < 40; t++) {
   const nodes = [];
   for (let s = tip; s; s = tree.byHead.get(s.up)) nodes.push(s.head);
   const path = m.along(tree, nodes);
-  // Half of them zoomed about a thumb somewhere on the path, against the wall at its end.
+  // Half of them zoomed about a thumb somewhere on the path.
   const steps = t % 2 ? 1 + Math.floor(rand() * 5) : 0;
   const end = tip.depth + tip.length;
-  const most = m.axis(tree, steps, end);
+  const most = m.most(tree);
   const from = rand() * end, span = [from, Math.min(end, from + 1 + rand() * 40)];
   const base = t % m.LADDER.length;
-  const hairs = m.hair(tree, m.zoned(tree, { base, steps, span, most }), path,
-                       steps ? most : Infinity);
+  const hairs = m.hair(tree, m.zoned(tree, { base, steps, span, most }), path);
   const gone = m.undrawn(tree, hairs);
   const x = m.scale({ most, width: 200 + 20 * t, pad: 10 });
   const rows = m.layout(tree, { x, hairs, path });
