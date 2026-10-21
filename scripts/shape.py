@@ -7,8 +7,8 @@ in memory, which is a few megabytes at a hundred thousand nodes.
 A **strand** is a maximal run of nodes each with exactly one child, opened at a root or at
 a child of a fork and closed at a fork or a leaf. Collapsing to strands is what leaves the
 shape: a tree grown by drawing is long runs with nothing on them, and the forks carry all of
-its structure. It is `docs/SURFACE.md`'s word, from *The map*, and not *segment*, which there
-means the shortest run of nodes whose bytes decode.
+its structure. It is `docs/MAP.md`'s word, and not `docs/SURFACE.md`'s *segment*, which means
+the shortest run of nodes whose bytes decode.
 
 A leaf strand is a **stub** when every act that wrote any node past its head drew at
 temperature 0, which is `docs/SPINE.md`'s test for the reference arm. The head is left out

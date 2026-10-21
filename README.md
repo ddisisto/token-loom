@@ -112,6 +112,8 @@ test.
   question says what would settle it.
 - **[`docs/LAYERS.md`](docs/LAYERS.md)**: what the page draws over the text: the measures, the
   scales they are read on, and the mark saying who put each token there.
+- **[`docs/MAP.md`](docs/MAP.md)**: the tree drawn beside the text as a map: one path is the
+  text, and everything else is structure, to see the tree by and move around it by.
 - **[`docs/NEXT.md`](docs/NEXT.md)**: what gets built next and in what order, with the larger
   pieces of work as epics under [`docs/next/`](docs/next/). Items are deleted once they close.
 

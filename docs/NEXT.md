@@ -17,22 +17,23 @@ reworked, and not before.
 **The order is the content.** Each is cheaper before the one after it and dearer after, and that
 is the only reason they are numbered. One that has no file yet points at where it stands below.
 
-1. **[Map](next/MAP.md)**: the tree drawn as a shape in the right margin, the reader's path and
-   waypoints on it, and a way in. It runs down the page as a scrollbar for the whole tree, and
-   what follows is the layers' colours on it.
-2. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
+1. **Map**: what `docs/MAP.md`'s Status names as designed and not built — the fisheye on the
+   axis first, which is what a knot is inspected with, then the layers' colours on the strands.
+2. **[Knots](next/KNOTS.md)**: forks close enough along a path straightened into one place, in
+   the drawing and in navigation, and the branches leaving it sorted by what the model preferred.
+3. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
    nav under their roots. Its first cut is in, and the map is where what follows it is drawn
    as well as listed.
-3. **[Alternation](next/ALTERNATION.md)**: a fork's branches taking turns in one place, weighted,
+4. **[Alternation](next/ALTERNATION.md)**: a fork's branches taking turns in one place, weighted,
    and what is shown when the reader acts is what they get. It starts in the nav's trails, which
    Waypoints made, and it may change what Arms has to lay out.
-4. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
+5. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
    a stack is read in. *The page*, increments 1 and 2. The read that shows where a set of paths
    part is shared with Waypoints, and whichever of the two comes first builds it.
-5. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
+6. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
    *The page*, increment 3, and *The act's condition*. The two together open `acts` once and
    not twice.
-6. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
+7. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
    measure looks and how wide a position branches. *The page*, increments 4 and 5. Branching
    waits on Arms, which is what makes a position wide.
 
@@ -406,7 +407,7 @@ occasion beyond the command* under Loose ends.
 
 ## Loose ends
 
-- **The trail walked back.** `docs/SURFACE.md`'s *The map* keeps the last twenty paths a reader
+- **The trail walked back.** `docs/MAP.md` keeps the last twenty paths a reader
   was on, and back is the gesture that takes the last one off: each arrival a history entry, so
   the browser's back, a mouse's and a key all pop it, forward puts it back, and it stops at the
   start of the trail rather than leaving the page. Two things want deciding with it: an entry

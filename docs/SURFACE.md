@@ -370,103 +370,9 @@ whether a reader should be told is in What is not decided here.
 
 ## The map
 
-**The tree under the current root, drawn as a shape in the half of the window the column leaves
-empty.** The column shows one path and cannot show where that path stands in the tree or what
-else the tree holds; the map is that picture, and pointing at a place in it is an arrival. The
-rows open over it where they are on, their own ground covering it there. It is a way of looking
-with a switch beside the others, and it is drawn from the half's edge nearest the text.
-
-**Down the page by default, and across behind a switch.** Drawn down, the map is a scrollbar for
-the whole tree: the tokens in view are a thumb on the reader's path, dragged to scroll the column.
-Drawn across, it is the same plan turned, with the thumb along the path's row. The two are kept so
-that each can be read against the other on any tree.
-
-**A strand is a maximal run of nodes each with one child**, opened at a root or at a child of a
-fork and closed at a fork or a leaf. It is the map's unit, since a tree grown by drawing is long
-runs with nothing on them and the forks carry all of its shape. *Segment* is the display unit
-above and is not this.
-
-**Along a strand is a quantity summed from the root, and says which.** It is tokens, and a strand
-runs from where its fork stands to where it ends. An axis that holds a quantity is the rule; one
-squeezed to fit what the drawing has room for is not.
-
-**Across is the ranking, and it is local.** At each fork one child continues the row: the one on
-the reader's path where there is one, and otherwise the heaviest. The others stand on one side of
-it if the model ranked them higher and on the other if lower — above and below across the page,
-left and right down it — the nearest rank nearest, each packed as close to
-its fork as the strands already placed allow. A child nothing ranked stands below every one that
-was. So the reader's path is one straight row, a strand above it is one the model liked better at
-the fork it leaves, and a strand far below is one it hardly considered.
-
-**Hair is a leaf the map does not give a row of its own**, drawn as a tick off its fork, to one
-side or the other by the same rule, and **a fold is a whole subtree drawn so**: one tick reaching
-as far as what it holds and as heavy as its tokens, which a click takes down its heaviest line,
-and which says so when a waypoint is folded inside it. The **skeleton** is what is left. What is
-cut is one ladder of rungs the reader moves, finest to coarsest: nothing; a hover's stubs, in
-`docs/SPINE.md`'s sense; with them, leaves no longer than 4, 8, 16, 32 and 64 nodes; and with
-those, subtrees holding no more than 256 tokens, 1,024, and any. The cut is stated by what it does
-to the drawing, as strands kept and the share of the tokens drawn as ticks, because what the same
-numbers do differs by tree and by what the reader is after. The axis is the whole tree whatever is
-cut. The child that continues a fork is never cut, so a tree is never drawn without the path it
-mostly is.
-
-**Zoom is a cut that depends on where the reader is**, and not a magnification: shift with the
-wheel turned up draws more of the tree around the thumb and less of it far away, and turned down
-evens that out again, down to the bar's cut. It is a degree-of-interest view, after Furnas's
-fisheye views. **The focus is the thumb** and stays the thumb, so a zoom is always about what is
-being read, scrolling moves it, and there is no pan. **The axis is split into zones about it,
-mirrored either side**: the thumb and a focal distance either side, then rings each wider than
-the last by a ratio. A step moves the focus a rung of the ladder finer and each zone further out
-a scaling's worth of rungs coarser than the one inside it, so with three zones the middle keeps
-the bar's rung and the far one is what folds. The focal distance is a share of the axis, a band
-of the map of one size whatever the tree's depth. **A strand is in the zone of its nearest
-point**, so a limb that left the trunk early and runs alongside the thumb is near, and a subtree
-folds only when all of it is far; a switch puts it in the zone its fork is in instead.
-
-**The root and the tree's end are walls.** A zone is not moved off a wall, and what is not drawn
-past it is room across for the focus. The axis does not move: it is the whole tree at every step,
-so a long path and a short one beside it keep their places while the reader compares them. Zoomed
-in, the bar says how many strands are drawn in each zone, from the
-thumb out, beside what the cut does. A step glides, quicker than an arrival does; a scroll that moves what is cut
-draws it again at once. Shift and the wheel are claimed in full, being neither the draw a wheel
-at the end of the column asks for nor the sideways scroll some browsers make of it, and a fine
-wheel's movement adds up to a notch.
-
-**What it marks**: the reader's path and the caret on it, the waypoints wherever they stand, what
-is set aside where the toggle shows it, and a fork three or more strands leave as a dot sized by
-how many.
-
-**What the pointer is over is one place on both.** The column and the map hold the same positions
-along the reader's path, and a pointer is only ever over one of them, so where it is is marked on
-each: a glow on the segment in the column, and a tick across the path on the map, both in a colour
-of the pointer's own. A segment out of view keeps its glow out of view, and the tick against the
-thumb says where it is.
-
-**A strand pointed at is traced back to the root**, lit along every strand it hangs from, so the
-shape it would take and where it leaves the reader's path are both in view before it is taken.
-
-**Pointing at a strand is an arrival.** The column reads the path through that strand and puts
-the caret on the segment holding the node under the pointer, as taking a waypoint does. The
-reader's path is always one straight row and a branch is offset from it, so taking a branch is
-that branch straightening, and the drawing moves there over a second rather than jumping, with
-what is new fading in. A click while it moves is not taken, since it would land on where
-something is going rather than where it is.
-
-**The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths
-they were on in this tree, newest first, kept in the browser as waypoints are, so it follows a
-reader between visits and is drawn again on the way back in. The four most recent paths behind
-the current one are drawn, each in a colour of its own that steps away from the accent through
-red as it ages, so each can be told from the next; a strand takes the colour of the most recent
-it was on, and the change is eased over the same glide. A path that only grew past the last one
-takes its place rather than being another, so moving along a path or a draw extending it leaves
-nothing behind. A point
-on nothing is a point on nothing, and releases the caret as before. The thumb is taken and not
-pointed at: dragging it scrolls, the column's own scroll is not a reader reading on and asks for
-nothing, and the caret follows the window once it is let go, as after any scroll.
-
-**What it is drawn from is read once per root and per act**, and once again when the toggle or
-the waypoints change. Moving along a path or arriving on another redraws it from what is held,
-and the packing is laid again around the new path.
+**The tree under the current root, drawn beside the text, is `docs/MAP.md`'s.** The column holds
+one path as text and the map holds everything else as structure: where that path stands, what
+else the tree holds, and how to get there, which pointing at a place in it does.
 
 ## Rankings
 
@@ -927,25 +833,6 @@ when it is settled.
   whatever is new to the view would cover them all and makes a long re-derived path light up
   whole after a shallow row is taken, which is either noise or the point. What settles it is
   marking them and reading a tree with them marked.
-- **What the ranked map does to a whole tree.** Each fork orders only its own children, and what
-  a global picture made of only local orders looks like is the open part of *The map*. Settled by
-  reading it on trees of each kind — one long writing, one many draws from near its start, one a
-  fan of greedy arms.
-- **What the cut is by default.** It is a hover's stubs and leaves of sixteen nodes or fewer,
-  which is a first number, and stubs will stop being one thing when a hover draws under other
-  settings than greedy. Settled by use, with the ladder: the default is whatever a reader leaves
-  it at.
-- **Where the zones stand and how they step.** Three zones, a focal distance of a twentieth of
-  the axis, rings three times wider each, and a rung a step, are first numbers. Settled by
-  zooming long roots and short ones, and only then by a control.
-- **Whether a strand is near by its nearest point or by its fork.** Settled by the switch, on the
-  trees that have limbs.
-- **Whether the map holds still.** It is laid again around every arrival, so the shape moves
-  whenever the path does, and it is the path that stays put. A map that held its shape while the
-  reader moved through it is the other way to have it. Settled by use.
-- **Where the rows stand while the map has the margin.** They open over it, which is easy to
-  dismiss and covers what is under them. Settled by placing them somewhere else and reading with
-  both.
 - **Everything past the first gesture.** Comparison across branches, and what the instrument does
   that a reader could not get from reading one path at a time. Nothing settles this but use.
 
@@ -953,7 +840,8 @@ when it is settled.
 
 ## Status
 
-**What is built is the body above, and `docs/LAYERS.md` for what is drawn over the column.**
+**What is built is the body above, `docs/LAYERS.md` for what is drawn over the column, and
+`docs/MAP.md` for what is drawn beside it.**
 `tokenloom serve` holds one tree and serves the four reads, the path predicate and the five acts
 over HTTP, with the page at the root so the two arrive from one origin. The page starts roots and
 names them, sets one path as prose with a caret that every act at a position lands on, continues
