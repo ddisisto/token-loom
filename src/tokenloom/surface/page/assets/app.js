@@ -362,7 +362,8 @@ function spans(segments, marks, takers) {
       if (hidden) restore(cell);
       else flip(false, cell.nodes[0].id, cell.nodes[0].parent);
     };
-    el.onmouseenter = () => { hover(i); peek(i, el); };
+    el.onmouseenter = () => { clearTimeout(unpeeking); hover(i); peek(i, el); };
+    el.onmouseleave = () => { clearTimeout(unpeeking); unpeeking = setTimeout(unpeek, SEEN); };
     // The caret is drawn *on* the segment it follows and never between segments. An element
     // in the flow moves the text around it, and text that shifts as the reader points at it
     // is friction in the one thing this page is for. A rule on an inside edge costs no
@@ -458,6 +459,7 @@ const SCAN = 130;   // ms, the panel following a pointer across the column
 const SETTLE_IN = 280;  // ms, the panel arriving where the reader came to rest
 
 let peeking = null;
+let unpeeking = null;  // a token let go of, whose peek goes once nothing else is pointed at
 let showing = null;
 
 /* The node the list on screen belongs to, and when it stops moving. A list is left alone
@@ -954,6 +956,13 @@ function settled() {
   opened(showing, mark, SETTLE_IN, CARET).catch(() => clear());
 }
 
+/** Put the rows back where the reader is, and what the pointer is over with them. */
+function unpeek() {
+  clearTimeout(peeking);
+  hover(null);
+  settled();
+}
+
 function peek(i, el) {
   if (!ranking.asked()) return;
   clearTimeout(peeking);
@@ -1012,9 +1021,9 @@ async function reading(node) {
 function laid({ read, cells, closed }) {
   const flow = document.createElement("div");
   flow.className = "flow";
-  // Leaving the text puts the rows back where the reader is, so a peek never outlives the
-  // pointer and what stands beside the column is the caret's again.
-  flow.onmouseleave = () => { clearTimeout(peeking); hover(null); settled(); };
+  // Leaving the text puts the rows back where the reader is at once, as leaving a token does
+  // after a beat, so a peek never outlives the pointer on its token.
+  flow.onmouseleave = () => { clearTimeout(unpeeking); unpeek(); };
   // Read over what is drawn and not over what came back, so a path-relative scale takes its
   // range from the text in front of the reader.
   flow.append(...spans(cells, overlays(cells, read.sources), mark.read(cells, read.kinds)));
