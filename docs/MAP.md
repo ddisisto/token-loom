@@ -125,6 +125,23 @@ that branch straightening, and the drawing moves there over a second rather than
 what is new fading in. A click while it moves is not taken, since it would land on where
 something is going rather than where it is.
 
+**Ctrl and an arrow across the map moves to the next branch over, at the same place along.**
+Left and right where the map runs down the page, up and down where it runs across, and Ctrl,
+shift and the wheel the same; a text box keeps the keys for itself. Each move is an arrival, so it
+glides, and the thumb and the window stay where they were while only the branch changes.
+
+- **The order is depth-first**, with a fork's children in the order the map stands them across:
+  ranked higher first, nothing ranked last. It is the tree's and not the path's, so it is the same
+  whichever way the reader scans and wherever they land, and a branch shaped nothing like the last
+  cannot reshuffle what comes next. The children's order is the part another ordering across
+  would replace.
+- **What is scanned is every branch the map draws that reaches the focus**: each leaf the cut
+  leaves a row of its own, whose end is at or past the start of the thumb's focal zone. A limb
+  that left the trunk early and runs beside the thumb is in, and a stub that ended far above it
+  is not, so the zoom widens and narrows what is scanned with nothing of its own.
+- **It lands at the caret's depth**, or at the branch's end where that is short of it, so a short
+  stub ending in the focus is scanned among the longer branches and not passed over.
+
 **The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths
 they were on in this tree, newest first, kept in the browser as waypoints are, so it follows a
 reader between visits and is drawn again on the way back in. The four most recent paths behind
@@ -234,6 +251,10 @@ when it is settled.
 - **Whether zoom is enough to read at every scale.** If it is, a local map — one already cut to a
   knot, a trunk, or the tree down to some order of branching — is never built, and more than one
   root at once is the other direction. Settled by navigating long roots with zoom alone.
+- **Whether a scan always steps to the strand drawn next to it.** The packing nests a subtree on
+  its side of its fork wherever it fits, so cousins can stand interleaved where the depth-first
+  order has them apart. Settled by scanning a broad root and noting where a step lands somewhere
+  unexpected.
 - **Whether the map holds still.** It is laid again around every arrival, so the shape moves
   whenever the path does, and it is the path that stays put. A map that held its shape while the
   reader moved through it is the other way to have it. Settled by use.
@@ -273,6 +294,7 @@ when it is settled.
 
 ## Status
 
-**What is built is the body above, except two things designed and not built**: the layers'
-colours on the strands, and the trail moving to the halo. An axis magnified about the thumb, with a pan and a rail, was built and set aside and
-is on the `zoom-svg` branch.
+**What is built is the body above, except three things designed and not built**: scanning
+across branches with Ctrl, the layers' colours on the strands, and the trail moving to the halo.
+An axis magnified about the thumb, with a pan and a rail, was built and set aside and is on the
+`zoom-svg` branch.

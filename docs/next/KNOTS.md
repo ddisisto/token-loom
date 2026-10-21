@@ -40,5 +40,8 @@ this is built.
   a knot at different depths, so the first-token rank the map sorts by now does not compare them.
 - **That ordering is the emergent temperature axis**: near-greedy on one side, hot further out, and
   authored text, which has no ranking, at the far end.
+- **Scanning across walks knots and not raw forks.** `docs/MAP.md`'s scan orders branches
+  depth-first; once a knot is one place, its branches are siblings there and the depth-first
+  order is taken at that level, in the knot's own sort.
 - **What it reads**: `/map` sends a strand's first logprob only, and a windowed mean wants the
   logprobs along each branch, which is a surface read and not a core change.
