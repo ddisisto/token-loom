@@ -18,13 +18,13 @@ The tree is `src/tokenloom/core/`, and the command line is the client on it. A r
 surface over an HTTP API is where this is going, which is why the first point below is a
 constraint and not an observation.
 
-**The claim is not concurrency control, and reading it as such costs an argument every
-time.** One `flock`, one writer — and what it buys is that two things can be read off the
-store instead of guessed at: what a writer verified cannot change beneath it, so verifying
-is once per claim; and an act left in flight is one whose writer is gone, which is what
-makes `aborted` decidable. Simultaneous writers to one tree are not wanted and never have
-been, so what it costs to exclude them is not a question. `docs/CORE.md`'s *On disk* is
-where this is stated.
+**One writer holds the claim, and a reader takes none.** What the claim buys is that two
+things can be read off the store instead of guessed at: what a writer verified cannot change
+beneath it, and an act left in flight is one whose writer is gone, which is what makes
+`aborted` decidable; `docs/CORE.md`'s *On disk* states it. **A reader opens the store
+read-only, and `query_only` is not that**: an SQLite connection that closes last folds the
+write-ahead log into the database, which is a write, and on a tree another process holds it
+rewrites that writer's file.
 
 **A read sits above the core when it needs a character, a measure of room, or what the
 reader did.** `src/tokenloom/surface/reads.py` is that layer — segmentation, the continuation rule,
@@ -68,6 +68,9 @@ rather than a fault to correct.
 `README.md` maps them and says what each is for. These are the rules for changing them, and
 each one is here because it was got wrong.
 
+- **`README.md` is written for a technical stranger** who has used a logprob viewer or a loom
+  and read none of this: plain words first, the demo early, real prerequisites, the page as the
+  way in, the uses stated honestly, and the documents labelled as working notes.
 - **`docs/CORE.md` moves only as its own deliberate piece of work** — never in passing, and
   never to accommodate what a backend or a client turned out to want. `marker` is what tells a
   reader it moved. **How a derivation is shaped is not an argument**: *a descent from the root
@@ -143,6 +146,11 @@ is settled is the signal that one did not.
 
 **A citation from a document you may not edit says the cited thing is in the wrong place.**
 
+**Prose is written for the reader who arrives wanting the current state.** Write what is true
+now and delete what it replaces rather than contrasting with it: no *this used to say*, no
+defence against an earlier framing. On any pass, *can this go?* is the default question, and
+consolidating beats adding.
+
 ## Inference
 
 **Local only.** Qwen2.5-7B **base** (i1-Q4_K_M) on port 8081 as `qwen2.5-7b-base`. ~5.2GB
@@ -186,6 +194,10 @@ about so that reading it first is where you already are.
   `uv run ruff check src tests scripts` before every commit.
 - **`uv run pytest` needs no server.** The live tests skip without one; `-m live` runs only
   those, and they are the ones that can tell you the docs have gone stale.
+- A merge to main is pushed.
+- An agent given a worktree branches from the current tip and commits there, and its worktree
+  is removed once it reports. Its work can be looked at before a merge by serving from the
+  worktree, against a tree another server holds, with `serve --read-only`.
 
 ## The page is ES modules with no build step, and node is what checks them
 
@@ -207,9 +219,18 @@ a row weighs, where a scale puts a value — these take the measurements as argu
 checked without a browser. A module that reaches for `getBoundingClientRect` has put something
 untestable where something testable was.
 
+**A redraw or an arrival holds the reader's place**, which `docs/SURFACE.md`'s *What this is*
+states and which is the first thing to check a change to the page against. **How it moves is
+judged by the person using it**: what an agent verifies is the arithmetic, through the drivers,
+and the page's state, through script, and it hands motion over with a question about what to
+look at.
+
 ## Writing code and tests
 
 - **Fix root causes.** A workaround that leaves the original fault in place is not a fix.
+- **Code says what it does and what is easy to get wrong about it, and not why.** Rationale,
+  measurements and what was superseded live in `docs/`, and a comment conspicuously longer than
+  its neighbours is usually the last discussion leaking in; it cites the document instead.
 - **A derived value is the easiest thing to get silently wrong**, because nothing disagrees
   with it. Anything derived deserves a test that reaches it on purpose, since ordinary use
   will not.
@@ -256,10 +277,14 @@ How decisions get made here — what has paid off, and what it cost to skip.
   into its epic on a branch of its own and committed there before any code, so the build starts
   from a document rather than from a conversation. The build runs in a fresh session: it checks
   in with the person first, builds, has each step looked at as it lands, and merges once it
-  holds. A session that has grown long steps back to planning across the project instead of
-  starting the next build in what is left of its context, since design leaves behind turns that
-  a build is better without. What was built and set aside is kept on a branch, and the epic
-  names the branch in a line.
+  holds. A session carries on into the next build while that build's code overlaps what it
+  already holds, and otherwise compacts at a clean boundary, after a merge, rather than starting
+  a build in what is left of its context: a context of a few hundred thousand tokens is more
+  diverse than useful, and design leaves behind turns that a build is better without. What was
+  built and set aside is kept on a branch, and the epic names the branch in a line.
+- **The branch is the unit of review.** A feature lands on a short branch of its own and is
+  looked at in use before it merges, and what using it turns up rides on the same branch while
+  its code is in hand. The commits inside it are the builder's; the person reviews what lands.
 
 ## What carries the unfinished
 

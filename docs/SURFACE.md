@@ -24,6 +24,17 @@ panels. Everything else here is something a reader asks for, and a real tree car
 at nearly every position, so a surface that drew what it knows would be a picture of the tool
 rather than of its subject. What gets set as prose is whatever the path holds, degenerate or not.
 
+**Nothing moves under the reader that the reader did not move.** A way of looking re-reads and
+keeps the path; an arrival glides, and a step across holds the window on the stretch of text it
+held; the map's axis keeps its extent while one path is compared with another; the column keeps
+its height through steps across. A redraw or an arrival that is added holds the reader's place
+the same way.
+
+**A cut-off is stated by what it does, and it is a setting.** What counts as hair, a stub or a
+knot is a target on the drawing — so many rows kept, such a share of the tokens drawn as ticks,
+so many places from so many forks — tuned per tree, per reader and per purpose. A default stated
+in an input it happens to take, a length or a temperature, is provisional.
+
 **One tree at a time, and the surface is its sole writer.**
 
 **The tree is made here as well as read.** Every path the surface reads across is one a reader
