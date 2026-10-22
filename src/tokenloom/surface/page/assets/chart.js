@@ -19,6 +19,8 @@ const SVG = "http://www.w3.org/2000/svg";
 const LEAD = 100;          // ms the caret takes to where an arrival is going
 const SHOWN = 700;         // ms the zones' edges stay drawn across the map after they last moved
 const STRIDE = 400;        // ms it takes over a step of zoom
+const KNOTTED = 5;         // px a knot's bar is at the least along
+const UNTIE = 2;           // steps of zoom a click on a knot takes in
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
 const STEPS = 4;           // paths back the trail is drawn for, each in a colour of its own
 
@@ -144,8 +146,8 @@ function marksOf(tree, plan, x, back) {
     if (fold !== undefined) marked.add(fold);
   }
   for (const k of plan.knots)
-    out.push([`k${k.head}`, "line", lineAt(k.x0, k.y, Math.max(k.x1, k.x0 + 0.8), k.y), "knot",
-              null, {}]);
+    out.push([`k${k.head}`, "line", lineAt((k.x0 + k.x1) / 2, k.y0, (k.x0 + k.x1) / 2, k.y1),
+              "knot", null, { "--span": `${Math.max(KNOTTED, k.x1 - k.x0 + KNOTTED / 2)}px` }]);
   for (const l of plan.links)
     out.push([`l${l.head}`, "line", lineAt(l.x, l.y0, l.x, l.y1), "link", l.head, {}]);
   for (const h of plan.hairs)
@@ -481,6 +483,17 @@ export function charting(event) {
   if (into !== null) {
     const got = cells();
     if (got !== null) point(map.holding(got.at, Math.floor(chart.span[0] + into)));
+    return true;
+  }
+  // A click on a knot takes the reader there, on its row at its top, and zooms in about it.
+  const p = chartPoint(event);
+  const knot = p === null ? null : map.knotAt(chart.plan, p.along, p.across, 3);
+  if (knot !== null) {
+    const depth = knot.from - 1;
+    lead(knot.head, depth);
+    visit({ tail: chart.path.has(knot.head) ? pathEnd() : chart.tree.lines.get(knot.head).tail,
+            depth })
+      .then(() => zoomBy(UNTIE)).catch(wrong).finally(unlead);
     return true;
   }
   const hit = chartHit(event);

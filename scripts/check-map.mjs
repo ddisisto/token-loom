@@ -245,6 +245,16 @@ is("  each stands by its rank against what continued where it left",
    [60, 70].map(h => Math.sign(tiedRows.get(h))), [-1, 1]);
 is("  and a scan walks them as one place, by where each left",
    tied.tree.order.filter(s => s.leaf).map(s => s.head), [5, 80, 50, 60, 70]);
+const tiedPlan = m.plan(tied.tree, tiedRows, { x, hairs: none, path: none, step: 10,
+                                               knots: tied.knots });
+const bar = tiedPlan.knots[0];
+is("  drawn as one bar along its span, across every row of what leaves it",
+   [bar.x0, bar.x1, bar.y0, bar.y1],
+   [x(10), x(14), ...[Math.min, Math.max].map(f => f(...[1, 50, 60, 70].map(h =>
+     tiedPlan.strands.find(s => s.head === h).y)))]);
+is("  in place of their links", tiedPlan.links.filter(l => tied.tree.byHead.get(l.head).up === 1), []);
+is("  and a point on it is the knot", m.knotAt(tiedPlan, x(12), (bar.y0 + bar.y1) / 2, 3)?.head, 1);
+is("  and one past it is not", m.knotAt(tiedPlan, x(20), bar.y0, 3), null);
 is("a cap parts a ladder", m.knot(row, none, none, { range: 4, cap: 3 }).knots,
    [{ head: 1, from: 10, to: 12 }]);
 is("no range knots nothing, and the tree is the one given",

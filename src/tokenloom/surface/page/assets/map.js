@@ -306,8 +306,9 @@ export function layout(tree, { x, hairs, path }) {
 // ---- the plan -----------------------------------------------------------------------------
 
 /** What is drawn, in px: strands as runs along their rows, links from a fork down or up to
- *  a strand that left it, hair as ticks off the fork they leave, and a fan wherever three
- *  or more strands leave one fork. `step` is the px between rows; `top` is the y of the
+ *  a strand that left it, hair as ticks off the fork they leave, a fan wherever three or more
+ *  strands leave one fork, and each of `knots` as a bar along its span and across the rows of
+ *  what leaves it, which stands in for those strands' links. `step` is the px between rows; `top` is the y of the
  *  highest row. */
 export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) {
   let lo = Infinity, hi = -Infinity;
@@ -315,14 +316,22 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) 
   const y = head => top + (rows.get(head) - lo) * step;
   const out = { strands: [], links: [], hairs: [], fans: [], knots: [],
                 height: rows.size ? (hi - lo) * step : 0 };
-  for (const k of knots)
-    if (rows.has(k.head)) out.knots.push({ head: k.head, x0: x(k.from), x1: x(k.to), y: y(k.head) });
+  // A knot is one bar, across every row a strand leaving it stands on, in place of their links.
+  const tying = new Set();
+  for (const k of knots) {
+    if (!rows.has(k.head)) continue;
+    const ys = [k.head, ...(tree.kids.get(k.head) ?? []).map(c => c.head)]
+      .filter(h => rows.has(h)).map(y);
+    out.knots.push({ head: k.head, from: k.from, to: k.to, x0: x(k.from), x1: x(k.to),
+                     y0: Math.min(...ys), y1: Math.max(...ys) });
+    tying.add(k.head);
+  }
   for (const s of tree.strands) {
     if (!rows.has(s.head)) continue;
     const a = x(s.depth), b = x(s.depth + s.length);
     out.strands.push({ head: s.head, x0: a, x1: b, y: y(s.head), path: path.has(s.head),
                        aside: s.aside === null ? null : x(s.depth + s.aside) });
-    if (s.up !== null && rows.get(s.up) !== rows.get(s.head))
+    if (s.up !== null && rows.get(s.up) !== rows.get(s.head) && !tying.has(s.up))
       out.links.push({ head: s.head, x: a, y0: y(s.up), y1: y(s.head) });
   }
   for (const [up, kids] of tree.kids) {
@@ -347,6 +356,12 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) 
     }
   }
   return out;
+}
+
+/** The knot whose bar in `drawn` a point is on, within `slack` px, or null. */
+export function knotAt(drawn, px, py, slack) {
+  return drawn.knots.find(k => px >= k.x0 - slack && px <= k.x1 + slack
+                               && py >= k.y0 - slack && py <= k.y1 + slack) ?? null;
 }
 
 /** The strand or tick nearest a point within `slack` px, and which of its nodes the point is
