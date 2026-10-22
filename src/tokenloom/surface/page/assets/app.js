@@ -183,7 +183,11 @@ async function reach(node, named = null, through = node, hold = null) {
   // caret is not moved back into a band it is already in the middle of.
   carried = performance.now() + CARRY;
   if (hold === null) seg.scrollIntoView({ block: "center" });
-  else window.scrollBy(0, seg.getBoundingClientRect().top - hold);
+  else {
+    const got = cells();
+    const el = got?.segs[map.holding(got.at, Math.min(hold.depth, got.at.at(-1) - 1))];
+    if (el) window.scrollBy(0, el.getBoundingClientRect().top - hold.top);
+  }
   for (const el of [seg, named]) {
     if (el === null) continue;
     el.classList.remove("beacon");
@@ -1800,10 +1804,11 @@ let wheeled = 0;      // px of a fine wheel not yet a step
 let refocusing = false; // a check of the cut asked for this frame, so a scroll asks once
 let scanned = 0;      // px of a fine wheel not yet a step across
 let scanning = false; // an arrival across still on its way
-let scanAt = null;    // { node, depth }: where the last scan landed, and the depth it kept
+let scanAt = null;    // where the last scan landed, the depth it kept, and the window it held
 let led = null;       // where the caret has gone ahead of an arrival, until it is drawn
 let rush = { until: 0, pace: GLIDE };  // the glide a run of steps across has hurried to
 let cool = { t0: 0, until: 0 };        // from when until when the drawing catches the caret up
+let swept = 1;   // which end of the caret its colour sweeps from: the side it came from
 let aiming = null;  // a run of steps across: where it lands, from where, and the branch it is going to
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
@@ -2104,7 +2109,7 @@ function cooling() {
   if (!el) return;
   const left = cool.until - performance.now();
   el.style.transition = "none";
-  el.style.strokeDashoffset = left > 0 ? String(left / (cool.until - cool.t0)) : "0";
+  el.style.strokeDashoffset = left > 0 ? String(swept * left / (cool.until - cool.t0)) : "0";
   if (left <= 0) return;
   void el.getBoundingClientRect();  // the offset lands before the transition from it starts
   el.style.transition = `stroke-dashoffset ${left}ms linear`;
@@ -2223,7 +2228,7 @@ function charting(event) {
 }
 
 /** The path through a strand's tail, and the caret on the segment holding the node pointed at:
- *  centred in the window, or with its top at `hold` px. */
+ *  centred in the window, or with the token `hold.depth` from the root at `hold.top` px. */
 async function visit({ tail, depth }, hold = null) {
   const line = await ask(`/path/${tail}?rule=none&hidden=${showHidden ? 1 : 0}`);
   let seen = 0;
@@ -2389,6 +2394,8 @@ function lead(head, depth) {
   const els = [chart.caret, chart.sweep], from = {};
   for (const k of Object.keys(to))
     from[k] = els[0].hasAttribute(k) ? Number(els[0].getAttribute(k)) : to[k];
+  const across = at => look.down ? at.x1 + at.x2 : at.y1 + at.y2;
+  if (across(to) !== across(from)) swept = Math.sign(across(to) - across(from));
   for (const el of els) el.style.display = "";
   const t0 = performance.now();
   const frame = now => {
@@ -2440,7 +2447,7 @@ function unlead() {
 const aimedAt = run => Math.min(run.depth, run.to.depth + run.to.length - 1);
 
 /** Step to the branch next over, `by` 1 down the depth-first order or -1 up it, at the depth the
- *  reader last put the caret at, with the token there held where it stands in the window. A
+ *  reader last put the caret at, with the window holding the stretch of the path it held. A
  *  step taken before the last has landed steps on from where that was going, so a run of them
  *  is counted and lands once, on the last. `paced` drops a step while one is on its way and the
  *  caret is far out from the thumb, which is what keeps a spun wheel from running away. */
@@ -2451,25 +2458,30 @@ function scanBy(by, { paced = false } = {}) {
   if (run === null) {
     const got = cells();
     if (got === null) return;
-    const { span, most } = chart;
+    const { span } = chart;
     const caret = pathIds().indexOf(cursor.node());
-    // The depth the reader last put the caret at, which a landing short of it does not change.
-    const depth = scanAt?.node === cursor.node() ? scanAt.depth
+    // The depth the reader last put the caret at, which a landing short of it does not change,
+    // and the stretch of the path in the window, which none of the steps since has moved.
+    const same = scanAt?.node === cursor.node();
+    const depth = same ? scanAt.depth
       : caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
-    run = {
-      depth,
-      from: span ? span[0] - map.ZONES.focal * most : depth,
-      until: span ? span[1] : depth,
-      hold: got.segs[map.holding(got.at, Math.min(depth, got.at.at(-1) - 1))]
-        .getBoundingClientRect().top,
-      to: null,
-    };
+    if (same && Math.abs(scanAt.y - window.scrollY) < 2) run = { ...scanAt.run, depth, to: null };
+    else {
+      const top = span ? Math.floor(span[0]) : Math.min(depth, got.at.at(-1) - 1);
+      run = {
+        depth,
+        from: top + 1,
+        until: span ? span[1] : depth,
+        hold: { depth: top, top: got.segs[map.holding(got.at, top)].getBoundingClientRect().top },
+        to: null,
+      };
+    }
   }
   const to = map.scan(chart.tree, chart.hairs, run.to?.head ?? [...chart.path].at(-1), by, run);
   if (to === null) { say(by > 0 ? "no branch further over" : "no branch further back"); return; }
   aiming = { ...run, to };
-  hurry();
   lead(to.head, aimedAt(aiming));
+  hurry();
   if (!scanning) goAcross().catch(scanFails);
 }
 
@@ -2480,7 +2492,9 @@ async function goAcross() {
     while (aiming !== null && aiming.to.head !== [...chart.path].at(-1)) {
       const run = aiming;
       await visit({ tail: run.to.tail, depth: aimedAt(run) }, run.hold);
-      scanAt = { node: cursor.node(), depth: run.depth };
+      const { from, until, hold } = run;
+      scanAt = { node: cursor.node(), depth: run.depth, y: window.scrollY,
+                 run: { from, until, hold } };
     }
   } finally {
     scanning = false;

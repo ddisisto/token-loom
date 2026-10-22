@@ -137,8 +137,9 @@ glides, and the thumb and the window stay where they were while only the branch 
   land once. Each step leaves a shadow of the caret where it was, which dims and goes, and what
   is left of them goes when the last glide of the run ends.
 - **The drawing hurries to keep up.** A step taken while it still moves glides faster than the one
-  before, down to a quarter of a second, and the caret's colour sweeps along it over the time
-  left until the drawing catches it up, so how far behind it is can be seen.
+  before, down to a quarter of a second, and the caret's colour sweeps along it from the side it
+  came from over the time left until the drawing catches it up, so how far behind it is can be
+  seen.
 - **The wheel is paced and not counted.** A notch is a step, and one is not taken while a step is
   on its way and the caret is more than three rows out from the thumb's row, so a spun wheel
   runs as fast as the drawing keeps up.
@@ -149,17 +150,19 @@ glides, and the thumb and the window stay where they were while only the branch 
   cannot reshuffle what comes next. The children's order is the part another ordering across
   would replace.
 - **What is scanned is every branch the map draws that reads differently in the window**: each
-  leaf the cut leaves a row of its own, whose end is at or past the start of the thumb's focal
-  zone, and which leaves the path being read at or above the window's foot. A limb that left
-  the trunk early and runs beside the thumb is in; a stub that ended far above it is not, and
-  nor is a branch leaving below the window, which reads the same in it. The zoom widens and
+  leaf the cut leaves a row of its own, which reaches into the window and leaves the path being
+  read at or above the window's foot. A limb that left the trunk early and runs beside the thumb
+  is in; a stub that ended above the window is not, and nor is a branch leaving below it, which
+  reads the same in it. The zoom widens and
   narrows what is scanned with nothing of its own. Which branches read differently depends on
   the path, so a step across and back returns to what reads the same in the window, which is
   the branch left or another leaving it only below the window.
 - **It lands at the depth the reader last put the caret at**, or at the branch's end where that
   is short of it, so a short stub ending in the focus is scanned among the longer branches and
   not passed over, and a longer one after it lands back at that depth. With no caret it lands at
-  the middle of the window, and the token it lands on keeps its place there.
+  the middle of the window. **The window keeps the stretch of the path it held**, pinned by the
+  token at its top, and steps after it keep that stretch until the reader moves the caret or
+  scrolls, so every step lands in it and its opposite returns to what read the same there.
 - **It stops at either end of the order** and says so, so a sweep has edges.
 
 **The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths
