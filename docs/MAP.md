@@ -122,11 +122,11 @@ a notch.
 **Pointing at a strand is an arrival.** The column reads the path through that strand and puts
 the caret on the segment holding the node under the pointer, as taking a waypoint does. The
 reader's path is always one straight row and a branch is offset from it, so taking a branch is
-that branch straightening, and the drawing moves there over a second rather than jumping, with
-what is new fading in. The caret goes first, in a tenth of a second, to where it will land on the
-branch as it is drawn when the move begins, and rides the branch into place; the thumb follows
-once it lands. So a reader stepping quickly sees where each step went without waiting for it. A click while it moves is not taken, since it would land on where
-something is going rather than where it is.
+that branch straightening, and the drawing glides there rather than jumping, with what is new
+fading in. The caret goes first, at once, to where it will land on the branch as it is drawn when
+the move begins, and rides the branch into place; the thumb follows once it lands. So a reader
+stepping quickly sees where each step went without waiting for it. A click while it moves is not
+taken, since it would land on where something is going rather than where it is.
 
 **Ctrl and an arrow across the map moves to the next branch over, at the same place along.**
 Left and right where the map runs down the page, up and down where it runs across, and Ctrl,
@@ -138,11 +138,11 @@ glides, and the thumb and the window stay where they were while only the branch 
   land once. Each step leaves a shadow of the caret where it was, which dims and goes, and what
   is left of them goes when the last glide of the run ends.
 - **The drawing hurries to keep up.** A step taken while it still moves glides faster than the one
-  before, down to a quarter of a second, and the caret's colour sweeps along it from the side it
+  before, down to a floor, and the caret's colour sweeps along it from the side it
   came from over the time left until the drawing catches it up, so how far behind it is can be
   seen.
 - **The wheel is paced and not counted.** A notch is a step, and one is not taken while a step is
-  on its way and the caret is more than three rows out from the thumb's row, so a spun wheel
+  on its way and the caret is more than a few rows out from the thumb's row, so a spun wheel
   runs as fast as the drawing keeps up.
 
 - **The order is depth-first**, with a fork's children in the order the map stands them across:
