@@ -114,6 +114,21 @@ is("  so no node pointing can land on is one the column has no mark for",
    mixed.map((_, i) => C.chosen(mixed, i)).filter(to => to !== null)
      .every(to => seats(mixed).has(to)), true);
 
+/* A step moves the caret a segment along, so it lands only where pointing could have put it,
+ * and a segment that spells nothing is reached like any other -- pointing cannot reach one,
+ * having nothing to point at. */
+is("a step takes the caret past the next segment, a whole character at a time",
+   [C.stepped(mixed, 699, 1), C.stepped(mixed, 701, 1)], [701, 702]);
+is("  and back the same way", [C.stepped(mixed, 702, -1), C.stepped(mixed, 701, -1)], [701, 699]);
+is("  and stops at either end", [C.stepped(mixed, 702, 1), C.stepped(mixed, 699, -1)], [null, null]);
+is("  and from inside a character, which is no seat, it does not step",
+   C.stepped(mixed, 700, 1), null);
+const blank = [...path(2), { ...cell(), text: "" }, cell()];
+is("a segment that spells nothing is a step of its own",
+   C.stepped(blank, blank[1].nodes[0].id, 1), blank[2].nodes[0].id);
+is("nothing set aside is stepped onto",
+   C.stepped(pruned, C.resting(pruned), 1), null);
+
 // ---- following the window ---------------------------------------------------------------------
 
 /* The gesture that asks for a draw is the scroll and the draw lands at the caret, so a caret

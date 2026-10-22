@@ -110,6 +110,17 @@ export function seated(cells, node, place) {
   return null;
 }
 
+/** Where a step of `by` segments takes the caret at `node`: after the segment that many along,
+ *  passing what is set aside, or null past either end and for a caret on no segment's end. A
+ *  segment that spells nothing is a step like any other, so this is how one is reached. */
+export function stepped(cells, node, by) {
+  const at = cells.findIndex(cell => cell.nodes.at(-1).id === node);
+  if (at < 0) return null;
+  for (let i = at + by; i >= 0 && i < cells.length; i += by)
+    if (!aside(cells[i])) return cells[i].nodes.at(-1).id;
+  return null;
+}
+
 /** Where choosing a segment puts the caret: immediately before it, which is the node its
  *  first token hangs from.
  *

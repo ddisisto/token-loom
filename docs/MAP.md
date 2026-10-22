@@ -122,7 +122,9 @@ a notch.
 the caret on the segment holding the node under the pointer, as taking a waypoint does. The
 reader's path is always one straight row and a branch is offset from it, so taking a branch is
 that branch straightening, and the drawing moves there over a second rather than jumping, with
-what is new fading in. A click while it moves is not taken, since it would land on where
+what is new fading in. The caret goes first, in a tenth of a second, to where it will land on the
+branch as it is drawn when the move begins, and rides the branch into place; the thumb follows
+once it lands. So a reader stepping quickly sees where each step went without waiting for it. A click while it moves is not taken, since it would land on where
 something is going rather than where it is.
 
 **Ctrl and an arrow across the map moves to the next branch over, at the same place along.**
@@ -143,9 +145,10 @@ glides, and the thumb and the window stay where they were while only the branch 
   narrows what is scanned with nothing of its own. Which branches read differently depends on
   the path, so a step across and back returns to what reads the same in the window, which is
   the branch left or another leaving it only below the window.
-- **It lands at the caret's depth**, or at the branch's end where that is short of it, so a short
-  stub ending in the focus is scanned among the longer branches and not passed over. With no
-  caret it lands at the middle of the window, and the token it lands on keeps its place there.
+- **It lands at the depth the reader last put the caret at**, or at the branch's end where that
+  is short of it, so a short stub ending in the focus is scanned among the longer branches and
+  not passed over, and a longer one after it lands back at that depth. With no caret it lands at
+  the middle of the window, and the token it lands on keeps its place there.
 - **It stops at either end of the order** and says so, so a sweep has edges.
 
 **The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths
@@ -157,7 +160,8 @@ it was on, and the change is eased over the same glide. A path that only grew pa
 takes its place rather than being another, so moving along a path or a draw extending it leaves
 nothing behind. A point
 on nothing is a point on nothing, and releases the caret as before. The thumb is taken and not
-pointed at: dragging it scrolls, the column's own scroll is not a reader reading on and asks for
+pointed at: a click in it puts the caret on the token under it and the window stays, dragging it
+scrolls, the column's own scroll is not a reader reading on and asks for
 nothing, and the caret follows the window once it is let go, as after any scroll.
 
 **What it is drawn from is read once per root and per act**, and once again when the toggle or

@@ -412,11 +412,26 @@ function frontier() {
  *  move.
  */
 function point(i) {
-  const to = cursor.chosen(drawn, i);
+  put(cursor.chosen(drawn, i));
+}
+
+/** Put the caret after the node `to`, over text that does not move. */
+function put(to) {
   if (to === null) return;
   cursor.place(to);
   frontier();
   settled();
+}
+
+/** Step the caret `by` segments along the path, scrolling only as far as keeps it in view. */
+function step(by) {
+  const to = cursor.stepped(drawn, cursor.node(), by);
+  if (to === null) return;
+  put(to);
+  const seg = $("column").querySelector(".flow .seg.at");
+  if (seg === null) return;
+  carried = performance.now() + CARRY;
+  seg.scrollIntoView({ block: "nearest" });
 }
 
 /** Put the caret back at the tip of what is drawn, which is where a reader who has pointed at
@@ -1701,6 +1716,13 @@ addEventListener("keydown", event => {
     waymark(cursor.node()).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
     return;
   }
+  // The caret a segment along, which reaches a token that spells nothing as well as any other.
+  if ((event.key === "ArrowLeft" || event.key === "ArrowRight")
+      && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    event.preventDefault();
+    step(event.key === "ArrowLeft" ? -1 : 1);
+    return;
+  }
   // Across the map to the next branch over: left and right where it runs down the page, up and
   // down where it runs across.
   if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && look.on) {
@@ -1750,6 +1772,7 @@ const PAD = 10;            // px inside the map on every side
 const STEP = [1.5, 20];    // px between rows, at the least and the most
 const MARK = 9;            // px of a row's step the caret, the pointer and the thumb grow to
 const GLIDE = 1200;        // ms the drawing takes to move from one packing to the next
+const LEAD = 100;          // ms the caret takes to where an arrival is going
 const STRIDE = 400;        // ms it takes over a step of zoom
 const NOTCH = 40;          // px of a fine wheel that make one step of zoom
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
@@ -1774,6 +1797,8 @@ let wheeled = 0;      // px of a fine wheel not yet a step
 let refocusing = false; // a check of the cut asked for this frame, so a scroll asks once
 let scanned = 0;      // px of a fine wheel not yet a step across
 let scanning = false; // an arrival across still on its way
+let scanAt = null;    // { node, depth }: where the last scan landed, and the depth it kept
+let led = null;       // where the caret has gone ahead of an arrival, until it is drawn
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
 /** A strand's colour: the path's, how many paths back it was on one, or none. */
@@ -1965,7 +1990,7 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
     els.set(key, el);
     out.push(el);
   }
-  const caret = svg("line", {}, "caret");
+  const caret = svg("line", { "data-key": "caret" }, "caret");
   const pointed = svg("line", {}, "over");
   out.push(pointed, caret);
   // The same tree drawn the same way and the same size is a packing that moved, which glides;
@@ -1989,11 +2014,12 @@ function sketch({ glides = true, pace = GLIDE } = {}) {
             thumb, ruler, els, at: placed, line: lineAt, step, byHead, down: look.down, long,
             wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
-  if (was !== null) glide(was, pace);
+  led = null;
   rule();
   chartCaret();
   chartOver();
   chartThumb();
+  if (was !== null) glide(was, pace);
   chartSays(map.effect(tree, hairs),
             zoomed && span ? map.zoneCounts(tree, hairs, { span, most }) : null);
 }
@@ -2014,8 +2040,8 @@ function shape() {
 }
 
 /** Move what is drawn from where it was, so a branch taken is seen straightening onto the
- *  path's row. What is new fades in, and what moves with the reader -- the caret, the pointer
- *  and the thumb -- waits until it lands. */
+ *  path's row. What is new fades in, the caret rides with its strand, and the pointer and the
+ *  thumb wait until it lands. */
 function glide(was, pace) {
   const { moved, fresh } = map.shift(was, shape());
   if (!moved.length && !fresh.length) return;
@@ -2038,6 +2064,11 @@ function glide(was, pace) {
 /** Where the caret is on the path's row. */
 function chartCaret() {
   if (chart === null) return;
+  if (led !== null) {
+    chart.caret.style.display = "";
+    assign(chart.caret, led);
+    return;
+  }
   const at = pathIds().indexOf(cursor.node());
   chart.caret.style.display = at < 0 ? "none" : "";
   if (at < 0) return;
@@ -2139,11 +2170,20 @@ function charting(event) {
   if (dragged) { dragged = false; return true; }
   // A click while the drawing moves would land on where something is going, not where it is.
   if (chartEl.classList.contains("moving")) return true;
+  // A click in the thumb puts the caret on the token under it, and the window stays.
+  const into = onThumb(event);
+  if (into !== null) {
+    const got = cells();
+    if (got !== null) point(map.holding(got.at, Math.floor(chart.span[0] + into)));
+    return true;
+  }
   const hit = chartHit(event);
   if (hit === null) return false;
   // A point on the path being read keeps it, and only the caret moves.
   const to = chart.path.has(hit.head) ? { tail: pathEnd(), depth: hit.depth } : hit;
-  visit(to).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+  lead(hit.head, hit.depth);
+  visit(to).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true))
+    .finally(unlead);
   return true;
 }
 
@@ -2295,6 +2335,33 @@ function zoomBy(n) {
   sketch({ pace: STRIDE });
 }
 
+/** Send the caret at once to the node `depth` tokens from the root on the strand `head`, as
+ *  it is drawn now, so it leads the drawing there. */
+function lead(head, depth) {
+  const s = chart?.plan.strands.find(s => s.head === head);
+  if (!s) return;
+  const a = chart.x(depth + 0.5), h = Math.max(4, Math.min(MARK, chart.step));
+  const to = led = chart.line(a, s.y - h, a, s.y + h);
+  const el = chart.caret, from = {};
+  for (const k of Object.keys(to)) from[k] = el.hasAttribute(k) ? Number(el.getAttribute(k)) : to[k];
+  el.style.display = "";
+  const t0 = performance.now();
+  const frame = now => {
+    if (led !== to || !el.isConnected) return;
+    const e = map.ease(Math.min(1, (now - t0) / LEAD));
+    for (const k of Object.keys(to)) el.setAttribute(k, from[k] + (to[k] - from[k]) * e);
+    if (e < 1) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+/** Let the caret go back to the path, where an arrival ended without drawing it there. */
+function unlead() {
+  if (led === null) return;
+  led = null;
+  chartCaret();
+}
+
 /** Arrive on the branch next over from the path, `by` 1 down the depth-first order or -1 up it,
  *  at the caret's depth or that branch's end where it is short of it, with the token at that
  *  depth held where it stands in the window. */
@@ -2304,17 +2371,24 @@ async function scanBy(by) {
   if (got === null) return;
   const { tree, span, most } = chart;
   const caret = pathIds().indexOf(cursor.node());
-  const depth = caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
+  // The depth the reader last put the caret at, which a landing short of it does not change.
+  const depth = scanAt?.node === cursor.node() ? scanAt.depth
+    : caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
   const from = span ? span[0] - map.ZONES.focal * most : depth;
   const until = span ? span[1] : depth;
   const to = map.scan(tree, chart.hairs, [...chart.path].at(-1), by, { from, until });
   if (to === null) { say(by > 0 ? "no branch further over" : "no branch further back"); return; }
-  const hold = got.segs[map.holding(got.at, depth)].getBoundingClientRect().top;
+  const hold = got.segs[map.holding(got.at, Math.min(depth, got.at.at(-1) - 1))]
+    .getBoundingClientRect().top;
+  const land = Math.min(depth, to.depth + to.length - 1);
   scanning = true;
+  lead(to.head, land);
   try {
-    await visit({ tail: to.tail, depth: Math.min(depth, to.depth + to.length - 1) }, hold);
+    await visit({ tail: to.tail, depth: land }, hold);
+    scanAt = { node: cursor.node(), depth };
   } finally {
     scanning = false;
+    unlead();
   }
 }
 

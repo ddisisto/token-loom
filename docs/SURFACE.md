@@ -164,7 +164,9 @@ would make, and the branch a draw from here would start are one node and not thr
 a segment puts the caret *before* it, so what the reader points at is the token they are
 reconsidering and the caret lands where an alternative to it would stand — which is the same
 node Rankings already names, arrived at from the other end. A root has nothing before it and
-nothing acts under what is set aside, so neither takes the caret.
+nothing acts under what is set aside, so neither takes the caret. Left and right step it a
+segment either way, scrolling only as far as keeps it in view, which is also how a token that
+spells nothing is reached, having nothing to point at.
 
 **It is the reader's one piece of state, and the path is drawn through it.** A path read answers
 from a node in both directions, so one node is enough to say what is drawn; a second held beside
