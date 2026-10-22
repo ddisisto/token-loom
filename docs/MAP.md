@@ -163,7 +163,9 @@ glides, and the thumb and the window stay where they were while only the branch 
   not passed over, and a longer one after it lands back at that depth. With no caret it lands at
   the middle of the window. **The window keeps the stretch of the path it held**, pinned by the
   token at its top, and steps after it keep that stretch until the reader moves the caret or
-  scrolls, so every step lands in it and its opposite returns to what read the same there.
+  scrolls, so every step lands in it and its opposite returns to what read the same there. The
+  column keeps its height until then too, so a shorter branch cannot shorten the page under
+  the window.
 - **It stops at either end of the order** and says so, so a sweep has edges.
 
 **The paths a reader has left stay on the map, as a trail.** The trail is the last twenty paths

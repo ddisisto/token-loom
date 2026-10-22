@@ -1649,6 +1649,7 @@ addEventListener("scroll", () => {
     wasAt = window.scrollY;
     return;
   }
+  unheld();
   // Downward and not merely different. At the end of the page there is nowhere below to go,
   // so an arrival there is the gesture; an armed caret has no such place, so the direction is
   // all there is -- and what lands after an act can shorten the page and move the window on
@@ -1813,6 +1814,7 @@ let cool = { t0: 0, until: 0 };        // from when until when the drawing catch
 let swept = 1;   // which end of the caret its colour sweeps from: the side it came from
 let scaled = null;    // where along the scale the hand holds the zoom, while it does
 let shown = 0;        // the timer that takes the zones' edges off the map again
+let heldTall = false; // the column kept at its height through steps across, until a scroll
 let aiming = null;  // a run of steps across: where it lands, from where, and the branch it is going to
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
@@ -2553,9 +2555,31 @@ function scanBy(by, { paced = false } = {}) {
   const to = map.scan(chart.tree, chart.hairs, run.to?.head ?? [...chart.path].at(-1), by, run);
   if (to === null) { say(by > 0 ? "no branch further over" : "no branch further back"); return; }
   aiming = { ...run, to };
+  holdTall();
   lead(to.head, aimedAt(aiming));
   hurry();
   if (!scanning) goAcross().catch(scanFails);
+}
+
+/** Keep the column at the height it has, so a shorter branch stepped onto does not shorten the
+ *  page under the window holding its place. */
+function holdTall() {
+  if (heldTall) return;
+  heldTall = true;
+  $("column").style.minHeight = getComputedStyle($("column")).height;
+}
+
+/** Let the column take its own height again. The text stands at its foot, so what that takes
+ *  off comes off the top, and the window moves up by as much to stay on the same text. */
+function unheld() {
+  if (!heldTall) return;
+  heldTall = false;
+  const was = $("column").offsetHeight;
+  $("column").style.minHeight = "";
+  const less = was - $("column").offsetHeight;
+  if (less <= 0) return;
+  carried = performance.now() + CARRY;
+  window.scrollBy(0, -less);
 }
 
 /** Arrive where a run of steps across is going, and again wherever it went on to meanwhile. */
