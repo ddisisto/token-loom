@@ -27,7 +27,7 @@ const chartEl = $("map");
 const chartBar = $("chart-bar");
 // The rung is `map.LADDER`'s, `byFork` puts a strand in the zone its fork is in, and `lens`
 // gives the thumb more of the axis as the zoom goes in.
-export const look = { on: true, down: true, rung: 4, byFork: false, lens: true };
+export const look = { on: true, down: true, rung: 4, byFork: false, lens: true, knots: true };
 let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
 let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
 let chart = null;    // what is drawn now, which a point is read against
@@ -143,6 +143,9 @@ function marksOf(tree, plan, x, back) {
     const fold = map.lineage(tree, w.head).find(h => folds.has(h));
     if (fold !== undefined) marked.add(fold);
   }
+  for (const k of plan.knots)
+    out.push([`k${k.head}`, "line", lineAt(k.x0, k.y, Math.max(k.x1, k.x0 + 0.8), k.y), "knot",
+              null, {}]);
   for (const l of plan.links)
     out.push([`l${l.head}`, "line", lineAt(l.x, l.y0, l.x, l.y1), "link", l.head, {}]);
   for (const h of plan.hairs)
@@ -214,10 +217,10 @@ function foreshadow() {
 function restretch(span) {
   gliding++;
   chartEl.classList.remove("moving");
-  const { tree } = charted;
+  const { tree, knots } = chart;
   const x = lensed(chart.most, chart.long, span);
-  const plan = map.plan(tree, chart.rows,
-                        { x, hairs: chart.hairs, path: chart.path, step: chart.step, top: chart.top });
+  const plan = map.plan(tree, chart.rows, { x, hairs: chart.hairs, path: chart.path,
+                                            step: chart.step, top: chart.top, knots });
   for (const [key, , attrs] of marksOf(tree, plan, x, chart.back)) {
     const el = chart.els.get(key);
     if (el === undefined) continue;
@@ -241,16 +244,18 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   gliding++;
   chartEl.classList.remove("moving");
   chartEl.style.setProperty("--glide", `${pace}ms`);
-  const { tree } = charted;
-  const path = map.along(tree, pathIds());
-  const { most, span, hairs } = cutting(tree, path);
+  const { tree: source } = charted;
+  const path = map.along(source, pathIds());
+  const { most, span, hairs } = cutting(source, path);
+  const { tree, knots, forks, places } =
+    map.knot(source, path, hairs, look.knots ? map.KNOT : { range: 0 });
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
-    : { path: chart.path, back: map.steps(tree, walked, chart.path, STEPS) };
-  const now = map.remember(tree, walked, path, [...path].at(-1) ?? null);
+    : { path: chart.path, back: map.steps(source, walked, chart.path, STEPS) };
+  const now = map.remember(source, walked, path, [...path].at(-1) ?? null);
   if (now !== walked) map.keep(storage, known.created ?? known.path, now);
   walked = now;
-  const back = map.steps(tree, walked, path, STEPS);
+  const back = map.steps(source, walked, path, STEPS);
   const box = chartEl.getBoundingClientRect();
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
   // Packed on the straight axis, so a fisheye moving with the thumb moves no strand across.
@@ -258,7 +263,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const all = [...rows.values()];
   const { step, top } = map.fit(Math.min(...all), Math.max(...all), wide, look.down);
   const x = lensed(most, long, span);
-  const plan = map.plan(tree, rows, { x, hairs, path, step, top });
+  const plan = map.plan(tree, rows, { x, hairs, path, step, top, knots });
 
   const out = [];
   const ruler = svg("g", {}, "scale");
@@ -290,7 +295,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   }
   // The same tree drawn the same way and the same size is a packing that moved, which glides;
   // anything else is a new drawing, which does not.
-  const same = glides && chart !== null && chart.tree === tree && chart.down === look.down
+  const same = glides && chart !== null && chart.source === source && chart.down === look.down
     && chart.long === long && chart.wide === wide;
   const was = same ? shape() : null;
   // Each strand's colour, and where it changed, the change eased over the same glide.
@@ -305,7 +310,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
     }
   }
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
+  chart = { source, tree, knots, tied: look.knots ? { forks, places } : null, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
             thumb, ruler, bands, handle, els, line: lineAt, step, byHead, down: look.down, long,
             wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
@@ -318,7 +323,8 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   chartThumb();
   if (was !== null) glide(was, pace);
   chartSays(map.effect(tree, hairs),
-            zoomed && span ? map.zoneCounts(tree, hairs, { span, most }) : null);
+            zoomed && span ? map.zoneCounts(tree, hairs, { span, most }) : null,
+            look.knots ? { forks, places } : null);
 }
 
 const assign = (el, attrs) => {
@@ -579,7 +585,7 @@ const rungName = c =>
 
 /** The bar under the map: which way it is drawn, the cut, and what the cut does, and zoomed
  *  in, how many strands are drawn in each zone from the thumb out. */
-function chartSays(effect, zones) {
+function chartSays(effect, zones, tied = null) {
   const button = (text, title, pressed, onclick) => {
     const b = Object.assign(document.createElement("button"),
                             { textContent: text, title, onclick });
@@ -609,6 +615,9 @@ function chartSays(effect, zones) {
     button("fork", "zoomed, put a strand in the zone its fork is in;"
            + " off, in the zone of its nearest point", look.byFork,
            () => { look.byFork = !look.byFork; sketch({ pace: STRIDE }); }),
+    button("knots", "draw forks close along a row as one place, and step across them as one;"
+           + " off, every fork is its own", look.knots,
+           () => { look.knots = !look.knots; sketch({ pace: STRIDE }); }),
     button("lens", "zoomed, give the thumb more of the axis; off, zoom cuts alone", look.lens,
            () => {
              look.lens = !look.lens;
@@ -618,7 +627,8 @@ function chartSays(effect, zones) {
     Object.assign(document.createElement("span"), {
       className: "says",
       textContent: (zones ? `${zones.join(" · ")} near to far · ` : "")
-        + `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`,
+        + `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`
+        + (tied ? ` · ${tied.places} places of ${tied.forks} forks` : ""),
       title: zones ? "strands drawn in each zone, from the thumb out" : "",
     }),
   );
@@ -661,7 +671,7 @@ function refocus() {
     }
     if (!span) return;
     if (bent) { restretch(span); foreshadow(); }
-    chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }));
+    chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }), chart.tied);
   });
 }
 

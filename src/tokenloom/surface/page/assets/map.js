@@ -14,6 +14,7 @@
 
 export const GAP = 4;     // px kept clear between two strands on one row
 export const REACH = 64;  // nodes past which a hair is drawn no longer
+export const KNOT = { range: 4, cap: 16 };  // tokens from one fork to the next, and across a knot
 
 /** The cut's rungs, finest to coarsest. A child that does not continue its fork's row is drawn
  *  as a tick off the fork rather than given a row: a leaf where it is a stub and `stubs` is on
@@ -33,11 +34,15 @@ export const LADDER = [
 ];
 
 const rank = s => s.logprob ?? -Infinity;
+// Whether `k` stands above the row `main` continues: ranked higher than what continued it where
+// `k` left, which a knot carries as `against`.
+const higher = (k, main) => rank(k) > (k.against ?? rank(main));
 
 /** The strands by head, each one's children in the order they came, and the root's; by
  *  head, where the subtree under a strand ends in tokens from the root, and the deepest strand
- *  of its heaviest line; and the strands depth-first, a fork's children ranked higher first and
- *  nothing ranked last. A strand comes before every strand below it, as `/map` sends them. */
+ *  of its heaviest line; and the strands depth-first, a fork's children leaving earlier first,
+ *  then ranked higher first and nothing ranked last. A strand comes before every strand below
+ *  it, as `/map` sends them. */
 export function index(strands) {
   const byHead = new Map(strands.map(s => [s.head, s]));
   const kids = new Map();
@@ -55,11 +60,11 @@ export function index(strands) {
     lines.set(s.head, heaviest === null ? s : lines.get(heaviest.head));
   }
   const order = [], next = top === null ? [] : [top];
-  const higher = (a, b) => rank(a) > rank(b) ? -1 : rank(a) < rank(b) ? 1 : 0;
+  const first = (a, b) => a.depth - b.depth || (rank(a) > rank(b) ? -1 : rank(a) < rank(b) ? 1 : 0);
   while (next.length) {
     const s = next.pop();
     order.push(s);
-    next.push(...[...(kids.get(s.head) ?? [])].sort(higher).reverse());
+    next.push(...[...(kids.get(s.head) ?? [])].sort(first).reverse());
   }
   return { strands, byHead, kids, top, ends, lines, order };
 }
@@ -103,6 +108,45 @@ export function undrawn(tree, hairs) {
   const out = new Set();
   for (const s of tree.strands) if (hairs.has(s.head) || out.has(s.up)) out.add(s.head);
   return out;
+}
+
+/** Forks along each row within `range` tokens of the last made one place, a knot spanning no
+ *  more than `cap`: every branch leaving it leaves the strand above its first fork, carrying
+ *  as `against` the rank of what continued the row where it really left. A fork whose branches
+ *  are all hair under `hairs` is no part of one. Answers the tree indexed again, or `tree`
+ *  itself where nothing is knotted; the knots as `{ head, from, to }`, the strand they leave
+ *  and where along they start and end; and how many `places` the `forks` they count became. */
+export function knot(tree, path, hairs, { range, cap }) {
+  const moved = new Map(), knots = [];
+  let forks = 0, places = 0;
+  const rows = range > 0 && tree.top !== null ? [tree.top] : [];
+  while (rows.length) {
+    let open = null;
+    for (let s = rows.pop(); ;) {
+      const kids = tree.kids.get(s.head) ?? [];
+      if (!kids.length) break;
+      const main = continuing(kids, path);
+      const others = kids.filter(k => k !== main);
+      rows.push(...others);
+      const at = s.depth + s.length;
+      if (others.some(k => !hairs.has(k.head))) {
+        forks++;
+        if (open !== null && at - open.to <= range && at - open.from <= cap) {
+          open.to = at;
+          for (const k of others) moved.set(k.head, { up: open.head, against: rank(main) });
+        } else {
+          if (open !== null && open.to > open.from) knots.push(open);
+          open = { head: s.head, from: at, to: at };
+          places++;
+        }
+      }
+      s = main;
+    }
+    if (open !== null && open.to > open.from) knots.push(open);
+  }
+  if (!moved.size) return { tree, knots, forks, places };
+  return { tree: index(tree.strands.map(s => moved.has(s.head) ? { ...s, ...moved.get(s.head) } : s)),
+           knots, forks, places };
 }
 
 /** Where the strand `head` leaves the path through `path`, in tokens from the root: the depth
@@ -212,7 +256,8 @@ const fits = (profile, sub, d) =>
     return have === undefined || !ivs.some(([a0, a1]) => have.clashes(a0, a1));
   });
 
-/** Each kept strand's row, the root's at 0 and the path's on it. Up is negative.
+/** Each kept strand's row, the root's at 0 and the path's on it. Up is negative. A strand that
+ *  left a knot stands in the knot's order: by where it left, then by rank.
  *
  *  A subtree is packed against what its continuing child's already holds, built in place
  *  on that child's profile so nothing is copied along a long trunk; each other child's is
@@ -234,13 +279,14 @@ export function layout(tree, { x, hairs, path }) {
     put(profile, 0, x0(s), x1(s));
     rows.set(s.head, 0);
     if (main === null) return { profile, rows };
-    const pivot = rank(main);
     const others = mine.filter(k => k !== main);
-    const above = others.filter(k => rank(k) > pivot).sort((a, b) => rank(a) - rank(b));
-    const below = others.filter(k => rank(k) <= pivot).sort((a, b) => rank(b) - rank(a));
-    const xf = x1(s);
+    const above = others.filter(k => higher(k, main))
+      .sort((a, b) => a.depth - b.depth || rank(a) - rank(b));
+    const below = others.filter(k => !higher(k, main))
+      .sort((a, b) => a.depth - b.depth || rank(b) - rank(a));
     for (const [side, group] of [[-1, above], [1, below]]) {
       for (const k of group) {
+        const xf = x0(k);
         const built = pack(k);
         const sub = [...built.profile].map(([r, row]) =>
           [r, row.starts.map((a0, i) => [a0, row.ends[i]])]);
@@ -263,12 +309,14 @@ export function layout(tree, { x, hairs, path }) {
  *  a strand that left it, hair as ticks off the fork they leave, and a fan wherever three
  *  or more strands leave one fork. `step` is the px between rows; `top` is the y of the
  *  highest row. */
-export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
+export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) {
   let lo = Infinity, hi = -Infinity;
   for (const r of rows.values()) { lo = Math.min(lo, r); hi = Math.max(hi, r); }
   const y = head => top + (rows.get(head) - lo) * step;
-  const out = { strands: [], links: [], hairs: [], fans: [],
+  const out = { strands: [], links: [], hairs: [], fans: [], knots: [],
                 height: rows.size ? (hi - lo) * step : 0 };
+  for (const k of knots)
+    if (rows.has(k.head)) out.knots.push({ head: k.head, x0: x(k.from), x1: x(k.to), y: y(k.head) });
   for (const s of tree.strands) {
     if (!rows.has(s.head)) continue;
     const a = x(s.depth), b = x(s.depth + s.length);
@@ -289,10 +337,11 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
       // reaches as far as what it holds does.
       const span = tree.ends.get(k.head) - k.depth;
       const lift = step * (0.25 + 0.5 * (1 - Math.min(1, span / REACH)));
-      const higher = main === null || rank(k) > rank(main);
+      const above = main === null || higher(k, main);
+      const from = x(k.depth);
       const reach = x(k.depth + (k.leaf ? Math.min(span, REACH) : span));
-      out.hairs.push({ head: k.head, x0: at, x1: Math.max(at + 1, reach),
-                       y0: y(up), y1: y(up) + (higher ? -lift : lift),
+      out.hairs.push({ head: k.head, x0: from, x1: Math.max(from + 1, reach),
+                       y0: y(up), y1: y(up) + (above ? -lift : lift),
                        stub: k.stub, aside: k.aside !== null,
                        fold: !k.leaf, weight: k.weight });
     }

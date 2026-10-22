@@ -766,6 +766,8 @@ footer.peek, footer.held { z-index: 26; }
 #map .hair.fold { stroke: var(--dim); stroke-opacity: .8; stroke-width: var(--heft); }
 #map .hair.fold.marked { stroke: var(--accent); stroke-opacity: .6; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
+#map .knot { stroke: var(--dim); stroke-opacity: .35; stroke-width: 7; stroke-linecap: round;
+             filter: blur(2px); }
 #map .tick { stroke: var(--faint); stroke-width: .8; }
 #map .tick.minor { stroke-opacity: .6; }
 #map .handle { stroke: var(--accent); stroke-width: 3; }
