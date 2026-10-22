@@ -1773,6 +1773,9 @@ const STEP = [1.5, 20];    // px between rows, at the least and the most
 const MARK = 9;            // px of a row's step the caret, the pointer and the thumb grow to
 const GLIDE = 1200;        // ms the drawing takes to move from one packing to the next
 const LEAD = 100;          // ms the caret takes to where an arrival is going
+const RUSH = 0.6;          // what a step across taken while the drawing moves leaves of its glide
+const BRISK = 240;         // ms a glide is never hurried below
+const BAND = 3;            // rows from the thumb past which a moving caret takes no step across
 const STRIDE = 400;        // ms it takes over a step of zoom
 const NOTCH = 40;          // px of a fine wheel that make one step of zoom
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
@@ -1799,6 +1802,7 @@ let scanned = 0;      // px of a fine wheel not yet a step across
 let scanning = false; // an arrival across still on its way
 let scanAt = null;    // { node, depth }: where the last scan landed, and the depth it kept
 let led = null;       // where the caret has gone ahead of an arrival, until it is drawn
+let rush = { until: 0, pace: GLIDE };  // the glide a run of steps across has hurried to
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
 /** A strand's colour: the path's, how many paths back it was on one, or none. */
@@ -1944,7 +1948,7 @@ const zoomMost = () => Math.max(map.deepest(look.rung), look.lens ? map.LENS.ste
 
 /** Draw what is thumbed around the path that is drawn: across the margin, or down it with the
  *  window in view as the thumb on the path. A drawing that glides takes `pace` ms. */
-function sketch({ glides = true, pace = GLIDE } = {}) {
+function sketch({ glides = true, pace = performance.now() < rush.until ? rush.pace : GLIDE } = {}) {
   if (!look.on || charted === null) return;
   gliding++;
   chartEl.classList.remove("moving");
@@ -2355,6 +2359,23 @@ function lead(head, depth) {
   requestAnimationFrame(frame);
 }
 
+/** Whether the drawing is still moving with the caret further out from the thumb's row than a
+ *  step across may take it. */
+function stretched() {
+  if (!chartEl.classList.contains("moving")) return false;
+  const [a, b] = look.down ? ["x1", "x2"] : ["y1", "y2"];
+  const across = (Number(chart.caret.getAttribute(a)) + Number(chart.caret.getAttribute(b))) / 2;
+  return Math.abs(across - chart.y0) > Math.max(MARK * 2, BAND * chart.step);
+}
+
+/** A step across taken while the drawing still moves glides faster than the last, and one
+ *  taken from rest at the usual pace. */
+function hurry() {
+  const now = performance.now();
+  const pace = now < rush.until ? Math.max(BRISK, rush.pace * RUSH) : GLIDE;
+  rush = { until: now + pace, pace };
+}
+
 /** Let the caret go back to the path, where an arrival ended without drawing it there. */
 function unlead() {
   if (led === null) return;
@@ -2366,7 +2387,7 @@ function unlead() {
  *  at the caret's depth or that branch's end where it is short of it, with the token at that
  *  depth held where it stands in the window. */
 async function scanBy(by) {
-  if (!look.on || chart === null || scanning) return;
+  if (!look.on || chart === null || scanning || stretched()) return;
   const got = cells();
   if (got === null) return;
   const { tree, span, most } = chart;
@@ -2382,6 +2403,7 @@ async function scanBy(by) {
     .getBoundingClientRect().top;
   const land = Math.min(depth, to.depth + to.length - 1);
   scanning = true;
+  hurry();
   lead(to.head, land);
   try {
     await visit({ tail: to.tail, depth: land }, hold);
