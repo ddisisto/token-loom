@@ -10,7 +10,8 @@ import * as ranking from "./ranking.js";
 import * as stub from "./stub.js";
 import * as waypoint from "./waypoint.js";
 import { ask, say } from "./wire.js";
-import { drawn, flip, reach, rechart, retrace, show, showHidden, stage, stale } from "./app.js";
+import { drawn, reach, show, showHidden } from "./reading.js";
+import { flip, rechart, retrace, stage, stale } from "./app.js";
 
 const $ = id => document.getElementById(id);
 

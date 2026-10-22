@@ -1,15 +1,5 @@
 /* The surface: a list of roots, a reading column, and the one composer both of them use.
- *
- * The reader's position is a single node and everything else is derived from it -- which
- * root is current, what path is drawn, where a write will land. Holding a root as well
- * would be two pieces of state that can disagree, and `/path/{node}` already answers from
- * a node what the surface needs.
- *
- * That node is the caret, which `cursor.js` holds. It sits after a token and is what every
- * act at a position takes, so pointing at a segment and asking for a draw are one node apart
- * and not two states. Moving it along what is already drawn is a mark and never a read: a
- * path read re-chooses the continuation below the node it is given, so a read at the caret
- * would rearrange the text the reader is pointing into.
+ * What is being read, and the caret's place in it, is `reading.js`'s.
  *
  * Nothing here is remembered between loads but the reader's waypoints, which `waypoint.js`
  * keeps. Reader state lives in the session, and what is live, what parts and what a ranking
@@ -23,7 +13,7 @@ import * as room from "./room.js";
 import * as map from "./map.js";
 import * as mark from "./mark.js";
 import {
-  panel as overlayPanel, read as overlays, rule as taken, wants, weighed,
+  panel as overlayPanel, read as overlays, weighed,
 } from "./overlay.js";
 import * as ranking from "./ranking.js";
 import * as stub from "./stub.js";
@@ -32,39 +22,14 @@ import {
 } from "./roots.js";
 import * as wake from "./wake.js";
 import { ask, generated, say, wrong } from "./wire.js";
+import {
+  atEnd, blank, busy, carry, carrying, cells, drawn, ended, land, pathEnd, pathIds, reach,
+  rebase, relaid, scrolled, seeHidden, show, showHidden, working,
+} from "./reading.js";
 
 const $ = id => document.getElementById(id);
 
 const { aside } = cursor;
-
-/* Whether what has been set aside is drawn. A way of looking: it records nothing, the
- * continuation rule follows liveness either way, and what it reveals it never selects --
- * hidden nodes only ever carry the path on from where the live one ran out. */
-export let showHidden = false;
-
-/** Arrive at `node` on the path through `through`, flashing it there and in `named` -- the
- *  token in the nav, for a waypoint -- where there is one. */
-export async function reach(node, named = null, through = node, hold = null) {
-  await show(through, node);
-  const seg = $("column").querySelector(".flow .seg.at");
-  if (seg === null) return;
-  // The page's own scroll, which is not the reader reading on: nothing is asked for and the
-  // caret is not moved back into a band it is already in the middle of.
-  carried = performance.now() + CARRY;
-  if (hold === null) seg.scrollIntoView({ block: "center" });
-  else {
-    const got = cells();
-    const el = got?.segs[map.holding(got.at, Math.min(hold.depth, got.at.at(-1) - 1))];
-    if (el) window.scrollBy(0, el.getBoundingClientRect().top - hold.top);
-  }
-  for (const el of [seg, named]) {
-    if (el === null) continue;
-    el.classList.remove("beacon");
-    void el.offsetWidth;  // a class taken off and put back in one frame does not restart
-    el.classList.add("beacon");
-    el.addEventListener("animationend", () => el.classList.remove("beacon"), { once: true });
-  }
-}
 
 
 // ---- the reading column ---------------------------------------------------------------
@@ -180,7 +145,7 @@ function spans(segments, marks, takers) {
  *  accepted it -- the caret is the frontier of what they have, and what lies past it is
  *  derived and never remembered. So it is subdued, which says so without hiding it.
  */
-function frontier() {
+export function frontier() {
   let past = false;
   for (const el of $("column").querySelectorAll(".flow .seg")) {
     const here = Number(el.dataset.node) === cursor.node();
@@ -220,7 +185,7 @@ function step(by) {
   put(to);
   const seg = $("column").querySelector(".flow .seg.at");
   if (seg === null) return;
-  carried = performance.now() + CARRY;
+  carry();
   seg.scrollIntoView({ block: "nearest" });
 }
 
@@ -240,12 +205,6 @@ function release() {
   frontier();
   settled();
 }
-
-/* What is drawn, which is the view the caret is a position within. It is the last response
- * and not a second opinion about where the reader is -- the caret is only ever placed on a
- * node of it, so the two cannot disagree. What it is not is a prediction of the next read:
- * the rule chooses afresh on every arrival, and below the caret it may choose differently. */
-export let drawn = [];
 
 // ---- what else was live -----------------------------------------------------------------
 
@@ -446,7 +405,7 @@ function took(row, payload) {
  */
 async function realise(row, payload) {
   if (working || !writable) return;
-  working = true;
+  busy(true);
   try {
     const act = await ask("/realise", {
       at: payload.node, source: payload.sources[String(row.source)], token: row.token,
@@ -461,9 +420,8 @@ async function realise(row, payload) {
   } catch (why) {
     wrong(why);
   } finally {
-    working = false;
-    wasAtEnd = atEnd();
-    wasAt = window.scrollY;
+    busy(false);
+    rebase();
   }
 }
 
@@ -763,7 +721,7 @@ function dwell(row, where, payload) {
 }
 
 /** Show the rows the caret is at, which is where they sit when nothing is hovered. */
-function settled() {
+export function settled() {
   showing = cursor.node();
   const mark = $("column").querySelector(".seg.at");
   if (!ranking.asked() || mark === null) return clear();
@@ -786,53 +744,8 @@ function peek(i, el) {
     () => { showing = to; opened(to, el, SCAN, PEEK).catch(() => clear()); }, SEEN);
 }
 
-/** Draw the path through a node, and leave the caret at `where` -- or at the end of what is
- *  drawn, which is where a reader who has not pointed at anything is.
- *
- *  So a draw at the end carries the caret along with it, by as much as it drew. That is the
- *  batch discipline `docs/INTERFERENCE.md` names rather than a convenience of the code:
- *  asking for the next batch is a deliberate act taken after reading the last, so it carries
- *  acceptance of everything above it -- or at least a wish to see past it -- and the caret
- *  standing at the new end is what that looks like. A reader who did not accept it moves the
- *  caret back, which is the same gesture as pointing at anything else.
- */
-/** Read a path and say what the toggle makes of it, or null where the reader is standing
- *  in text that is no longer drawn.
- *
- *  Separated from what is drawn because the two answer different questions: this one is about
- *  the record and the toggle, and `laid` is about the column.
- */
-async function reading(node) {
-  // Each half of what the read can carry is asked for, and a read not asked for one carries
-  // none of it. The rule is a parameter of the read and never of the page: what is drawn is
-  // the path the server derived, so the page holds no opinion about where it went.
-  const want = wants();
-  // The mark is not an overlay and reads the same ranking one of them would, so what is
-  // asked for is the union of what is on rather than what the panel alone chose.
-  const ranked = want.overlays || mark.wants();
-  const read = await ask(`/path/${node}?hidden=${showHidden ? 1 : 0}&rule=${taken()}`
-    + `&overlays=${ranked ? 1 : 0}&beneath=${want.beneath ? 1 : 0}`);
-  let cells = read.segments;
-  // Whether the text stops where it does because something was set aside. Either the read's
-  // own leaf has nothing live below it, or the cut below happened first -- a path *through*
-  // a hidden node ends at the hidden part rather than at the leaf, and both are the reader
-  // having closed something rather than the model not having been asked.
-  let closed = read.why === "closed";
-  if (!showHidden) {
-    // The read carries a hidden ancestry whatever the toggle says, since a path through a
-    // node that was set aside still reaches it. With the toggle off none of that is drawn,
-    // and a reader left standing in it falls back to where the live tree ends.
-    const stop = cells.findIndex(aside);
-    if (stop === 0) return null;
-    if (stop > 0) { cells = cells.slice(0, stop); closed = true; }
-  } else {
-    closed = false;  // what was set aside is drawn, so `boundary` is already saying it
-  }
-  return { read, cells, closed };
-}
-
 /** The text itself, as an element, built apart from being hung. */
-function laid({ read, cells, closed }) {
+export function laid({ read, cells, closed }) {
   const flow = document.createElement("div");
   flow.className = "flow";
   // Leaving the text puts the rows back where the reader is at once, as leaving a token does
@@ -845,24 +758,6 @@ function laid({ read, cells, closed }) {
   return flow;
 }
 
-export async function show(node, where) {
-  const got = await reading(node);
-  if (got === null) return land(null);
-  drawn = got.cells;
-  // Where the reader has not pointed, the caret rests at the end of what is drawn -- so the
-  // gesture that asks for more of a path and the gesture that asks for a draw at a position
-  // are the same act at the same node, which is the ordinary case and not a coincidence.
-  cursor.place(where === undefined ? cursor.resting(got.cells) : where);
-  hover(null);
-  $("column").replaceChildren(laid(got));
-  frontier();
-  marked();
-  wakes();
-  settled();
-  charter();
-  current(got.cells[0].nodes[0].id);
-}
-
 // ---- setting aside, and bringing back ---------------------------------------------------
 
 /* `delete` sets a flag on one node and `undelete` clears it. Nothing leaves the store, so
@@ -870,17 +765,9 @@ export async function show(node, where) {
  * either -- what changed is liveness, which is derived and never held here.
  */
 
-/** Where to look once what was being read is no longer drawn. */
-async function land(prefer) {
-  if (prefer !== null) return show(prefer);
-  const rows = live(await ask("/tree"));
-  if (rows.length) return show(rows[0].id);
-  stage(null);  // everything is set aside, and the only thing to do is the thing offered
-}
-
 export async function flip(undo, node, then) {
   if (working) return;
-  working = true;
+  busy(true);
   try {
     await ask(undo ? "/undelete" : "/delete", { node });
     await refresh();
@@ -888,9 +775,8 @@ export async function flip(undo, node, then) {
   } catch (why) {
     wrong(why);
   } finally {
-    working = false;
-    wasAtEnd = atEnd();  // the path just got shorter or longer; an arrival is a fresh one
-    wasAt = window.scrollY;
+    busy(false);
+    rebase();  // the path just got shorter or longer; an arrival is a fresh one
   }
 }
 
@@ -955,8 +841,7 @@ function compose(at) {
 }
 
 export function stage(at) {
-  drawn = [];
-  cursor.place(null);
+  blank();
   showing = null;
   if (!writable) return $("column").replaceChildren();
   $("column").replaceChildren(compose(at));
@@ -1033,7 +918,7 @@ function author() {
     const text = box.textContent;
     if (sending || !text) return;
     sending = true;
-    working = true;
+    busy(true);
     editable(false);
     try {
       const act = await ask("/create", { at, text });
@@ -1049,9 +934,8 @@ function author() {
       box.focus();
       sending = false;
     } finally {
-      working = false;
-      wasAtEnd = atEnd();
-      wasAt = window.scrollY;
+      busy(false);
+      rebase();
     }
   };
 
@@ -1103,12 +987,8 @@ const SETTLE = 140;  // ms of quiet before a scroll counts, so momentum is not a
 const REST = 450;    // ms after one lands, so a held key is one request and not twenty
 const AIR = 1.5;     // lines of context the caret keeps between itself and either edge
 
-let working = false;
 let quiet = 0;
 let timer = null;
-
-const atEnd = () =>
-  window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
 function pending(...what) {
   const box = document.createElement("div");
@@ -1155,7 +1035,7 @@ function enclose(els) {
 
 /** Mark what is drawn with whatever is still under way, resumed where it had got to: the
  *  column is rebuilt by every read, and a rebuild is not the draw landing again. */
-function wakes() {
+export function wakes() {
   const now = performance.now();
   const brought = (ids, cell) => cell.nodes.some(n => ids.has(n.id));
   if (landing !== null) {
@@ -1317,7 +1197,7 @@ async function more(where = cursor.node(), { pin = false } = {}) {
   // hand, and a draw landing under them would answer the question they are in the middle of.
   if (working || composing() || buying !== null || !writable) return;
   if (where === null || where === undefined) return;
-  working = true;
+  busy(true);
   // Taken before the act, because what is drawn is replaced by it and the comparison is what
   // says whether the draw parted from anything.
   const was = pin ? new Set(drawn.flatMap(cell => cell.nodes).map(n => n.id)) : null;
@@ -1350,12 +1230,11 @@ async function more(where = cursor.node(), { pin = false } = {}) {
     // A draw that failed leaves the flow it was asked in, placeholders and all.
     column.querySelector(".flow .waiting")?.remove();
     landing = null;
-    working = false;
+    busy(false);
     quiet = Date.now() + REST;
     // What landed moved the end and may have moved the window: an arrival at the end is a
     // fresh one, and where the page now stands is not somewhere the reader scrolled to.
-    wasAtEnd = atEnd();
-    wasAt = window.scrollY;
+    rebase();
     stir();  // a draw disarms the caret and moves the end
   }
 }
@@ -1419,15 +1298,10 @@ function moved(counts) {
   }, SETTLE);
 }
 
-let wasAtEnd = false;
-let wasAt = 0;
-let carried = 0;  // until when a scroll is the page's own, and not the reader's
-const CARRY = 150;
 addEventListener("scroll", () => {
   const now = atEnd();
-  if (performance.now() < carried) {
-    wasAtEnd = now;
-    wasAt = window.scrollY;
+  if (carrying()) {
+    rebase();
     return;
   }
   unheld();
@@ -1437,10 +1311,8 @@ addEventListener("scroll", () => {
   // its own, which would otherwise read as a reader asking for the next one.
   stir(true);
   // A room being moved shifts the end of the page under a reader who has not scrolled.
-  const asks = !shifting
-    && ((cursor.armed() && window.scrollY > wasAt) || (now && !wasAtEnd));
-  wasAtEnd = now;
-  wasAt = window.scrollY;
+  const went = scrolled(now);
+  const asks = !shifting && ((cursor.armed() && went.down) || went.arrived);
   // Every scroll settles, because the caret follows the window whichever way it went. Only
   // some of them ask for anything.
   moved(asks);
@@ -1537,12 +1409,12 @@ async function resume() {
         + "or is gone and the next writer will record it aborted \u00b7 reload to see it land");
     return false;
   }
-  working = true;
+  busy(true);
   // As long as the act asked for, which the record holds and the page's setting may not.
   waiting(acts[0].params?.length);
   while ((await ask("/acts?in_flight=1")).acts.length)
     await new Promise(again => setTimeout(again, 700));
-  working = false;
+  busy(false);
   return true;
 }
 
@@ -1597,7 +1469,6 @@ let scaled = null;    // where along the scale the hand holds the zoom, while it
 let shown = 0;        // the timer that takes the zones' edges off the map again
 let heldTall = false; // the column kept at its height through steps across, until a scroll
 let aiming = null;  // a run of steps across: where it lands, from where, and the branch it is going to
-let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
 /** Forget what the rows said became of each row and the strands, which an act changes. */
 export function stale() {
@@ -1627,8 +1498,6 @@ const svg = (name, attrs, cls) => {
   if (cls) el.setAttribute("class", cls);
   return el;
 };
-const pathIds = () => drawn.flatMap(cell => cell.nodes.map(n => n.id));
-const pathEnd = () => drawn.at(-1)?.nodes.at(-1).id ?? null;
 
 /** The rows open over the map where they are on, and their own ground covers it there. */
 function margin() {
@@ -1637,7 +1506,7 @@ function margin() {
 }
 
 /** Read the strands if what is thumbed is not this root's, then draw. */
-async function charter() {
+export async function charter() {
   const root = drawn[0]?.nodes[0].id;
   if (!look.on || root === undefined) {
     chartEl.replaceChildren();
@@ -1958,7 +1827,7 @@ function cooling() {
 
 /** Mark the path's cell `i` as what the pointer is over, in the column and on the map, or
  *  nothing with null. The two hold the same positions and a pointer is over one of them. */
-function hover(i) {
+export function hover(i) {
   if (i === pointedAt) return;
   const segs = $("column").querySelectorAll(".flow .seg");
   segs[pointedAt]?.classList.remove("over");
@@ -1976,15 +1845,6 @@ function chartOver() {
   const mid = (got.at[pointedAt] + got.at[pointedAt + 1]) / 2;
   const a = chart.x(mid), h = Math.max(4, Math.min(MARK, chart.step));
   assign(chart.pointed, chart.line(a, chart.y0 - h, a, chart.y0 + h));
-}
-
-/** The path's cells as they stand on the page, and where each starts in tokens. */
-function cells() {
-  const segs = [...$("column").querySelectorAll(".flow .seg")];
-  if (segs.length !== drawn.length) return null;
-  if (cellsAt?.drawn !== drawn)
-    cellsAt = { drawn, at: map.offsets(drawn.map(c => c.nodes.length)) };
-  return { segs, at: cellsAt.at };
 }
 
 /** What is above the footer, which is the window the column is read in. */
@@ -2041,7 +1901,7 @@ function scrollAt(depth) {
   const got = cells();
   if (got === null) return;
   const el = got.segs[map.holding(got.at, depth)];
-  carried = performance.now() + CARRY;
+  carry();
   window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - view()[0]);
 }
 
@@ -2225,7 +2085,7 @@ function refocus() {
     const { most, span, hairs } = cutting(tree, chart.path);
     // A scroll the reader makes is followed as it goes; one the page makes, or one that lands
     // while the drawing is still moving, glides there from wherever the marks now stand.
-    const jumped = performance.now() < carried || chartEl.classList.contains("moving");
+    const jumped = carrying() || chartEl.classList.contains("moving");
     const bent = look.lens && span
       && (span[0] !== chart.lensAt?.[0] || span[1] !== chart.lensAt?.[1]);
     if (!map.same(hairs, chart.hairs) || (jumped && bent)) {
@@ -2376,7 +2236,7 @@ function unheld() {
   $("column").style.minHeight = "";
   const less = was - $("column").offsetHeight;
   if (less <= 0) return;
-  carried = performance.now() + CARRY;
+  carry();
   window.scrollBy(0, -less);
 }
 
@@ -2533,7 +2393,7 @@ function letGo() {
   edge.classList.remove("moving");
   // Where the page's end went is not somewhere the reader scrolled to, so it is taken as the
   // place to start from once the scroll the move caused has been heard.
-  requestAnimationFrame(() => { wasAtEnd = atEnd(); wasAt = window.scrollY; });
+  requestAnimationFrame(rebase);
 }
 edge.addEventListener("pointerup", letGo);
 edge.addEventListener("pointercancel", letGo);
@@ -2541,28 +2401,13 @@ edge.addEventListener("pointercancel", letGo);
 stand(room.roomFor(draw().length));
 drawer.mount();
 
-/* The overlay, the continuation rule and what is set aside are all ways of looking, and they
- * share a panel because they are one question asked three times: what of the record is in
- * front of me. Moving any of them re-reads rather than repainting what is already drawn --
- * turning a measure on asks the server for what the last read did not carry, and changing the
- * rule asks for a different path entirely. One path costs milliseconds either way. */
-let ruled = taken();  // the rule the path being read was laid out by
-$("read").append(overlayPanel(async () => {
-  try {
-    const here = cursor.node();
-    const through = taken() === ruled ? pathEnd() : here;
-    ruled = taken();
-    await (here === null ? overlays([], {}) : show(through, here));
-  } catch (why) {
-    wrong(why);
-  }
-}));
+$("read").append(overlayPanel(relaid));
 
 /* One state for the whole page, so the roots and the column always say the same thing about
  * what has been set aside. Flipping it re-reads rather than filtering what is already drawn:
  * the column's hidden tail is not in the response until it is asked for. */
 $("hidden").onchange = async () => {
-  showHidden = $("hidden").checked;
+  seeHidden($("hidden").checked);
   try {
     await refresh();
     if (pathEnd() !== null) await show(pathEnd());
@@ -2607,7 +2452,7 @@ $("fold").onclick = () => {
 try {
   // A reload restores a checkbox in some browsers, and nothing here is remembered between
   // loads -- so what the box says is what the page believes, rather than the other way.
-  showHidden = $("hidden").checked;
+  seeHidden($("hidden").checked);
   look.on = $("charted").checked;
   document.body.classList.toggle("unmapped", !look.on);
   ranking.want($("rows").checked);
@@ -2624,7 +2469,7 @@ try {
       await show(cursor.node());
     }
   }
-  wasAtEnd = atEnd();
+  ended();
 } catch (why) {
   wrong(why);
 }
