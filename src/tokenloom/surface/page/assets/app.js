@@ -1780,6 +1780,8 @@ const LEAD = 100;          // ms the caret takes to where an arrival is going
 const RUSH = 0.6;          // what a step across taken while the drawing moves leaves of its glide
 const BRISK = 240;         // ms a glide is never hurried below
 const BAND = 3;            // rows from the thumb past which a moving caret takes no step across
+const SCALE = 8;           // px in from the map's inner edge that are the scale, to drag the zoom by
+const SHOWN = 700;         // ms the zones' edges stay drawn across the map after they last moved
 const STRIDE = 400;        // ms it takes over a step of zoom
 const NOTCH = 40;          // px of a fine wheel that make one step of zoom
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
@@ -1809,6 +1811,8 @@ let led = null;       // where the caret has gone ahead of an arrival, until it 
 let rush = { until: 0, pace: GLIDE };  // the glide a run of steps across has hurried to
 let cool = { t0: 0, until: 0 };        // from when until when the drawing catches the caret up
 let swept = 1;   // which end of the caret its colour sweeps from: the side it came from
+let scaled = null;    // where along the scale the hand holds the zoom, while it does
+let shown = 0;        // the timer that takes the zones' edges off the map again
 let aiming = null;  // a run of steps across: where it lands, from where, and the branch it is going to
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
@@ -1920,12 +1924,46 @@ function marksOf(tree, plan, x, back) {
 
 /** The ticks along the map's outer edge, while the fisheye is bending the axis. */
 function rule() {
-  const ticks = look.lens && zoomed > 0 ? map.ticks(chart.x, chart.most) : [];
-  const edge = chart.wide - 2;
-  chart.ruler.replaceChildren(...ticks.map(([v, major]) => {
-    const a = chart.x(v), reach = major ? 5 : 2.5;
-    return svg("line", lineAt(a, edge - reach, a, edge), major ? "tick" : "tick minor");
+  chart.ruler.replaceChildren(...map.ticks(chart.x, chart.most).map(([v, major]) => {
+    const a = chart.x(v), reach = major ? 6 : 3;
+    return svg("line", lineAt(a, 1, a, 1 + reach), major ? "tick" : "tick minor");
   }));
+  chartHandle();
+}
+
+/** The zoom as a mark on the scale: out at the tree's end and in at the root, or wherever the
+ *  hand holding it is. */
+function chartHandle() {
+  const a0 = chart.x(0), a1 = chart.x(chart.most);
+  const a = scaled ?? a1 - (a1 - a0) * zoomed / (zoomMost() || 1);
+  assign(chart.handle, lineAt(a, 0, a, SCALE - 2));
+}
+
+/** Zoom to the step nearest where the hand holds the scale, `along` px down it. */
+function scaleTo(along) {
+  const a0 = chart.x(0), a1 = chart.x(chart.most);
+  scaled = Math.min(a1, Math.max(a0, along));
+  const to = Math.round((a1 - scaled) / (a1 - a0) * zoomMost());
+  if (to !== zoomed) {
+    zoomed = to;
+    sketch({ pace: STRIDE });
+    foreshadow();
+  }
+  chartHandle();
+}
+
+/** Draw where the zones about the thumb part across the whole map, for a while. */
+function foreshadow() {
+  if (chart === null) return;
+  const span = chart.span ?? chart.lensAt;
+  const edges = zoomed > 0 && span
+    ? map.bands(span, map.ZONES.focal * chart.most, chart.most).map(([from]) => from).filter(v => v > 0)
+    : [];
+  chart.bands.replaceChildren(...edges.map(v =>
+    svg("line", lineAt(chart.x(v), 0, chart.x(v), chart.wide), "band")));
+  chart.bands.classList.add("on");
+  clearTimeout(shown);
+  shown = setTimeout(() => chart?.bands.classList.remove("on"), SHOWN);
 }
 
 /** Draw the same strands again through the fisheye as it stands about the thumb now, moving
@@ -1986,8 +2024,10 @@ function sketch({ glides = true, pace = performance.now() < rush.until ? rush.pa
 
   const out = [];
   const ruler = svg("g", {}, "scale");
+  const bands = svg("g", {}, "bands");
+  const handle = svg("line", {}, "handle");
   const thumb = svg("rect", {}, "thumb");
-  out.push(ruler, thumb);
+  out.push(bands, ruler, handle, thumb);
   // Every mark keyed by what it draws, so the next drawing can say where each one was.
   const byHead = new Map(), els = new Map();
   for (const [key, name, attrs, cls, head, style] of marksOf(tree, plan, x, back)) {
@@ -2028,7 +2068,7 @@ function sketch({ glides = true, pace = performance.now() < rush.until ? rush.pa
   }
   chartEl.replaceChildren(...out);
   chart = { tree, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
-            thumb, ruler, els, at: placed, line: lineAt, step, byHead, down: look.down, long,
+            thumb, ruler, bands, handle, els, at: placed, line: lineAt, step, byHead, down: look.down, long,
             wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
   // A run of steps still going on past this drawing keeps the caret where it is going.
@@ -2239,8 +2279,28 @@ async function visit({ tail, depth }, hold = null) {
   return reach(tail, null, tail, hold);
 }
 
+/** How far down the map's axis an event is, in px, whether or not it is over the map. */
+function alongOf(event) {
+  const box = chartEl.getBoundingClientRect();
+  return look.down ? event.clientY - box.top : event.clientX - box.left;
+}
+
+/** Whether an event is on the scale, the strip along the map's inner edge. */
+function onScale(event) {
+  const p = chartPoint(event);
+  return p !== null && p.across <= SCALE;
+}
+
 $("column").addEventListener("pointerdown", event => {
   if (event.target !== $("column") || event.button !== 0) return;
+  // The scale is taken and dragged: the zoom follows to the nearest step, the mark to the hand.
+  if (look.on && chart !== null && onScale(event)) {
+    dragged = true;
+    scaleTo(alongOf(event));
+    $("column").setPointerCapture(event.pointerId);
+    event.preventDefault();
+    return;
+  }
   const into = onThumb(event);
   if (into === null) return;
   thumbed = into;
@@ -2249,6 +2309,12 @@ $("column").addEventListener("pointerdown", event => {
   event.preventDefault();
 });
 $("column").addEventListener("pointerup", event => {
+  if (scaled !== null) {
+    scaled = null;
+    $("column").releasePointerCapture(event.pointerId);
+    if (chart !== null) chartHandle();
+    return;
+  }
   if (thumbed === null) return;
   thumbed = null;
   $("column").releasePointerCapture(event.pointerId);
@@ -2258,6 +2324,10 @@ $("column").addEventListener("pointerup", event => {
 
 $("column").addEventListener("pointerleave", () => hover(null));
 $("column").addEventListener("pointermove", event => {
+  if (scaled !== null) {
+    if (chart !== null) scaleTo(alongOf(event));
+    return;
+  }
   if (thumbed !== null) {
     const p = chartPoint(event);
     if (p !== null) { dragged = true; scrollAt(chart.x.invert(p.along) - thumbed); }
@@ -2272,6 +2342,7 @@ $("column").addEventListener("pointermove", event => {
   $("column").classList.toggle("charting", head !== null);
   $("column").classList.toggle("thumbing", head === null && event.target === $("column")
                                            && onThumb(event) !== null);
+  $("column").classList.toggle("scaling", look.on && onScale(event));
   if (head === lit) return;
   for (const el of chartEl.querySelectorAll(".lit")) el.classList.remove("lit");
   lit = head;
@@ -2359,10 +2430,11 @@ function refocus() {
       && (span[0] !== chart.lensAt?.[0] || span[1] !== chart.lensAt?.[1]);
     if (!map.same(hairs, chart.hairs) || (jumped && bent)) {
       sketch(jumped ? {} : { glides: false });
+      foreshadow();
       return;
     }
     if (!span) return;
-    if (bent) restretch(span);
+    if (bent) { restretch(span); foreshadow(); }
     chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }));
   });
 }
@@ -2373,6 +2445,7 @@ function zoomBy(n) {
   if (to === zoomed) return;
   zoomed = to;
   sketch({ pace: STRIDE });
+  foreshadow();
 }
 
 /** Where the caret stands `depth` tokens from the root on the strand `head` as it is drawn now,

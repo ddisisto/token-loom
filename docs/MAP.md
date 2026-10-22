@@ -112,7 +112,8 @@ in, the bar says how many strands are drawn in each zone, from the thumb out, be
 does. A step glides, quicker than an arrival does. A scroll the reader makes is followed as it
 goes, and one the page makes — an arrival carrying the column to its caret — glides there from
 wherever the drawing stands, so a jump to somewhere shaped differently reads as one movement.
-Shift and the wheel are claimed in full, being neither the draw a wheel at the end of the column
+Dragging the scale is the same zoom without a wheel, and *The axis* has it. Shift and the wheel
+are claimed in full, being neither the draw a wheel at the end of the column
 asks for nor the sideways scroll some browsers make of it, and a fine wheel's movement adds up to
 a notch.
 
@@ -207,10 +208,17 @@ gain makes them, which is what a knot is read with.
   in px, so packing through the fisheye would move rows as the thumb moves; packed straight, a
   scroll moves no strand across and only stretches what is there. Far strands squeezed together
   may then crowd on a row, where the cut is coarse anyway.
-- **A scale says what the axis is doing**: dim ticks along the map's outer edge at round counts
-  of tokens, drawn through the same function, so they spread where the axis is magnified and
-  bunch where it is squeezed, and the thumb's length can be read against them.
-- **The zones' bands are markers on that scale**, later, for the reader to drag.
+- **A scale says what the axis is doing**: dim ticks along the map's inner edge, between it and
+  the column, at round counts of tokens, drawn through the same function, so they spread where
+  the axis is magnified and bunch where it is squeezed, and the thumb's length can be read
+  against them.
+- **The scale holds the zoom, and dragging it zooms.** A mark on it stands at the zoom's step,
+  out at the tree's end and in at the root, and moves with a zoom by the wheel. Taken in hand it
+  follows the hand freely while the zoom takes the nearest step, so dragging toward the root
+  zooms in without a wheel.
+- **Where the zones part is drawn across the map while it moves**, faint lines at each zone's
+  edge as a zoom or a scroll shifts them, gone again soon after. Each band dragged on its own is
+  later.
 
 Long empty stretches given less of the axis, so the forks get the resolution, is the same
 function read off the tree rather than off the thumb.

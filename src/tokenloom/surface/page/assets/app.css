@@ -768,6 +768,10 @@ footer.peek, footer.held { z-index: 26; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .tick { stroke: var(--faint); stroke-width: .8; }
 #map .tick.minor { stroke-opacity: .6; }
+#map .handle { stroke: var(--accent); stroke-width: 3; }
+#map .band { stroke: var(--faint); stroke-width: .8; stroke-dasharray: 2 4; }
+#map .bands { opacity: 0; transition: opacity .6s; }
+#map .bands.on { opacity: 1; transition: opacity .1s; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
 #map .caret { stroke: var(--accent); stroke-width: 2; stroke-opacity: .35; }
 #map .sweep { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 1 1; }
@@ -781,6 +785,7 @@ footer.peek, footer.held { z-index: 26; }
 #map.moving :is(.over, .thumb) { visibility: hidden; }
 #column.charting { cursor: pointer; }
 #column.thumbing { cursor: grab; }
+#column.scaling { cursor: grab; }
 
 #chart-bar { bottom: calc(var(--foot) + 6px); display: flex; gap: 6px; align-items: center;
              font: 400 11px/1.4 var(--mono); color: var(--dim); }
