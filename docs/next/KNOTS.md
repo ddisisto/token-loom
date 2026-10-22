@@ -15,57 +15,57 @@ tokens 162 and 163, which is one knot drawn as two forks. `data/claude`'s Moths 
 
 ## What a knot is
 
-**A knot is a run of forks along one row of the map.** A row is the line the drawing already
-continues through each fork: the reader's path where there is one, and the heaviest child
-otherwise. So knots on the path are formed from the path and move when it does, as what the scan
-reads already does. A fork just below a knot, on a branch leaving it, is on another row: it is a
-fork there or starts that row's own knot, and nothing about the first knot changes.
+**A knot is forks joined by being close: each within range of the knot of the nearest fork above
+it.** Taken in order along the axis, a fork is judged against everything a knot already holds
+short of it, so along a row and on into the branches leaving a knot are the same rule: a branch
+that forks again close below a knot is the same knot, and one knot is never drawn inside another.
+A fork whose branches are all hair is no part of one, so a fringe of stubs does not chain a trunk
+together.
 
-**Which forks on a row are one knot is a cut on the gaps between them.** Along one line, the
-forks are depths, and a knot is a run of them with no gap wider than the cut. The cut has two
-controls on the one mechanism:
+**A knot has a cap on its span**, so a ladder, a fork every token or two for its length, parts
+into knots no longer than the cap rather than one as long as the ladder.
 
-- **a range**: every gap wider than so many tokens parts two knots;
-- **a count**: the widest gaps part knots until there are so many places.
+**The range is a share of the tokens in view, and the cap is all of them**: 15% on a tall window
+and up to half on a short one, where anything finer is too small to point at. Both are stated by
+their effect on the bar, so many places of so many forks.
 
-Either is stated by its effect, so many places from so many forks, and is a setting, per tree
-and per reader, as the map's cut is.
-
-**A knot has a cap on its span**, so a ladder, a fork every token or two for its length, is not
-one knot as long as the ladder. The cap is the first cut; a ladder read in pixels says whether it
-parts in the right places.
-
-**The range follows the zoom's zones**, wide far from the thumb and narrow at the focus. It moves
-one axis, the same way across the other, as the cut and the fisheye already do, and what a scan
-returns to is already read in the window and not by leaf.
+**A tree's knots stand still.** They are cut from the tree alone, with no path in them, when it is
+first drawn at a rung of the cut, at the range the window gives then, and again only when the tree
+or the rung changes. Reading, scrolling, arriving and zooming move nothing about them, so a knot
+is the same knot whichever way the reader came to it.
 
 ## How it is drawn
 
-**A knot is drawn across its span and read at its top.** The axis holds tokens, so the forks in a
-knot stay where they are along it and the knot is drawn as the stretch between its first and
-last, fuzzed so that it reads as one uncertain place and not several exact ones. Every branch
-leaving it is laid out and navigated as leaving at its top.
+**A knot is one bar**, along its span from its first fork to its last and across every row a
+branch leaving it stands on, in place of those branches' links. The axis holds tokens, so each
+branch still starts where it really left; what runs between the knot's forks is drawn as the bar
+and not as rows of its own, which is what lets the path through it be one row whichever branch it
+leaves by.
 
-**Its branches stand across in the knot's order.** The first cut orders them by the depth they
-leave at, then by the rank the map sorts a fork's children by now, which is consistent and
-already drawn. The intended order is by **mean surprisal over a window** of the tokens each
-branch took: how much the model preferred that path, which is a different question from how open
-it was, which entropy reads. That order is the emergent temperature axis — near-greedy on one
-side, hot further out, and authored text, which has no ranking, at the far end. The path stands
-among the branches by its own surprisal over the same span. Other measures plug in beside it,
-and one is the default.
+**Every branch leaving a knot is a sibling at its top**, and stands above or below by its rank
+against what the tree's own row took where it really left. Which side a branch is on is the
+tree's and not the path's, so stepping from branch to branch moves only the one on the path's row.
 
-**A knot is formed without regard to its branches' lengths.** That a one-token stub and a long
-branch do not compare over one window is the order's concern and the layout's, and what is
-scanned is already the subset the cut draws.
+**Its branches stand across in the knot's order**: by the depth they leave at, then by rank. The
+intended order is by **mean surprisal over a window** of the tokens each branch took: how much the
+model preferred that path, which is a different question from how open it was, which entropy
+reads. That order is the emergent temperature axis — near-greedy on one side, hot further out,
+and authored text, which has no ranking, at the far end. Other measures plug in beside it, and one
+is the default. That a one-token stub and a long branch do not compare over one window is the
+order's concern, not the knot's.
+
+**Pointed at, a knot shows its structure.** Each branch leaving it is lit where it diverges and
+along its first few px, and where the knot is on the path, the column glows across its span.
 
 ## Navigation
 
-**Scanning across walks knots and not raw forks.** `docs/MAP.md`'s scan orders branches
-depth-first; a knot's branches are siblings at it, and the depth-first order is taken there in
-the knot's own order. Nothing else changes: the column, the rows panel at the caret and the
-continuation rule read the raw tree, and later work on them chooses for itself between raw forks
-and knots.
+**A click on a knot arrives at it and zooms in about it**: on its row at its first fork, the window
+centred there, two steps in.
+
+**Scanning across walks a knot as one place.** `docs/MAP.md`'s scan orders branches depth-first; a
+knot's branches are siblings at its top, in the knot's own order. Nothing else changes: the column,
+the rows panel at the caret and the continuation rule read the raw tree, and later work on them
+chooses for itself between raw forks and knots.
 
 ## What it reads
 
@@ -75,11 +75,11 @@ largest tree, and moved to the server if it shows.
 
 ## Open
 
-- **Whether the gap cut is the clustering wanted.** A convolution of the forks' depths along a
-  row, with a kernel as wide as the range, gives a density whose high stretches are knots and
-  whose shape is the fuzz to draw. Settled by drawing the gap cut on the comb and the trunk's
-  limbs and seeing where it parts them wrongly.
-- **Whether a knot's line is the path or the tree's own.** Formed along the path, a knot can
-  re-form as the reader moves. Settled by navigating a root with knots on and noting where one
-  changes under the reader; a fixed row is the alternative.
-- **Range or count, as the default control.**
+- **What a knot looks like opened.** A click zooms in about one, and the knot stays a bar; what of
+  its forks is shown within the zoom is the detailed view, and it is designed by looking at one.
+- **Whether the gap is the clustering wanted.** A convolution of the forks' depths, with a kernel
+  as wide as the range, gives a density whose high stretches are knots and whose shape is the
+  fuzz to draw. Settled by reading the comb and the trunk's limbs and seeing where knots part
+  wrongly.
+- **A count as the control**, the widest gaps parting knots until there are so many places,
+  beside the range.

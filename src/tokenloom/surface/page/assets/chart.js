@@ -111,14 +111,16 @@ export async function charter() {
   sketch();
 }
 
-/** The knots of the tree drawn, cut the first time it is drawn at this rung, at a range read
- *  off the window then, and not again until the tree or the rung changes. */
+/** The knots of the tree drawn and the tree tied by them, cut the first time it is drawn at
+ *  this rung, at a range read off the window then, and not again until the tree or the rung
+ *  changes. */
 function knotsOf(source) {
   if (tying?.charted === charted && tying.rung === look.rung) return tying;
   // Before the column is laid there is no window to read a range off, and nothing is kept.
   const span = thumbSpan();
   const got = { charted, rung: look.rung, ...map.knots(source,
     map.hair(source, map.LADDER[look.rung], new Set()), map.knotting(span, innerHeight)) };
+  got.tree = map.tie(source, got.knots);
   if (span !== null) tying = got;
   return got;
 }
@@ -265,8 +267,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const { tree: source } = charted;
   const path = map.along(source, pathIds());
   const { most, span, hairs } = cutting(source, path);
-  const { knots, forks, places } = look.knots ? knotsOf(source) : { knots: [] };
-  const tree = map.tie(source, knots, path);
+  const { knots, forks, places, tree } = look.knots ? knotsOf(source) : { knots: [], tree: source };
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
     : { path: chart.path, back: map.steps(source, walked, chart.path, STEPS) };
