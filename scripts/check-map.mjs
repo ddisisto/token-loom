@@ -234,9 +234,10 @@ is("the same strands are the same cut", [m.same(new Set([1, 2]), new Set([2, 1])
 const row = m.index(strands([[1, null, 10, null], [2, 1, 2, -0.3], [50, 1, 5, -1],
                              [3, 2, 2, -0.5], [60, 2, 5, -0.1], [4, 3, 20, -0.2], [70, 3, 5, -3],
                              [5, 4, 10, -0.1], [80, 4, 5, -1]]));
-const tied = m.knot(row, none, none, { range: 4, cap: 16 });
+const tied = { ...m.knots(row, none, { range: 4, cap: 16 }) };
+tied.tree = m.tie(row, tied.knots, none);
 is("forks within range of the last along a row are one knot, and one further off is not",
-   tied.knots, [{ head: 1, from: 10, to: 14 }]);
+   tied.knots.map(({ head, from, to }) => ({ head, from, to })), [{ head: 1, from: 10, to: 14 }]);
 is("  every branch leaving it leaves where it starts", [50, 60, 70].map(h => tied.tree.byHead.get(h).up),
    [1, 1, 1]);
 is("  and four forks are two places", [tied.forks, tied.places], [4, 2]);
@@ -260,10 +261,16 @@ is("the range is a share of what is in view, wider on a short window and narrowe
    [share([0, 400], 600), share([0, 400], 1050), share([0, 400], 2000)],
    [m.KNOT.share[0], Math.round(400 * (m.KNOT.share[0] + m.KNOT.share[1]) / 2) / 400, m.KNOT.share[1]]);
 is("  and a knot spans no more than is in view", m.knotting([100, 400], 900).cap, 300);
-is("a cap parts a ladder", m.knot(row, none, none, { range: 4, cap: 3 }).knots,
-   [{ head: 1, from: 10, to: 12 }]);
+is("a cap parts a ladder", m.knots(row, none, { range: 4, cap: 3 }).knots
+   .map(({ head, from, to }) => ({ head, from, to })), [{ head: 1, from: 10, to: 12 }]);
 is("no range knots nothing, and the tree is the one given",
-   m.knot(row, none, none, { range: 0 }).tree === row, true);
+   m.tie(row, m.knots(row, none, { range: 0 }).knots, none) === row, true);
+// The path leaving the row inside the knot, through 60 at 12.
+const leaving = m.along(row, [1, 2, 60]);
+const leftAt = m.tie(row, tied.knots, leaving);
+is("a branch the path takes out of a knot stays where it left, so the path is one row",
+   [leftAt.byHead.get(60).up, m.layout(leftAt, { x, hairs: none, path: leaving }).get(60)], [2, 0]);
+is("  and the knot is the same one", m.knots(row, none, { range: 4, cap: 16 }).knots.length, 1);
 
 // ---- at random ----------------------------------------------------------------------------
 
@@ -296,15 +303,16 @@ for (let t = 0; t < 80; t++) {
   const hairs = m.hair(source, m.zoned(source, { base, steps, span, most }), path);
   // Every other tree knotted, and the layout's promises held over that as well.
   const knot = t % 4 < 2 ? { range: 0 } : { range: 1 + Math.floor(rand() * 8), cap: 2 + Math.floor(rand() * 30) };
-  const { tree, knots, forks, places } = m.knot(source, path, hairs, knot);
+  const { knots, forks, places } = m.knots(source, hairs, knot);
+  const tree = m.tie(source, knots, path);
   for (const k of knots) if (k.to - k.from > knot.cap || k.to <= k.from) overspun++;
   for (const s of tree.strands) {
     const was = source.byHead.get(s.head);
     if (s.up !== was.up && (s.depth !== was.depth || !m.lineage(source, was.up).includes(s.up)
                             || path.has(s.head) || s.against === undefined)) unmoved++;
   }
-  if (knot.range === 0 ? tree !== source || forks !== 0 : places > forks || places < forks - tree.strands
-        .filter(s => s.up !== source.byHead.get(s.head).up).length) uncounted++;
+  if (knot.range === 0 ? tree !== source || forks !== 0
+      : places !== forks - knots.reduce((n, k) => n + k.at.size, 0)) uncounted++;
   const gone = m.undrawn(tree, hairs);
   const x = m.scale({ most, width: 200 + 20 * t, pad: 10 });
   const rows = m.layout(tree, { x, hairs, path });

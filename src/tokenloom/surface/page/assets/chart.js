@@ -39,7 +39,8 @@ let dragged = false;  // a drag ended, and the click that follows it is not an a
 let pointedAt = null; // the path's cell the pointer is over, from the column or the map
 let gliding = 0;      // which move is running, so a newer drawing stops an older one
 let lit = null;       // the strand the pointer is over on the map, traced to the root
-let tie = null;       // the knot the pointer is over on the map
+let onKnot = null;    // the knot the pointer is over on the map
+let tying = null;     // the knots of the tree drawn, cut once per tree and per rung of the cut
 let glowing = [];     // the path's cells a knot pointed at covers, glowing
 let walked = [];      // the trail: the paths the reader has been on in this tree, newest first
 let zoomed = 0;       // steps of zoom in about the thumb
@@ -108,6 +109,18 @@ export async function charter() {
     }
   }
   sketch();
+}
+
+/** The knots of the tree drawn, cut the first time it is drawn at this rung, at a range read
+ *  off the window then, and not again until the tree or the rung changes. */
+function knotsOf(source) {
+  if (tying?.charted === charted && tying.rung === look.rung) return tying;
+  // Before the column is laid there is no window to read a range off, and nothing is kept.
+  const span = thumbSpan();
+  const got = { charted, rung: look.rung, ...map.knots(source,
+    map.hair(source, map.LADDER[look.rung], new Set()), map.knotting(span, innerHeight)) };
+  if (span !== null) tying = got;
+  return got;
 }
 
 /** What is cut on the path drawn, zoomed as far as it is about the thumb, and the axis it is
@@ -252,8 +265,8 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const { tree: source } = charted;
   const path = map.along(source, pathIds());
   const { most, span, hairs } = cutting(source, path);
-  const { tree, knots, forks, places } =
-    map.knot(source, path, hairs, look.knots ? map.knotting(span, innerHeight) : { range: 0 });
+  const { knots, forks, places } = look.knots ? knotsOf(source) : { knots: [] };
+  const tree = map.tie(source, knots, path);
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
     : { path: chart.path, back: map.steps(source, walked, chart.path, STEPS) };
@@ -320,7 +333,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
             thumb, ruler, bands, handle, els, line: lineAt, step, byHead, down: look.down, long,
             wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
-  tie = null;
+  onKnot = null;
   for (const i of glowing) cellsGlow(i, false);
   glowing = [];
   // A run of steps still going on past this drawing keeps the caret where it is going.
@@ -583,11 +596,11 @@ export function pointed(event) {
   if (event.target !== $("column")) { tied(null); return; }
   const p = chartPoint(event);
   tied(p === null ? null : map.knotAt(chart.plan, p.along, p.across, 3));
-  const hit = tie !== null ? null : chartHit(event);
+  const hit = onKnot !== null ? null : chartHit(event);
   const head = hit?.head ?? null;
   const got = hit !== null && chart.path.has(head) ? cells() : null;
   hover(got === null ? null : map.holding(got.at, hit.depth));
-  $("column").classList.toggle("charting", head !== null || tie !== null);
+  $("column").classList.toggle("charting", head !== null || onKnot !== null);
   $("column").classList.toggle("thumbing", head === null && event.target === $("column")
                                            && onThumb(event) !== null);
   $("column").classList.toggle("scaling", look.on && onScale(event));
@@ -603,8 +616,8 @@ export function pointed(event) {
 /** Point at `knot` on the map, or at none with null: what leaves it is lit where it diverges and
  *  along its first px, and the path's cells across its span glow, where it is on the path. */
 function tied(knot) {
-  if ((knot?.head ?? null) === (tie?.head ?? null)) return;
-  tie = knot;
+  if ((knot?.head ?? null) === (onKnot?.head ?? null)) return;
+  onKnot = knot;
   for (const i of glowing) cellsGlow(i, false);
   glowing = [];
   chart.ties.replaceChildren();

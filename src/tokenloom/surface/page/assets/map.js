@@ -122,14 +122,14 @@ export function undrawn(tree, hairs) {
   return out;
 }
 
-/** Forks along each row within `range` tokens of the last made one place, a knot spanning no
- *  more than `cap`: every branch leaving it leaves the strand above its first fork, carrying
- *  as `against` the rank of what continued the row where it really left. A fork whose branches
- *  are all hair under `hairs` is no part of one. Answers the tree indexed again, or `tree`
- *  itself where nothing is knotted; the knots as `{ head, from, to }`, the strand they leave
- *  and where along they start and end; and how many `places` the `forks` they count became. */
-export function knot(tree, path, hairs, { range, cap }) {
-  const moved = new Map(), knots = [];
+/** Forks along each of the tree's own rows -- through each fork, its heaviest child -- within
+ *  `range` tokens of the last made one place, a knot spanning no more than `cap`. A fork whose
+ *  branches are all hair under `hairs` is no part of one. The knots as `{ head, from, to, at }`:
+ *  the strand above the first fork, where along they start and end, and by the head of each
+ *  strand ending at a later fork in it, what continues the row there; and how many `places` the
+ *  `forks` they count became. No path enters, so a tree's knots stand wherever it is read from. */
+export function knots(tree, hairs, { range, cap }) {
+  const out = [], none = new Set();
   let forks = 0, places = 0;
   const rows = range > 0 && tree.top !== null ? [tree.top] : [];
   while (rows.length) {
@@ -137,7 +137,7 @@ export function knot(tree, path, hairs, { range, cap }) {
     for (let s = rows.pop(); ;) {
       const kids = tree.kids.get(s.head) ?? [];
       if (!kids.length) break;
-      const main = continuing(kids, path);
+      const main = continuing(kids, none);
       const others = kids.filter(k => k !== main);
       rows.push(...others);
       const at = s.depth + s.length;
@@ -145,20 +145,33 @@ export function knot(tree, path, hairs, { range, cap }) {
         forks++;
         if (open !== null && at - open.to <= range && at - open.from <= cap) {
           open.to = at;
-          for (const k of others) moved.set(k.head, { up: open.head, against: rank(main) });
+          open.at.set(s.head, main.head);
         } else {
-          if (open !== null && open.to > open.from) knots.push(open);
-          open = { head: s.head, from: at, to: at };
+          if (open !== null && open.to > open.from) out.push(open);
+          open = { head: s.head, from: at, to: at, at: new Map() };
           places++;
         }
       }
       s = main;
     }
-    if (open !== null && open.to > open.from) knots.push(open);
+    if (open !== null && open.to > open.from) out.push(open);
   }
-  if (!moved.size) return { tree, knots, forks, places };
-  return { tree: index(tree.strands.map(s => moved.has(s.head) ? { ...s, ...moved.get(s.head) } : s)),
-           knots, forks, places };
+  return { knots: out, forks, places };
+}
+
+/** `tree` with every branch leaving a later fork of one of `knots` leaving the strand above its
+ *  first instead, carrying as `against` the rank of what continued the row where it really left
+ *  -- but for one the path through `path` runs through, which stays, so the path stays one row.
+ *  `tree` itself where nothing moves. */
+export function tie(tree, knots, path) {
+  const moved = new Map();
+  for (const k of knots) for (const [head, main] of k.at) {
+    const against = rank(tree.byHead.get(main));
+    for (const c of tree.kids.get(head) ?? [])
+      if (c.head !== main && !path.has(c.head)) moved.set(c.head, { up: k.head, against });
+  }
+  if (!moved.size) return tree;
+  return index(tree.strands.map(s => moved.has(s.head) ? { ...s, ...moved.get(s.head) } : s));
 }
 
 /** Where the strand `head` leaves the path through `path`, in tokens from the root: the depth
