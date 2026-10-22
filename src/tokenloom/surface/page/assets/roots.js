@@ -12,7 +12,9 @@ import { drawn, reach, show, showHidden } from "./reading.js";
 import * as stub from "./stub.js";
 import * as waypoint from "./waypoint.js";
 import { ask, say } from "./wire.js";
-import { flip, stage, stale } from "./app.js";
+import { flip } from "./column.js";
+import { stage } from "./compose.js";
+import { stale } from "./rows.js";
 
 const $ = id => document.getElementById(id);
 

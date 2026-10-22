@@ -403,12 +403,6 @@ occasion beyond the command* under Loose ends.
 
 ## Loose ends
 
-- **`app.js` is split, ahead of Knots.** It is about 2,800 lines in one module scope, and names
-  collided there while the map's scan was built. The map's interaction comes out first, the
-  scan, the lead, the scale and the thumb, with what of it is arithmetic moving under a driver.
-  Whether a larger change to the page's shape would serve better is asked before it starts. It
-  is the file and what refers to it, so an agent can take it beside other work.
-
 - **The trail walked back.** `docs/MAP.md` keeps the last twenty paths a reader
   was on, and back is the gesture that takes the last one off: each arrival a history entry, so
   the browser's back, a mouse's and a key all pop it, forward puts it back, and it stops at the

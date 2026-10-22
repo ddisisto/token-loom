@@ -20,7 +20,10 @@ import { read as overlays, rule as taken, wants } from "./overlay.js";
 import { current, live, marked } from "./roots.js";
 import { ask, wrong } from "./wire.js";
 import { charter, hover } from "./chart.js";
-import { frontier, laid, settled, stage, wakes } from "./app.js";
+import { frontier, laid } from "./column.js";
+import { stage } from "./compose.js";
+import { wakes } from "./more.js";
+import { settled } from "./rows.js";
 
 const $ = id => document.getElementById(id);
 

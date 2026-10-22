@@ -219,6 +219,18 @@ a row weighs, where a scale puts a value — these take the measurements as argu
 checked without a browser. A module that reaches for `getBoundingClientRect` has put something
 untestable where something testable was.
 
+**A module-level `let` has one owner, and every other module changes it through that owner's
+functions**: an import is a read-only live binding, so this is what the language enforces and not
+a convention. **`reading.js` owns what is being read** — the path drawn and the cells it stands
+in, the hidden toggle and the rule it was read under, the act in flight, and where the window
+stood, with the flag that says a scroll is the page's own — and `show` there is what redraws the
+column, the rows and the map after a read. **`input.js` is the one place the page-wide keys, the
+wheel, the scroll and the column's own ground are listened to**, and it only decides whose gesture
+each is. `app.js` is the startup, and a module that puts something on the page does it from a
+`mount` that `app.js` calls, so what lands first is decided in one place. Modules import each
+other in cycles, which ES modules allow for functions; code that runs at load does not reach
+across one.
+
 **A redraw or an arrival holds the reader's place**, which `docs/SURFACE.md`'s *What this is*
 states and which is the first thing to check a change to the page against. **How it moves is
 judged by the person using it**: what an agent verifies is the arithmetic, through the drivers,

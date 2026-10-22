@@ -13,7 +13,7 @@ import {
 } from "./reading.js";
 import { known, marks, storage } from "./roots.js";
 import { ask, say, wrong } from "./wire.js";
-import { point } from "./app.js";
+import { point } from "./column.js";
 
 const SVG = "http://www.w3.org/2000/svg";
 const LEAD = 100;          // ms the caret takes to where an arrival is going

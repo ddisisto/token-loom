@@ -64,8 +64,8 @@ def test_every_page_module_parses(tmp_path):
     before it was found by driving a browser.
 
     The drivers above parse what they import, which is every module the page's arithmetic
-    lives in; what nothing imports is `app.js`, because it is the wiring and reaches for a
-    document. So this parses without running: the sources are copied under `.mjs`, since
+    lives in; what none of them imports is the modules that reach for a document at load, from
+    `app.js` down. So this parses without running: the sources are copied under `.mjs`, since
     `--check` takes the module goal from the extension and the page is served as `.js` from
     a directory that has no `package.json` and should not grow one.
     """
