@@ -17,7 +17,8 @@
  */
 
 import * as cursor from "./cursor.js";
-import { along, draw, keep, panel, place, set, share } from "./draw.js";
+import { draw, keep, panel, set } from "./draw.js";
+import * as drawer from "./drawer.js";
 import * as room from "./room.js";
 import * as map from "./map.js";
 import * as mark from "./mark.js";
@@ -26,8 +27,11 @@ import {
 } from "./overlay.js";
 import * as ranking from "./ranking.js";
 import * as stub from "./stub.js";
+import {
+  counted, current, known, live, marked, marks, refresh, storage, waymark, writable,
+} from "./roots.js";
 import * as wake from "./wake.js";
-import * as waypoint from "./waypoint.js";
+import { ask, generated, say, wrong } from "./wire.js";
 
 const $ = id => document.getElementById(id);
 
@@ -36,146 +40,11 @@ const { aside } = cursor;
 /* Whether what has been set aside is drawn. A way of looking: it records nothing, the
  * continuation rule follows liveness either way, and what it reveals it never selects --
  * hidden nodes only ever carry the path on from where the live one ran out. */
-let showHidden = false;
-
-/* Whether the server writes, as `/tree` says. One started to read holds no claim, and the page
- * it serves offers no gesture that writes: no draw, no composer, no realise, no setting aside. */
-let writable = true;
-
-// ---- the wire -------------------------------------------------------------------------
-
-class Fault extends Error {
-  constructor(kind, message) { super(message); this.kind = kind; }
-}
-
-async function ask(path, body) {
-  const answer = await fetch(path, body === undefined ? {} : {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  // A server that fell over before it could phrase an answer sends no JSON at all, and
-  // reading it as JSON would report the parse rather than the fault.
-  const shape = await answer.json().catch(() => null);
-  // A fault says which kind it was because the record does: a refusal and a rejection are
-  // answers about the request, and only a failure is worth repeating unchanged.
-  if (!answer.ok) {
-    throw new Fault(shape?.error || "error", shape?.message || answer.statusText);
-  }
-  if (shape === null) throw new Fault("error", "the server sent something that is not JSON");
-  return shape;
-}
-
-/** Ask for a draw, and treat one that broke as the fault it is.
- *
- *  **A `generate` that failed is an act, and it comes back as one.** The record keeps it with
- *  terminator `failed` and no nodes, so the route answers it as made -- and a caller reading
- *  only that something was made would ask again, at the same place, for the same thing. Only
- *  a refusal is turned into a fault on the server, being an answer about the request; the rest
- *  of the ways a draw writes nothing are turned into one here. An `eos` with nothing before it
- *  is an answer and not a fault, and comes back as made.
- */
-async function generated(body) {
-  const act = await ask("/generate", body);
-  if (["failed", "cancelled", "aborted"].includes(act.terminator)) {
-    throw new Fault(act.terminator, `act ${act.id} wrote nothing: the draw ${act.terminator}`);
-  }
-  return act;
-}
-
-// ---- the list of roots ----------------------------------------------------------------
-
-/** A label is one line and the column cuts it, so a newline is shown rather than obeyed. */
-const oneLine = text => text.replace(/\n/g, "\\n");
-
-function rootRow(root, current) {
-  const li = document.createElement("li");
-  li.append(oneLine(root.label));
-  if (root.forked) {
-    // It stopped where the tree parts rather than for room, and the two read the same in
-    // the text. Part of the line, so it is clipped with it.
-    const mark = document.createElement("span");
-    mark.className = "fork";
-    mark.textContent = " ⑂";
-    mark.title = "the tree parts here";
-    li.append(mark);
-  }
-  // Over the clipped text rather than in it, so it stops the click that would select the
-  // root: the row and the control are two gestures in one place and only one is meant.
-  const go = document.createElement("button");
-  go.className = "flip";
-  go.textContent = root.deleted ? "restore" : "hide";
-  go.title = root.deleted ? "bring this root back" : "set this root aside";
-  go.onclick = event => {
-    event.stopPropagation();
-    // Restoring lands on the root it brought back; hiding lands wherever there is
-    // something to read, since a root has no parent to fall back to.
-    flip(root.deleted, root.id, root.deleted ? root.id : null);
-  };
-  if (writable) li.append(go);
-  if (root.deleted) li.classList.add("hidden");
-  li.dataset.node = root.id;
-  li.setAttribute("aria-current", String(root.id === current));
-  li.onclick = () => show(root.id);
-  return li;
-}
-
-// ---- waypoints ---------------------------------------------------------------------------
-
-/* A waypoint stands under its root, and under the nearest waypoint above it, named by the
- * text either side of it with its own token picked out in the middle. Taking one is an
- * arrival: the path through it, the caret on it in the middle of the window, and the token
- * flashing there and in the nav so the eye finds where it landed. */
-
-const storage = (() => { try { return localStorage; } catch { return null; } })();
-let known = null;     // the last answer to `/tree`
-let kept = [];        // { node, created }: the waypoints set in this tree, in the order set
-let ways = new Map(); // root -> what the server said of the waypoints under it, nested
-
-/** Ask what the kept waypoints are now: where each stands, whether it is live, and what
- *  leads up to it. Nothing is asked when there are none. */
-async function named() {
-  const rows = kept.length
-    ? (await ask(`/waypoints?nodes=${kept.map(w => w.node).join(",")}`)).waypoints : [];
-  ways = waypoint.nest(rows, kept);
-}
-
-function wayRows(item, depth) {
-  const li = document.createElement("li");
-  li.className = "waypoint";
-  li.style.setProperty("--depth", depth);
-  // The lead is clipped at its far end and the trail at its own, so the token holds the
-  // middle of the row however wide the nav is.
-  const lead = document.createElement("span");
-  lead.className = "lead";
-  lead.append(Object.assign(document.createElement("span"), { textContent: oneLine(item.lead) }));
-  const token = Object.assign(document.createElement("b"), { textContent: oneLine(item.token) });
-  const trail = Object.assign(document.createElement("span"), {
-    className: "trail", textContent: oneLine(item.trail),
-  });
-  if (item.parts) {
-    const mark = Object.assign(document.createElement("span"), {
-      className: "fork", textContent: " ⑂", title: "the tree parts here",
-    });
-    trail.append(mark);
-  }
-  const go = document.createElement("button");
-  go.className = "flip";
-  go.textContent = "×";
-  go.title = "clear this waypoint";
-  go.onclick = event => { event.stopPropagation(); waymark(item.node); };
-  li.append(lead, token, trail, go);
-  // Set aside since it was set, which is shown whatever the toggle says: it is the reader's
-  // mark, and dropping it would lose what they asked to keep.
-  if (!item.live) li.classList.add("hidden");
-  li.dataset.waypoint = item.node;
-  li.onclick = () => reach(item.node, token);
-  return [li, ...item.below.flatMap(under => wayRows(under, depth + 1))];
-}
+export let showHidden = false;
 
 /** Arrive at `node` on the path through `through`, flashing it there and in `named` -- the
  *  token in the nav, for a waypoint -- where there is one. */
-async function reach(node, named = null, through = node, hold = null) {
+export async function reach(node, named = null, through = node, hold = null) {
   await show(through, node);
   const seg = $("column").querySelector(".flow .seg.at");
   if (seg === null) return;
@@ -197,89 +66,6 @@ async function reach(node, named = null, through = node, hold = null) {
   }
 }
 
-/** Set a waypoint at `node`, or clear the one there. */
-async function waymark(node) {
-  kept = waypoint.toggle(kept, node, Date.now());
-  if (!waypoint.save(storage, known.created ?? known.path, kept))
-    say("this browser is not keeping waypoints, so these go with the page", true);
-  marked();
-  await named();
-  drawRoots(known, drawn[0]?.nodes[0].id);
-  charted = null;
-  charter();
-}
-
-/** Mark each segment holding a waypoint. */
-function marked() {
-  const at = new Set(kept.map(w => w.node));
-  const segs = [...$("column").querySelectorAll(".flow .seg")];
-  if (segs.length !== drawn.length) return;
-  for (const [i, el] of segs.entries())
-    el.classList.toggle("waypoint", drawn[i].nodes.some(n => at.has(n.id)));
-}
-
-/** Last in the list, which is the row the root it makes will occupy. */
-function newRow() {
-  const li = document.createElement("li");
-  li.className = "new";
-  const go = document.createElement("button");
-  go.textContent = "+";
-  go.title = "start something new";
-  go.onclick = () => stage(null);
-  li.append(go);
-  return li;
-}
-
-function drawRoots(tree, current) {
-  const rows = live(tree).flatMap(root => [
-    rootRow(root, current), ...(ways.get(root.id) ?? []).flatMap(item => wayRows(item, 1)),
-  ]);
-  // An empty list and a list emptied by the toggle are different states, and a reader who
-  // has set everything aside would otherwise be told the tree is new.
-  if (!rows.length) rows.push(Object.assign(document.createElement("li"), {
-    className: "none",
-    textContent: tree.roots.length ? "Everything here is set aside." : "Nothing here yet.",
-  }));
-  $("roots").replaceChildren(...rows, ...(writable ? [newRow()] : []));
-}
-
-/** The roots the toggle admits. */
-const live = tree => tree.roots.filter(root => showHidden || !root.deleted);
-
-async function refresh(current) {
-  // Every act lands through here, and an act is what makes a ranking read earlier wrong: the
-  // rows only grow, but which of them a node now realises does not.
-  ranking.forget();
-  // An arm is what the tree holds on the top row, so an act can lengthen one or take it
-  // off the top row entirely. Both make what is held wrong in the same way the rows are.
-  stub.forget();
-  drawnAt = null;  // the rows said what became of each row, and an act has changed that
-  charted = null;  // and the strands, wherever it landed
-  const tree = known = await ask("/tree");
-  writable = tree.writable !== false;
-  document.body.classList.toggle("read-only", !writable);
-  // Keyed by the tree and not by the address, which names only the server.
-  kept = waypoint.load(storage, tree.created ?? tree.path);
-  walked = map.recall(storage, tree.created ?? tree.path);
-  await named();
-  drawRoots(tree, current);
-  tally(tree);
-  return tree;
-}
-
-/** What the tree is, in the status line. */
-const tally = tree =>
-  say(`${tree.path}  ${tree.vocabulary}  ` +
-      `${tree.counts.nodes} nodes  ${tree.counts.edges} edges  ${tree.counts.acts} acts`);
-
-/** The counts again, and nothing else.
- *
- *  A roll writes, so the figures move -- but `refresh` drops every arm and every ranking,
- *  which is right for an act the reader asked for out loud and wrong for one they are
- *  watching arrive. What a burst invalidates is bounded and the caller says what to do
- *  about it; this is only the part of `refresh` that is true after any write at all.
- */
-const counted = async () => tally(await ask("/tree"));
 
 // ---- the reading column ---------------------------------------------------------------
 
@@ -459,7 +245,7 @@ function release() {
  * and not a second opinion about where the reader is -- the caret is only ever placed on a
  * node of it, so the two cannot disagree. What it is not is a prediction of the next read:
  * the rule chooses afresh on every arrival, and below the caret it may choose differently. */
-let drawn = [];
+export let drawn = [];
 
 // ---- what else was live -----------------------------------------------------------------
 
@@ -641,8 +427,7 @@ function clear() {
 function took(row, payload) {
   if (composing()) return;  // the same reason a click on a token does nothing
   if (row.child === null) return writable ? realise(row, payload) : undefined;
-  show(row.child, row.child).catch(
-    why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+  show(row.child, row.child).catch(wrong);
 }
 
 /** Make the node a row names, and stand the caret on it armed.
@@ -674,7 +459,7 @@ async function realise(row, payload) {
     say(parked ? "realised \u00b7 the page is parked, enter draws from here"
                : "realised \u00b7 scroll down to draw from here");
   } catch (why) {
-    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+    wrong(why);
   } finally {
     working = false;
     wasAtEnd = atEnd();
@@ -902,7 +687,7 @@ async function roll(row, where, payload) {
   } catch (why) {
     // Said out loud, unlike a failed free read: the reader rested on a price and nothing
     // came of it, which is a thing they did and are owed an answer about.
-    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+    wrong(why);
   } finally {
     buying = null;
     // A row the pointer moved on to while this one was buying had its dwell run out against
@@ -1060,7 +845,7 @@ function laid({ read, cells, closed }) {
   return flow;
 }
 
-async function show(node, where) {
+export async function show(node, where) {
   const got = await reading(node);
   if (got === null) return land(null);
   drawn = got.cells;
@@ -1075,11 +860,7 @@ async function show(node, where) {
   wakes();
   settled();
   charter();
-  // Which root is current is derived from the path rather than held beside the position,
-  // so the two cannot disagree about where the reader is.
-  const root = got.cells[0].nodes[0].id;
-  for (const li of $("roots").querySelectorAll("li[data-node]"))
-    li.setAttribute("aria-current", String(Number(li.dataset.node) === root));
+  current(got.cells[0].nodes[0].id);
 }
 
 // ---- setting aside, and bringing back ---------------------------------------------------
@@ -1097,7 +878,7 @@ async function land(prefer) {
   stage(null);  // everything is set aside, and the only thing to do is the thing offered
 }
 
-async function flip(undo, node, then) {
+export async function flip(undo, node, then) {
   if (working) return;
   working = true;
   try {
@@ -1105,7 +886,7 @@ async function flip(undo, node, then) {
     await refresh();
     await land(then);
   } catch (why) {
-    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+    wrong(why);
   } finally {
     working = false;
     wasAtEnd = atEnd();  // the path just got shorter or longer; an arrival is a fresh one
@@ -1173,7 +954,7 @@ function compose(at) {
   return box;
 }
 
-function stage(at) {
+export function stage(at) {
   drawn = [];
   cursor.place(null);
   showing = null;
@@ -1263,7 +1044,7 @@ function author() {
     } catch (why) {
       // A rejection left no trace in the record, so what it offers is an edit and not a
       // dismissal -- the same answer the root composer gives, in the one place there is.
-      say(`${why.kind || "unreachable"}: ${why.message}`, true);
+      wrong(why);
       editable(true);
       box.focus();
       sending = false;
@@ -1718,7 +1499,7 @@ addEventListener("keydown", event => {
   if (event.key === "w" && !event.ctrlKey && !event.metaKey && !event.altKey) {
     if (event.repeat || cursor.node() === null || known === null) return;
     event.preventDefault();
-    waymark(cursor.node()).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true));
+    waymark(cursor.node()).catch(wrong);
     return;
   }
   // The caret a segment along, which reaches a token that spells nothing as well as any other.
@@ -1818,6 +1599,23 @@ let heldTall = false; // the column kept at its height through steps across, unt
 let aiming = null;  // a run of steps across: where it lands, from where, and the branch it is going to
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
+/** Forget what the rows said became of each row and the strands, which an act changes. */
+export function stale() {
+  drawnAt = null;
+  charted = null;
+}
+
+/** Take up the trail kept for the tree keyed `key`. */
+export function retrace(key) {
+  walked = map.recall(storage, key);
+}
+
+/** Read the strands again and draw them. */
+export function rechart() {
+  charted = null;
+  charter();
+}
+
 /** A strand's colour: the path's, how many paths back it was on one, or none. */
 const tone = (path, back, head) =>
   path.has(head) ? "var(--accent)"
@@ -1851,7 +1649,7 @@ async function charter() {
     asking = want;
     try {
       const got = await ask(`/map/${root}?hidden=${showHidden ? 1 : 0}` +
-                            `&marks=${kept.map(w => w.node).join(",")}`);
+                            `&marks=${marks().join(",")}`);
       if (asking !== want) return;
       if (charted?.root !== root) zoomed = 0;
       charted = { ...want, tree: map.index(got.strands), marks: got.marks };
@@ -2264,7 +2062,7 @@ function charting(event) {
   // A point on the path being read keeps it, and only the caret moves.
   const to = chart.path.has(hit.head) ? { tail: pathEnd(), depth: hit.depth } : hit;
   lead(hit.head, hit.depth);
-  visit(to).catch(why => say(`${why.kind || "unreachable"}: ${why.message}`, true))
+  visit(to).catch(wrong)
     .finally(unlead);
   return true;
 }
@@ -2558,7 +2356,7 @@ function scanBy(by, { paced = false } = {}) {
   holdTall();
   lead(to.head, aimedAt(aiming));
   hurry();
-  if (!scanning) goAcross().catch(scanFails);
+  if (!scanning) goAcross().catch(wrong);
 }
 
 /** Keep the column at the height it has, so a shorter branch stepped onto does not shorten the
@@ -2600,7 +2398,6 @@ async function goAcross() {
   }
 }
 
-const scanFails = why => say(`${why.kind || "unreachable"}: ${why.message}`, true);
 
 // Shift and the wheel zoom the map, wherever the pointer is, and do nothing else: not the
 // draw a wheel at the end of the column asks for, nor the sideways scroll some browsers make
@@ -2628,11 +2425,6 @@ addEventListener("wheel", event => {
 }, { passive: false });
 
 // ---- the page -------------------------------------------------------------------------
-
-function say(text, bad) {
-  $("status").textContent = text;
-  $("status").className = bad ? "fault" : "";
-}
 
 $("drawer").append(panel());
 
@@ -2678,7 +2470,7 @@ const still = matchMedia("(prefers-reduced-motion: reduce)");
 /** How far below the mark the last line stands, in the room's units: what is left to scroll. */
 const gap = () => Math.max(0,
   (document.documentElement.scrollHeight - window.scrollY - window.innerHeight)
-  / Math.max(1, window.innerHeight - foot.offsetHeight) * 100);
+  / Math.max(1, window.innerHeight - drawer.foot.offsetHeight) * 100);
 
 function beat(now) {
   const c = room.cue({ gap: gap(), since: now - stirred, hover: hovering,
@@ -2747,159 +2539,7 @@ edge.addEventListener("pointerup", letGo);
 edge.addEventListener("pointercancel", letGo);
 
 stand(room.roomFor(draw().length));
-
-/* The footer, and the drawer in it. Hovering it lifts the drawer over the text after a beat,
- * and leaving lets it fall after another, so passing over it does neither; the heat rides its
- * top edge, and a pointer on it keeps the drawer up without lifting it. Dragged up by the heat,
- * the drawer is held at whatever height it was let go and takes that room from the text, which
- * is `--foot`; how high the footer reaches either way is `--lid`. `room.js` has where it rests.
- */
-const foot = document.querySelector("footer");
-const drawer = $("drawer");
-const LIFT = 120, FALL = 300;  // ms
-const NEAR = 32;  // px either side of the drawer's panel a pointer on the footer lifts it from
-let over = 0;   // how many of the footer and the heat the pointer is on
-let lifting = null;
-let rising = null;  // a lift waiting on the pointer staying near the drawer
-let held = 0;   // px the drawer is held open at; 0 is shut
-
-/** How tall the drawer is with everything in it showing, held to most of the screen. */
-const full = () => Math.min(drawer.scrollHeight, window.innerHeight * 0.6);
-
-function measure() {
-  const root = document.documentElement.style;
-  root.setProperty("--foot", `${foot.offsetHeight}px`);
-  const floating = foot.classList.contains("peek") && held === 0;
-  root.setProperty("--lid", `${foot.offsetHeight + (floating ? drawer.offsetHeight : 0)}px`);
-}
-new ResizeObserver(measure).observe(foot);
-new ResizeObserver(measure).observe(drawer);
-
-function hold(px) {
-  held = Math.round(px);
-  foot.classList.toggle("held", held > 0);
-  if (held > 0) foot.classList.remove("peek");
-  foot.style.setProperty("--held", `${held}px`);
-  measure();
-}
-
-function lift(up) {
-  clearTimeout(lifting);
-  // A line in the hand keeps it up, wherever the pointer has wandered while holding it.
-  if (!up && drawer.querySelector(".moving")) {
-    lifting = setTimeout(() => lift(false), FALL);
-    return;
-  }
-  foot.classList.toggle("peek", up && held === 0);
-  measure();
-}
-
-/** The pointer arrived on something that keeps the drawer up. */
-function arrive() {
-  over++;
-  clearTimeout(lifting);
-}
-function depart() {
-  over = Math.max(0, over - 1);
-  clearTimeout(lifting);
-  if (over === 0 && foot.classList.contains("peek")) lifting = setTimeout(() => lift(false), FALL);
-}
-/** Lift the drawer after a beat while the pointer on the footer is across from its panel, and
- *  not while it is anywhere else along the footer. */
-function aim(event) {
-  const panel = drawer.querySelector(".panel")?.getBoundingClientRect();
-  const near = panel && event.clientX >= panel.left - NEAR && event.clientX <= panel.right + NEAR;
-  if (!near || held > 0 || foot.classList.contains("peek")) {
-    clearTimeout(rising);
-    rising = null;
-    return;
-  }
-  if (rising === null) rising = setTimeout(() => { rising = null; lift(true); }, LIFT);
-}
-foot.addEventListener("pointerenter", event => { arrive(); aim(event); });
-foot.addEventListener("pointermove", aim);
-foot.addEventListener("pointerleave", () => {
-  clearTimeout(rising);
-  rising = null;
-  depart();
-});
-
-/* The heat of a draw, set along a line across the column at the footer's top. Its range and
- * steps are the draw panel's, read through `along` and `share`. */
-const heat = Object.assign(document.createElement("div"), { id: "heat" });
-const track = Object.assign(document.createElement("div"), { className: "track" });
-const warmth = Object.assign(document.createElement("div"), { className: "point" });
-const heatSays = Object.assign(document.createElement("span"), { className: "says" });
-const gripper = Object.assign(document.createElement("div"), {
-  className: "grip", title: "drag up for the rest of the draw, or click" });
-track.append(warmth, heatSays);
-heat.append(track, gripper);
-document.querySelector("main").append(heat);
-
-/** Where along the heat each of the stylesheet's colours stands. */
-const GLOW = [[0, "--heat-0"], [1, "--heat-1"], [2, "--heat-2"], [along("temperature", 1), "--heat-3"]];
-
-/** The colour a heat is drawn in: mixed between the two stops either side of it. */
-function glow(t) {
-  const i = Math.max(0, GLOW.findLastIndex(([at]) => at <= t));
-  const [a, from] = GLOW[Math.min(i, GLOW.length - 2)];
-  const [b, to] = GLOW[Math.min(i + 1, GLOW.length - 1)];
-  const p = Math.min(1, Math.max(0, (t - a) / (b - a)));
-  return `color-mix(in oklab, var(${from}), var(${to}) ${(p * 100).toFixed(1)}%)`;
-}
-heat.style.setProperty("--scale", `linear-gradient(to right, ${GLOW.map(([t, c]) =>
-  `var(${c}) ${(t / GLOW.at(-1)[0] * 100).toFixed(1)}%`).join(", ")})`);
-
-function heated() {
-  heat.style.setProperty("--x", String(share("temperature")));
-  const { temperature } = draw();
-  heat.style.setProperty("--glow", glow(temperature));
-  heatSays.textContent = temperature === 0 ? "greedy" : `heat ${temperature.toFixed(2)}`;
-}
-
-/* A drag on the heat sets the heat, until it has gone far enough up or down to be the
- * drawer's -- and then the heat goes back to where the drag found it, since a hand reaching
- * for the drawer was not setting it. A drag from the grip is only ever the drawer's, and a
- * grip let go without moving it opens the drawer, or shuts one that is open. */
-let grip = null;  // { y, from, heat, drawer, bare }
-const toward = event => {
-  const box = track.getBoundingClientRect();
-  place("temperature", (event.clientX - box.left) / box.width);
-  heated();
-};
-heat.addEventListener("pointerdown", event => {
-  if (event.button !== 0) return;
-  event.preventDefault();
-  heat.setPointerCapture(event.pointerId);
-  // A drawer lifted by hovering is the height it shows, so a drag starts from there.
-  const from = held > 0 ? held : foot.classList.contains("peek") ? drawer.offsetHeight : 0;
-  const bare = event.target === gripper;
-  grip = { y: event.clientY, from, heat: draw().temperature, drawer: false, bare };
-  heat.classList.add(bare ? "lifting" : "moving");
-  if (!bare) toward(event);
-});
-heat.addEventListener("pointermove", event => {
-  if (grip === null) return;
-  const to = room.pulled(grip.from, grip.y - event.clientY, full());
-  if (to === null && !grip.drawer) return grip.bare ? undefined : toward(event);
-  if (!grip.drawer) {
-    grip.drawer = true;
-    set("temperature", grip.heat);
-    heated();
-  }
-  hold(to ?? grip.from);
-});
-heat.addEventListener("pointerenter", () => arrive());
-heat.addEventListener("pointerleave", depart);
-for (const end of ["pointerup", "pointercancel"]) {
-  heat.addEventListener(end, () => {
-    if (grip?.drawer) hold(room.rests(held, full()));
-    else if (grip?.bare) hold(held > 0 ? 0 : full());
-    grip = null;
-    heat.classList.remove("moving", "lifting");
-  });
-}
-heated();
+drawer.mount();
 
 /* The overlay, the continuation rule and what is set aside are all ways of looking, and they
  * share a panel because they are one question asked three times: what of the record is in
@@ -2914,7 +2554,7 @@ $("read").append(overlayPanel(async () => {
     ruled = taken();
     await (here === null ? overlays([], {}) : show(through, here));
   } catch (why) {
-    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+    wrong(why);
   }
 }));
 
@@ -2927,7 +2567,7 @@ $("hidden").onchange = async () => {
     await refresh();
     if (pathEnd() !== null) await show(pathEnd());
   } catch (why) {
-    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+    wrong(why);
   }
 };
 
@@ -2943,7 +2583,7 @@ $("taker").onchange = async () => {
   try {
     if (here !== null) await show(pathEnd(), here);
   } catch (why) {
-    say(`${why.kind || "unreachable"}: ${why.message}`, true);
+    wrong(why);
   }
 };
 
@@ -2986,5 +2626,5 @@ try {
   }
   wasAtEnd = atEnd();
 } catch (why) {
-  say(`${why.kind || "unreachable"}: ${why.message}`, true);
+  wrong(why);
 }
