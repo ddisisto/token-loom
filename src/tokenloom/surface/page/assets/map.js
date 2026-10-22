@@ -505,6 +505,135 @@ export function shift(was, now) {
   return { moved, fresh };
 }
 
+// ---- on the page ----------------------------------------------------------------------
+
+/* What the page measures the map by, and what it makes of a pointer, a wheel and a run of steps
+ * across. Every measurement is an argument: what is on screen is the page's to read. */
+
+export const PAD = 10;          // px inside the map on every side
+export const STEP = [1.5, 20];  // px between rows, at the least and the most
+export const MARK = 9;          // px of a row's step the caret, the pointer and the thumb grow to
+export const GLIDE = 1200;      // ms the drawing takes to move from one packing to the next
+export const RUSH = 0.6;        // what a step across taken while the drawing moves leaves of its glide
+export const BRISK = 240;       // ms a glide is never hurried below
+export const BAND = 3;          // rows from the thumb past which a moving caret takes no step across
+export const SCALE = 8;         // px in from the map's inner edge that are the scale, to drag the zoom by
+export const NOTCH = 40;        // px of a fine wheel that make one step of zoom
+
+/** Along and across the plan as the page has them: down the page the two are swapped. */
+export const placed = (down, along, across) =>
+  down ? { x: across, y: along } : { x: along, y: across };
+
+/** A point `px` and `py` into a box `width` by `height`, along and across the plan, or null off
+ *  the box. */
+export function onPlan(px, py, width, height, down) {
+  if (px < 0 || py < 0 || px > width || py > height) return null;
+  return down ? { along: py, across: px } : { along: px, across: py };
+}
+
+/** How rows `lo` to `hi` stand across a map `wide` px: the step between two, and where row 0 is.
+ *  Where they fit, from the margin's edge down the page and centred across it; where they do
+ *  not, row 0 in the middle. */
+export function fit(lo, hi, wide, down) {
+  const step = Math.max(STEP[0], Math.min(STEP[1], (wide - 2 * PAD) / Math.max(1, hi - lo)));
+  const fits = (hi - lo) * step <= wide - 2 * PAD;
+  const top = !fits ? wide / 2 + lo * step : down ? PAD : (wide - (hi - lo) * step) / 2;
+  return { step, top };
+}
+
+/** A mark standing across the row at `across`, `along` the plan, as tall as rows `step` apart
+ *  allow: `[along, from, along, to]`. */
+export function upright(along, across, step) {
+  const h = Math.max(4, Math.min(MARK, step));
+  return [along, across - h, along, across + h];
+}
+
+/** Half the thumb's breadth across its row, for rows `step` apart. */
+export const thumbHalf = step => Math.max(5, Math.min(MARK, step) * 1.5);
+
+/** The thumb over `span` on the row at `y0`, as a box on the page through `x`. */
+export function thumbBox(x, span, y0, half, down) {
+  const p = placed(down, x(span[0]), y0 - half);
+  const q = placed(down, x(span[1]), y0 + half);
+  return { x: p.x, y: p.y, width: Math.max(1, q.x - p.x), height: Math.max(1, q.y - p.y) };
+}
+
+/** How far into the thumb over `span` a point on the plan is, in tokens, or null off it. */
+export function inThumb(p, x, span, y0, half) {
+  if (p === null || !span || Math.abs(p.across - y0) > half + 2) return null;
+  const t = x.invert(p.along);
+  return t >= span[0] - 0.5 && t <= span[1] + 0.5 ? t - span[0] : null;
+}
+
+/** Whether a point on the plan is on the scale, the strip along the map's inner edge. */
+export const onScale = p => p !== null && p.across <= SCALE;
+
+/** Where the zoom stands on a scale running from `a0` at the root to `a1` at the tree's end,
+ *  `steps` in of the `most` there are. */
+export const scaleAt = (steps, a0, a1, most) => a1 - (a1 - a0) * steps / (most || 1);
+
+/** A hand `along` the scale: where it holds it, kept on the scale, and the step nearest. */
+export function scaleTo(along, a0, a1, most) {
+  const at = Math.min(a1, Math.max(a0, along));
+  return { at, steps: Math.round((a1 - at) / (a1 - a0) * most) };
+}
+
+/** How long a drawing at `now` glides: as a run of steps across hurried it, while it does. */
+export const paced = (now, rush) => (now < rush.until ? rush.pace : GLIDE);
+
+/** The glide a step across taken at `now` hurries to: faster than the last while that one
+ *  still moves, never below `BRISK`, and the usual from rest. */
+export function hurried(now, rush) {
+  const pace = now < rush.until ? Math.max(BRISK, rush.pace * RUSH) : GLIDE;
+  return { until: now + pace, pace };
+}
+
+/** What is left at `now` of the caret's colour sweeping over `cool`, in ms, and as the share of
+ *  the caret still to sweep, signed by the side it sweeps from. */
+export function cooled(now, cool, side) {
+  const left = cool.until - now;
+  return { left, offset: left > 0 ? side * left / (cool.until - cool.t0) : 0 };
+}
+
+/** The side a caret moved from `from` to `to` sweeps its colour from, or `was` where it did not
+ *  move across. */
+export function side(from, to, down, was) {
+  const across = at => (down ? at.x1 + at.x2 : at.y1 + at.y2);
+  return across(to) !== across(from) ? Math.sign(across(to) - across(from)) : was;
+}
+
+/** Whether a caret `across` the plan is further from the thumb's row at `y0` than a step across
+ *  may take it, for rows `step` apart. */
+export const far = (across, y0, step) => Math.abs(across - y0) > Math.max(MARK * 2, BAND * step);
+
+/** A wheel's movement `d` gathered onto `acc`: the steps it makes, and what is left over. A
+ *  coarse wheel, or a movement of a notch or more, is one step its way. */
+export function notch(acc, d, coarse) {
+  const sum = coarse || Math.abs(d) >= NOTCH ? Math.sign(d) * NOTCH : acc + d;
+  const n = Math.trunc(sum / NOTCH);
+  return { n, acc: sum - n * NOTCH };
+}
+
+/** Where a run of steps across lands on the branch it is going to: the depth it keeps, or the
+ *  branch's end where that is short of it. */
+export const aimedAt = run => Math.min(run.depth, run.to.depth + run.to.length - 1);
+
+/** A run of steps across, begun from a path `ends` tokens long with `span` in view and the
+ *  caret `caret` tokens in, or -1 off it. `kept` is where the last run landed, if the caret is
+ *  still where it put it, and `y` where the window stands. The depth kept is the one the reader
+ *  last put the caret at; the window holds the stretch of the path it held, which a run carried
+ *  on with keeps, and `edge(depth)` is where the token `depth` in stands on the page now. */
+export function aim({ ends, span, caret, kept, y, edge }) {
+  const depth = kept ? kept.depth
+    : caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : ends - 1;
+  if (kept && Math.abs(kept.y - y) < 2) return { ...kept.run, depth, to: null };
+  const top = span ? Math.floor(span[0]) : Math.min(depth, ends - 1);
+  return {
+    depth, from: top + 1, until: span ? span[1] : depth,
+    hold: { depth: top, top: edge(top) }, to: null,
+  };
+}
+
 // ---- the trail --------------------------------------------------------------------------
 
 /* Where the reader has been: the paths they were on, newest first, each kept as its deepest

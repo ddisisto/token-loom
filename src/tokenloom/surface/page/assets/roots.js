@@ -6,12 +6,13 @@
  * flashing there and in the nav so the eye finds where it landed.
  */
 
+import * as chart from "./chart.js";
 import * as ranking from "./ranking.js";
+import { drawn, reach, show, showHidden } from "./reading.js";
 import * as stub from "./stub.js";
 import * as waypoint from "./waypoint.js";
 import { ask, say } from "./wire.js";
-import { drawn, reach, show, showHidden } from "./reading.js";
-import { flip, rechart, retrace, stage, stale } from "./app.js";
+import { flip, stage, stale } from "./app.js";
 
 const $ = id => document.getElementById(id);
 
@@ -111,7 +112,7 @@ export async function waymark(node) {
   marked();
   await named();
   drawRoots(known, drawn[0]?.nodes[0].id);
-  rechart();
+  chart.rechart();
 }
 
 /** Mark each segment holding a waypoint. */
@@ -168,12 +169,13 @@ export async function refresh(at) {
   // The rows said what became of each row and the strands where every act landed, and an act
   // has changed both.
   stale();
+  chart.forget();
   const tree = known = await ask("/tree");
   writable = tree.writable !== false;
   document.body.classList.toggle("read-only", !writable);
   // Keyed by the tree and not by the address, which names only the server.
   kept = waypoint.load(storage, tree.created ?? tree.path);
-  retrace(tree.created ?? tree.path);
+  chart.recall(tree.created ?? tree.path);
   await named();
   drawRoots(tree, at);
   tally(tree);

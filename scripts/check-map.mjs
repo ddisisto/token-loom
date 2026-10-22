@@ -411,4 +411,144 @@ is("what moved is what is in both and differs, and what is new is said apart",
            new Map([["a", { x: 1, y: 5 }], ["b", { x: 0 }], ["c", { x: 3 }]])),
    { moved: [["a", [["y", 2, 5]]]], fresh: ["c"] });
 
+// ---- on the page ----------------------------------------------------------------------------
+
+// A point read off the page and drawn back again lands where it was, whichever way it runs.
+const frame = { w: 300, h: 900 };
+const back = [true, false].map(down => [[0, 0], [12.5, 40], [frame.w, frame.h]].every(([px, py]) => {
+  const p = m.onPlan(px, py, frame.w, frame.h, down);
+  const q = m.placed(down, p.along, p.across);
+  return q.x === px && q.y === py;
+}));
+is("a point read onto the plan and placed back is the point, down the page or across it",
+   back, [true, true]);
+is("  and a point off the frame is off the plan",
+   [m.onPlan(-1, 5, frame.w, frame.h, true), m.onPlan(5, frame.h + 1, frame.w, frame.h, false)],
+   [null, null]);
+
+// The scale: every step of zoom stands somewhere on it, and taking the scale there asks for that
+// step again. The ends of the scale are the ends of the zoom, and a hand past them holds an end.
+const [a0, a1] = [20, 620];
+for (const most of [1, 6, 9]) {
+  const steps = Array.from({ length: most + 1 }, (_, z) => z);
+  is(`a step of zoom placed on the scale and taken there is that step (${most} steps)`,
+     steps.map(z => m.scaleTo(m.scaleAt(z, a0, a1, most), a0, a1, most).steps), steps);
+}
+is("  out at the tree's end and in at the root",
+   [m.scaleAt(0, a0, a1, 6), m.scaleAt(6, a0, a1, 6)], [a1, a0]);
+is("  and a hand past either end holds that end",
+   [m.scaleTo(a0 - 50, a0, a1, 6), m.scaleTo(a1 + 50, a0, a1, 6)],
+   [{ at: a0, steps: 6 }, { at: a1, steps: 0 }]);
+
+// The thumb: its middle, read back through the scale, is the middle of the span it covers, and
+// its edges are its edges.
+const xs = m.scale({ most: 400, width: 900, pad: m.PAD });
+const span = [120, 180], y0 = 50, half = m.thumbHalf(6);
+for (const down of [true, false]) {
+  const t = m.thumbBox(xs, span, y0, half, down);
+  const mid = m.onPlan(t.x + t.width / 2, t.y + t.height / 2, 1e6, 1e6, down);
+  is(`the thumb's middle is ${(span[1] - span[0]) / 2} tokens into it (${down ? "down" : "across"})`,
+     Math.round(m.inThumb(mid, xs, span, y0, half) * 1e9) / 1e9, (span[1] - span[0]) / 2);
+}
+is("  a point above or below it is off it",
+   [m.inThumb({ along: xs(150), across: y0 - half - 3 }, xs, span, y0, half),
+    m.inThumb({ along: xs(150), across: y0 + half + 3 }, xs, span, y0, half)], [null, null]);
+is("  and so is one past either end of the span by more than half a token",
+   [m.inThumb({ along: xs(span[0] - 0.6), across: y0 }, xs, span, y0, half),
+    m.inThumb({ along: xs(span[1] + 0.6), across: y0 }, xs, span, y0, half)], [null, null]);
+is("  and with nothing in view there is no thumb", m.inThumb({ along: 0, across: y0 }, xs, null, y0, half),
+   null);
+is("the scale is the strip at the inner edge",
+   [m.onScale({ along: 5, across: m.SCALE }), m.onScale({ along: 5, across: m.SCALE + 1 }),
+    m.onScale(null)], [true, false, false]);
+
+// A mark across the row stands on it, centred, and never shorter or taller than its bounds.
+const marks = [0.5, 3, 6, 20].map(step => m.upright(10, 40, step));
+is("a mark across a row is centred on it", marks.every(([, c0, , c1]) => c0 + c1 === 80), true);
+is("  as tall as the rows allow, within its bounds",
+   marks.map(([, c0, , c1]) => (c1 - c0) / 2), [4, 4, 6, m.MARK]);
+
+// Rows that fit stand inside the margin; rows that do not keep row 0 in the middle.
+for (const [lo, hi, wide, down] of [[-3, 2, 300, true], [-3, 2, 300, false], [0, 0, 120, true],
+                                    [-200, 150, 300, true]]) {
+  const { step, top } = m.fit(lo, hi, wide, down);
+  const inside = top - lo * step >= m.PAD - 1e-9 && top + (hi - lo) * step <= wide - m.PAD + 1e-9;
+  const fits = (hi - lo) * step <= wide - 2 * m.PAD;
+  is(`rows ${lo}..${hi} across ${wide}px: a step within its bounds, and ${fits ? "inside the margin" : "row 0 in the middle"}`,
+     [step >= m.STEP[0] && step <= m.STEP[1], fits ? inside : top - lo * step === wide / 2],
+     [true, true]);
+}
+
+// A run of steps across hurries each glide by `RUSH` while the last is still moving, down to
+// `BRISK`, and one taken from rest goes at the usual pace.
+let rush = { until: 0, pace: m.GLIDE }, now = 1000;
+const paces = [];
+for (let i = 0; i < 8; i++) {
+  rush = m.hurried(now, rush);
+  paces.push(rush.pace);
+  now += 10;
+}
+const want = [m.GLIDE];
+while (want.length < 8) want.push(Math.max(m.BRISK, want.at(-1) * m.RUSH));
+is("steps across in quick succession each glide faster, never below the floor", paces, want);
+is("  and a drawing glides at the pace the run reached, while it does",
+   [m.paced(now, rush), m.paced(rush.until, rush)], [rush.pace, m.GLIDE]);
+is("  and a step from rest glides at the usual pace", m.hurried(rush.until + 1, rush).pace, m.GLIDE);
+const cool = { t0: 0, until: 400 };
+is("the caret's colour sweeps from its side to nothing over the glide",
+   [0, 100, 400, 500].map(t => m.cooled(t, cool, -1).offset), [-1, -0.75, 0, 0]);
+is("  and sweeps from the side the caret came from, or the side it last did",
+   [m.side({ x1: 0, x2: 0 }, { x1: 4, x2: 4 }, true, -1),
+    m.side({ y1: 9, y2: 9 }, { y1: 1, y2: 1 }, false, 1),
+    m.side({ x1: 3, x2: 3, y1: 0, y2: 0 }, { x1: 3, x2: 3, y1: 7, y2: 7 }, true, -1)], [1, -1, -1]);
+is("a caret is far out once past the band, or past twice the mark where the rows are close",
+   [m.far(50 + 3 * 10, 50, 10), m.far(50 + 3 * 10 + 0.1, 50, 10),
+    m.far(50 + 2 * m.MARK + 0.1, 50, 1)], [false, true, true]);
+
+// A wheel: a fine one adds up, and what it scrolled is the steps it made and what is left over;
+// a coarse one, or a movement of a notch or more, is one step its way and leaves nothing.
+const fine = [7, 13, -4, 30, 25, 3, -39, -9, 38, 2];  // each under a notch
+let acc = 0, made = 0;
+for (const d of fine) { const got = m.notch(acc, d, false); acc = got.acc; made += got.n; }
+is("a fine wheel's movement is the steps it made and what is left over",
+   made * m.NOTCH + acc, fine.reduce((a, b) => a + b, 0));
+is("  and what is left over is under a step", Math.abs(acc) < m.NOTCH, true);
+is("  and a coarse wheel or a long movement is one step its way, whatever had gathered",
+   [m.notch(30, 3, true), m.notch(-30, -120, false), m.notch(30, 5, false)],
+   [{ n: 1, acc: 0 }, { n: -1, acc: 0 }, { n: 0, acc: 35 }]);
+
+// A run of steps across lands at the depth it keeps, or the end of a branch short of it.
+const ran = [[30, { depth: 10, length: 50 }], [30, { depth: 10, length: 5 }]]
+  .map(([depth, to]) => m.aimedAt({ depth, to }));
+is("a run lands at the depth it keeps, or the end of a branch short of it", ran, [30, 14]);
+is("  never past the branch's own end",
+   [5, 20, 80].every(d => m.aimedAt({ depth: d, to: { depth: 10, length: 20 } }) <= 10 + 20 - 1), true);
+
+// Where a run begins: from the caret's depth, the window holding the stretch in view.
+const edge = d => d * 2;
+const fresh = m.aim({ ends: 100, span: [40, 60], caret: 52, kept: null, y: 0, edge });
+is("a run from the caret keeps the caret's depth and holds the stretch in view",
+   fresh, { depth: 52, from: 41, until: 60, hold: { depth: 40, top: 80 }, to: null });
+is("  off the path, the middle of what is in view, and with nothing in view, the end",
+   [m.aim({ ends: 100, span: [40, 60], caret: -1, kept: null, y: 0, edge }).depth,
+    m.aim({ ends: 100, span: null, caret: -1, kept: null, y: 0, edge }).depth], [50, 99]);
+const kept = { depth: 70, y: 300, run: { from: 41, until: 60, hold: { depth: 40, top: 80 } } };
+is("  where the last run landed and the window has not moved, its depth and window go on",
+   m.aim({ ends: 30, span: [10, 20], caret: 29, kept, y: 301, edge }),
+   { from: 41, until: 60, hold: { depth: 40, top: 80 }, depth: 70, to: null });
+is("  and where the window has moved since, the depth goes on and the window is taken afresh",
+   m.aim({ ends: 30, span: [10, 20], caret: 29, kept, y: 320, edge }),
+   { depth: 70, from: 11, until: 20, hold: { depth: 10, top: 20 }, to: null });
+
+// A step across and back from where the last run landed comes back to the same branch, with
+// the same depth and the same window, so the two read the same.
+const at = 62, run0 = m.aim({ ends: 40, span: [5, 25], caret: 20, kept: null, y: 0, edge });
+const over = m.scan(limb, none, at, 1, run0);
+const across = { ...run0, to: over };
+const landed = { depth: run0.depth, y: 0, run: { from: run0.from, until: run0.until, hold: run0.hold } };
+const run1 = m.aim({ ends: over.depth + over.length, span: [5, 25], caret: m.aimedAt(across), kept: landed, y: 0, edge });
+const home = m.scan(limb, none, over.head, -1, run1);
+is("a step across and back comes home, at the depth and in the window it left",
+   [home.head, run1.depth, run1.from, run1.until, run1.hold], [at, run0.depth, run0.from, run0.until, run0.hold]);
+
 process.exit(bad ? 1 : 0);

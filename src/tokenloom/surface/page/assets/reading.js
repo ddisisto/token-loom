@@ -19,7 +19,8 @@ import * as mark from "./mark.js";
 import { read as overlays, rule as taken, wants } from "./overlay.js";
 import { current, live, marked } from "./roots.js";
 import { ask, wrong } from "./wire.js";
-import { charter, frontier, hover, laid, settled, stage, wakes } from "./app.js";
+import { charter, hover } from "./chart.js";
+import { frontier, laid, settled, stage, wakes } from "./app.js";
 
 const $ = id => document.getElementById(id);
 
