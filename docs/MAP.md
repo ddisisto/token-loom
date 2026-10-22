@@ -130,11 +130,18 @@ something is going rather than where it is.
 **Ctrl and an arrow across the map moves to the next branch over, at the same place along.**
 Left and right where the map runs down the page, up and down where it runs across, and Ctrl,
 shift and the wheel the same; a text box keeps the keys for itself. Each move is an arrival, so it
-glides, and the thumb and the window stay where they were while only the branch changes. A step
-taken while the drawing still moves glides faster than the one before, down to a quarter of a
-second, and none is taken while the caret is more than three rows out from the thumb's row, so a
-held key or a spun wheel runs as fast as the drawing keeps up and the caret never leaves it
-behind.
+glides, and the thumb and the window stay where they were while only the branch changes.
+
+- **Steps are counted.** A step taken before the last has landed goes on from where that one was
+  going, so four presses go four branches over, as the map is drawn when they are pressed, and
+  land once. Each step leaves a shadow of the caret where it was, which dims and goes, and what
+  is left of them goes when the last glide of the run ends.
+- **The drawing hurries to keep up.** A step taken while it still moves glides faster than the one
+  before, down to a quarter of a second, and the caret's colour sweeps along it over the time
+  left until the drawing catches it up, so how far behind it is can be seen.
+- **The wheel is paced and not counted.** A notch is a step, and one is not taken while a step is
+  on its way and the caret is more than three rows out from the thumb's row, so a spun wheel
+  runs as fast as the drawing keeps up.
 
 - **The order is depth-first**, with a fork's children in the order the map stands them across:
   ranked higher first, nothing ranked last. It is the tree's and not the path's, so it is the same

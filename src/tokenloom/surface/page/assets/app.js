@@ -1729,7 +1729,7 @@ addEventListener("keydown", event => {
     const by = (look.down ? { ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1 })[event.key];
     if (by !== undefined) {
       event.preventDefault();
-      scanBy(by).catch(scanFails);
+      scanBy(by);
       return;
     }
   }
@@ -1803,6 +1803,8 @@ let scanning = false; // an arrival across still on its way
 let scanAt = null;    // { node, depth }: where the last scan landed, and the depth it kept
 let led = null;       // where the caret has gone ahead of an arrival, until it is drawn
 let rush = { until: 0, pace: GLIDE };  // the glide a run of steps across has hurried to
+let cool = { t0: 0, until: 0 };        // from when until when the drawing catches the caret up
+let aiming = null;  // a run of steps across: where it lands, from where, and the branch it is going to
 let cellsAt = null;   // the path's cells and where each starts in tokens, for the path drawn
 
 /** A strand's colour: the path's, how many paths back it was on one, or none. */
@@ -1995,8 +1997,14 @@ function sketch({ glides = true, pace = performance.now() < rush.until ? rush.pa
     out.push(el);
   }
   const caret = svg("line", { "data-key": "caret" }, "caret");
+  const sweep = svg("line", { "data-key": "sweep", pathLength: 1 }, "sweep");
   const pointed = svg("line", {}, "over");
-  out.push(pointed, caret);
+  out.push(pointed, caret, sweep);
+  // Shadows outlast a drawing, each carrying on its fade where it had got to.
+  for (const el of chartEl.querySelectorAll(".shade")) {
+    el.style.animationDelay = `${Number(el.dataset.t0) - performance.now()}ms`;
+    out.push(el);
+  }
   // The same tree drawn the same way and the same size is a packing that moved, which glides;
   // anything else is a new drawing, which does not.
   const same = glides && chart !== null && chart.tree === tree && chart.down === look.down
@@ -2014,13 +2022,15 @@ function sketch({ glides = true, pace = performance.now() < rush.until ? rush.pa
     }
   }
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, pointed,
+  chart = { tree, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
             thumb, ruler, els, at: placed, line: lineAt, step, byHead, down: look.down, long,
             wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
-  led = null;
+  // A run of steps still going on past this drawing keeps the caret where it is going.
+  led = aiming !== null && aiming.to.head !== [...path].at(-1) ? ledAt(aiming.to.head, aimedAt(aiming)) : null;
   rule();
   chartCaret();
+  cooling();
   chartOver();
   chartThumb();
   if (was !== null) glide(was, pace);
@@ -2060,7 +2070,11 @@ function glide(was, pace) {
       for (const [k, a, b] of pairs) els.get(key).setAttribute(k, a + (b - a) * e);
     for (const key of fresh) els.get(key).style.opacity = t < 1 ? e : "";
     if (t < 1) requestAnimationFrame(frame);
-    else chartEl.classList.remove("moving");
+    else {
+      chartEl.classList.remove("moving");
+      // The last glide of a run of steps takes what is left of their shadows with it.
+      if (now >= rush.until) for (const el of chartEl.querySelectorAll(".shade")) el.remove();
+    }
   };
   frame(t0);
 }
@@ -2068,16 +2082,33 @@ function glide(was, pace) {
 /** Where the caret is on the path's row. */
 function chartCaret() {
   if (chart === null) return;
-  if (led !== null) {
-    chart.caret.style.display = "";
-    assign(chart.caret, led);
-    return;
-  }
+  if (led !== null) return caretAt(led);
   const at = pathIds().indexOf(cursor.node());
-  chart.caret.style.display = at < 0 ? "none" : "";
-  if (at < 0) return;
+  if (at < 0) return caretAt(null);
   const a = chart.x(at + 0.5), h = Math.max(4, Math.min(MARK, chart.step));
-  assign(chart.caret, chart.line(a, chart.y0 - h, a, chart.y0 + h));
+  caretAt(chart.line(a, chart.y0 - h, a, chart.y0 + h));
+}
+
+/** Draw the caret and the sweep over it at `attrs`, or neither with null. */
+function caretAt(attrs) {
+  for (const el of [chart.caret, chart.sweep]) {
+    el.style.display = attrs === null ? "none" : "";
+    if (attrs !== null) assign(el, attrs);
+  }
+}
+
+/** Sweep the caret's colour along it over what is left of the time the drawing takes to catch
+ *  it up, from where that has got to. */
+function cooling() {
+  const el = chart?.sweep;
+  if (!el) return;
+  const left = cool.until - performance.now();
+  el.style.transition = "none";
+  el.style.strokeDashoffset = left > 0 ? String(left / (cool.until - cool.t0)) : "0";
+  if (left <= 0) return;
+  void el.getBoundingClientRect();  // the offset lands before the transition from it starts
+  el.style.transition = `stroke-dashoffset ${left}ms linear`;
+  el.style.strokeDashoffset = "0";
 }
 
 /** Mark the path's cell `i` as what the pointer is over, in the column and on the map, or
@@ -2339,24 +2370,43 @@ function zoomBy(n) {
   sketch({ pace: STRIDE });
 }
 
-/** Send the caret at once to the node `depth` tokens from the root on the strand `head`, as
- *  it is drawn now, so it leads the drawing there. */
-function lead(head, depth) {
+/** Where the caret stands `depth` tokens from the root on the strand `head` as it is drawn now,
+ *  or null where that strand has no row. */
+function ledAt(head, depth) {
   const s = chart?.plan.strands.find(s => s.head === head);
-  if (!s) return;
+  if (!s) return null;
   const a = chart.x(depth + 0.5), h = Math.max(4, Math.min(MARK, chart.step));
-  const to = led = chart.line(a, s.y - h, a, s.y + h);
-  const el = chart.caret, from = {};
-  for (const k of Object.keys(to)) from[k] = el.hasAttribute(k) ? Number(el.getAttribute(k)) : to[k];
-  el.style.display = "";
+  return chart.line(a, s.y - h, a, s.y + h);
+}
+
+/** Send the caret at once to the node `depth` tokens from the root on the strand `head`, as
+ *  it is drawn now, so it leads the drawing there, leaving a shadow where it was. */
+function lead(head, depth) {
+  const to = ledAt(head, depth);
+  if (to === null) return;
+  if (chart.caret.style.display !== "none" && chart.caret.hasAttribute("x1")) shade();
+  led = to;
+  const els = [chart.caret, chart.sweep], from = {};
+  for (const k of Object.keys(to))
+    from[k] = els[0].hasAttribute(k) ? Number(els[0].getAttribute(k)) : to[k];
+  for (const el of els) el.style.display = "";
   const t0 = performance.now();
   const frame = now => {
-    if (led !== to || !el.isConnected) return;
+    if (led !== to || !els[0].isConnected) return;
     const e = map.ease(Math.min(1, (now - t0) / LEAD));
-    for (const k of Object.keys(to)) el.setAttribute(k, from[k] + (to[k] - from[k]) * e);
+    for (const el of els)
+      for (const k of Object.keys(to)) el.setAttribute(k, from[k] + (to[k] - from[k]) * e);
     if (e < 1) requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+}
+
+/** A shadow of the caret where it stands, which dims and goes, and goes with the drawing. */
+function shade() {
+  const el = svg("line", { "data-t0": performance.now() }, "shade");
+  for (const k of ["x1", "y1", "x2", "y2"]) el.setAttribute(k, chart.caret.getAttribute(k));
+  chartEl.append(el);
+  el.addEventListener("animationend", () => el.remove(), { once: true });
 }
 
 /** Whether the drawing is still moving with the caret further out from the thumb's row than a
@@ -2374,6 +2424,8 @@ function hurry() {
   const now = performance.now();
   const pace = now < rush.until ? Math.max(BRISK, rush.pace * RUSH) : GLIDE;
   rush = { until: now + pace, pace };
+  cool = { t0: now, until: now + pace };
+  cooling();
 }
 
 /** Let the caret go back to the path, where an arrival ended without drawing it there. */
@@ -2383,33 +2435,56 @@ function unlead() {
   chartCaret();
 }
 
-/** Arrive on the branch next over from the path, `by` 1 down the depth-first order or -1 up it,
- *  at the caret's depth or that branch's end where it is short of it, with the token at that
- *  depth held where it stands in the window. */
-async function scanBy(by) {
-  if (!look.on || chart === null || scanning || stretched()) return;
-  const got = cells();
-  if (got === null) return;
-  const { tree, span, most } = chart;
-  const caret = pathIds().indexOf(cursor.node());
-  // The depth the reader last put the caret at, which a landing short of it does not change.
-  const depth = scanAt?.node === cursor.node() ? scanAt.depth
-    : caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
-  const from = span ? span[0] - map.ZONES.focal * most : depth;
-  const until = span ? span[1] : depth;
-  const to = map.scan(tree, chart.hairs, [...chart.path].at(-1), by, { from, until });
+/** Where a run of steps across lands on the branch it is going to: the depth it keeps, or the
+ *  branch's end where that is short of it. */
+const aimedAt = run => Math.min(run.depth, run.to.depth + run.to.length - 1);
+
+/** Step to the branch next over, `by` 1 down the depth-first order or -1 up it, at the depth the
+ *  reader last put the caret at, with the token there held where it stands in the window. A
+ *  step taken before the last has landed steps on from where that was going, so a run of them
+ *  is counted and lands once, on the last. `paced` drops a step while one is on its way and the
+ *  caret is far out from the thumb, which is what keeps a spun wheel from running away. */
+function scanBy(by, { paced = false } = {}) {
+  if (!look.on || chart === null) return;
+  if (paced && (scanning || stretched())) return;
+  let run = aiming;
+  if (run === null) {
+    const got = cells();
+    if (got === null) return;
+    const { span, most } = chart;
+    const caret = pathIds().indexOf(cursor.node());
+    // The depth the reader last put the caret at, which a landing short of it does not change.
+    const depth = scanAt?.node === cursor.node() ? scanAt.depth
+      : caret >= 0 ? caret : span ? Math.floor((span[0] + span[1]) / 2) : got.at.at(-1) - 1;
+    run = {
+      depth,
+      from: span ? span[0] - map.ZONES.focal * most : depth,
+      until: span ? span[1] : depth,
+      hold: got.segs[map.holding(got.at, Math.min(depth, got.at.at(-1) - 1))]
+        .getBoundingClientRect().top,
+      to: null,
+    };
+  }
+  const to = map.scan(chart.tree, chart.hairs, run.to?.head ?? [...chart.path].at(-1), by, run);
   if (to === null) { say(by > 0 ? "no branch further over" : "no branch further back"); return; }
-  const hold = got.segs[map.holding(got.at, Math.min(depth, got.at.at(-1) - 1))]
-    .getBoundingClientRect().top;
-  const land = Math.min(depth, to.depth + to.length - 1);
-  scanning = true;
+  aiming = { ...run, to };
   hurry();
-  lead(to.head, land);
+  lead(to.head, aimedAt(aiming));
+  if (!scanning) goAcross().catch(scanFails);
+}
+
+/** Arrive where a run of steps across is going, and again wherever it went on to meanwhile. */
+async function goAcross() {
+  scanning = true;
   try {
-    await visit({ tail: to.tail, depth: land }, hold);
-    scanAt = { node: cursor.node(), depth };
+    while (aiming !== null && aiming.to.head !== [...chart.path].at(-1)) {
+      const run = aiming;
+      await visit({ tail: run.to.tail, depth: aimedAt(run) }, run.hold);
+      scanAt = { node: cursor.node(), depth: run.depth };
+    }
   } finally {
     scanning = false;
+    aiming = null;
     unlead();
   }
 }
@@ -2430,7 +2505,7 @@ addEventListener("wheel", event => {
     const n = Math.trunc(scanned / NOTCH);
     if (n === 0) return;
     scanned -= n * NOTCH;
-    scanBy(Math.sign(n)).catch(scanFails);
+    scanBy(Math.sign(n), { paced: true });
     return;
   }
   if (event.deltaMode !== 0 || Math.abs(d) >= NOTCH) wheeled = Math.sign(d) * NOTCH;

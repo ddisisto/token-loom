@@ -769,7 +769,10 @@ footer.peek, footer.held { z-index: 26; }
 #map .tick { stroke: var(--faint); stroke-width: .8; }
 #map .tick.minor { stroke-opacity: .6; }
 #map .waypoint { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
-#map .caret { stroke: var(--accent); stroke-width: 2; }
+#map .caret { stroke: var(--accent); stroke-width: 2; stroke-opacity: .35; }
+#map .sweep { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 1 1; }
+#map .shade { stroke: var(--accent); stroke-width: 2; animation: shade 700ms ease-out forwards; }
+@keyframes shade { from { stroke-opacity: .5; } to { stroke-opacity: 0; } }
 #map .over { stroke: var(--point); stroke-width: 1.6; }
 #map .thumb { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .5;
               stroke-width: 1; }
