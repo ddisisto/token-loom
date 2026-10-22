@@ -255,6 +255,11 @@ is("  drawn as one bar along its span, across every row of what leaves it",
 is("  in place of their links", tiedPlan.links.filter(l => tied.tree.byHead.get(l.head).up === 1), []);
 is("  and a point on it is the knot", m.knotAt(tiedPlan, x(12), (bar.y0 + bar.y1) / 2, 3)?.head, 1);
 is("  and one past it is not", m.knotAt(tiedPlan, x(20), bar.y0, 3), null);
+const share = (span, tall) => m.knotting(span, tall).range / (span[1] - span[0]);
+is("the range is a share of what is in view, wider on a short window and narrower on a tall one",
+   [share([0, 400], 600), share([0, 400], 1050), share([0, 400], 2000)],
+   [m.KNOT.share[0], Math.round(400 * (m.KNOT.share[0] + m.KNOT.share[1]) / 2) / 400, m.KNOT.share[1]]);
+is("  and a knot spans no more than is in view", m.knotting([100, 400], 900).cap, 300);
 is("a cap parts a ladder", m.knot(row, none, none, { range: 4, cap: 3 }).knots,
    [{ head: 1, from: 10, to: 12 }]);
 is("no range knots nothing, and the tree is the one given",

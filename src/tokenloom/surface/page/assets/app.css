@@ -767,7 +767,10 @@ footer.peek, footer.held { z-index: 26; }
 #map .hair.fold.marked { stroke: var(--accent); stroke-opacity: .6; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
 #map .knot { stroke: var(--dim); stroke-opacity: .55; stroke-width: var(--span);
-             stroke-linecap: round; filter: blur(1.5px); cursor: zoom-in; }
+             stroke-linecap: round; filter: blur(1.5px); }
+#map .knot.lit { stroke: var(--point); stroke-opacity: .45; }
+#map .sprig { stroke: var(--point); stroke-width: 2; }
+#map .diverges { fill: var(--point); }
 #map .tick { stroke: var(--faint); stroke-width: .8; }
 #map .tick.minor { stroke-opacity: .6; }
 #map .handle { stroke: var(--accent); stroke-width: 3; }

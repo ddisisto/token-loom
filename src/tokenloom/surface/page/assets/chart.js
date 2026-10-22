@@ -21,6 +21,7 @@ const SHOWN = 700;         // ms the zones' edges stay drawn across the map afte
 const STRIDE = 400;        // ms it takes over a step of zoom
 const KNOTTED = 5;         // px a knot's bar is at the least along
 const UNTIE = 2;           // steps of zoom a click on a knot takes in
+const SPRIG = 14;          // px of a strand leaving a knot drawn lit while the knot is pointed at
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
 const STEPS = 4;           // paths back the trail is drawn for, each in a colour of its own
 
@@ -38,6 +39,8 @@ let dragged = false;  // a drag ended, and the click that follows it is not an a
 let pointedAt = null; // the path's cell the pointer is over, from the column or the map
 let gliding = 0;      // which move is running, so a newer drawing stops an older one
 let lit = null;       // the strand the pointer is over on the map, traced to the root
+let tie = null;       // the knot the pointer is over on the map
+let glowing = [];     // the path's cells a knot pointed at covers, glowing
 let walked = [];      // the trail: the paths the reader has been on in this tree, newest first
 let zoomed = 0;       // steps of zoom in about the thumb
 let wheeled = 0;      // px of a fine wheel not yet a step
@@ -250,7 +253,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const path = map.along(source, pathIds());
   const { most, span, hairs } = cutting(source, path);
   const { tree, knots, forks, places } =
-    map.knot(source, path, hairs, look.knots ? map.KNOT : { range: 0 });
+    map.knot(source, path, hairs, look.knots ? map.knotting(span, innerHeight) : { range: 0 });
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
     : { path: chart.path, back: map.steps(source, walked, chart.path, STEPS) };
@@ -289,7 +292,8 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const caret = svg("line", { "data-key": "caret" }, "caret");
   const sweep = svg("line", { "data-key": "sweep", pathLength: 1 }, "sweep");
   const pointed = svg("line", {}, "over");
-  out.push(pointed, caret, sweep);
+  const ties = svg("g", {}, "ties");
+  out.push(ties, pointed, caret, sweep);
   // Shadows outlast a drawing, each carrying on its fade where it had got to.
   for (const el of chartEl.querySelectorAll(".shade")) {
     el.style.animationDelay = `${Number(el.dataset.t0) - performance.now()}ms`;
@@ -312,10 +316,13 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
     }
   }
   chartEl.replaceChildren(...out);
-  chart = { source, tree, knots, tied: look.knots ? { forks, places } : null, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
+  chart = { source, tree, knots, ties, tied: look.knots ? { forks, places } : null, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
             thumb, ruler, bands, handle, els, line: lineAt, step, byHead, down: look.down, long,
             wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
   lit = null;
+  tie = null;
+  for (const i of glowing) cellsGlow(i, false);
+  glowing = [];
   // A run of steps still going on past this drawing keeps the caret where it is going.
   led = aiming !== null && aiming.to.head !== [...path].at(-1) ? ledAt(aiming.to.head, map.aimedAt(aiming)) : null;
   rule();
@@ -573,12 +580,14 @@ export function pointed(event) {
     return;
   }
   // Over the text, the segment says what it is over itself.
-  if (event.target !== $("column")) return;
-  const hit = chartHit(event);
+  if (event.target !== $("column")) { tied(null); return; }
+  const p = chartPoint(event);
+  tied(p === null ? null : map.knotAt(chart.plan, p.along, p.across, 3));
+  const hit = tie !== null ? null : chartHit(event);
   const head = hit?.head ?? null;
   const got = hit !== null && chart.path.has(head) ? cells() : null;
   hover(got === null ? null : map.holding(got.at, hit.depth));
-  $("column").classList.toggle("charting", head !== null);
+  $("column").classList.toggle("charting", head !== null || tie !== null);
   $("column").classList.toggle("thumbing", head === null && event.target === $("column")
                                            && onThumb(event) !== null);
   $("column").classList.toggle("scaling", look.on && onScale(event));
@@ -589,6 +598,40 @@ export function pointed(event) {
   if (head !== null)
     for (const h of map.lineage(chart.tree, head))
       for (const el of chart.byHead.get(h) ?? []) el.classList.add("lit");
+}
+
+/** Point at `knot` on the map, or at none with null: what leaves it is lit where it diverges and
+ *  along its first px, and the path's cells across its span glow, where it is on the path. */
+function tied(knot) {
+  if ((knot?.head ?? null) === (tie?.head ?? null)) return;
+  tie = knot;
+  for (const i of glowing) cellsGlow(i, false);
+  glowing = [];
+  chart.ties.replaceChildren();
+  chart.els.get(`k${knot?.head}`)?.classList.add("lit");
+  for (const el of chartEl.querySelectorAll(".knot.lit"))
+    if (el.dataset.key !== `k${knot?.head}`) el.classList.remove("lit");
+  if (knot === null) return;
+  for (const l of knot.leaves) {
+    chart.ties.append(svg("line", lineAt(l.x0, l.y, Math.min(l.x1, l.x0 + SPRIG), l.y), "sprig"),
+                      svg("line", lineAt(l.x0, knot.y, l.x0, l.y), "sprig"),
+                      svg("circle", dotAt(l.x0, knot.y, 1.8), "diverges"));
+  }
+  const got = chart.path.has(knot.head) ? cells() : null;
+  if (got === null) return;
+  const last = map.holding(got.at, knot.to - 1);
+  for (let i = map.holding(got.at, knot.from - 1); i <= last; i++) glowing.push(i);
+  for (const i of glowing) cellsGlow(i, true);
+}
+
+/** The pointer left: no knot is pointed at. */
+export function untied() {
+  if (chart !== null) tied(null);
+}
+
+/** Glow the path's cell `i` as pointed at, or stop. */
+function cellsGlow(i, on) {
+  $("column").querySelectorAll(".flow .seg")[i]?.classList.toggle("over", on || i === pointedAt);
 }
 
 /** A rung of the cut as the bar names it. */

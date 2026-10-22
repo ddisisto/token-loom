@@ -14,7 +14,19 @@
 
 export const GAP = 4;     // px kept clear between two strands on one row
 export const REACH = 64;  // nodes past which a hair is drawn no longer
-export const KNOT = { range: 4, cap: 16 };  // tokens from one fork to the next, and across a knot
+/** How far from one fork the next may be and stay in its knot, as a share of the tokens in
+ *  view: `share[0]` on a window `tall[0]` px high or shorter, `share[1]` on one `tall[1]` or
+ *  taller, and between the two between. A knot spans no more than is in view. With nothing in
+ *  view, `bare` is the range in tokens. */
+export const KNOT = { tall: [700, 1400], share: [0.5, 0.15], bare: 8 };
+
+/** The range and cap knots are cut at, for the tokens in view `span` on a window `tall` px high. */
+export function knotting(span, tall, { tall: [lo, hi], share: [wide, narrow], bare } = KNOT) {
+  if (span === null) return { range: bare, cap: 4 * bare };
+  const seen = span[1] - span[0];
+  const t = Math.min(1, Math.max(0, (tall - lo) / (hi - lo)));
+  return { range: Math.max(1, Math.round(seen * (wide + (narrow - wide) * t))), cap: seen };
+}
 
 /** The cut's rungs, finest to coarsest. A child that does not continue its fork's row is drawn
  *  as a tick off the fork rather than given a row: a leaf where it is a stub and `stubs` is on
@@ -322,8 +334,12 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) 
     if (!rows.has(k.head)) continue;
     const ys = [k.head, ...(tree.kids.get(k.head) ?? []).map(c => c.head)]
       .filter(h => rows.has(h)).map(y);
+    // Where each strand leaving it diverges, and its own row.
+    const leaves = (tree.kids.get(k.head) ?? [])
+      .filter(c => rows.has(c.head) && rows.get(c.head) !== rows.get(k.head))
+      .map(c => ({ head: c.head, x0: x(c.depth), x1: x(c.depth + c.length), y: y(c.head) }));
     out.knots.push({ head: k.head, from: k.from, to: k.to, x0: x(k.from), x1: x(k.to),
-                     y0: Math.min(...ys), y1: Math.max(...ys) });
+                     y: y(k.head), y0: Math.min(...ys), y1: Math.max(...ys), leaves });
     tying.add(k.head);
   }
   for (const s of tree.strands) {

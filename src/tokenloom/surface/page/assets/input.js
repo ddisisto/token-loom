@@ -126,7 +126,7 @@ export function listen() {
     // The caret follows the window, as it does after any scroll, and nothing is asked for.
     if (chart.lifted(event)) moved(false);
   });
-  column.addEventListener("pointerleave", () => chart.hover(null));
+  column.addEventListener("pointerleave", () => { chart.hover(null); chart.untied(); });
   column.addEventListener("pointermove", chart.pointed);
 
   /* A click there is an arrival on the map where it points at one, and otherwise the same
