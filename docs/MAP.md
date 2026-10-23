@@ -29,7 +29,7 @@ leaves.
 
 - a **trunk**, the path of heaviest children, up to 5,000 tokens;
 - **limbs**, long rewrites leaving early: three of 2,000–3,000 tokens leave the largest root's
-  trunk at tokens 162 and 163, one knot;
+  trunk at tokens 162 and 163, one place;
 - **ladders**, a fork every token or two along a path, each with a short drawn leaf beside it;
 - **fans**, many children at one position: one has 20, 19 of them stubs off its rows and some of
   those 800 long;
@@ -201,7 +201,7 @@ the thumb, the caret and a click are drawn and read through it and stay honest. 
 nothing of its own**: a zone past the root or the tree's end spans no tokens and has no share,
 and what it would have had goes to the zones that do. So a thumb near the root opens into the
 room the root side does not need, and forks a token apart in the focus stand as far apart as the
-gain makes them, which is what a knot is read with.
+gain makes them, which is what forks close together are read with.
 
 - **One gesture, both halves.** A step of shift and the wheel moves the cut and the gain
   together, so it keeps feeling like one zoom, and a switch on the bar turns the gain off and
@@ -283,7 +283,7 @@ when it is settled.
   the waypoints in it, how recently it was on the trail, or nothing. Settled by starting with
   distance along alone and reading where it folds something wanted.
 - **Whether zoom is enough to read at every scale.** If it is, a local map — one already cut to a
-  knot, a trunk, or the tree down to some order of branching — is never built, and more than one
+  reed, a trunk, or the tree down to some order of branching — is never built, and more than one
   root at once is the other direction. Settled by navigating long roots with zoom alone.
 - **Whether a scan always steps to the strand drawn next to it.** The packing nests a subtree on
   its side of its fork wherever it fits, so cousins can stand interleaved where the depth-first

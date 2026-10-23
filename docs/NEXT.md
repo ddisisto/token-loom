@@ -17,8 +17,8 @@ reworked, and not before.
 **The order is the content.** Each is cheaper before the one after it and dearer after, and that
 is the only reason they are numbered. One that has no file yet points at where it stands below.
 
-1. **[Knots](next/KNOTS.md)**: forks close enough along a path straightened into one place, in
-   the drawing and in navigation, and the branches leaving it sorted by what the model preferred.
+1. **[Reed](next/REED.md)**: forks close together combed straight, a tree inside and a comb
+   outside, on a dial that trades the map's along for its across.
 2. **Map**: what `docs/MAP.md`'s Status names as designed and not built — the layers' colours on
    the strands, and the trail moving to the halo.
 3. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
