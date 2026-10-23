@@ -156,10 +156,6 @@ occasion beyond the command* under Loose ends.
 
 ## Loose ends
 
-- **A scan stops short at a reed.** Ctrl and an arrow at the head of a reed with teeth that way
-  has said there is no branch further, where the drawing shows one. Found in use, and reproduced
-  now that the footer names the place.
-
 - **The column and the map are split where the reader drags**, and a window too narrow for both
   flips them, so the page is one column wide.
 
