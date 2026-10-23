@@ -51,9 +51,9 @@ than the cap rather than one as long as the ladder. At the dial's widest there i
 the whole of what distinguishes that path inside the reed. What ends inside a reed is a tooth like
 any other, and the cut treats it as it treats any short leaf.
 
-**The teeth stand in a fixed order**, which is the tree's and not the path's. The tooth the tree's
-own row takes, its ranked continuation, goes straight on from the input, and the others stand above
-or below it by their rank against what the row took where each really left. Among themselves they
+**The teeth stand in a fixed order**, which is the tree's and not the path's: out from the tooth
+the tree's own row takes, its ranked continuation, the others above or below it by their rank
+against what the row took where each really left. Among themselves they
 stand by where they left and then by rank. The intended order is by **mean surprisal over a
 window** of the tokens each tooth took: how much the model preferred that path, which is a
 different question from how open it was, which entropy reads. That order is the emergent
@@ -70,20 +70,26 @@ left, and the strands between the reed's forks are not drawn on their own. The a
 tokens: a tooth's tokens stand where they are along it, and the ones it shares with the others
 are drawn again beside them.
 
-**The path bends only at a reed.** It comes to the rail on the input's row and leaves it on its
-tooth's. At every fork that is not in a reed, the path continues
-its row and the drawing straightens around it, as `docs/MAP.md` has it. So the map is no longer
-one straight row of the path's from root to tip: it is straight runs, joined inside reeds, and the
-caret and the thumb are drawn on the path's row wherever along it they stand.
+**The path is one straight row through reeds as through any fork.** At a reed the path's tooth
+goes straight on from the input, and the other teeth stand out from it in their order, each
+further out than the last, so whichever tooth the path takes the teeth keep their order and
+their spacing.
+
+**The drawing is held by the reed the window is at, and what is above it moves.** Across the
+page, the map keeps the tooth in slot 0 of the last reed on the path at or above the window
+where it stood, so a step from one tooth to another leaves every tooth in place and slides the
+input, the path above it and what hangs from that across to meet the tooth taken. With no reed
+above the window, it keeps the root where it stood. Rows that fit stay inside the margin, and
+rows that do not are cut off at the edges, with the edge marked, and move only to keep the
+path's row where the window is in view.
 
 **Pointed at, a reed shows its teeth**, each lit where it leaves the rail, and where the reed is
 on the path, the column glows across its span.
 
 ## Navigation
 
-**Scanning across a reed steps from tooth to tooth in order, and the drawing holds still.** No
-tooth's row ever depended on which one the path was on, so only the caret and the path's colour
-move. `docs/MAP.md`'s depth-first scan takes a reed's teeth as siblings at its input, in the
+**Scanning across a reed steps from tooth to tooth in order, and the teeth hold still**: what
+moves is above the reed, the path sliding across to the tooth taken. `docs/MAP.md`'s depth-first scan takes a reed's teeth as siblings at its input, in the
 reed's order.
 
 **A click on a reed arrives at its input and zooms in about it**: the window centred there, two

@@ -250,9 +250,27 @@ const viaSixty = m.layout(reeded, { x, hairs: none, path: leaving });
 const viaFour = m.layout(reeded, { x, hairs: none, path: through });
 is("  each on its own row in slot order",
    [60, 4, 50, 70].map(h => viaFour.get(h)), [-1, 0, 1, 2]);
-is("  whichever tooth the path takes", [60, 4, 50, 70].map(h => viaSixty.get(h)), [-1, 0, 1, 2]);
+is("  and with the path through another, that one straight on and the rest moved with it",
+   [60, 4, 50, 70].map(h => viaSixty.get(h)), [0, 1, 2, 3]);
 is("  and a scan walks them in that order",
    reeded.order.filter(s => s.leaf).map(s => s.head), [60, 5, 80, 50, 70]);
+is("the drawing is held by the reed at the window, by its tooth in slot 0",
+   [m.anchor(reeded, through, 20).head, m.anchor(reeded, leaving, 20).head, m.anchor(reeded, through, 5).head],
+   [4, 4, 1]);
+{
+  // Held by that tooth across a step from 4 to 60, every tooth stands where it stood.
+  const fitOf = (rows, zero) => {
+    const all = [...rows.values()];
+    return { ...m.fit(Math.min(...all), Math.max(...all), 300, true, 0, zero), lo: Math.min(...all) };
+  };
+  const before = fitOf(viaFour, null), zero = before.top - before.lo * before.step;
+  const after = fitOf(viaSixty, zero + (viaFour.get(4) - viaSixty.get(4)) * before.step);
+  const zeroAfter = after.top - after.lo * after.step;
+  is("  so a step across leaves every tooth where it stood, and moves what is above",
+     [[60, 4, 50, 70].map(h => zero + viaFour.get(h) * before.step),
+      zeroAfter + viaSixty.get(1) * after.step !== zero + viaFour.get(1) * before.step],
+     [[60, 4, 50, 70].map(h => zeroAfter + viaSixty.get(h) * after.step), true]);
+}
 const reededPlan = m.plan(reeded, viaFour, { x, hairs: none, path: through, step: 10 });
 const reedBox = reededPlan.reeds[0];
 const yOf = h => reededPlan.strands.find(s => s.head === h).y;
@@ -333,13 +351,7 @@ for (let t = 0; t < 80; t++) {
   const rows = m.layout(tree, { x, hairs, path });
   // What runs between a reed's forks is the reed, and has no row.
   for (const s of tree.strands) if (rows.has(s.head) === (gone.has(s.head) || !!s.passage)) unplaced++;
-  // The path goes on along its row at every fork, and steps off it only inside a reed.
-  if (rows.get(tree.top.head) !== 0) offPath++;
-  for (const h of path) {
-    const s = tree.byHead.get(h);
-    if (!s.passage && s.up !== null && !tree.byHead.get(s.up).reed && rows.get(h) !== rows.get(s.up))
-      offPath++;
-  }
+  for (const h of path) if (!tree.byHead.get(h).passage && rows.get(h) !== 0) offPath++;
   // A reed's teeth stand in slot order, whichever of them the path takes.
   for (const [up, kids] of tree.kids) {
     if (!tree.byHead.get(up).reed) continue;
@@ -361,10 +373,9 @@ for (let t = 0; t < 80; t++) {
   for (const [up, all] of tree.kids) {
     if (!rows.has(up)) continue;
     const kids = all.filter(k => !hairs.has(k.head) && !k.passage);
-    // At a reed, the tooth nearest slot 0 goes straight on, whichever the path takes.
-    const main = tree.byHead.get(up).reed
-      ? kids.reduce((b, k) => b === null || Math.abs(k.slot) < Math.abs(b.slot) ? k : b, null)
-      : m.continuing(kids, path);
+    // A reed's teeth stand in slot order, which is checked on its own below.
+    if (tree.byHead.get(up).reed) continue;
+    const main = m.continuing(kids, path);
     if (main === null) continue;
     const r = s => s.logprob ?? -Infinity;
     // A tooth is ranked against what continued the row where it left.
@@ -447,7 +458,7 @@ is("a scan down meets every leaf in reach, once each", missed, 0);
 is("  and a scan up meets the same, reversed", unreversed, 0);
 is("bounded below, a step across and back returns to what reads the same", unreturned, 0);
 is("every kept strand is placed and nothing cut is", unplaced, 0);
-is("the path holds its row through every fork but a reed's", offPath, 0);
+is("the path holds row 0 throughout, through reeds as well", offPath, 0);
 is("above is ranked higher than what continues, and below lower", misranked, 0);
 is("the nearest rank stands nearest", misordered, 0);
 is("every strand off its fork's row is linked to it", unlinked, 0);

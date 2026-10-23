@@ -275,12 +275,17 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   // Packed on the straight axis, so a fisheye moving with the thumb moves no strand across.
   const rows = map.layout(tree, { x: map.scale({ most, width: long, pad: map.PAD }), hairs, path });
   const all = [...rows.values()], lo = Math.min(...all);
-  // Too many rows to fit, the drawing stays where it stood and is cut off at the edges, and
-  // moves only to keep the path's row where the window is in view.
-  const held = span ? map.holds(tree, path, (span[0] + span[1]) / 2) : null;
+  // The drawing holds the reed the window is at where it stood, so a step across moves what is
+  // above it and not its teeth; too wide to fit, it is cut off at the edges and moves only to
+  // keep the path's row where the window is in view.
+  const mid = span ? (span[0] + span[1]) / 2 : null;
+  const held = mid === null ? null : map.holds(tree, path, mid);
+  const by = mid === null ? tree.top : map.anchor(tree, path, mid);
+  const stood = chart !== null && chart.source === source && chart.wide === wide
+    && chart.rows.has(by.head) && rows.has(by.head)
+    ? chart.zero + (chart.rows.get(by.head) - rows.get(by.head)) * chart.step : null;
   const { step, top, cut } = map.fit(lo, Math.max(...all), wide, look.down,
-    rows.get(held?.head) ?? 0,
-    chart !== null && chart.source === source && chart.wide === wide ? chart.zero : null);
+    rows.get(held?.head) ?? 0, stood);
   const x = lensed(most, long, span);
   const plan = map.plan(tree, rows, { x, hairs, path, step, top });
 

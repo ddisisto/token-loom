@@ -324,15 +324,16 @@ const fits = (profile, sub, d) =>
     return have === undefined || !ivs.some(([a0, a1]) => have.clashes(a0, a1));
   });
 
-/** Which of `kept`, the children of `s` given rows, continues its row: at a reed the tooth
- *  nearest slot 0, and at any other fork the one `continuing` picks. */
+/** Which of `kept`, the children of `s` given rows, continues its row: the one on the path, and
+ *  otherwise at a reed the tooth nearest slot 0 and at any other fork the heaviest. */
 const goesOn = (s, kept, path) => s.reed
-  ? kept.reduce((m, k) => m === null || Math.abs(k.slot) < Math.abs(m.slot) ? k : m, null)
+  ? kept.find(k => path.has(k.head))
+    ?? kept.reduce((m, k) => m === null || Math.abs(k.slot) < Math.abs(m.slot) ? k : m, null)
   : continuing(kept, path);
 
-/** Each kept strand's row, the root's at 0 and the path's on it as far as the first reed it
- *  goes through. Up is negative. A reed's teeth stand in their slots, each further out than the
- *  last, with the one in slot 0 going straight on, whichever of them the path takes.
+/** Each kept strand's row, the root's at 0 and the path's on it. Up is negative. A reed's teeth
+ *  stand in slot order, each further out than the last, so the path's tooth going straight on
+ *  moves the others together and not past each other.
  *
  *  A subtree is packed against what its continuing child's already holds, built in place
  *  on that child's profile so nothing is copied along a long trunk; each other child's is
@@ -679,21 +680,39 @@ export function onPlan(px, py, width, height, down) {
 export const HOLD = 0.15;
 
 /** How rows `lo` to `hi` stand across a map `wide` px: the step between two, `top` where the
- *  highest stands, and which edges cut rows off, as `cut: [before, after]`. Where they fit, from
- *  the margin's edge down the page and centred across it. Where they do not, row 0 stays at
- *  `zero`, where the last drawing had it, unless that puts row `at`, the path's where the window
- *  is, nearer an edge than `HOLD` of the breadth: then it moves just far enough. With no last
- *  drawing, row `at` is in the middle. */
+ *  highest stands, and which edges cut rows off, as `cut: [before, after]`. Row 0 stands at
+ *  `zero`, where the drawing is held, as near as it can: where the rows fit, as near as keeps them
+ *  inside the margin, and where they do not, as near as keeps row `at`, the path's where the
+ *  window is, `HOLD` of the breadth in from either edge. With nothing held, rows that fit stand
+ *  from the margin's edge down the page and centred across it, and rows that do not have row
+ *  `at` in the middle. */
 export function fit(lo, hi, wide, down, at = 0, zero = null) {
   const step = Math.max(STEP[0], Math.min(STEP[1], (wide - 2 * PAD) / Math.max(1, hi - lo)));
-  if ((hi - lo) * step <= wide - 2 * PAD)
-    return { step, top: down ? PAD : (wide - (hi - lo) * step) / 2, cut: [false, false] };
+  const tall = (hi - lo) * step;
+  if (tall <= wide - 2 * PAD) {
+    const free = down ? PAD : (wide - tall) / 2;
+    const top = zero === null ? free : Math.min(wide - PAD - tall, Math.max(PAD, zero + lo * step));
+    return { step, top, cut: [false, false] };
+  }
   const keep = wide * HOLD;
   let z = zero ?? wide / 2 - at * step;
   const there = z + at * step;
   z += Math.max(0, keep - there) - Math.max(0, there - (wide - keep));
   const top = z + lo * step;
-  return { step, top, cut: [top < 0, top + (hi - lo) * step > wide] };
+  return { step, top, cut: [top < 0, top + tall > wide] };
+}
+
+/** What the drawing is held by where the path through `path` stands `depth` tokens from the
+ *  root: the tooth in slot 0 of the last reed on the path at or above it, which stands where it
+ *  does whichever tooth the path takes, or with none the root. */
+export function anchor(tree, path, depth) {
+  let at = null;
+  for (const h of path) {
+    const s = tree.byHead.get(h);
+    if (s?.reed && s.reed.from <= depth && (at === null || s.depth > at.depth)) at = s;
+  }
+  if (at === null) return tree.top;
+  return (tree.kids.get(at.head) ?? []).find(k => k.slot === 0) ?? at;
 }
 
 /** A mark standing across the row at `across`, `along` the plan, as tall as rows `step` apart
