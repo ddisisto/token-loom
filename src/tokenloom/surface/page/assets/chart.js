@@ -19,6 +19,8 @@ const SVG = "http://www.w3.org/2000/svg";
 const LEAD = 100;          // ms the caret takes to where an arrival is going
 const SHOWN = 700;         // ms the zones' edges stay drawn across the map after they last moved
 const STRIDE = 400;        // ms it takes over a step of zoom
+const OPEN = 2;            // steps of zoom a click on a reed takes in
+const TOOTH = 14;          // px of each tooth lit from the box while its reed is pointed at
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
 const STEPS = 4;           // paths back the trail is drawn for, each in a colour of its own
 
@@ -27,7 +29,7 @@ const chartEl = $("map");
 const chartBar = $("chart-bar");
 // The rung is `map.LADDER`'s, `byFork` puts a strand in the zone its fork is in, and `lens`
 // gives the thumb more of the axis as the zoom goes in.
-export const look = { on: true, down: true, rung: 4, byFork: false, lens: true };
+export const look = { on: true, down: true, rung: 4, byFork: false, lens: true, reed: 2 };
 let charted = null;  // { root, hidden, tree, marks }: the last `/map`, indexed
 let asking = null;   // which of those is in flight, so a late answer does not draw over a newer
 let chart = null;    // what is drawn now, which a point is read against
@@ -36,6 +38,9 @@ let dragged = false;  // a drag ended, and the click that follows it is not an a
 let pointedAt = null; // the path's cell the pointer is over, from the column or the map
 let gliding = 0;      // which move is running, so a newer drawing stops an older one
 let lit = null;       // the strand the pointer is over on the map, traced to the root
+let onReed = null;    // the reed the pointer is over on the map
+let combing = null;   // the reeds of the tree drawn, combed once per tree and per setting
+let glowing = [];     // the path's cells a reed pointed at spans, glowing
 let walked = [];      // the trail: the paths the reader has been on in this tree, newest first
 let zoomed = 0;       // steps of zoom in about the thumb
 let wheeled = 0;      // px of a fine wheel not yet a step
@@ -105,6 +110,17 @@ export async function charter() {
   sketch();
 }
 
+/** The reeds of the tree drawn and the tree combed by them, combed again only when the tree,
+ *  the cut or the dial changes. */
+function combedOf(source) {
+  if (combing?.charted === charted && combing.rung === look.rung && combing.reed === look.reed)
+    return combing;
+  const got = map.reeds(source, map.hair(source, map.LADDER[look.rung], new Set()),
+                        map.combAt(map.reedSteps(map.most(source)), look.reed));
+  combing = { charted, rung: look.rung, reed: look.reed, ...got, tree: map.comb(source, got.reeds) };
+  return combing;
+}
+
 /** What is cut on the path drawn, zoomed as far as it is about the thumb, and the axis it is
  *  cut on. */
 function cutting(tree, path) {
@@ -143,6 +159,8 @@ function marksOf(tree, plan, x, back) {
     const fold = map.lineage(tree, w.head).find(h => folds.has(h));
     if (fold !== undefined) marked.add(fold);
   }
+  for (const r of plan.reeds)
+    out.push([`r${r.head}`, "line", lineAt(r.x0, r.y0, r.x0, r.y1), "reed", null, {}]);
   for (const l of plan.links)
     out.push([`l${l.head}`, "line", lineAt(l.x, l.y0, l.x, l.y1), "link", l.head, {}]);
   for (const h of plan.hairs)
@@ -214,10 +232,10 @@ function foreshadow() {
 function restretch(span) {
   gliding++;
   chartEl.classList.remove("moving");
-  const { tree } = charted;
+  const { tree } = chart;
   const x = lensed(chart.most, chart.long, span);
-  const plan = map.plan(tree, chart.rows,
-                        { x, hairs: chart.hairs, path: chart.path, step: chart.step, top: chart.top });
+  const plan = map.plan(tree, chart.rows, { x, hairs: chart.hairs, path: chart.path,
+                                            step: chart.step, top: chart.top });
   for (const [key, , attrs] of marksOf(tree, plan, x, chart.back)) {
     const el = chart.els.get(key);
     if (el === undefined) continue;
@@ -241,22 +259,33 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   gliding++;
   chartEl.classList.remove("moving");
   chartEl.style.setProperty("--glide", `${pace}ms`);
-  const { tree } = charted;
-  const path = map.along(tree, pathIds());
-  const { most, span, hairs } = cutting(tree, path);
+  const { tree: source } = charted;
+  const path = map.along(source, pathIds());
+  const { most, span, hairs } = cutting(source, path);
+  const { forks, places, tree } = combedOf(source);
   // The trail takes the path the reader is on, and is drawn from before and after it did.
   const earlier = chart === null ? null
-    : { path: chart.path, back: map.steps(tree, walked, chart.path, STEPS) };
-  const now = map.remember(tree, walked, path, [...path].at(-1) ?? null);
+    : { path: chart.path, back: map.steps(source, walked, chart.path, STEPS) };
+  const now = map.remember(source, walked, path, [...path].at(-1) ?? null);
   if (now !== walked) map.keep(storage, known.created ?? known.path, now);
   walked = now;
-  const back = map.steps(tree, walked, path, STEPS);
+  const back = map.steps(source, walked, path, STEPS);
   const box = chartEl.getBoundingClientRect();
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
   // Packed on the straight axis, so a fisheye moving with the thumb moves no strand across.
   const rows = map.layout(tree, { x: map.scale({ most, width: long, pad: map.PAD }), hairs, path });
-  const all = [...rows.values()];
-  const { step, top } = map.fit(Math.min(...all), Math.max(...all), wide, look.down);
+  const all = [...rows.values()], lo = Math.min(...all);
+  // The drawing holds the reed the window is at where it stood, so a step across moves what is
+  // above it and not its teeth; too wide to fit, it is cut off at the edges and moves only to
+  // keep the path's row where the window is in view.
+  const mid = span ? (span[0] + span[1]) / 2 : null;
+  const held = mid === null ? null : map.holds(tree, path, mid);
+  const by = mid === null ? tree.top : map.anchor(tree, path, mid);
+  const stood = chart !== null && chart.source === source && chart.wide === wide
+    && chart.rows.has(by.head) && rows.has(by.head)
+    ? chart.zero + (chart.rows.get(by.head) - rows.get(by.head)) * chart.step : null;
+  const { step, top, cut } = map.fit(lo, Math.max(...all), wide, look.down,
+    rows.get(held?.head) ?? 0, stood);
   const x = lensed(most, long, span);
   const plan = map.plan(tree, rows, { x, hairs, path, step, top });
 
@@ -281,8 +310,12 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   }
   const caret = svg("line", { "data-key": "caret" }, "caret");
   const sweep = svg("line", { "data-key": "sweep", pathLength: 1 }, "sweep");
+  // An edge the drawing is cut off at says so.
+  for (const [side, at] of [[cut[0], 0.5], [cut[1], wide - 0.5]])
+    if (side) out.push(svg("line", lineAt(0, at, long, at), "cropped"));
   const pointed = svg("line", {}, "over");
-  out.push(pointed, caret, sweep);
+  const teeth = svg("g", {}, "teeth");
+  out.push(teeth, pointed, caret, sweep);
   // Shadows outlast a drawing, each carrying on its fade where it had got to.
   for (const el of chartEl.querySelectorAll(".shade")) {
     el.style.animationDelay = `${Number(el.dataset.t0) - performance.now()}ms`;
@@ -290,7 +323,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   }
   // The same tree drawn the same way and the same size is a packing that moved, which glides;
   // anything else is a new drawing, which does not.
-  const same = glides && chart !== null && chart.tree === tree && chart.down === look.down
+  const same = glides && chart !== null && chart.source === source && chart.down === look.down
     && chart.long === long && chart.wide === wide;
   const was = same ? shape() : null;
   // Each strand's colour, and where it changed, the change eased over the same glide.
@@ -305,10 +338,15 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
     }
   }
   chartEl.replaceChildren(...out);
-  chart = { tree, x, plan, path, hairs, rows, back, top, most, lensAt: span, caret, sweep, pointed,
-            thumb, ruler, bands, handle, els, line: lineAt, step, byHead, down: look.down, long,
-            wide, y0: plan.strands.find(s => s.head === tree.top.head).y };
+  const combed = look.reed ? { forks, places } : null;
+  chart = { source, tree, combed, teeth, x, plan, path, hairs, rows, back, top, most,
+            lensAt: span, caret, sweep, pointed, thumb, ruler, bands, handle, els, line: lineAt,
+            step, byHead, down: look.down, long, wide, zero: top - lo * step,
+            ys: new Map(plan.strands.map(s => [s.head, s.y])) };
   lit = null;
+  onReed = null;
+  for (const i of glowing) cellsGlow(i, false);
+  glowing = [];
   // A run of steps still going on past this drawing keeps the caret where it is going.
   led = aiming !== null && aiming.to.head !== [...path].at(-1) ? ledAt(aiming.to.head, map.aimedAt(aiming)) : null;
   rule();
@@ -318,7 +356,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   chartThumb();
   if (was !== null) glide(was, pace);
   chartSays(map.effect(tree, hairs),
-            zoomed && span ? map.zoneCounts(tree, hairs, { span, most }) : null);
+            zoomed && span ? map.zoneCounts(tree, hairs, { span, most }) : null, combed);
 }
 
 const assign = (el, attrs) => {
@@ -362,13 +400,20 @@ function glide(was, pace) {
   frame(t0);
 }
 
+/** Where across the path stands `depth` tokens from the root: its row there, which a reed it
+ *  goes through moves it off. */
+function rowAt(depth) {
+  const s = map.holds(chart.tree, chart.path, depth);
+  return chart.ys.get(s?.head) ?? chart.ys.get(chart.tree.top.head);
+}
+
 /** Where the caret is on the path's row. */
 export function chartCaret() {
   if (chart === null) return;
   if (led !== null) return caretAt(led);
   const at = pathIds().indexOf(cursor.node());
   if (at < 0) return caretAt(null);
-  caretAt(chart.line(...map.upright(chart.x(at + 0.5), chart.y0, chart.step)));
+  caretAt(chart.line(...map.upright(chart.x(at + 0.5), rowAt(at), chart.step)));
 }
 
 /** Draw the caret and the sweep over it at `attrs`, or neither with null. */
@@ -411,7 +456,7 @@ function chartOver() {
   chart.pointed.style.display = got ? "" : "none";
   if (!got) return;
   const mid = (got.at[pointedAt] + got.at[pointedAt + 1]) / 2;
-  assign(chart.pointed, chart.line(...map.upright(chart.x(mid), chart.y0, chart.step)));
+  assign(chart.pointed, chart.line(...map.upright(chart.x(mid), rowAt(mid), chart.step)));
 }
 
 /** What is above the footer, which is the window the column is read in. */
@@ -432,7 +477,8 @@ function chartThumb() {
   chart.span = span;
   if (!span) return;
   const half = chart.half = map.thumbHalf(chart.step);
-  assign(chart.thumb, { ...map.thumbBox(chart.x, span, chart.y0, half, look.down), rx: 2 });
+  chart.thumbY = rowAt((span[0] + span[1]) / 2);
+  assign(chart.thumb, { ...map.thumbBox(chart.x, span, chart.thumbY, half, look.down), rx: 2 });
 }
 
 /** The point an event is at, along and across the plan, or null off the map. */
@@ -453,7 +499,7 @@ function chartHit(event) {
 
 /** Whether an event is on the thumb, and how far into it in tokens. */
 function onThumb(event) {
-  return map.inThumb(chartPoint(event), chart?.x, chart?.span, chart?.y0, chart?.half);
+  return map.inThumb(chartPoint(event), chart?.x, chart?.span, chart?.thumbY, chart?.half);
 }
 
 /** Scroll the column so the token `depth` tokens from the root stands at the top of the view. */
@@ -475,6 +521,17 @@ export function charting(event) {
   if (into !== null) {
     const got = cells();
     if (got !== null) point(map.holding(got.at, Math.floor(chart.span[0] + into)));
+    return true;
+  }
+  // A click on a reed takes the reader to its input and zooms in about it.
+  const p = chartPoint(event);
+  const reed = p === null ? null : map.reedAt(chart.plan, p.along, p.across, 5);
+  if (reed !== null) {
+    const depth = reed.from - 1;
+    lead(reed.head, depth);
+    visit({ tail: chart.path.has(reed.head) ? pathEnd() : chart.tree.lines.get(reed.head).tail,
+            depth })
+      .then(() => zoomBy(OPEN)).catch(wrong).finally(unlead);
     return true;
   }
   const hit = chartHit(event);
@@ -554,12 +611,14 @@ export function pointed(event) {
     return;
   }
   // Over the text, the segment says what it is over itself.
-  if (event.target !== $("column")) return;
-  const hit = chartHit(event);
+  if (event.target !== $("column")) { pointReed(null); return; }
+  const p = chartPoint(event);
+  pointReed(p === null ? null : map.reedAt(chart.plan, p.along, p.across, 5));
+  const hit = onReed !== null ? null : chartHit(event);
   const head = hit?.head ?? null;
   const got = hit !== null && chart.path.has(head) ? cells() : null;
   hover(got === null ? null : map.holding(got.at, hit.depth));
-  $("column").classList.toggle("charting", head !== null);
+  $("column").classList.toggle("charting", head !== null || onReed !== null);
   $("column").classList.toggle("thumbing", head === null && event.target === $("column")
                                            && onThumb(event) !== null);
   $("column").classList.toggle("scaling", look.on && onScale(event));
@@ -572,6 +631,36 @@ export function pointed(event) {
       for (const el of chart.byHead.get(h) ?? []) el.classList.add("lit");
 }
 
+/** Point at `reed` on the map, or at none with null: each tooth is lit where it leaves the box,
+ *  and where the reed is on the path, the column glows across its span. */
+function pointReed(reed) {
+  if ((reed?.head ?? null) === (onReed?.head ?? null)) return;
+  onReed = reed;
+  for (const i of glowing) cellsGlow(i, false);
+  glowing = [];
+  chart.teeth.replaceChildren();
+  for (const el of chartEl.querySelectorAll(".reed.lit")) el.classList.remove("lit");
+  if (reed === null) return;
+  chart.els.get(`r${reed.head}`)?.classList.add("lit");
+  for (const t of reed.teeth)
+    chart.teeth.append(svg("line", lineAt(t.x, t.y, t.x + TOOTH, t.y), "tooth"));
+  const got = chart.path.has(reed.head) ? cells() : null;
+  if (got === null) return;
+  const last = map.holding(got.at, reed.to - 1);
+  for (let i = map.holding(got.at, reed.from - 1); i <= last; i++) glowing.push(i);
+  for (const i of glowing) cellsGlow(i, true);
+}
+
+/** The pointer left: no reed is pointed at. */
+export function offReed() {
+  if (chart !== null) pointReed(null);
+}
+
+/** Glow the path's cell `i` as pointed at, or stop. */
+function cellsGlow(i, on) {
+  $("column").querySelectorAll(".flow .seg")[i]?.classList.toggle("over", on || i === pointedAt);
+}
+
 /** A rung of the cut as the bar names it. */
 const rungName = c =>
   c.fold === Infinity ? "fold all" : c.fold ? `fold ≤${c.fold}`
@@ -579,7 +668,7 @@ const rungName = c =>
 
 /** The bar under the map: which way it is drawn, the cut, and what the cut does, and zoomed
  *  in, how many strands are drawn in each zone from the thumb out. */
-function chartSays(effect, zones) {
+function chartSays(effect, zones, combed = null) {
   const button = (text, title, pressed, onclick) => {
     const b = Object.assign(document.createElement("button"),
                             { textContent: text, title, onclick });
@@ -609,6 +698,7 @@ function chartSays(effect, zones) {
     button("fork", "zoomed, put a strand in the zone its fork is in;"
            + " off, in the zone of its nearest point", look.byFork,
            () => { look.byFork = !look.byFork; sketch({ pace: STRIDE }); }),
+    ...reedDial(button),
     button("lens", "zoomed, give the thumb more of the axis; off, zoom cuts alone", look.lens,
            () => {
              look.lens = !look.lens;
@@ -618,10 +708,32 @@ function chartSays(effect, zones) {
     Object.assign(document.createElement("span"), {
       className: "says",
       textContent: (zones ? `${zones.join(" · ")} near to far · ` : "")
-        + `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`,
+        + `${effect.kept} of ${effect.of} strands · ${Math.round(effect.share * 100)}% cut`
+        + (combed ? ` · ${combed.places} places of ${combed.forks} forks` : ""),
       title: zones ? "strands drawn in each zone, from the thumb out" : "",
     }),
   );
+}
+
+/** The dial that combs forks close together into reeds, as the bar shows it: less, how close,
+ *  and more. */
+function reedDial(button) {
+  const steps = map.reedSteps(charted === null ? 1 : map.most(charted.tree));
+  look.reed = Math.min(look.reed, steps.length - 1);
+  const turn = by => () => {
+    look.reed = Math.min(steps.length - 1, Math.max(0, look.reed + by));
+    sketch({ pace: STRIDE });
+  };
+  const less = button("−", "comb less: more forks drawn where they are", false, turn(-1));
+  const more = button("+", "comb more: forks further apart drawn as one reed", false, turn(1));
+  less.disabled = look.reed === 0;
+  more.disabled = look.reed === steps.length - 1;
+  return [less, Object.assign(document.createElement("span"), {
+    className: "rung",
+    textContent: !look.reed ? "uncombed" : look.reed === steps.length - 1 ? "reed all"
+      : `reed ≤${steps[look.reed]}`,
+    title: "how close forks are, in tokens, to be combed into one reed",
+  }), more];
 }
 
 /** Draw the map, or take it away. */
@@ -661,7 +773,7 @@ function refocus() {
     }
     if (!span) return;
     if (bent) { restretch(span); foreshadow(); }
-    chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }));
+    chartSays(map.effect(tree, hairs), map.zoneCounts(tree, hairs, { span, most }), chart.combed);
   });
 }
 
@@ -719,7 +831,7 @@ function stretched() {
   if (!chartEl.classList.contains("moving")) return false;
   const [a, b] = look.down ? ["x1", "x2"] : ["y1", "y2"];
   const across = (Number(chart.caret.getAttribute(a)) + Number(chart.caret.getAttribute(b))) / 2;
-  return map.far(across, chart.y0, chart.step);
+  return map.far(across, chart.thumbY, chart.step);
 }
 
 /** A step across taken while the drawing still moves glides faster than the last, and one

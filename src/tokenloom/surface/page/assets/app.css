@@ -766,6 +766,10 @@ footer.peek, footer.held { z-index: 26; }
 #map .hair.fold { stroke: var(--dim); stroke-opacity: .8; stroke-width: var(--heft); }
 #map .hair.fold.marked { stroke: var(--accent); stroke-opacity: .6; }
 #map .fan { fill: var(--dim); fill-opacity: .7; }
+#map .reed { stroke: var(--dim); stroke-opacity: .8; stroke-width: 3; stroke-linecap: round; }
+#map .reed.lit { stroke: var(--point); stroke-opacity: 1; }
+#map .tooth { stroke: var(--point); stroke-width: 2; }
+#map .cropped { stroke: var(--dim); stroke-width: 1; stroke-dasharray: 2 3; }
 #map .tick { stroke: var(--faint); stroke-width: .8; }
 #map .tick.minor { stroke-opacity: .6; }
 #map .handle { stroke: var(--accent); stroke-width: 3; }

@@ -17,8 +17,8 @@ reworked, and not before.
 **The order is the content.** Each is cheaper before the one after it and dearer after, and that
 is the only reason they are numbered. One that has no file yet points at where it stands below.
 
-1. **[Knots](next/KNOTS.md)**: forks close enough along a path straightened into one place, in
-   the drawing and in navigation, and the branches leaving it sorted by what the model preferred.
+1. **[Reed](next/REED.md)**: forks close together combed straight, a tree inside and a comb
+   outside, on a dial that trades the map's along for its across.
 2. **Map**: what `docs/MAP.md`'s Status names as designed and not built — the layers' colours on
    the strands, and the trail moving to the halo.
 3. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
@@ -402,6 +402,12 @@ quoted from a tree is a figure against a state of it, which is *Whether stamping
 occasion beyond the command* under Loose ends.
 
 ## Loose ends
+
+- **Zoom in past the window.** The zoom stops where the thumb is the whole column, and reading
+  finer structure up close wants it to go on: past 1.0 the thumb flips to an overlay saying how
+  much of the window the fisheye has compacted at the edges, and bands pushed out to their
+  least height spawn new ones, building a wall of the densest. It changes what the thumb and the
+  lens mean, which the scale and the scan both stand on, so it is a branch of its own.
 
 - **The trail walked back.** `docs/MAP.md` keeps the last twenty paths a reader
   was on, and back is the gesture that takes the last one off: each arrival a history entry, so
