@@ -23,9 +23,11 @@ side by side across and no structure along at all, which is a list of paths. Bet
 moves as much branching from one axis to the other as the reader wants. It is a way of looking,
 like the cut and the zoom, records nothing, and belongs as much at hand as they are.
 
-**The range is stated by its effect**, so many places of so many forks, on the bar beside the
-cut's. Its default is 4 tokens, from the evidence above, until the dial is at hand and use says
-otherwise.
+**The dial runs the whole way**, from nothing through doubling ranges to the depth of the tree,
+where each root is one reed and every leaf a tooth: one comb, one set of alternatives. Any stop
+short of that would be arbitrary, and none is added until a tree shows it is needed. The range is
+stated by its effect, so many places of so many forks, on the bar beside the cut's, and it starts
+at 4 tokens, from the evidence above.
 
 **At a setting, the reeds stand still.** They are combed from the tree alone, with no path in
 them, and again only when the tree changes or the reader turns the dial. Reading, scrolling,
@@ -40,14 +42,14 @@ of it, so along a row and on into what leaves a reed are one rule: a branch that
 below a reed is the same reed, and no reed is ever drawn inside another. A fork whose branches are
 all hair is no part of one, so a fringe of stubs does not chain a trunk together.
 
-**A reed has a cap on its span**, so a ladder parts into reeds no longer than the cap rather than
-one as long as the ladder.
+**A reed has a cap on its span**, four times the range, so a ladder parts into reeds no longer
+than the cap rather than one as long as the ladder. At the dial's widest there is none.
 
 ## Its teeth
 
-**A tooth is one way out**: the route from the reed's input to a strand leaving it, which is the
-whole of what distinguishes that path inside the reed. What ends inside a reed without leaving it
-is an internal leaf and has no tooth; the cut and the zoom treat it as they treat any short leaf.
+**A tooth is one way out**: the whole route from the reed's input to a strand leaving it, which is
+the whole of what distinguishes that path inside the reed. What ends inside a reed is a tooth like
+any other, and the cut treats it as it treats any short leaf.
 
 **The teeth stand in a fixed order**, which is the tree's and not the path's. The tooth the tree's
 own row takes, its ranked continuation, goes straight on from the input, and the others stand above
@@ -61,19 +63,21 @@ the order's concern.
 
 ## How it is drawn
 
-**A reed is a box**: along from its first fork to its last, across every tooth's row. What is
-inside it is not drawn. Each tooth comes out of its far edge and is drawn from there, so the teeth
-are straight and parallel however they really left; the axis still holds tokens outside the box,
-and inside it the reed is one place and not several exact ones.
+**A reed is a rail at its top**, across every tooth's row and as thin as a strand, so it reads as
+a fork with width at any zoom. Each tooth is drawn from the rail as its whole route, the stretch
+the teeth share drawn in each of them, so the teeth are straight and parallel however they really
+left, and the strands between the reed's forks are not drawn on their own. The axis still holds
+tokens: a tooth's tokens stand where they are along it, and the ones it shares with the others
+are drawn again beside them.
 
-**The path bends only inside a reed.** It enters on the input's row and leaves on its tooth's, and
-the step between them is inside the box. At every fork that is not in a reed, the path continues
+**The path bends only at a reed.** It comes to the rail on the input's row and leaves it on its
+tooth's. At every fork that is not in a reed, the path continues
 its row and the drawing straightens around it, as `docs/MAP.md` has it. So the map is no longer
 one straight row of the path's from root to tip: it is straight runs, joined inside reeds, and the
 caret and the thumb are drawn on the path's row wherever along it they stand.
 
-**Pointed at, a reed shows its teeth**, each lit where it leaves the box, and where the reed is on
-the path, the column glows across its span.
+**Pointed at, a reed shows its teeth**, each lit where it leaves the rail, and where the reed is
+on the path, the column glows across its span.
 
 ## Navigation
 
@@ -123,7 +127,7 @@ largest tree, and moved to the server if it shows.
 ## Open
 
 - **Which gesture turns the dial**, beside shift and the wheel for the zoom.
-- **What a reed looks like opened.** A click zooms in about one and it stays a box; what of its
+- **What a reed looks like opened.** A click zooms in about one and it stays a rail; what of its
   inside is shown within the zoom is designed by looking at one.
 - **Whether plain forks hold still too.** An arrival still straightens the path at every fork not
   in a reed. Settled by reading with combing on at the default range and noting where that moves
