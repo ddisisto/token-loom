@@ -234,13 +234,13 @@ export function where(tree, combed, reeds, head) {
   };
 }
 
-/** Where the strand `head` leaves the path through `path`, in tokens from the root: the depth
- *  of the first strand above it that the path does not run through, or null if it runs through
- *  them all. */
+/** Where the strand `head` is drawn leaving the path through `path`, in tokens from the root:
+ *  where the first strand above it that the path does not run through starts, which for a tooth
+ *  is its reed's top, or null if the path runs through them all. */
 export function parts(tree, head, path) {
   let off = null;
   for (let s = tree.byHead.get(head); s && !path.has(s.head); s = tree.byHead.get(s.up)) off = s;
-  return off === null ? null : off.depth;
+  return off === null ? null : off.from ?? off.depth;
 }
 
 /** The leaf a scan steps to from the strand `head`, `by` 1 down the depth-first order or -1 up

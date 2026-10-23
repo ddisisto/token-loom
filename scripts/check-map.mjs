@@ -266,6 +266,11 @@ is("  and with the path through another, that one straight on and the rest moved
    [60, 4, 50, 70].map(h => viaSixty.get(h)), [0, 1, 2, 3]);
 is("  and a scan walks them in that order",
    reeded.order.filter(s => s.leaf).map(s => s.head), [60, 5, 80, 50, 70]);
+is("  every tooth leaves the path at the reed's top, so a scan from there reaches them all",
+   [[60, 50, 70].map(h => m.parts(reeded, h, through)),
+    m.scan(reeded, none, 5, -1, { from: 0, until: 10 })?.head,
+    m.scan(reeded, none, 5, 1, { from: 0, until: 10 })?.head],
+   [[10, 10, 10], 60, 50]);
 is("the drawing is held by the reed at the window, by its tooth in slot 0",
    [m.anchor(reeded, through, 20).head, m.anchor(reeded, leaving, 20).head, m.anchor(reeded, through, 5).head],
    [4, 4, 1]);
