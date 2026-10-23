@@ -572,7 +572,8 @@ footer { position: fixed; left: var(--nav); right: 0; bottom: 0; z-index: 10;
          backdrop-filter: blur(8px);
          transition: left .14s ease; }
 footer .fault { color: var(--accent); }
-#status { padding: 7px 20px; }
+#status { padding: 7px 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#over { float: right; padding: 7px 20px; white-space: nowrap; }
 
 /* ---- what is on its way ----
    A request appears where its result will, so this stands at the end of the path, in the

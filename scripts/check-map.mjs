@@ -245,6 +245,18 @@ is("every way out of it is a tooth of its top's", [50, 60, 4, 70].map(h => reede
    [1, 1, 1, 1]);
 is("  the row's own going straight on, and the rest out from it by rank against the row where each left",
    [60, 4, 50, 70].map(h => reeded.byHead.get(h).slot), [-1, 0, 1, 2]);
+{
+  const named = h => m.where(row, reeded, combed.reeds, h);
+  const slotted = reeded.strands.filter(s => s.slot !== undefined);
+  is("a strand is named by its reed: its input, what is inside it, and each tooth by its slot",
+     [named(1).how, named(2).how, named(3).how, ...slotted.map(s => [named(s.head).how, named(s.head).slot])],
+     ["input", "inside", "inside", ...slotted.map(s => ["tooth", s.slot])]);
+  is("  the same reed from each, its forks and teeth counted",
+     [...new Set([1, 2, 3, ...slotted.map(s => s.head)].map(h => JSON.stringify(named(h).reed)))],
+     [JSON.stringify({ head: 1, from: 10, to: 14, forks: combed.forks - combed.places + 1,
+                       teeth: slotted.length })]);
+  is("  and a strand past it is in none", [named(5).how, named(5).reed], [null, null]);
+}
 const leaving = m.along(row, [1, 2, 60]), through = m.along(row, [1, 2, 3, 4, 5]);
 const viaSixty = m.layout(reeded, { x, hairs: none, path: leaving });
 const viaFour = m.layout(reeded, { x, hairs: none, path: through });

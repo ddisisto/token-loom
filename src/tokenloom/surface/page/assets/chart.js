@@ -441,12 +441,39 @@ function cooling() {
 /** Mark the path's cell `i` as what the pointer is over, in the column and on the map, or
  *  nothing with null. The two hold the same positions and a pointer is over one of them. */
 export function hover(i) {
+  if (i === null) tell(null);
   if (i === pointedAt) return;
   const segs = $("column").querySelectorAll(".flow .seg");
   segs[pointedAt]?.classList.remove("over");
   pointedAt = i;
   segs[pointedAt]?.classList.add("over");
   chartOver();
+  const got = i === null ? null : cells();
+  if (got === null) return tell(null);
+  const depth = got.at[i + 1] - 1;
+  tell(placeSays(chart && map.holds(chart.source, chart.path, depth)?.head, depth));
+}
+
+/** Say on the footer what the pointer is over, so a place can be named: a node, its depth, the
+ *  strand holding it and the reed it is in, or a reed -- or nothing with null. */
+function tell(text) {
+  $("over").textContent = text ?? "";
+}
+
+/** A reed, as `map.where` has it. */
+const reedSays = r => `reed ${r.head} · depth ${r.from}–${r.to} · ${r.forks} forks · ${r.teeth} teeth`;
+
+/** The token `depth` from the root on the strand `head`, with its node where it is on the path. */
+function placeSays(head, depth) {
+  const ids = pathIds();
+  const out = [];
+  if (head == null || chart?.path.has(head)) out.push(`node ${ids[depth]}`);
+  out.push(`depth ${depth}`);
+  const w = chart === null || head == null ? null
+    : map.where(chart.source, chart.tree, combing.reeds, head);
+  if (w !== null) out.push(`strand ${w.strand.head}–${w.strand.tail}`);
+  if (w?.reed) out.push(`${w.how === "tooth" ? `tooth ${w.slot} of` : `${w.how} of`} ${reedSays(w.reed)}`);
+  return out.join(" · ");
 }
 
 /** Where the pointer is on the path's row, from whichever side it is on. */
@@ -618,6 +645,9 @@ export function pointed(event) {
   const head = hit?.head ?? null;
   const got = hit !== null && chart.path.has(head) ? cells() : null;
   hover(got === null ? null : map.holding(got.at, hit.depth));
+  if (onReed !== null)
+    tell(reedSays(map.where(chart.source, chart.tree, combing.reeds, onReed.head).reed));
+  else tell(hit === null ? null : placeSays(head, hit.depth));
   $("column").classList.toggle("charting", head !== null || onReed !== null);
   $("column").classList.toggle("thumbing", head === null && event.target === $("column")
                                            && onThumb(event) !== null);

@@ -217,6 +217,23 @@ export function holds(tree, path, depth) {
   return [...path].map(h => tree.byHead.get(h)).find(s => s?.up === top.head && !s.passage) ?? top;
 }
 
+/** What the strand `head` of `tree` is as `combed` by `reeds` draws it: the reed it is the input
+ *  of, is inside, or leaves as a tooth, with the reed's forks and teeth counted, and the tooth's
+ *  slot -- or no reed. */
+export function where(tree, combed, reeds, head) {
+  const s = tree.byHead.get(head), c = combed.byHead.get(head);
+  if (s === undefined || c === undefined) return null;
+  const how = c.reed ? "input" : c.passage ? "inside" : c.slot !== undefined ? "tooth" : null;
+  let h = how === null ? null : how === "input" ? head : s.up;
+  while (h != null && !combed.byHead.get(h)?.reed) h = tree.byHead.get(h)?.up;
+  const r = h == null ? null : reeds.find(r => r.head === h);
+  return {
+    strand: s, how, slot: c.slot ?? null,
+    reed: r && { head: r.head, from: r.from, to: r.to, forks: r.at.size + 1,
+                 teeth: (combed.kids.get(r.head) ?? []).filter(k => !k.passage).length },
+  };
+}
+
 /** Where the strand `head` leaves the path through `path`, in tokens from the root: the depth
  *  of the first strand above it that the path does not run through, or null if it runs through
  *  them all. */
