@@ -14,19 +14,10 @@
 
 export const GAP = 4;     // px kept clear between two strands on one row
 export const REACH = 64;  // nodes past which a hair is drawn no longer
-/** How far from one fork the next may be and stay in its knot, as a share of the tokens in
- *  view: `share[0]` on a window `tall[0]` px high or shorter, `share[1]` on one `tall[1]` or
- *  taller, and between the two between. A knot spans no more than is in view. With nothing in
- *  view, `bare` is the range in tokens. */
-export const KNOT = { tall: [700, 1400], share: [0.5, 0.15], bare: 8 };
-
-/** The range and cap knots are cut at, for the tokens in view `span` on a window `tall` px high. */
-export function knotting(span, tall, { tall: [lo, hi], share: [wide, narrow], bare } = KNOT) {
-  if (span === null) return { range: bare, cap: 4 * bare };
-  const seen = span[1] - span[0];
-  const t = Math.min(1, Math.max(0, (tall - lo) / (hi - lo)));
-  return { range: Math.max(1, Math.round(seen * (wide + (narrow - wide) * t))), cap: seen };
-}
+/** The dial's settings, finest to coarsest: how far from a reed a fork may be and be combed
+ *  into it, in tokens. Nothing is the raw tree. A reed spans no more than `SPAN` times it. */
+export const REEDS = [0, 2, 4, 8, 16, 32, 64];
+export const SPAN = 4;
 
 /** The cut's rungs, finest to coarsest. A child that does not continue its fork's row is drawn
  *  as a tick off the fork rather than given a row: a leaf where it is a stub and `stubs` is on
@@ -47,13 +38,13 @@ export const LADDER = [
 
 const rank = s => s.logprob ?? -Infinity;
 // Whether `k` stands above the row `main` continues: ranked higher than what continued it where
-// `k` left, which a knot carries as `against`.
+// `k` left, which a tooth carries as `against`.
 const higher = (k, main) => rank(k) > (k.against ?? rank(main));
 
 /** The strands by head, each one's children in the order they came, and the root's; by
  *  head, where the subtree under a strand ends in tokens from the root, and the deepest strand
- *  of its heaviest line; and the strands depth-first, a fork's children leaving earlier first,
- *  then ranked higher first and nothing ranked last. A strand comes before every strand below
+ *  of its heaviest line; and the strands depth-first, a fork's children ranked higher first and
+ *  nothing ranked last, and a reed's teeth in their slots. A strand comes before every strand below
  *  it, as `/map` sends them. */
 export function index(strands) {
   const byHead = new Map(strands.map(s => [s.head, s]));
@@ -72,7 +63,8 @@ export function index(strands) {
     lines.set(s.head, heaviest === null ? s : lines.get(heaviest.head));
   }
   const order = [], next = top === null ? [] : [top];
-  const first = (a, b) => a.depth - b.depth || (rank(a) > rank(b) ? -1 : rank(a) < rank(b) ? 1 : 0);
+  const first = (a, b) => a.slot !== undefined && b.slot !== undefined ? a.slot - b.slot
+    : a.depth - b.depth || (rank(a) > rank(b) ? -1 : rank(a) < rank(b) ? 1 : 0);
   while (next.length) {
     const s = next.pop();
     order.push(s);
@@ -122,15 +114,15 @@ export function undrawn(tree, hairs) {
   return out;
 }
 
-/** Forks made one place where each is within `range` tokens of the knot of the nearest fork
- *  above it, a knot spanning no more than `cap`: taken in order along, so a fork is judged
- *  against everything a knot holds short of it, along a row and on into what leaves a knot. A
- *  fork whose branches are all hair under `hairs` is no part of one. The knots as
+/** Forks combed into one place where each is within `range` tokens of the reed of the nearest
+ *  fork above it, a reed spanning no more than `cap`: taken in order along, so a fork is judged
+ *  against everything a reed holds short of it, along a row and on into what leaves a reed. A
+ *  fork whose branches are all hair under `hairs` is no part of one. The reeds as
  *  `{ head, main, from, to, at }`: the strand above the first fork and its heaviest child, where
  *  along they start and end, and by the head of each strand ending at a later fork in it, that
  *  strand's heaviest child; and how many `places` the `forks` they count became. No path enters,
- *  so a tree's knots stand wherever it is read from. */
-export function knots(tree, hairs, { range, cap }) {
+ *  so a tree's reeds stand wherever it is read from. */
+export function reeds(tree, hairs, { range, cap }) {
   const none = new Set(), out = [], of = new Map();
   const heaviest = s => continuing(tree.kids.get(s.head) ?? [], none);
   const forks = range <= 0 ? [] : tree.strands.filter(s => {
@@ -141,45 +133,75 @@ export function knots(tree, hairs, { range, cap }) {
     const at = s.depth + s.length, main = heaviest(s).head;
     let up = tree.byHead.get(s.up);
     while (up !== undefined && !of.has(up.head)) up = tree.byHead.get(up.up);
-    const k = up === undefined ? null : of.get(up.head);
-    if (k !== null && at - k.to <= range && at - k.from <= cap) {
-      k.to = at;
-      k.at.set(s.head, main);
-      of.set(s.head, k);
+    const r = up === undefined ? null : of.get(up.head);
+    if (r !== null && at - r.to <= range && at - r.from <= cap) {
+      r.to = at;
+      r.at.set(s.head, main);
+      of.set(s.head, r);
     } else {
       const fresh = { head: s.head, main, from: at, to: at, at: new Map() };
       out.push(fresh);
       of.set(s.head, fresh);
     }
   }
-  const tied = out.filter(k => k.at.size);
-  return { knots: tied, forks: forks.length,
-           places: forks.length - tied.reduce((n, k) => n + k.at.size, 0) };
+  const combed = out.filter(r => r.at.size);
+  return { reeds: combed, forks: forks.length,
+           places: forks.length - combed.reduce((n, r) => n + r.at.size, 0) };
 }
 
-/** `tree` with each of `knots` one place: every strand leaving it leaves the strand above its
- *  first fork, and the strands from there down to each of its forks are `passage`, drawn as
- *  the knot and not as rows. Each carries as `against` the rank of what continued the tree's row where it really
- *  left, which is what it stands above or below. `tree` itself with no knots. */
-export function tie(tree, knots) {
-  const moved = new Map(), passage = new Set(), none = new Set();
-  for (const k of knots) {
-    const first = rank(tree.byHead.get(k.main));
-    for (const c of tree.kids.get(k.head) ?? []) moved.set(c.head, { against: first });
-    // Everything from the knot's top down to each fork it took in.
-    const mine = new Set();
-    for (const head of k.at.keys())
-      for (let h = head; h !== k.head && !mine.has(h); h = tree.byHead.get(h).up) mine.add(h);
-    for (const h of mine) {
-      passage.add(h);
-      const kids = tree.kids.get(h) ?? [];
-      const against = rank(continuing(kids, none));
-      for (const c of kids) moved.set(c.head, { up: k.head, against });
+/** `tree` with each of `reeds` combed: the strand above its first fork carries it as `reed`, and
+ *  every way out of it is a tooth of that strand's. The strands from there down to each of its
+ *  forks, and what ends inside it, are `passage`, which the reed is drawn in place of. A tooth
+ *  carries as `against` the rank of what continued the tree's row where it really left, and as
+ *  `slot` where it stands: 0 for the tooth the row goes straight on into, and out from it above
+ *  for those ranked higher than `against` and below for the rest, by where they left and then by
+ *  rank. None of it is the path's. `tree` itself with no reeds. */
+export function comb(tree, reeds) {
+  if (!reeds.length) return tree;
+  const none = new Set(), heaviest = h => continuing(tree.kids.get(h) ?? [], none);
+  const changed = new Map();
+  const change = (head, what) => changed.set(head, { ...changed.get(head), ...what });
+  for (const r of reeds) {
+    const inside = new Set();
+    for (const head of r.at.keys())
+      for (let h = head; h !== r.head && !inside.has(h); h = tree.byHead.get(h).up) inside.add(h);
+    const teeth = (tree.kids.get(r.head) ?? []).filter(c => !inside.has(c.head))
+      .map(c => ({ c, against: rank(tree.byHead.get(r.main)) }));
+    for (const h of inside) {
+      const against = rank(heaviest(h));
+      for (const c of tree.kids.get(h) ?? []) if (!inside.has(c.head)) teeth.push({ c, against });
     }
+    let straight = tree.byHead.get(r.main);
+    while (inside.has(straight.head)) straight = heaviest(straight.head);
+    for (const h of inside) change(h, { passage: true });
+    const out = [];
+    for (const { c, against } of teeth) {
+      change(c.head, { up: r.head, against });
+      if (c.leaf && c.depth + c.length <= r.to && c !== straight) change(c.head, { passage: true });
+      else out.push({ c, against });
+    }
+    const above = out.filter(t => t.c !== straight && rank(t.c) > t.against)
+      .sort((a, b) => a.c.depth - b.c.depth || rank(a.c) - rank(b.c));
+    const below = out.filter(t => t.c !== straight && rank(t.c) <= t.against)
+      .sort((a, b) => a.c.depth - b.c.depth || rank(b.c) - rank(a.c));
+    change(straight.head, { slot: 0 });
+    above.forEach((t, i) => change(t.c.head, { slot: -1 - i }));
+    below.forEach((t, i) => change(t.c.head, { slot: 1 + i }));
+    change(r.head, { reed: { from: r.from, to: r.to } });
   }
-  if (!knots.length) return tree;
-  return index(tree.strands.map(s => moved.has(s.head) || passage.has(s.head)
-    ? { ...s, ...moved.get(s.head), ...(passage.has(s.head) ? { passage: true } : {}) } : s));
+  return index(tree.strands.map(s => changed.has(s.head) ? { ...s, ...changed.get(s.head) } : s));
+}
+
+/** The strand drawn where the path through `path` stands `depth` tokens from the root: the one
+ *  holding that token, or inside a reed the strand the reed is drawn from. */
+export function holds(tree, path, depth) {
+  let best = null;
+  for (const h of path) {
+    const s = tree.byHead.get(h);
+    if (s !== undefined && s.depth <= depth && (best === null || s.depth > best.depth)) best = s;
+  }
+  while (best !== null && best.passage) best = tree.byHead.get(best.up);
+  return best;
 }
 
 /** Where the strand `head` leaves the path through `path`, in tokens from the root: the depth
@@ -201,7 +223,7 @@ export function scan(tree, hairs, head, by, { from, until }) {
   if (at < 0) return null;
   for (let i = at + by; i >= 0 && i < tree.order.length; i += by) {
     const s = tree.order[i];
-    if (s.leaf && !gone.has(s.head) && s.depth + s.length >= from
+    if (s.leaf && !s.passage && !gone.has(s.head) && s.depth + s.length >= from
         && (parts(tree, s.head, path) ?? Infinity) <= until) return s;
   }
   return null;
@@ -289,8 +311,15 @@ const fits = (profile, sub, d) =>
     return have === undefined || !ivs.some(([a0, a1]) => have.clashes(a0, a1));
   });
 
-/** Each kept strand's row, the root's at 0 and the path's on it. Up is negative. A strand that
- *  left a knot stands in the knot's order: by where it left, then by rank.
+/** Which of `kept`, the children of `s` given rows, continues its row: at a reed the tooth
+ *  nearest slot 0, and at any other fork the one `continuing` picks. */
+const goesOn = (s, kept, path) => s.reed
+  ? kept.reduce((m, k) => m === null || Math.abs(k.slot) < Math.abs(m.slot) ? k : m, null)
+  : continuing(kept, path);
+
+/** Each kept strand's row, the root's at 0 and the path's on it as far as the first reed it
+ *  goes through. Up is negative. A reed's teeth stand in their slots, each further out than the
+ *  last, with the one in slot 0 going straight on, whichever of them the path takes.
  *
  *  A subtree is packed against what its continuing child's already holds, built in place
  *  on that child's profile so nothing is copied along a long trunk; each other child's is
@@ -301,7 +330,7 @@ export function layout(tree, { x, hairs, path }) {
 
   function pack(s) {
     const mine = kept(s);
-    const main = continuing(mine, path);
+    const main = goesOn(s, mine, path);
     let profile, rows;
     if (main === null) {
       profile = new Map();
@@ -313,18 +342,21 @@ export function layout(tree, { x, hairs, path }) {
     rows.set(s.head, 0);
     if (main === null) return { profile, rows };
     const others = mine.filter(k => k !== main);
-    const above = others.filter(k => higher(k, main))
-      .sort((a, b) => a.depth - b.depth || rank(a) - rank(b));
-    const below = others.filter(k => !higher(k, main))
-      .sort((a, b) => a.depth - b.depth || rank(b) - rank(a));
+    const above = s.reed ? others.filter(k => k.slot < main.slot).sort((a, b) => b.slot - a.slot)
+      : others.filter(k => higher(k, main)).sort((a, b) => rank(a) - rank(b));
+    const below = s.reed ? others.filter(k => k.slot > main.slot).sort((a, b) => a.slot - b.slot)
+      : others.filter(k => !higher(k, main)).sort((a, b) => rank(b) - rank(a));
     for (const [side, group] of [[-1, above], [1, below]]) {
+      let last = 0;
       for (const k of group) {
         const xf = x0(k);
         const built = pack(k);
         const sub = [...built.profile].map(([r, row]) =>
           [r, row.starts.map((a0, i) => [a0, row.ends[i]])]);
-        let d = side;
+        // A reed's teeth keep their order, each further out than the last.
+        let d = s.reed ? last + side : side;
         while (!fits(profile, sub, d)) d += side;
+        last = d;
         for (const [r, ivs] of sub) for (const [a0, a1] of ivs) put(profile, r + d, a0, a1);
         for (let r = side; r !== d; r += side) put(profile, r, xf, xf);
         for (const [head, r] of built.rows) rows.set(head, r + d);
@@ -340,52 +372,51 @@ export function layout(tree, { x, hairs, path }) {
 
 /** What is drawn, in px: strands as runs along their rows, links from a fork down or up to
  *  a strand that left it, hair as ticks off the fork they leave, a fan wherever three or more
- *  strands leave one fork, and each of `knots` as a bar along its span and across the rows of
- *  what leaves it, which stands in for those strands' links. `step` is the px between rows; `top` is the y of the
- *  highest row. */
-export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) {
+ *  strands leave one fork, and each reed as a box along its span and across its teeth's rows,
+ *  with its teeth drawn from its far edge and no links. `step` is the px between rows; `top`
+ *  is the y of the highest row. */
+export function plan(tree, rows, { x, hairs, path, step, top = 0 }) {
   let lo = Infinity, hi = -Infinity;
   for (const r of rows.values()) { lo = Math.min(lo, r); hi = Math.max(hi, r); }
   const y = head => top + (rows.get(head) - lo) * step;
-  const out = { strands: [], links: [], hairs: [], fans: [], knots: [],
+  const out = { strands: [], links: [], hairs: [], fans: [], reeds: [],
                 height: rows.size ? (hi - lo) * step : 0 };
-  // A knot is one bar, across every row a strand leaving it stands on, in place of their links.
-  const tying = new Set();
-  for (const k of knots) {
-    if (!rows.has(k.head)) continue;
-    const ys = [k.head, ...(tree.kids.get(k.head) ?? []).map(c => c.head)]
-      .filter(h => rows.has(h)).map(y);
-    // Where each strand leaving it diverges, and its own row.
-    const leaves = (tree.kids.get(k.head) ?? [])
-      .filter(c => rows.has(c.head) && rows.get(c.head) !== rows.get(k.head))
-      .map(c => ({ head: c.head, x0: x(c.depth), x1: x(c.depth + c.length), y: y(c.head) }));
-    out.knots.push({ head: k.head, from: k.from, to: k.to, x0: x(k.from), x1: x(k.to),
-                     y: y(k.head), y0: Math.min(...ys), y1: Math.max(...ys), leaves });
-    tying.add(k.head);
-  }
+  // Where a tooth is drawn from: its reed's far edge, or where it starts if that is further.
+  const edge = s => {
+    const r = s.up === null ? undefined : tree.byHead.get(s.up).reed;
+    return r && s.slot !== undefined ? Math.max(x(s.depth), x(r.to)) : x(s.depth);
+  };
   for (const s of tree.strands) {
     if (!rows.has(s.head)) continue;
-    const a = x(s.depth), b = x(s.depth + s.length);
+    const a = edge(s), b = Math.max(a, x(s.depth + s.length));
     out.strands.push({ head: s.head, x0: a, x1: b, y: y(s.head), path: path.has(s.head),
-                       aside: s.aside === null ? null : x(s.depth + s.aside) });
-    if (s.up !== null && rows.get(s.up) !== rows.get(s.head) && !tying.has(s.up))
+                       aside: s.aside === null ? null : Math.max(a, x(s.depth + s.aside)) });
+    if (s.up !== null && rows.get(s.up) !== rows.get(s.head) && !tree.byHead.get(s.up).reed)
       out.links.push({ head: s.head, x: a, y0: y(s.up), y1: y(s.head) });
+    if (s.reed) {
+      const teeth = (tree.kids.get(s.head) ?? []).filter(c => rows.has(c.head));
+      const ys = [s.head, ...teeth.map(c => c.head)].map(y);
+      out.reeds.push({ head: s.head, from: s.reed.from, to: s.reed.to,
+                       x0: x(s.reed.from), x1: x(s.reed.to), y: y(s.head),
+                       y0: Math.min(...ys), y1: Math.max(...ys),
+                       teeth: teeth.map(c => ({ head: c.head, x: edge(c), y: y(c.head) })) });
+    }
   }
   for (const [up, kids] of tree.kids) {
     if (!rows.has(up)) continue;
     const parent = tree.byHead.get(up);
     const at = x(parent.depth + parent.length);
-    const leaving = kids.filter(k => !k.passage).length;
-    if (leaving >= 3) out.fans.push({ head: up, x: at, y: y(up), n: leaving });
-    const main = continuing(kids.filter(k => !hairs.has(k.head)), path);
+    if (kids.length >= 3 && !parent.reed) out.fans.push({ head: up, x: at, y: y(up), n: kids.length });
+    const main = goesOn(parent, kids.filter(k => !hairs.has(k.head) && !k.passage), path);
     for (const k of kids) {
       if (!hairs.has(k.head)) continue;
       // Shorter hair stands further off its row, so a fringe of them reads as a fringe. A fold
       // reaches as far as what it holds does.
       const span = tree.ends.get(k.head) - k.depth;
       const lift = step * (0.25 + 0.5 * (1 - Math.min(1, span / REACH)));
-      const above = main === null || higher(k, main);
-      const from = x(k.depth);
+      if (k.passage) continue;
+      const above = main === null || (k.slot !== undefined ? k.slot < (main.slot ?? 0) : higher(k, main));
+      const from = edge(k);
       const reach = x(k.depth + (k.leaf ? Math.min(span, REACH) : span));
       out.hairs.push({ head: k.head, x0: from, x1: Math.max(from + 1, reach),
                        y0: y(up), y1: y(up) + (above ? -lift : lift),
@@ -396,9 +427,9 @@ export function plan(tree, rows, { x, hairs, path, step, top = 0, knots = [] }) 
   return out;
 }
 
-/** The knot whose bar in `drawn` a point is on, within `slack` px, or null. */
-export function knotAt(drawn, px, py, slack) {
-  return drawn.knots.find(k => px >= k.x0 - slack && px <= k.x1 + slack
+/** The reed whose box in `drawn` a point is on, within `slack` px, or null. */
+export function reedAt(drawn, px, py, slack) {
+  return drawn.reeds.find(k => px >= k.x0 - slack && px <= k.x1 + slack
                                && py >= k.y0 - slack && py <= k.y1 + slack) ?? null;
 }
 
@@ -635,11 +666,11 @@ export function onPlan(px, py, width, height, down) {
 
 /** How rows `lo` to `hi` stand across a map `wide` px: the step between two, and where row 0 is.
  *  Where they fit, from the margin's edge down the page and centred across it; where they do
- *  not, row 0 in the middle. */
-export function fit(lo, hi, wide, down) {
+ *  not, row `at` in the middle. */
+export function fit(lo, hi, wide, down, at = 0) {
   const step = Math.max(STEP[0], Math.min(STEP[1], (wide - 2 * PAD) / Math.max(1, hi - lo)));
   const fits = (hi - lo) * step <= wide - 2 * PAD;
-  const top = !fits ? wide / 2 + lo * step : down ? PAD : (wide - (hi - lo) * step) / 2;
+  const top = !fits ? wide / 2 - at * step + lo * step : down ? PAD : (wide - (hi - lo) * step) / 2;
   return { step, top };
 }
 

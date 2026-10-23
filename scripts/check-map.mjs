@@ -234,56 +234,50 @@ is("the same strands are the same cut", [m.same(new Set([1, 2]), new Set([2, 1])
 const row = m.index(strands([[1, null, 10, null], [2, 1, 2, -0.3], [50, 1, 5, -1],
                              [3, 2, 2, -0.5], [60, 2, 5, -0.1], [4, 3, 20, -0.2], [70, 3, 5, -3],
                              [5, 4, 10, -0.1], [80, 4, 5, -1]]));
-const tied = { ...m.knots(row, none, { range: 4, cap: 16 }) };
-tied.tree = m.tie(row, tied.knots);
-is("forks within range of the last along a row are one knot, and one further off is not",
-   tied.knots.map(({ head, from, to }) => ({ head, from, to })), [{ head: 1, from: 10, to: 14 }]);
-is("  every branch leaving it leaves where it starts", [50, 60, 70].map(h => tied.tree.byHead.get(h).up),
-   [1, 1, 1]);
-is("  and four forks are two places", [tied.forks, tied.places], [4, 2]);
-const tiedRows = m.layout(tied.tree, { x, hairs: none, path: none });
-is("  each stands by its rank against what continued where it left",
-   [60, 70].map(h => Math.sign(tiedRows.get(h))), [-1, 1]);
-is("  and a scan walks them as one place, by where each left",
-   tied.tree.order.filter(s => s.leaf).map(s => s.head), [50, 60, 5, 80, 70]);
-const tiedPlan = m.plan(tied.tree, tiedRows, { x, hairs: none, path: none, step: 10,
-                                               knots: tied.knots });
-const bar = tiedPlan.knots[0];
-is("  drawn as one bar along its span, across every row of what leaves it",
-   [bar.x0, bar.x1, bar.y0, bar.y1],
-   [x(10), x(14), ...[Math.min, Math.max].map(f => f(...[1, 50, 60, 70].map(h =>
-     tiedPlan.strands.find(s => s.head === h).y)))]);
-is("  in place of their links", tiedPlan.links.filter(l => tied.tree.byHead.get(l.head).up === 1), []);
-is("  and a point on it is the knot", m.knotAt(tiedPlan, x(12), (bar.y0 + bar.y1) / 2, 3)?.head, 1);
-is("  and one past it is not", m.knotAt(tiedPlan, x(20), bar.y0, 3), null);
-const share = (span, tall) => m.knotting(span, tall).range / (span[1] - span[0]);
-is("the range is a share of what is in view, wider on a short window and narrower on a tall one",
-   [share([0, 400], 600), share([0, 400], 1050), share([0, 400], 2000)],
-   [m.KNOT.share[0], Math.round(400 * (m.KNOT.share[0] + m.KNOT.share[1]) / 2) / 400, m.KNOT.share[1]]);
-is("  and a knot spans no more than is in view", m.knotting([100, 400], 900).cap, 300);
-is("a cap parts a ladder", m.knots(row, none, { range: 4, cap: 3 }).knots
-   .map(({ head, from, to }) => ({ head, from, to })), [{ head: 1, from: 10, to: 12 }]);
-is("no range knots nothing, and the tree is the one given",
-   m.tie(row, m.knots(row, none, { range: 0 }).knots) === row, true);
-is("what runs between a knot's forks is passage, and what continues past it leaves its top",
-   [[2, 3].map(h => tied.tree.byHead.get(h).passage), tied.tree.byHead.get(4).up], [[true, true], 1]);
-// The path leaving inside the knot, through 60 at 12: it is one row, and where everything else
-// stands is where it stood with the path through 4.
+const combed = m.reeds(row, none, { range: 4, cap: 16 });
+const reeded = m.comb(row, combed.reeds);
+is("forks within range of the last along a row are one reed, and one further off is not",
+   combed.reeds.map(({ head, from, to }) => [head, from, to]), [[1, 10, 14]]);
+is("  and four forks are two places", [combed.forks, combed.places], [4, 2]);
+is("what runs between its forks is passage",
+   [2, 3, 4].map(h => !!reeded.byHead.get(h).passage), [true, true, false]);
+is("every way out of it is a tooth of its top's", [50, 60, 4, 70].map(h => reeded.byHead.get(h).up),
+   [1, 1, 1, 1]);
+is("  the row's own going straight on, and the rest out from it by rank against the row where each left",
+   [60, 4, 50, 70].map(h => reeded.byHead.get(h).slot), [-1, 0, 1, 2]);
 const leaving = m.along(row, [1, 2, 60]), through = m.along(row, [1, 2, 3, 4, 5]);
-const viaSixty = m.layout(tied.tree, { x, hairs: none, path: leaving });
-const viaFour = m.layout(tied.tree, { x, hairs: none, path: through });
-is("a path leaving a knot anywhere is one row through it", [viaSixty.get(1), viaSixty.get(60)], [0, 0]);
-is("  and what else leaves it stands on the side it stood on whichever way the path left",
-   [50, 70].map(h => [Math.sign(viaSixty.get(h)), Math.sign(viaFour.get(h))]), [[1, 1], [1, 1]]);
-// 70 leaves the knot at 14 and forks again at 16, within range: the same knot.
+const viaSixty = m.layout(reeded, { x, hairs: none, path: leaving });
+const viaFour = m.layout(reeded, { x, hairs: none, path: through });
+is("  each on its own row in slot order",
+   [60, 4, 50, 70].map(h => viaFour.get(h)), [-1, 0, 1, 2]);
+is("  whichever tooth the path takes", [60, 4, 50, 70].map(h => viaSixty.get(h)), [-1, 0, 1, 2]);
+is("  and a scan walks them in that order",
+   reeded.order.filter(s => s.leaf).map(s => s.head), [60, 5, 80, 50, 70]);
+const reededPlan = m.plan(reeded, viaFour, { x, hairs: none, path: through, step: 10 });
+const reedBox = reededPlan.reeds[0];
+const yOf = h => reededPlan.strands.find(s => s.head === h).y;
+is("it is drawn as a box along its span, across its teeth's rows",
+   [reedBox.x0, reedBox.x1, reedBox.y0, reedBox.y1], [x(10), x(14), yOf(60), yOf(70)]);
+is("  its teeth drawn from its far edge",
+   [50, 60, 4, 70].map(h => reededPlan.strands.find(s => s.head === h).x0), [x(14), x(14), x(14), x(14)]);
+is("  with no links", reededPlan.links.filter(l => reeded.byHead.get(l.head).up === 1), []);
+is("  and a point on it is the reed", m.reedAt(reededPlan, x(12), (reedBox.y0 + reedBox.y1) / 2, 3)?.head, 1);
+is("  and one past it is not", m.reedAt(reededPlan, x(20), reedBox.y0, 3), null);
+is("the path stands on the reed's top inside it, and on its tooth past it",
+   [11, 16].map(d => m.holds(reeded, leaving, d).head), [1, 60]);
+is("a cap parts a ladder", m.reeds(row, none, { range: 4, cap: 3 }).reeds
+   .map(({ head, from, to }) => [head, from, to]), [[1, 10, 12]]);
+is("no range combs nothing, and the tree is the one given",
+   m.comb(row, m.reeds(row, none, { range: 0 }).reeds) === row, true);
+// 70 leaves the reed at 14 and forks again at 16, within range: the same reed.
 const below = m.index(strands([[1, null, 10, null], [2, 1, 2, -0.3], [50, 1, 5, -1],
                                [3, 2, 2, -0.5], [60, 2, 5, -0.1], [4, 3, 20, -0.2], [70, 3, 2, -3],
                                [71, 70, 9, -0.1], [72, 70, 5, -2]]));
-const absorbed = m.knots(below, none, { range: 4, cap: 16 });
-is("a branch forking again close below a knot is the same knot",
-   absorbed.knots.map(({ head, from, to }) => [head, from, to]), [[1, 10, 16]]);
-is("  and what leaves it there leaves the knot's top",
-   [71, 72].map(h => m.tie(below, absorbed.knots).byHead.get(h).up), [1, 1]);
+const absorbed = m.reeds(below, none, { range: 4, cap: 16 });
+is("a branch forking again close below a reed is the same reed",
+   absorbed.reeds.map(({ head, from, to }) => [head, from, to]), [[1, 10, 16]]);
+is("  and what leaves it there is a tooth of its top's",
+   [71, 72].map(h => m.comb(below, absorbed.reeds).byHead.get(h).up), [1, 1]);
 
 // ---- at random ----------------------------------------------------------------------------
 
@@ -300,7 +294,7 @@ function grown(n) {
 }
 
 let overlaps = 0, misranked = 0, misordered = 0, unplaced = 0, offPath = 0, unlinked = 0;
-let overspun = 0, unmoved = 0, uncounted = 0, overbarred = 0;
+let overspun = 0, unmoved = 0, uncounted = 0, overboxed = 0, unslotted = 0, unedged = 0;
 for (let t = 0; t < 80; t++) {
   const source = grown(5 + Math.floor(rand() * 120));
   const tip = source.strands[Math.floor(rand() * source.strands.length)];
@@ -314,24 +308,36 @@ for (let t = 0; t < 80; t++) {
   const from = rand() * end, span = [from, Math.min(end, from + 1 + rand() * 40)];
   const base = t % m.LADDER.length;
   const hairs = m.hair(source, m.zoned(source, { base, steps, span, most }), path);
-  // Every other tree knotted, and the layout's promises held over that as well.
-  const knot = t % 4 < 2 ? { range: 0 } : { range: 1 + Math.floor(rand() * 8), cap: 2 + Math.floor(rand() * 30) };
-  const { knots, forks, places } = m.knots(source, hairs, knot);
-  const tree = m.tie(source, knots);
-  for (const k of knots) if (k.to - k.from > knot.cap || k.to <= k.from) overspun++;
+  // Every other tree combed, and the layout's promises held over that as well.
+  const dial = t % 4 < 2 ? { range: 0 } : { range: 1 + Math.floor(rand() * 8), cap: 2 + Math.floor(rand() * 30) };
+  const { reeds, forks, places } = m.reeds(source, hairs, dial);
+  const tree = m.comb(source, reeds);
+  for (const r of reeds) if (r.to - r.from > dial.cap || r.to <= r.from) overspun++;
   for (const s of tree.strands) {
     const was = source.byHead.get(s.head);
     if (s.up !== was.up && (s.depth !== was.depth || !m.lineage(source, was.up).includes(s.up)
                             || s.against === undefined)) unmoved++;
   }
-  if (knot.range === 0 ? tree !== source || forks !== 0
-      : places !== forks - knots.reduce((n, k) => n + k.at.size, 0)) uncounted++;
+  if (dial.range === 0 ? tree !== source || forks !== 0
+      : places !== forks - reeds.reduce((n, r) => n + r.at.size, 0)) uncounted++;
   const gone = m.undrawn(tree, hairs);
   const x = m.scale({ most, width: 200 + 20 * t, pad: 10 });
   const rows = m.layout(tree, { x, hairs, path });
-  // What runs between a knot's forks is the knot, and has no row.
+  // What runs between a reed's forks is the reed, and has no row.
   for (const s of tree.strands) if (rows.has(s.head) === (gone.has(s.head) || !!s.passage)) unplaced++;
-  for (const h of path) if (!tree.byHead.get(h).passage && rows.get(h) !== 0) offPath++;
+  // The path goes on along its row at every fork, and steps off it only inside a reed.
+  if (rows.get(tree.top.head) !== 0) offPath++;
+  for (const h of path) {
+    const s = tree.byHead.get(h);
+    if (!s.passage && s.up !== null && !tree.byHead.get(s.up).reed && rows.get(h) !== rows.get(s.up))
+      offPath++;
+  }
+  // A reed's teeth stand in slot order, whichever of them the path takes.
+  for (const [up, kids] of tree.kids) {
+    if (!tree.byHead.get(up).reed) continue;
+    const placed = kids.filter(k => rows.has(k.head)).sort((a, b) => rows.get(a.head) - rows.get(b.head));
+    for (let i = 1; i < placed.length; i++) if (placed[i - 1].slot >= placed[i].slot) unslotted++;
+  }
   const byRow = new Map();
   for (const s of tree.strands) if (rows.has(s.head)) {
     const r = rows.get(s.head);
@@ -347,10 +353,13 @@ for (let t = 0; t < 80; t++) {
   for (const [up, all] of tree.kids) {
     if (!rows.has(up)) continue;
     const kids = all.filter(k => !hairs.has(k.head) && !k.passage);
-    const main = m.continuing(kids, path);
+    // At a reed, the tooth nearest slot 0 goes straight on, whichever the path takes.
+    const main = tree.byHead.get(up).reed
+      ? kids.reduce((b, k) => b === null || Math.abs(k.slot) < Math.abs(b.slot) ? k : b, null)
+      : m.continuing(kids, path);
     if (main === null) continue;
     const r = s => s.logprob ?? -Infinity;
-    // A strand that left a knot is ranked against what continued the row where it left.
+    // A tooth is ranked against what continued the row where it left.
     const vs = k => k.against ?? r(main);
     if (rows.get(main.head) !== rows.get(up)) misranked++;
     for (const k of kids) if (k !== main &&
@@ -365,21 +374,24 @@ for (let t = 0; t < 80; t++) {
       if (Math.abs(r(a) - r(main)) < Math.abs(r(b) - r(main)) && off(a) >= off(b)) misordered++;
     }
   }
-  const drawn = m.plan(tree, rows, { x, hairs, path, step: 5, knots });
-  for (const a of drawn.knots) for (const b of drawn.knots)
-    if (a !== b && a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1) overbarred++;
-  // A knot's bar stands in for the links of what leaves it.
+  const drawn = m.plan(tree, rows, { x, hairs, path, step: 5 });
+  for (const a of drawn.reeds) for (const b of drawn.reeds)
+    if (a !== b && a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1) overboxed++;
+  for (const r of drawn.reeds) for (const t of r.teeth) if (t.x < r.x1 - 1e-9) unedged++;
+  // A reed's box stands in for the links of its teeth.
   const linked = new Set([...drawn.links.map(l => l.head),
-                          ...tree.strands.filter(s => drawn.knots.some(k => k.head === s.up)).map(s => s.head)]);
+                          ...tree.strands.filter(s => drawn.reeds.some(r => r.head === s.up)).map(s => s.head)]);
   for (const s of tree.strands)
     if (rows.has(s.head) && s.up !== null && rows.get(s.head) !== rows.get(s.up) && !linked.has(s.head))
       unlinked++;
 }
 is("no two strands on one row come within the gap", overlaps, 0);
-is("no knot spans more than its cap, nor nothing", overspun, 0);
-is("a branch leaving a knot leaves an ancestor on its row, where it really left", unmoved, 0);
-is("  and the places a knot makes are the forks less those it took in", uncounted, 0);
-is("no knot's bar overlaps another's", overbarred, 0);
+is("no reed spans more than its cap, nor nothing", overspun, 0);
+is("a tooth is a tooth of an ancestor's, where it really left", unmoved, 0);
+is("  and the places reeds make are the forks less those they took in", uncounted, 0);
+is("no reed's box overlaps another's", overboxed, 0);
+is("a reed's teeth stand in slot order", unslotted, 0);
+is("  and are drawn from its far edge", unedged, 0);
 
 // A scan from the root down, and from the last leaf up, meets every leaf that has a row and
 // reaches the focus, once each and in the order's own order; and bounded below, a step there
@@ -387,10 +399,10 @@ is("no knot's bar overlaps another's", overbarred, 0);
 // its path only below it.
 let unbroken = 0, missed = 0, unreversed = 0, unreturned = 0;
 for (let t = 0; t < 80; t++) {
-  // Every other tree knotted, which a scan walks as one place.
+  // Every other tree combed, which a scan walks as one place.
   const grew = grown(5 + Math.floor(rand() * 120));
-  const tree = t % 2 ? grew : m.tie(grew, m.knots(grew, new Set(),
-    { range: 1 + Math.floor(rand() * 8), cap: 2 + Math.floor(rand() * 30) }).knots);
+  const tree = t % 2 ? grew : m.comb(grew, m.reeds(grew, new Set(),
+    { range: 1 + Math.floor(rand() * 8), cap: 2 + Math.floor(rand() * 30) }).reeds);
   const at = new Map(tree.order.map((s, i) => [s.head, i]));
   for (const s of tree.order) {
     const under = tree.strands.filter(o => m.lineage(tree, o.head).includes(s.head)).length;
@@ -400,7 +412,7 @@ for (let t = 0; t < 80; t++) {
   const hairs = m.hair(tree, m.LADDER[t % m.LADDER.length], new Set());
   const gone = m.undrawn(tree, hairs);
   const from = rand() * m.most(tree);
-  const want = tree.order.filter(s => s.leaf && !gone.has(s.head) && s.depth + s.length >= from)
+  const want = tree.order.filter(s => s.leaf && !s.passage && !gone.has(s.head) && s.depth + s.length >= from)
     .map(s => s.head);
   const reach = { from, until: Infinity };
   const walk = (head, by) => {
@@ -412,7 +424,7 @@ for (let t = 0; t < 80; t++) {
   const until = from + rand() * 100;
   for (const s of tree.order) for (const by of [1, -1]) {
     const there = m.scan(tree, hairs, s.head, by, { from, until });
-    if (there !== null && s.leaf && !gone.has(s.head) && s.depth + s.length >= from
+    if (there !== null && s.leaf && !s.passage && !gone.has(s.head) && s.depth + s.length >= from
         && (m.parts(tree, m.scan(tree, hairs, there.head, -by, { from, until })?.head ?? s.head,
                     new Set(m.lineage(tree, s.head))) ?? Infinity) <= until) unreturned++;
   }
@@ -427,7 +439,7 @@ is("a scan down meets every leaf in reach, once each", missed, 0);
 is("  and a scan up meets the same, reversed", unreversed, 0);
 is("bounded below, a step across and back returns to what reads the same", unreturned, 0);
 is("every kept strand is placed and nothing cut is", unplaced, 0);
-is("the path holds row 0 throughout", offPath, 0);
+is("the path holds its row through every fork but a reed's", offPath, 0);
 is("above is ranked higher than what continues, and below lower", misranked, 0);
 is("the nearest rank stands nearest", misordered, 0);
 is("every strand off its fork's row is linked to it", unlinked, 0);
