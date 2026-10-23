@@ -117,6 +117,72 @@ are claimed in full, being neither the draw a wheel at the end of the column
 asks for nor the sideways scroll some browsers make of it, and a fine wheel's movement adds up to
 a notch.
 
+## Reeds
+
+**Forks close together are combed straight: a tree on the inside, a comb on the outside.** On a
+loom the reed is the comb that keeps the warp side by side, evenly spaced and straight. Here a
+reed does that for the paths leaving a cluster of forks: one input, every path out of it standing
+beside the others as a straight tooth, and the cluster itself not drawn. Forks arrive in bursts —
+*What a tree looks like* — and repeated sampling from one stretch of a path makes such clusters
+as a matter of course, so drawn fork by fork they move the drawing and the scan for differences
+nobody is reading.
+
+**Combing is a dial that trades the map's along for its across.** At nothing the map is the raw
+tree, every fork at its depth. At its widest each root is one reed and every leaf a tooth: every
+path side by side across and no structure along, which is a list of paths. The dial runs the
+whole way, from nothing through ranges doubling from 2 to the depth of the tree, and starts at 4
+tokens, the distance *What a tree looks like* joins forks at. The bar states it by its effect, as
+so many places of so many forks beside what the cut does, and turns it with a button either side.
+It is a way of looking, like the cut and the zoom, and records nothing.
+
+**At a setting the reeds stand still.** They are combed from the tree alone, with no path in
+them, and again only when the tree, the cut or the dial changes. Reading, scrolling, arriving and
+zooming move nothing about them, so a reed is the same reed whichever way the reader came to it.
+
+**A fork belongs to the reed of the nearest fork above it when it is within range of that reed.**
+Taken in order along the axis, each fork is judged against everything a reed already holds short
+of it, so along a row and on into what leaves a reed are one rule: a branch that forks again close
+below a reed is the same reed, and no reed is drawn inside another. A fork whose branches are all
+hair is no part of one, so a fringe of stubs does not chain a trunk together. **A reed spans no
+more than four times the range**, so a ladder — `data/claude`'s Moths root has 30 adjacent rank-2
+forks — parts into reeds no longer than that rather than one as long as the ladder. At the dial's
+widest there is no cap.
+
+**A tooth is one way out**: the whole route from the reed's input to a strand leaving it, which is
+all that distinguishes that path inside the reed. What ends inside a reed is a tooth like any
+other, and the cut treats it as it treats any short leaf.
+
+**The teeth stand in a fixed order, which is the tree's and not the path's.** The tooth the tree's
+heaviest line takes goes straight on, and the others stand out from it on one side if the model
+ranked them higher than what continued the tree's row where each really left and on the other if
+lower, as across does at a single fork. Among themselves they stand by where they left and then by
+rank.
+
+**A reed is a rail at its top**, across every tooth's row and as thin as a strand, so it reads as
+a fork with width at any zoom. Each tooth is drawn from the rail as its whole route, the stretch
+the teeth share drawn in each of them, so the teeth are straight and parallel however they really
+left, and the strands between the reed's forks are not drawn on their own. The axis still holds
+tokens: a tooth's tokens stand where they are along it, and the ones it shares with the others
+are drawn again beside them.
+
+**The path is one straight row through a reed as through any fork.** The path's tooth goes
+straight on from the input, and the other teeth stand out from it in their order, each further
+out than the last, so whichever tooth the path takes the teeth keep their order and their
+spacing.
+
+**The drawing is held by the reed the window is at, and what is above it moves.** Across the page
+the map keeps the tooth in slot 0 of the last reed on the path at or above the window where it
+stood, so a step from one tooth to another leaves every tooth in place and slides the input, the
+path above it and what hangs from that across to meet the tooth taken. With no reed above the
+window, it keeps the root where it stood. Rows that fit stay inside the margin, and rows that do
+not are cut off at the edges, with the edge marked, and move only to keep the path's row where the
+window is in view.
+
+**Pointed at, a reed shows its teeth**, each lit where it leaves the rail, and where the reed is on
+the path the column glows across its span. **A click on a reed arrives at its input and zooms in
+two steps about it.** Nothing else reads reeds: the column, the rows at the caret and the
+continuation rule read the raw tree.
+
 ## Moving through it
 
 **Pointing at a strand is an arrival.** The column reads the path through that strand and puts
@@ -149,7 +215,8 @@ glides, and the thumb and the window stay where they were while only the branch 
   ranked higher first, nothing ranked last. It is the tree's and not the path's, so it is the same
   whichever way the reader scans and wherever they land, and a branch shaped nothing like the last
   cannot reshuffle what comes next. The children's order is the part another ordering across
-  would replace.
+  would replace. **A reed's teeth are siblings at its input**, in the reed's order, and they hold
+  still: what moves is above the reed, the path sliding across to the tooth taken.
 - **What is scanned is every branch the map draws that reads differently in the window**: each
   leaf the cut leaves a row of its own, which reaches into the window and leaves the path being
   read at or above the window's foot. A limb that left the trunk early and runs beside the thumb
@@ -290,8 +357,36 @@ when it is settled.
   order has them apart. Settled by scanning a broad root and noting where a step lands somewhere
   unexpected.
 - **Whether the map holds still.** It is laid again around every arrival, so the shape moves
-  whenever the path does, and it is the path that stays put. A map that held its shape while the
-  reader moved through it is the other way to have it. Settled by use.
+  whenever the path does, and it is the path that stays put. Reeds hold still at a setting and
+  the drawing is held by the reed at the window, but an arrival still straightens the path at
+  every fork not in a reed. Settled by reading with combing on at the default range and noting
+  where that moves more than it should.
+- **Which gesture turns the dial**, beside shift and the wheel for the zoom.
+- **What a reed looks like opened.** A click zooms in about one and it stays a rail; what of its
+  inside is shown within the zoom is designed by looking at one.
+- **Whether the gap is the clustering wanted.** A convolution of the forks' depths, with a kernel
+  as wide as the range, gives a density whose high stretches are reeds. Forks joined by distance
+  also form a dendrogram, and a range is a height to cut it at, so the dial would walk one
+  hierarchy rather than reshuffle it, and a range could vary along the axis, fine about the thumb
+  and coarse far from it, on the zoom's zones. Settled by reading the comb and the trunk's limbs
+  and seeing where reeds part wrongly.
+- **A count as the control**, the widest gaps parting reeds until there are so many places,
+  beside the range.
+- **Whether the cut's stub rung goes.** With the cut saying what is too small to give a row and
+  the dial what is too close to tell apart, a stub on the map is only a short leaf near a fork, cut
+  by its size or combed into a tooth. `docs/SPINE.md`'s stub, the reference arm, is a measurement
+  and is untouched by this. Settled once both dials are at hand and reading with them says whether
+  the rung still separates anything.
+- **Whether teeth stand by mean surprisal over a window** of the tokens each took: how much the
+  model preferred that path, which is a different question from how open it was. That order is an
+  emergent temperature axis, near-greedy on one side, hot further out, and authored text, which
+  has no ranking, at the far end. That a one-token stub and a long branch do not compare over one
+  window is its concern. It wants `/map` to send the logprobs along each strand, where it sends
+  only the head's now, which is a surface read and not a core change; what that costs is measured
+  against the largest tree. Settled by reading reeds in both orders.
+- **Whether the column's path is a thread.** The word fits what it is against a reed, and
+  `docs/SURFACE.md`, this document and the code all say *path*; it is decided once reeds have been
+  read with, and moved everywhere at once if it is.
 - **Where the rows stand while the map has the margin.** They open over it, which is easy to
   dismiss and covers what is under them. Settled by placing them somewhere else and reading with
   both.

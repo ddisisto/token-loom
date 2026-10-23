@@ -168,9 +168,8 @@ export function burst(node, { cap = CAP, size = BURST } = {}) {
 export const SHUT = "\u2298";
 
 /* A newline is shown and not obeyed, the way a row's own spelling is: an arm is one line by
- * construction here, and a real break would move every row below it -- `docs/NEXT.md` has
- * the panel holding still as what this stage is for. Where an arm gets the room to run down
- * the page, the newline comes back with it. */
+ * construction here, and a real break would move every row below it. Where an arm gets the
+ * room to run down the page, the newline comes back with it. */
 const oneLine = text => text.replace(/\n/g, "\\n");
 
 /** An arm as an element, with what has just arrived marked apart from what was already

@@ -500,9 +500,8 @@ body.folded :is(#edge, #heat, #map, #chart-bar) { --off: var(--fold); }
    line, after the token, and leaves by the right edge -- the list it is drawn in is a thing
    the reader is scanning, so an arm that pushed the rows below it would move the next row
    out from under the pointer that was about to reach it. Newlines are escaped for the same
-   reason the rows escape theirs. `docs/NEXT.md` has the layout this is provisional against:
-   where the arm takes the space beside the column it gets the page's height to run down, and
-   the break comes back with it.
+   reason the rows escape theirs. It is provisional until an arm has room to run down the page,
+   which brings the break back with it.
 
    `clip` and not `hidden` on the page, because `hidden` would make the body a scroll
    container and put the bar back on. */

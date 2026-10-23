@@ -87,7 +87,7 @@ export function draw() {
 
 /** What a draw keeps, with nothing of what it draws.
  *
- *  **It is the panel cut along the line `docs/NEXT.md` already draws through it**: what is
+ *  **It is the panel cut along the line between what is drawn and what is kept**: what is
  *  drawn is `length` and the chain, what is kept is the record's depth and mass, and
  *  then the backend. A caller that decides the first pair for itself still owes the record
  *  the second, and a rollout is that caller -- it fixes its length and its heat, and takes

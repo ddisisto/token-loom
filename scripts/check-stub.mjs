@@ -199,7 +199,7 @@ is("but one that ran out exactly at the cap is not, there being no room to spend
 /* The two that stop and cannot be bought. A roll at either merges onto what the record
  * already holds and writes nothing, so a price would be charging for an arm that will not
  * appear -- and the reader, having paid, would have no way to tell the failure from a model
- * with nothing to say. Each wants a mark of its own, which is `docs/NEXT.md`'s glyph. */
+ * with nothing to say. Each wants a mark of its own. */
 fresh();
 stub.landed(7, answer(5, stub.CLOSED));
 is("an arm the reader closed is short and is not for sale", stub.costly(7), false);
