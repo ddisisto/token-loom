@@ -353,20 +353,14 @@ where hidden text may appear: the live path is chosen first and is the same path
 what is hidden only ever carries it on from where the live one ran out. A hidden node is never
 preferred to a live one, because it is never offered beside one.
 
-**Nothing the reader did not ask for need arrive live.** A stub is inference the instrument
-spent rather than a continuation the reader chose, so it can be born set aside and be reached the
-way everything else set aside is reached. That costs no new field and no new state. **It is
-written rather than withheld until it is taken**, which is the answer for a stub the reader never
-asked for as much as for one they hovered: a rollout nobody took is still something the instrument
+**A stub lands live, and the flag keeps one meaning.** A stub is inference the instrument spent
+rather than a continuation the reader chose, and born set aside it would read as one the reader
+closed, so *I have put this away* would stop being what the flag says. What keeps a bought arm
+from moving the text is that it is bought where it stands, which *Arms* has. **It is written
+rather than withheld until it is taken**: a rollout nobody took is still something the instrument
 did, and a record that drops what was spent unbidden is a record of a different session than the
-one that happened.
-
-**It does load one flag with two meanings**, and they are near enough to share it: *I have put
-this away*, and *nobody has taken this up yet*. What tells them apart is the act and not the
-node — an act carries its actor — so a reader who needs the difference has it and the column
-does not have to draw it. What it does not reach is *where* such a node sits: a stub hangs beside
-a path rather than below its end, and the rule above only carries a path on from the end. Seeing
-one is Rankings' business and not the column's.
+one that happened. What tells a stub from a continuation the reader chose is the act and not the
+node, so a reader who needs the difference has it and the column does not have to draw it.
 
 **Anything that spends inference without the reader pointing at it acts as its own source.** A
 hover is the reader asking, so a rollout under one is theirs and lands under the actor every other
@@ -530,8 +524,6 @@ already paid for is not paced, since a wait before it would charge the reader fo
 token and leaves by the right edge of the page rather than wrapping or scrolling; newlines are
 escaped as the rows escape theirs. A list a reader is scanning must not move the next row out
 from under the pointer about to reach it, which is also why the price below sits out of flow.
-`docs/NEXT.md` has the layout this is provisional against — where the arm takes the space beside
-the column it gets the page's height, and the break comes back.
 
 **An arm says why it stopped, and only one of the reasons is a price.** It filled the room it was
 given, and says so, since a silent truncation reads as *that is all there was*; the record has no
@@ -564,9 +556,9 @@ proportional to what was looked at — crossing a row on the way elsewhere buys 
 stops the spending at the part in flight, and a row already rolled is not rolled again. It is
 what shows the model's preference wherever the reader looks, and the one thing that shows a
 repetition loop, which `docs/SPINE.md` has no measure able to mark. It spends against the page's
-rule that a way of looking is free, and two things keep that small: *Hidden* has a stub born set
-aside, so what is bought enters neither the live path nor the rule, and rows at one node share
-the path above them, so a second rollout there reprocesses a single token.
+rule that a way of looking is free, and two things keep that small: what is bought is bought
+where it stands, so it never moves the text being read, and rows at one node share the path
+above them, so a second rollout there reprocesses a single token.
 
 **A row nothing realised is bought the same way, and the fork comes first.** It is two acts rather
 than one and the `realise` is free, so resting on a row the record has never been down makes the
@@ -602,15 +594,14 @@ purchase reaches the page as the arm in its own row and by no other route.
 are alternatives to each other, and the row the path already takes is one of them — so letting
 *its* arm continue the column would read it in the column's measure while its rivals stay clipped
 to a line, which puts the incumbent ahead of them for a reason about the page and not the model.
-So every arm is read in the room a row gives it, and the room a row gives an arm is what has to
-grow.
+So every arm is read in the room a row gives it.
 
 **What the rule still decides is where a reader arrives**, and a tree that has been read over is a
 tree whose default path leans toward where the reading went. So the column falls behind the record
 while a reader looks: a bought arm is live and in the tree, the column goes on showing the path
 that was read before the purchase, and the next arrival may descend an arm nobody chose. That is
 the rule doing its job rather than the page failing at its own — a page that keeps up with every
-purchase keeps up by choosing one. `docs/NEXT.md` has what would change it and why nothing has.
+purchase keeps up by choosing one. *Which continuation rule, for what* has what would change it.
 
 ### Taking a row
 
@@ -626,13 +617,11 @@ truthful prefix of what the reader gets and not a separate rendering of the same
 row whose continuation already exists writes nothing: it is a path the store holds, so the gesture
 is a selection.
 
-**Taking a row is taking as much of it as the reader points at.** Once an arm has landed its
-nodes are ordinary nodes, so clicking inside it places the caret inside it: the token takes the
-token, a click into the continuation takes it up to there, and the end takes all of it — a prefix
-of any length, with no gesture of its own. Underneath, a row whose stub exists is brought back
-rather than made — `undelete` where the flag sits, and a `delete` after the cut where the reader
-stopped short of the end, so the record says what happened: *I took this token and set aside what
-the model did next.*
+**A click on a row takes its token, and a click inside its arm takes the arm up to there.** The
+caret lands on the node the row names, or on the arm's token the click fell on: a landed arm's nodes
+are ordinary nodes, so a prefix of any length is a selection and no act, and the path through it
+goes on by the rule past where the caret stands. From there the draw is the one at any caret: a
+sampled continuation from the token clicked, or a scroll that extends the path at its own tip.
 
 **A closed continuation is marked where it closed, and the mark is the way back.** *Nothing has
 run here* and *this was shut deliberately* end the same way with the toggle off — the text simply
@@ -828,7 +817,10 @@ when it is settled.
   other downward measures, most-recently-used and cumulative open time each serve some purpose,
   and they are comparable only by use; reading one tree under two of them is what settles one,
   which is why the path read takes the rule as a parameter. A rule that reads what the reader
-  did is what puts reader state in *Nothing written is only here*.
+  did is what puts reader state in *Nothing written is only here*. One that measures over what
+  was drawn and not over what was bought — a stub being any node no act but a greedy one
+  produced, which is derivable — is what would stop an arrival leaning toward where the reading
+  went.
 - **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each
   reads differently at a sharp position than at a flat one, and a real ranking is often one and
   sometimes the other. The bar drawn now is each row against the top row of its source, which
@@ -839,15 +831,15 @@ when it is settled.
 - **What a node two sources ranked should show.** Refusing is what the surface does and not an
   answer. Their disagreement may be the interesting quantity, in which case the overlay is a
   measure over sources rather than one that has to pick among them. What settles it is a tree two
-  models have both ranked, which nothing has yet produced.
+  models have both ranked, which nothing has yet produced. An arm that stops there says why and
+  carries no mark, so the same tree settles that too.
 - **Keyboard.** A ranking's rows are already the natural arrow-key sequence, but what the whole
   reader does under a keyboard — moving between positions, into a ranking and along it, taking
   a row in part or whole, back out without losing one's place — is unsettled. Resting on a row,
   which is how an arm is bought, has no keyboard equal at all. *Keyboard and mouse first* is the
   target and only half of it exists. What settles it is working a real tree
   with the mouse put away.
-- **What a click means.** A token opens a ranking, a row is taken at the depth it is clicked at,
-  a strand on the map is arrived at, and a click on nothing releases the caret to the end of the
+- **What a click means.** A token opens a ranking, a row is taken, a strand on the map is arrived at, and a click on nothing releases the caret to the end of the
   path. Four meanings for one gesture, told apart by what is under it. It works and it is not
   obviously right. What settles it is finding where the wrong one fires.
 - **Whether a control token is marked.** The store can tell a control token from text spelling the

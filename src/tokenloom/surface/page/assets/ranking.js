@@ -194,9 +194,9 @@ const says = (w, weigh) => {
 /** The rows at one node, as they stand beside the column.
  *
  *  `next` is the node the path takes from here, which is what makes one row the one taken.
- *  `pick` is handed a row and the payload it came from, and does whatever taking it means;
- *  nothing here decides that, because two of the three kinds cost nothing and the third is an
- *  act. It gets the payload and not the row alone because an act needs what the row does not
+ *  `pick` is handed a row, the payload it came from and the click, and does whatever taking it
+ *  means; nothing here decides that, because two of the three kinds cost nothing and the third
+ *  is an act. It gets the payload and not the row alone because an act needs what the row does not
  *  carry -- the node these are the alternatives at, and the source's name rather than the id
  *  the wire keys them by. Both are already here, and re-deriving either from where the reader
  *  is would be a second answer to a question the response has settled. `weigh` is the
@@ -254,7 +254,7 @@ export function list(payload, next, pick, weigh, rolls) {
         if (told) said.push(`${weigh.key} · ${told}`);
       }
       li.title = said.join("\n");
-      li.onclick = () => pick(row, payload);
+      li.onclick = event => pick(row, payload, event);
       if (rolls) {
         // `pointerenter`/`pointerleave` and not `over`/`out`: an arm drawn inside the row is
         // a descendant, so the bubbling pair would report the pointer leaving the row the

@@ -155,6 +155,13 @@ arm = stub.draw(stub.landed(7, { segments: [cell("a"), { ...cell("\ufffd"), deco
 is("a cell that spells no character is marked and still shown",
   arm.children.map(c => c.classList.contains("raw")), [false, true]);
 
+{
+  fresh();
+  const cells = [{ ...cell("a", 2), nodes: [{ id: 40 }, { id: 41 }] }, { ...cell("b"), nodes: [{ id: 42 }] }];
+  is("each cell carries the node a click on it takes the arm up to, its last",
+     stub.draw(stub.landed(7, { segments: cells, why: stub.ENDS })).children.map(c => c.dataset.node),
+     cells.map(c => String(c.nodes.at(-1).id)));
+}
 is("the arm is one element the caller hangs where it likes",
   arm.classList.contains("arm"), true);
 
@@ -199,7 +206,7 @@ is("but one that ran out exactly at the cap is not, there being no room to spend
 /* The two that stop and cannot be bought. A roll at either merges onto what the record
  * already holds and writes nothing, so a price would be charging for an arm that will not
  * appear -- and the reader, having paid, would have no way to tell the failure from a model
- * with nothing to say. Each wants a mark of its own, which is `docs/NEXT.md`'s glyph. */
+ * with nothing to say. Each wants a mark of its own. */
 fresh();
 stub.landed(7, answer(5, stub.CLOSED));
 is("an arm the reader closed is short and is not for sale", stub.costly(7), false);

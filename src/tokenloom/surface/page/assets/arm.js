@@ -44,8 +44,8 @@ let restingOn = null;  // where that row is drawn and the payload it came from
  * keeps a pointer crossing the page from asking a question, and this one keeps it from spending.
  * A reader sweeping a list passes over priced rows on the way to the one they want, and
  * the pulse is already there to be read before the dwell elapses -- so what is bought is
- * what was looked at. The number is a first one and is settled by use. */
-const DWELL = 420;
+ * what was looked at. */
+const DWELL = 500;
 
 export let buying = null;  // the node being rolled, or null -- one roll at a time
 let dwelling = null;  // the timer a rested pointer is counting down

@@ -16,8 +16,7 @@ a rule's verdict made before they looked.
 **A rule picks one future by something that has nothing to do with reading.** Under `ranked`,
 the path below the caret is whichever continuation the model ranked highest at each fork, and
 under `longest` whichever is tallest. An arrival can land on a stub nobody chose, because buying
-one made it the highest ranked or rolling one made it the tallest. That is what `docs/NEXT.md` leaves open under
-*a tree that has been read over leans toward where the reading went*. Under alternation no branch
+one made it the highest ranked or rolling one made it the tallest. Under alternation no branch
 is favoured for good, and nothing is chosen until the reader acts.
 
 **It is a continuation rule, of a kind that varies over time.** `docs/SURFACE.md` names a family

@@ -192,8 +192,11 @@ function clear() {
 /** Taking a row. Two of the three kinds cost nothing: the one the path took is where the
  *  reader already is, and one realised elsewhere is a selection -- which is the way back to
  *  an arm a draw parted from. The third is an act. */
-function took(row, payload) {
+function took(row, payload, event) {
   if (composing()) return;  // the same reason a click on a token does nothing
+  // Inside a landed arm, the arm up to the token clicked: a selection like any other.
+  const into = event?.target.closest?.(".arm [data-node]")?.dataset.node;
+  if (into !== undefined) return show(Number(into), Number(into)).catch(wrong);
   if (row.child === null) return writable ? realise(row, payload) : undefined;
   show(row.child, row.child).catch(wrong);
 }

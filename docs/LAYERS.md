@@ -168,7 +168,8 @@ block resolves: authored text the model would have produced sits low on the warm
 authored text that surprised it sits high, so where a reader's own writing stops being
 distinguishable from the model's becomes something the column shows rather than something the
 reader assumes. The hue cannot do this and was never going to — it is a fact about acts, and the
-edge of a voice is a fact about the model. `docs/NEXT.md` has the act that would supply it.
+edge of a voice is a fact about the model. Nothing yet prices a sequence the model did not draw,
+so nothing supplies it.
 
 **Who took a token is not a measure, and that is why it is not an overlay.** It has no domain, no
 second reading, and nothing to compare across positions — it is a fact with two values. So it
@@ -487,6 +488,11 @@ when it is settled.
   density for the tree, which reflows nothing. Deferred rather than open: what settles whether
   it is wanted at all is whether *what the rule passed over* and the rankings between them
   already answer *what else is here*, and that is knowable only once both are in use.
+- **One colour scale, chosen without comparison.** A place on the scale reaches the column as a
+  number between 0 and 1 and the stylesheet makes the colour, so a second scale is a rule and not
+  a rewrite — but only one has been tried, against one palette, in two themes. What would settle
+  which are worth keeping is reading the same path under several, since a scale is judged by what
+  it lets a reader see and not by anything the code can check.
 
 ## Status
 

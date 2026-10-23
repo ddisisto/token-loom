@@ -79,9 +79,7 @@ read that stacked arms need at the scale of tokens, so whichever of the two come
 it, and it is arithmetic over ids with a driver of its own.
 
 **The caret in the address.** A fragment naming the caret's node is correct while one server
-serves one tree, and with it back and forward retrace where the reader has been, which may answer
-much of what loses a reader. Every caret move replaces the entry and only an arrival adds one, or
-every click becomes a step back. A tree in the address as well needs a server that opens trees
+serves one tree. A tree in the address as well needs a server that opens trees
 on request, and that is its own piece of work.
 
 **Waypoints in the tree.** In the record a waypoint is a write, so it needs a verb, and it is a
