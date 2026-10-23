@@ -20,20 +20,31 @@ is the only reason they are numbered. One that has no file yet points at where i
 1. **[Reed](next/REED.md)**: forks close together combed straight, a tree inside and a comb
    outside, on a dial that trades the map's along for its across.
 2. **Map**: what `docs/MAP.md`'s Status names as designed and not built — the layers' colours on
-   the strands, and the trail moving to the halo.
+   the strands, and the trail moving to the halo — and a drawer of the map's own for its
+   controls, as the column has for the draw's.
 3. **[Waypoints](next/WAYPOINTS.md)**: positions the reader marks to find again, standing in the
    nav under their roots. Its first cut is in, and the map is where what follows it is drawn
    as well as listed.
-4. **[Alternation](next/ALTERNATION.md)**: a fork's branches taking turns in one place, weighted,
+4. **Threads**: how a path is decoded and drawn, reconsidered as primitives that the column, a
+   one-line view of a thread wherever one is useful and a passage shown over the map all compose,
+   so the page of the day is an arrangement of them. Where a thread holds a fork past what is in
+   view, it is a distribution there and not one branch picked, which is where Alternation comes
+   in. Past the primitives, and the transitions and links between them, the page is a grid each
+   place of which holds a list of threads, a thread or a map, sized by the reader rather than a
+   margin and a nav fixed by design. That is in tension with what `docs/SURFACE.md` fixes about
+   where things stand, which is settled by splitting it or by stating its placements as the
+   defaults of a control. No file yet.
+5. **[Alternation](next/ALTERNATION.md)**: a fork's branches taking turns in one place, weighted,
    and what is shown when the reader acts is what they get. It starts in the nav's trails, which
-   Waypoints made, and it may change what Arms has to lay out.
-5. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
+   Waypoints made, and it may change what Arms has to lay out. It is recast as part of Threads
+   when that is designed.
+6. **Arms**: draws stacked beside the row they were bought from, and the room in the margin that
    a stack is read in. *The page*, increments 1 and 2. The read that shows where a set of paths
    part is shared with Waypoints, and whichever of the two comes first builds it.
-6. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
+7. **Acts read back**: the settings a node was drawn under and the condition its act was taken in.
    *The page*, increment 3, and *The act's condition*. The two together open `acts` once and
    not twice.
-7. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
+8. **Scales and bounds**: a scale taken from what is in view, then how far a draw runs, how deep a
    measure looks and how wide a position branches. *The page*, increments 4 and 5. Branching
    waits on Arms, which is what makes a position wide.
 
@@ -402,6 +413,22 @@ quoted from a tree is a figure against a state of it, which is *Whether stamping
 occasion beyond the command* under Loose ends.
 
 ## Loose ends
+
+- **The map says what the pointer is over**: the node, its depth, its strand and the reed it is
+  in, in a line on the map's bar, so a place reported from use can be found again. It comes
+  first, because the bugs below need it.
+
+- **A scan stops short at a reed.** Ctrl and an arrow at the head of a reed with teeth that way
+  has said there is no branch further, where the drawing shows one. Found in use, and reproduced
+  once the map can name the place.
+
+- **The column and the map are split where the reader drags**, and a window too narrow for both
+  flips them, so the page is one column wide.
+
+- **`docs/SPINE.md`, `docs/INTERFERENCE.md` and `docs/PREMISE.md` are reread against how the
+  instrument is used now.** Some of what they say predates shifts in what it is for. Greedy is
+  still drawn regularly, for reasons that are specific and can be stated, and stating them is
+  part of the reread.
 
 - **Zoom in past the window.** The zoom stops where the thumb is the whole column, and reading
   finer structure up close wants it to go on: past 1.0 the thumb flips to an overlay saying how
