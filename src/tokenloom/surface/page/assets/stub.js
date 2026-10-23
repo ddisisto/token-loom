@@ -168,8 +168,7 @@ export function burst(node, { cap = CAP, size = BURST } = {}) {
 export const SHUT = "\u2298";
 
 /* A newline is shown and not obeyed, the way a row's own spelling is: an arm is one line by
- * construction here, and a real break would move every row below it. Where an arm gets the
- * room to run down the page, the newline comes back with it. */
+ * construction here, and a real break would move every row below it. */
 const oneLine = text => text.replace(/\n/g, "\\n");
 
 /** An arm as an element, with what has just arrived marked apart from what was already
@@ -201,6 +200,7 @@ export function draw(out) {
     // one is a real ending and the reader is owed the sight of it.
     if (cell.decodes === false) span.classList.add("raw");
     span.textContent = oneLine(cell.text);
+    span.dataset.node = String(cell.nodes.at(-1).id);  // what a click on it takes the arm up to
     arm.append(span);
   }
   // **An arm that was closed is terminated where it closed.** It ran out short of the cap

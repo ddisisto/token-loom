@@ -155,6 +155,13 @@ arm = stub.draw(stub.landed(7, { segments: [cell("a"), { ...cell("\ufffd"), deco
 is("a cell that spells no character is marked and still shown",
   arm.children.map(c => c.classList.contains("raw")), [false, true]);
 
+{
+  fresh();
+  const cells = [{ ...cell("a", 2), nodes: [{ id: 40 }, { id: 41 }] }, { ...cell("b"), nodes: [{ id: 42 }] }];
+  is("each cell carries the node a click on it takes the arm up to, its last",
+     stub.draw(stub.landed(7, { segments: cells, why: stub.ENDS })).children.map(c => c.dataset.node),
+     cells.map(c => String(c.nodes.at(-1).id)));
+}
 is("the arm is one element the caller hangs where it likes",
   arm.classList.contains("arm"), true);
 

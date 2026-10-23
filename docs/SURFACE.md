@@ -524,8 +524,6 @@ already paid for is not paced, since a wait before it would charge the reader fo
 token and leaves by the right edge of the page rather than wrapping or scrolling; newlines are
 escaped as the rows escape theirs. A list a reader is scanning must not move the next row out
 from under the pointer about to reach it, which is also why the price below sits out of flow.
-It is provisional: an arm given room beside the column would get the page's height, and the break
-would come back with it.
 
 **An arm says why it stopped, and only one of the reasons is a price.** It filled the room it was
 given, and says so, since a silent truncation reads as *that is all there was*; the record has no
@@ -596,8 +594,7 @@ purchase reaches the page as the arm in its own row and by no other route.
 are alternatives to each other, and the row the path already takes is one of them — so letting
 *its* arm continue the column would read it in the column's measure while its rivals stay clipped
 to a line, which puts the incumbent ahead of them for a reason about the page and not the model.
-So every arm is read in the room a row gives it, and the room a row gives an arm is what has to
-grow.
+So every arm is read in the room a row gives it.
 
 **What the rule still decides is where a reader arrives**, and a tree that has been read over is a
 tree whose default path leans toward where the reading went. So the column falls behind the record
@@ -620,8 +617,11 @@ truthful prefix of what the reader gets and not a separate rendering of the same
 row whose continuation already exists writes nothing: it is a path the store holds, so the gesture
 is a selection.
 
-**A click anywhere on a row takes its token.** The caret lands on the node the row names, and an
-arm drawn after the token is read and not taken, wherever on it the click falls.
+**A click on a row takes its token, and a click inside its arm takes the arm up to there.** The
+caret lands on the node the row names, or on the arm's token the click fell on: a landed arm's nodes
+are ordinary nodes, so a prefix of any length is a selection and no act, and the path through it
+goes on by the rule past where the caret stands. From there the draw is the one at any caret: a
+sampled continuation from the token clicked, or a scroll that extends the path at its own tip.
 
 **A closed continuation is marked where it closed, and the mark is the way back.** *Nothing has
 run here* and *this was shut deliberately* end the same way with the toggle off — the text simply
@@ -821,16 +821,6 @@ when it is settled.
   was drawn and not over what was bought — a stub being any node no act but a greedy one
   produced, which is derivable — is what would stop an arrival leaning toward where the reading
   went.
-- **Whether a click inside an arm takes the prefix up to there.** Once an arm has landed its
-  nodes are ordinary nodes, so a click into the continuation could place the caret there and take
-  a prefix of any length with no gesture of its own, the first *n* tokens arriving as the ancestry
-  of the path through the *n*th. It is a selection and no act. Settled by building it and reading
-  whether a reader reaches for it.
-- **Whether a click on a row nothing realised is still wanted.** Resting there 420 ms realises
-  it first, so a click after lands on what the hover made and differs only in arming the caret.
-  *Take this one* and *show me this one* may always have been two gestures. Settled by use.
-- **Whether 420 ms is the dwell.** Too short and a sweep leaves acts nobody wanted, too long and
-  resting stops feeling like pointing. Settled by reading with it.
 - **How a magnitude is drawn.** A number, a bar, a ramp, a share of the recorded mass. Each
   reads differently at a sharp position than at a flat one, and a real ranking is often one and
   sometimes the other. The bar drawn now is each row against the top row of its source, which

@@ -42,7 +42,7 @@ is the only reason they are numbered. One that has no file yet points at where i
    Waypoints made, and it may change what Arms has to lay out. It is recast as part of Threads
    when that is designed.
 5. **Arms**: draws stacked at the row they were bought from, under the settings on the page
-   rather than greedy only. Where a stack is read, and where an arm gets the room to run, is
+   rather than greedy only. Where a stack is read is
    Threads' question, since the margin it was meant to use is the map's. *Arms*, below. The read
    that shows where a set of paths part is shared with Waypoints, and whichever of the two comes
    first builds it.
