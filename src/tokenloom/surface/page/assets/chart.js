@@ -274,11 +274,13 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const [long, wide] = look.down ? [box.height, box.width] : [box.width, box.height];
   // Packed on the straight axis, so a fisheye moving with the thumb moves no strand across.
   const rows = map.layout(tree, { x: map.scale({ most, width: long, pad: map.PAD }), hairs, path });
-  const all = [...rows.values()];
-  // Too many rows to fit, the path's own row where the window is goes in the middle.
+  const all = [...rows.values()], lo = Math.min(...all);
+  // Too many rows to fit, the drawing stays where it stood and is cut off at the edges, and
+  // moves only to keep the path's row where the window is in view.
   const held = span ? map.holds(tree, path, (span[0] + span[1]) / 2) : null;
-  const { step, top } = map.fit(Math.min(...all), Math.max(...all), wide, look.down,
-                                rows.get(held?.head) ?? 0);
+  const { step, top, cut } = map.fit(lo, Math.max(...all), wide, look.down,
+    rows.get(held?.head) ?? 0,
+    chart !== null && chart.source === source && chart.wide === wide ? chart.zero : null);
   const x = lensed(most, long, span);
   const plan = map.plan(tree, rows, { x, hairs, path, step, top });
 
@@ -303,6 +305,9 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   }
   const caret = svg("line", { "data-key": "caret" }, "caret");
   const sweep = svg("line", { "data-key": "sweep", pathLength: 1 }, "sweep");
+  // An edge the drawing is cut off at says so.
+  for (const [side, at] of [[cut[0], 0.5], [cut[1], wide - 0.5]])
+    if (side) out.push(svg("line", lineAt(0, at, long, at), "cropped"));
   const pointed = svg("line", {}, "over");
   const teeth = svg("g", {}, "teeth");
   out.push(teeth, pointed, caret, sweep);
@@ -331,7 +336,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
   const combed = look.reed ? { forks, places } : null;
   chart = { source, tree, combed, teeth, x, plan, path, hairs, rows, back, top, most,
             lensAt: span, caret, sweep, pointed, thumb, ruler, bands, handle, els, line: lineAt,
-            step, byHead, down: look.down, long, wide,
+            step, byHead, down: look.down, long, wide, zero: top - lo * step,
             ys: new Map(plan.strands.map(s => [s.head, s.y])) };
   lit = null;
   onReed = null;

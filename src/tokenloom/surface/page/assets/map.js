@@ -674,14 +674,26 @@ export function onPlan(px, py, width, height, down) {
   return down ? { along: py, across: px } : { along: px, across: py };
 }
 
-/** How rows `lo` to `hi` stand across a map `wide` px: the step between two, and where row 0 is.
- *  Where they fit, from the margin's edge down the page and centred across it; where they do
- *  not, row `at` in the middle. */
-export function fit(lo, hi, wide, down, at = 0) {
+/** How far in from either edge, as a share of the map's breadth, the path's row is kept where
+ *  the rows do not fit. */
+export const HOLD = 0.15;
+
+/** How rows `lo` to `hi` stand across a map `wide` px: the step between two, `top` where the
+ *  highest stands, and which edges cut rows off, as `cut: [before, after]`. Where they fit, from
+ *  the margin's edge down the page and centred across it. Where they do not, row 0 stays at
+ *  `zero`, where the last drawing had it, unless that puts row `at`, the path's where the window
+ *  is, nearer an edge than `HOLD` of the breadth: then it moves just far enough. With no last
+ *  drawing, row `at` is in the middle. */
+export function fit(lo, hi, wide, down, at = 0, zero = null) {
   const step = Math.max(STEP[0], Math.min(STEP[1], (wide - 2 * PAD) / Math.max(1, hi - lo)));
-  const fits = (hi - lo) * step <= wide - 2 * PAD;
-  const top = !fits ? wide / 2 - at * step + lo * step : down ? PAD : (wide - (hi - lo) * step) / 2;
-  return { step, top };
+  if ((hi - lo) * step <= wide - 2 * PAD)
+    return { step, top: down ? PAD : (wide - (hi - lo) * step) / 2, cut: [false, false] };
+  const keep = wide * HOLD;
+  let z = zero ?? wide / 2 - at * step;
+  const there = z + at * step;
+  z += Math.max(0, keep - there) - Math.max(0, there - (wide - keep));
+  const top = z + lo * step;
+  return { step, top, cut: [top < 0, top + (hi - lo) * step > wide] };
 }
 
 /** A mark standing across the row at `across`, `along` the plan, as tall as rows `step` apart

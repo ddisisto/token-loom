@@ -585,6 +585,26 @@ for (const [lo, hi, wide, down] of [[-3, 2, 300, true], [-3, 2, 300, false], [0,
      [true, true]);
 }
 
+// Rows that do not fit stay where the last drawing had them, cut off at the edges, and move only
+// to keep the path's row in from either edge.
+{
+  const [lo, hi, wide] = [-200, 150, 300], keep = wide * m.HOLD;
+  const zeroOf = f => f.top - lo * f.step;
+  const at = (f, r) => zeroOf(f) + r * f.step;
+  const first = m.fit(lo, hi, wide, true, 0);
+  is("rows that do not fit, cut off at both edges", first.cut, [true, true]);
+  const held = m.fit(lo, hi, wide, true, 10, zeroOf(first));
+  is("  and drawn again with the path's row still in view, stand where they stood",
+     zeroOf(held), zeroOf(first));
+  const far = 200 / first.step;  // a row 200px past row 0, out past the edge's keep
+  const moved = m.fit(lo, hi, wide, true, far, zeroOf(first));
+  is("  and with it out of view, move just far enough to keep it in",
+     Math.abs(at(moved, far) - (wide - keep)) < 1e-9, true);
+  const back = m.fit(lo, hi, wide, true, -far, zeroOf(first));
+  is("  from either side", Math.abs(at(back, -far) - keep) < 1e-9, true);
+  is("  and rows that fit are cut off nowhere", m.fit(-3, 2, 300, true).cut, [false, false]);
+}
+
 // A run of steps across hurries each glide by `RUSH` while the last is still moving, down to
 // `BRISK`, and one taken from rest goes at the usual pace.
 let rush = { until: 0, pace: m.GLIDE }, now = 1000;
