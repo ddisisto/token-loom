@@ -19,7 +19,6 @@ const SVG = "http://www.w3.org/2000/svg";
 const LEAD = 100;          // ms the caret takes to where an arrival is going
 const SHOWN = 700;         // ms the zones' edges stay drawn across the map after they last moved
 const STRIDE = 400;        // ms it takes over a step of zoom
-const BOX = 5;             // px a reed's box is at the least along
 const OPEN = 2;            // steps of zoom a click on a reed takes in
 const TOOTH = 14;          // px of each tooth lit from the box while its reed is pointed at
 const SHAPE = ["x1", "y1", "x2", "y2", "cx", "cy", "r"];  // what a mark's geometry is
@@ -116,9 +115,8 @@ export async function charter() {
 function combedOf(source) {
   if (combing?.charted === charted && combing.rung === look.rung && combing.reed === look.reed)
     return combing;
-  const range = map.REEDS[look.reed];
   const got = map.reeds(source, map.hair(source, map.LADDER[look.rung], new Set()),
-                        { range, cap: map.SPAN * range });
+                        map.combAt(map.reedSteps(map.most(source)), look.reed));
   combing = { charted, rung: look.rung, reed: look.reed, ...got, tree: map.comb(source, got.reeds) };
   return combing;
 }
@@ -162,8 +160,7 @@ function marksOf(tree, plan, x, back) {
     if (fold !== undefined) marked.add(fold);
   }
   for (const r of plan.reeds)
-    out.push([`r${r.head}`, "line", lineAt((r.x0 + r.x1) / 2, r.y0 - 3, (r.x0 + r.x1) / 2, r.y1 + 3),
-              "reed", null, { "--span": `${Math.max(BOX, r.x1 - r.x0)}px` }]);
+    out.push([`r${r.head}`, "line", lineAt(r.x0, r.y0, r.x0, r.y1), "reed", null, {}]);
   for (const l of plan.links)
     out.push([`l${l.head}`, "line", lineAt(l.x, l.y0, l.x, l.y1), "link", l.head, {}]);
   for (const h of plan.hairs)
@@ -331,7 +328,7 @@ export function sketch({ glides = true, pace = map.paced(performance.now(), rush
     }
   }
   chartEl.replaceChildren(...out);
-  const combed = map.REEDS[look.reed] ? { forks, places } : null;
+  const combed = look.reed ? { forks, places } : null;
   chart = { source, tree, combed, teeth, x, plan, path, hairs, rows, back, top, most,
             lensAt: span, caret, sweep, pointed, thumb, ruler, bands, handle, els, line: lineAt,
             step, byHead, down: look.down, long, wide,
@@ -518,7 +515,7 @@ export function charting(event) {
   }
   // A click on a reed takes the reader to its input and zooms in about it.
   const p = chartPoint(event);
-  const reed = p === null ? null : map.reedAt(chart.plan, p.along, p.across, 3);
+  const reed = p === null ? null : map.reedAt(chart.plan, p.along, p.across, 5);
   if (reed !== null) {
     const depth = reed.from - 1;
     lead(reed.head, depth);
@@ -606,7 +603,7 @@ export function pointed(event) {
   // Over the text, the segment says what it is over itself.
   if (event.target !== $("column")) { pointReed(null); return; }
   const p = chartPoint(event);
-  pointReed(p === null ? null : map.reedAt(chart.plan, p.along, p.across, 3));
+  pointReed(p === null ? null : map.reedAt(chart.plan, p.along, p.across, 5));
   const hit = onReed !== null ? null : chartHit(event);
   const head = hit?.head ?? null;
   const got = hit !== null && chart.path.has(head) ? cells() : null;
@@ -711,17 +708,20 @@ function chartSays(effect, zones, combed = null) {
 /** The dial that combs forks close together into reeds, as the bar shows it: less, how close,
  *  and more. */
 function reedDial(button) {
+  const steps = map.reedSteps(charted === null ? 1 : map.most(charted.tree));
+  look.reed = Math.min(look.reed, steps.length - 1);
   const turn = by => () => {
-    look.reed = Math.min(map.REEDS.length - 1, Math.max(0, look.reed + by));
+    look.reed = Math.min(steps.length - 1, Math.max(0, look.reed + by));
     sketch({ pace: STRIDE });
   };
-  const range = map.REEDS[look.reed];
   const less = button("−", "comb less: more forks drawn where they are", false, turn(-1));
   const more = button("+", "comb more: forks further apart drawn as one reed", false, turn(1));
   less.disabled = look.reed === 0;
-  more.disabled = look.reed === map.REEDS.length - 1;
+  more.disabled = look.reed === steps.length - 1;
   return [less, Object.assign(document.createElement("span"), {
-    className: "rung", textContent: range ? `reed ≤${range}` : "uncombed",
+    className: "rung",
+    textContent: !look.reed ? "uncombed" : look.reed === steps.length - 1 ? "reed all"
+      : `reed ≤${steps[look.reed]}`,
     title: "how close forks are, in tokens, to be combed into one reed",
   }), more];
 }

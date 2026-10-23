@@ -256,15 +256,23 @@ is("  and a scan walks them in that order",
 const reededPlan = m.plan(reeded, viaFour, { x, hairs: none, path: through, step: 10 });
 const reedBox = reededPlan.reeds[0];
 const yOf = h => reededPlan.strands.find(s => s.head === h).y;
-is("it is drawn as a box along its span, across its teeth's rows",
+is("it is drawn as a rail at its top, across its teeth's rows, read along its span",
    [reedBox.x0, reedBox.x1, reedBox.y0, reedBox.y1], [x(10), x(14), yOf(60), yOf(70)]);
-is("  its teeth drawn from its far edge",
-   [50, 60, 4, 70].map(h => reededPlan.strands.find(s => s.head === h).x0), [x(14), x(14), x(14), x(14)]);
+is("  its teeth each drawn from it as the whole route",
+   [50, 60, 4, 70].map(h => reededPlan.strands.find(s => s.head === h).x0), [x(10), x(10), x(10), x(10)]);
 is("  with no links", reededPlan.links.filter(l => reeded.byHead.get(l.head).up === 1), []);
-is("  and a point on it is the reed", m.reedAt(reededPlan, x(12), (reedBox.y0 + reedBox.y1) / 2, 3)?.head, 1);
-is("  and one past it is not", m.reedAt(reededPlan, x(20), reedBox.y0, 3), null);
-is("the path stands on the reed's top inside it, and on its tooth past it",
-   [11, 16].map(d => m.holds(reeded, leaving, d).head), [1, 60]);
+is("  and a point on the rail is the reed", m.reedAt(reededPlan, x(10) + 2, (reedBox.y0 + reedBox.y1) / 2, 3)?.head, 1);
+is("  and one along a tooth is not", m.reedAt(reededPlan, x(13), reedBox.y0, 3), null);
+is("the path stands on its tooth from the reed's top on, and on the strand above it before",
+   [9, 11, 16].map(d => m.holds(reeded, leaving, d).head), [1, 60, 60]);
+is("  and a point on a tooth before it really left is a token on its route",
+   m.hit(reeded, reededPlan, x, x(11.5), yOf(60), 2), { head: 60, tail: 64, depth: 11 });
+const widest = m.reedSteps(m.most(row));
+is("the dial runs doubling from nothing to the whole tree", widest, [0, 2, 4, 8, 16, 32, 44]);
+const all = m.reeds(row, none, m.combAt(widest, widest.length - 1));
+is("  and at its widest a root is one reed, every leaf a tooth",
+   [all.reeds.length, all.places, m.comb(row, all.reeds).kids.get(1).filter(k => k.leaf).length],
+   [1, 1, row.strands.filter(s => s.leaf).length]);
 is("a cap parts a ladder", m.reeds(row, none, { range: 4, cap: 3 }).reeds
    .map(({ head, from, to }) => [head, from, to]), [[1, 10, 12]]);
 is("no range combs nothing, and the tree is the one given",
@@ -377,7 +385,7 @@ for (let t = 0; t < 80; t++) {
   const drawn = m.plan(tree, rows, { x, hairs, path, step: 5 });
   for (const a of drawn.reeds) for (const b of drawn.reeds)
     if (a !== b && a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1) overboxed++;
-  for (const r of drawn.reeds) for (const t of r.teeth) if (t.x < r.x1 - 1e-9) unedged++;
+  for (const r of drawn.reeds) for (const t of r.teeth) if (t.x !== r.x0) unedged++;
   // A reed's box stands in for the links of its teeth.
   const linked = new Set([...drawn.links.map(l => l.head),
                           ...tree.strands.filter(s => drawn.reeds.some(r => r.head === s.up)).map(s => s.head)]);
@@ -391,7 +399,7 @@ is("a tooth is a tooth of an ancestor's, where it really left", unmoved, 0);
 is("  and the places reeds make are the forks less those they took in", uncounted, 0);
 is("no reed's box overlaps another's", overboxed, 0);
 is("a reed's teeth stand in slot order", unslotted, 0);
-is("  and are drawn from its far edge", unedged, 0);
+is("  and are drawn from its top", unedged, 0);
 
 // A scan from the root down, and from the last leaf up, meets every leaf that has a row and
 // reaches the focus, once each and in the order's own order; and bounded below, a step there

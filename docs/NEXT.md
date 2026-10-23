@@ -403,6 +403,12 @@ occasion beyond the command* under Loose ends.
 
 ## Loose ends
 
+- **Zoom in past the window.** The zoom stops where the thumb is the whole column, and reading
+  finer structure up close wants it to go on: past 1.0 the thumb flips to an overlay saying how
+  much of the window the fisheye has compacted at the edges, and bands pushed out to their
+  least height spawn new ones, building a wall of the densest. It changes what the thumb and the
+  lens mean, which the scale and the scan both stand on, so it is a branch of its own.
+
 - **The trail walked back.** `docs/MAP.md` keeps the last twenty paths a reader
   was on, and back is the gesture that takes the last one off: each arrival a history entry, so
   the browser's back, a mouse's and a key all pop it, forward puts it back, and it stops at the
