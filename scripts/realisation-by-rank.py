@@ -6,15 +6,14 @@
 `docs/SPINE.md` leaves open *whether a well-sampled tree is its own reference arm*: the greedy
 child is the likeliest to be drawn, so it should be the first row at each position to acquire
 a node, and a tree visited enough would hold the model's preference as readable text rather
-than as a number in a ranking. This is the measurement that document asks for, and **it has to
-be taken before anything rolls a stub out on hover** -- a pointer that generates from the top
-row drives that row's realisation to one and leaves the curve measuring the pointer.
+than as a number in a ranking. This is the measurement that document asks for, and **a stub
+has to be kept out of it** -- a pointer that generates from the top row drives that row's
+realisation to one and leaves the curve measuring the pointer.
 
-**Stubs are excluded by liveness and not by archaeology.** `docs/SURFACE.md` has a stub born
-set aside, so a node under a `delete` is a rollout the reader asked for and never a draw the
-sampler made. Nothing rolls stubs yet, which is the point: the numbers here are what a tree
-grown without them looks like, and the same script over a later tree says what the hover did
-to it.
+**Stubs are excluded as the reference arm, read off the acts.** `docs/SPINE.md` has a node on
+it when every act that produced it was greedy, which needs no flag and survives a merge. It
+excludes a greedy run drawn on purpose for the same reason it excludes a hovered one. What is
+set aside is excluded too, being no live child.
 
 Three readings, and they answer different halves:
 
@@ -36,6 +35,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from tokenloom.core import Store
+from tokenloom.core.reads import writings
 
 # Two logprobs within this are one row, as everywhere else: backends do not present near-ties
 # in a reproducible order, so ranking them against each other reads noise as preference.
@@ -51,8 +51,7 @@ VISITS = ((1, "1"), (2, "2"), (4, "3-4"), (8, "5-8"), (10**9, "9+"))
 
 
 def set_aside(conn) -> set[int]:
-    """Every node at or under a `delete`. This is the stub exclusion, and it is the whole of
-    it: a stub is born set aside and its continuation inherits that."""
+    """Every node at or under a `delete`."""
     return {
         row[0]
         for row in conn.execute("""
@@ -63,6 +62,16 @@ def set_aside(conn) -> set[int]:
             )
             SELECT id FROM dead
         """)
+    }
+
+
+def reference(conn) -> set[int]:
+    """Every node on the reference arm: each act that produced it a `generate` at temperature 0."""
+    parents = dict(conn.execute("SELECT id, parent FROM nodes"))
+    return {
+        node
+        for node, wrote in writings(conn, parents).items()
+        if all(w.op == "generate" and (w.params or {}).get("temperature") == 0 for w in wrote)
     }
 
 
@@ -122,7 +131,8 @@ def rows(conn, dead: set[int]):
 def survey(where: Path) -> None:
     with Store.open(where, verify=False) as store:
         conn = store.reader()
-        dead = set_aside(conn)
+        aside, greedy = set_aside(conn), reference(conn)
+        dead = aside | greedy
         size = subtree_sizes(conn, dead)
 
         seen: dict[int, list[int]] = defaultdict(lambda: [0, 0])
@@ -136,7 +146,7 @@ def survey(where: Path) -> None:
         print(f"\n=== {where}")
         print(f"  {len(seen) and sum(c for c, _ in seen.values()):,} ranked rows at "
               f"{len(set(taken)) :,} positions that took one, "
-              f"{len(dead):,} nodes set aside")
+              f"{len(aside):,} nodes set aside, {len(greedy - aside):,} on the reference arm")
 
         print("\n  by rank")
         for rank in range(1, DEPTH + 1):
